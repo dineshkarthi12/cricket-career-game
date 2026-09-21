@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ *
+ * Design system - derived from design/dashboard.png
+ * Every screen in the game must pull its colours, radii, shadows and
+ * fonts from these tokens rather than hard-coding values.
+ * ------------------------------------------------------------------ */
+@theme {
+  /* Brand palette */
+  --color-brand-blue: #1e5ef0;
+  --color-brand-blue-soft: #e8effe;
+  --color-brand-green: #22a45d;
+  --color-brand-orange: #f59e0b;
+  --color-brand-red: #e5484d;
+  --color-brand-gold: #f5c518;
+  --color-brand-navy: #0f1b33;
+
+  /* Surfaces */
+  --color-page: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-line: #e8ecf5;
+
+  /* Text */
+  --color-ink: #0f1b33;
+  --color-ink-muted: #5b6577;
+  --color-ink-soft: #8a93a6;
+
+  /* Typography */
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-hand: 'Caveat', ui-serif, cursive;
+
+  /* Card geometry */
+  --radius-card: 16px;
+  --radius-tile: 12px;
+
+  --shadow-card: 0 1px 2px rgb(15 27 51 / 0.04), 0 8px 24px rgb(15 27 51 / 0.06);
+  --shadow-card-hover: 0 2px 4px rgb(15 27 51 / 0.06), 0 12px 32px rgb(15 27 51 / 0.1);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Wide, bold, uppercase wordmark used by the CRICKET CAREER logo. */
+.wordmark {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.font-hand {
+  font-family: var(--font-hand);
+}
