@@ -25,7 +25,9 @@ Source of truth for rules is `CAREER_MODE.md`; source of truth for visuals is
 | `/src/data` | Static data: stages, tournaments, venues, trophies, name pools. |
 | `/src/save` | 3-slot localStorage save system, autosave, export/import. |
 | `/src/store` | Zustand stores; the only bridge between engine and UI. |
-| `/src/components` | Reusable UI: Card, StatTile, ProgressBar, Tabs, Badge, Stepper. |
+| `/src/components` | Reusable UI: Card, StatTile, ProgressBar, Tabs, Badge, Avatar, Stepper, SkillRadar, Crest, Modal, Tooltip. |
+| `/src/layout` | The app shell: sidebar, icon rail, top bar, mobile tab bar. |
+| `/src/lib` | UI-side helpers: formatting and `GameState` selectors. |
 | `/src/screens` | Routed pages. |
 | `/public/assets` | Images. |
 
@@ -310,13 +312,52 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 
 ---
 
+## 8a. Design system (built in Phase 2)
+
+Tokens live in `src/index.css` under `@theme`; nothing hard-codes a colour.
+
+| Token | Value | Used for |
+|---|---|---|
+| `--color-page` | `#F4F6FB` | Page background |
+| `--color-surface` | `#FFFFFF` | Cards |
+| `--color-brand-blue` / `-soft` | `#1E5EF0` / `#E8EFFE` | Primary actions, active nav |
+| `--color-brand-green` | `#22A45D` | OVR, good form, wins |
+| `--color-brand-orange` | `#F59E0B` | Assessments, "vs" |
+| `--color-brand-red` | `#E5484D` | Selection meetings, fatigue, alerts |
+| `--color-brand-gold` | `#F5C518` | Crown, trophies, banner CTA |
+| `--color-brand-navy` | `#0F1B33` | Ink, bottom banner |
+| `--radius-card` / `--radius-tile` | 16px / 12px | Cards / tiles |
+| `--font-sans` / `--font-hand` | Poppins / Caveat | UI / handwritten quotes |
+
+Components in `/src/components` (barrel `@/components`): `Card`, `CardHeader`,
+`CardAction`, `StatTile`, `HeroStatTile`, `ProgressBar`, `Tabs`, `Badge`,
+`Avatar`, `Stepper`, `SkillRadar`, `RadarLegend`, `Crest`, `Modal`, `Tooltip`.
+Every screen must build from these rather than restyling a div.
+
+The shell in `/src/layout` (`AppShell`, `Sidebar`, `TopBar`, `MobileTabBar`,
+`Logo`, `navItems`) wraps every route:
+
+| Width | Navigation | Dashboard grid |
+|---|---|---|
+| ≥1280px | 200px sidebar | Hero with Next Match lapped over it, 4 cards per row |
+| ≥1024px | 200px sidebar | Next Match under the hero, 2 cards per row |
+| ≥768px | 72px icon rail | Next Match under the hero, 2 cards per row |
+| <768px | Bottom tab bar + "More" sheet | Everything stacked |
+
+UI-side derivations live in `/src/lib`: `format.ts` (timezone-safe dates,
+in-game relative times, overs, style labels) and `selectors.ts` (every
+dashboard figure read out of `GameState`). Screens never reach into the save
+shape directly.
+
+---
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Project setup, spec, data models, save system, placeholder Home | ✅ Done |
-| 2 | Design-system components + full Home dashboard | Next |
-| 3 | Match engine (ball-by-ball, commentary, scorecards) | Planned |
+| 2 | Design-system components + full Home dashboard | ✅ Done |
+| 3 | Match engine (ball-by-ball, commentary, scorecards) | Next |
 | 4 | 2D ground view and live match screen | Planned |
 | 5 | Selection, training and progression engines | Planned |
 | 6 | Season, calendar and tournament flow | Planned |

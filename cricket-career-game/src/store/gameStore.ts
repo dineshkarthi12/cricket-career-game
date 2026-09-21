@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createDemoCareer } from '@/data/demoCareer';
 import { createNewCareer, type NewCareerOptions } from '@/engine/newCareer';
 import {
   cancelAutosave,
@@ -13,6 +14,7 @@ import {
   setActiveSlot,
 } from '@/save';
 import { downloadSave } from '@/save/file';
+import { SAVE_SLOT_IDS } from '@/types';
 import type { GameState, SaveError, SaveMeta, SaveSlotId } from '@/types';
 
 interface GameStore {
@@ -25,7 +27,14 @@ interface GameStore {
   lastSavedAt: number | null;
 
   refreshSlots: () => void;
+  /**
+   * Resume the last career, or seed the demo career into slot 1 when this
+   * browser has never played. Safe to call more than once.
+   */
+  bootstrap: () => void;
   startNewCareer: (slot: SaveSlotId, options: NewCareerOptions) => boolean;
+  /** Write the `design/dashboard.png` career into a slot and load it. */
+  loadDemoCareer: (slot?: SaveSlotId) => boolean;
   loadCareer: (slot: SaveSlotId) => boolean;
   resumeLastCareer: () => boolean;
   saveNow: () => boolean;
@@ -49,6 +58,38 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastSavedAt: null,
 
   refreshSlots: () => set({ slots: listSlots() }),
+
+  bootstrap: () => {
+    if (get().state) return;
+    if (get().resumeLastCareer()) return;
+    const slots = listSlots();
+    const firstUsed = SAVE_SLOT_IDS.find((slot) => slots[slot - 1]);
+    if (firstUsed) {
+      get().loadCareer(firstUsed);
+      return;
+    }
+    get().loadDemoCareer(1);
+  },
+
+  loadDemoCareer: (slot = 1) => {
+    const state = createDemoCareer();
+    const result = saveToSlot(slot, state);
+    if (!result.ok) {
+      // Storage may be unavailable (private mode, quota). The demo career is
+      // still perfectly playable in memory, so show it anyway.
+      set({ state, slot: null, lastError: result.error });
+      return false;
+    }
+    setActiveSlot(slot);
+    set({
+      state,
+      slot,
+      slots: listSlots(),
+      lastError: null,
+      lastSavedAt: result.value.savedAt,
+    });
+    return true;
+  },
 
   startNewCareer: (slot, options) => {
     const state = createNewCareer(options);
