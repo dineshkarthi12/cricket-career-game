@@ -17,7 +17,7 @@ export function CommunityCard() {
             key={post.id}
             className="flex items-start gap-2.5 rounded-tile bg-page/70 px-2.5 py-2"
           >
-            <Avatar name={post.handle} size={32} />
+            <Avatar name={post.handle} size={32} decorative />
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline justify-between gap-2">
                 <span className="truncate text-[12.5px] font-semibold text-ink">{post.handle}</span>

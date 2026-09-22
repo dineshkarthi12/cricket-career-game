@@ -136,8 +136,9 @@ export const SettingsScreen = () => (
     route="/settings"
     phase="Phase 8"
     description="Save slots, difficulty, commentary detail and accessibility."
+    action={{ label: 'Manage save slots', to: '/slots' }}
     contents={[
-      'Save slots: load, delete, export, import',
+      'Save slots: load, delete, export, import — built',
       'Autosave and difficulty',
       'Commentary detail',
       'Reduced motion and accessibility',

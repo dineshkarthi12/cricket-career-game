@@ -1,4 +1,4 @@
-import { Card } from '@/components';
+import { Card, CardAction } from '@/components';
 import { NAV_ITEMS } from '@/layout/navItems';
 import { cn } from '@/lib/cn';
 
@@ -9,13 +9,21 @@ interface PlaceholderProps {
   /** What this screen will hold once its phase lands. */
   contents: string[];
   phase: string;
+  /** A part of this screen that is already built and reachable today. */
+  action?: { label: string; to: string };
 }
 
 /**
  * Stand-in for a screen that a later phase builds. Uses the same shell and
  * design-system components so the game never drops out of its own look.
  */
-export default function Placeholder({ route, description, contents, phase }: PlaceholderProps) {
+export default function Placeholder({
+  route,
+  description,
+  contents,
+  phase,
+  action,
+}: PlaceholderProps) {
   const item = NAV_ITEMS.find((nav) => nav.to === route);
   const Icon = item?.icon;
 
@@ -55,6 +63,12 @@ export default function Placeholder({ route, description, contents, phase }: Pla
             </li>
           ))}
         </ul>
+
+        {action ? (
+          <div className="mt-5">
+            <CardAction label={action.label} to={action.to} />
+          </div>
+        ) : null}
 
         <p className="font-hand mt-6 text-[21px] text-ink-muted">
           Discipline today, International tomorrow.

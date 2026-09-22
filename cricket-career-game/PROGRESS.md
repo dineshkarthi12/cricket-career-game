@@ -104,6 +104,21 @@
 6. `BottomBanner` — navy `banner-bg.jpg`, "More Than A Game." in Caveat,
    "REAL PLAYERS. REAL JOURNEYS." and the gold "Continue Career" button.
 
+**Slot picker and new career** (`/slots`, `/new`)
+- `SlotPicker` — the three save slots on one branded entry screen (no sidebar;
+  there is nothing to navigate to until a career is loaded). An occupied slot
+  shows the player, stage, age, OVR, matches, runs, season, in-game date and
+  real last-saved time, and offers Continue / Export / Delete. Delete asks for
+  confirmation inline. An empty slot offers "Start new career" or importing a
+  save file. Storage failures surface as an alert, never an exception.
+- `NewCareer` — player creation: name, date of birth, hometown, state, country,
+  role, batting and bowling style, shirt number and motto, plus the target
+  slot with an overwrite warning. Validates the name, the 8-16 age window a
+  career may start in, and the 1-99 shirt number, and shows the age the chosen
+  date of birth gives on day one. The career it creates starts at stage 1 with
+  no record, no trophies and no reputation.
+- Reachable from the top-bar avatar ("Switch career") and from Settings.
+
 **Other routes**
 - Every sidebar route resolves to a `Placeholder` screen using the same shell
   and components, listing what its own phase will build.
@@ -116,6 +131,9 @@
   34-run win over Andhra U-16, three inbox messages and one unlocked trophy.
 - `useGameStore.bootstrap()` resumes the active slot, falls back to the first
   occupied slot, and only seeds the demo career when the browser has no save.
+  It sets a `booted` flag so screens can tell "still starting up" apart from
+  "the player deleted their career"; Home redirects to `/slots` in the latter
+  case. `exportSlot(slot)` downloads any slot, loaded or not.
 - `src/data/community.ts` — simulated fan posts. Generated chatter, so it sits
   outside the save file; everything else on the dashboard reads from the store.
 - `src/lib/selectors.ts` — every dashboard figure derived from `GameState`
@@ -123,7 +141,7 @@
   axes, featured trophies, unread count).
 - `src/lib/format.ts` — timezone-safe dates, in-game relative times, overs.
 
-**Tests — 86 passing across 9 files** (52 new)
+**Tests — 103 passing across 11 files** (69 new)
 - Date, overs and in-game relative-time formatting, including timezone safety.
 - Demo career: identity, derived OVR 68 / potential 85, condition, stage
   statuses for all 20 stages, season figures, fixtures, match, trophies, and
@@ -135,7 +153,21 @@
 - Home: hero, next match (buttons disabled with the tooltip), 20-stage journey,
   schedule, training, stats, inbox, recent match, trophies, community, banner.
 - Store bootstrap: seeds the demo only when nothing is saved, resumes the
-  active slot, falls back to an occupied slot, and is idempotent.
+  active slot, falls back to an occupied slot, sets `booted`, and is idempotent.
+- Slot picker: three empty slots on a fresh browser, saved-career summary,
+  load-and-go, routing to the new-career form, two-step delete, "Current"
+  marker, and a storage failure surfacing as an alert rather than a crash.
+- New career: creates and opens a career, starts at stage 1 with nothing won,
+  rejects a missing name / out-of-range age / bad shirt number, honours the
+  slot in the URL, defaults to the first empty slot, and warns on overwrite.
+
+**Fixed while building the entry screens**
+- The dashboard's four-across card grid moved from `xl` (1280px) to `2xl`
+  (1536px, what the design is drawn at). Between the two it stays two-up, and
+  the Next Match card stacks under the hero instead of lapping over it — at
+  1280 the four-column row squeezed every card header onto two lines.
+- `Avatar` gained a `decorative` flag, so an avatar sitting next to a visible
+  name no longer makes a screen reader announce that name twice.
 
 **Deviations from `design/dashboard.png`** (deliberate, both noted for review)
 - The mock's Next Match and Recent Match read "Cooch Behar Trophy" with U-16

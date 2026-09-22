@@ -6,7 +6,13 @@ import { cancelAutosave, saveToSlot, setActiveSlot } from '@/save';
 function reset() {
   cancelAutosave();
   localStorage.clear();
-  useGameStore.setState({ state: null, slot: null, slots: [null, null, null], lastError: null });
+  useGameStore.setState({
+    state: null,
+    booted: false,
+    slot: null,
+    slots: [null, null, null],
+    lastError: null,
+  });
 }
 
 describe('store bootstrap', () => {
@@ -48,6 +54,12 @@ describe('store bootstrap', () => {
     useGameStore.getState().bootstrap();
     expect(useGameStore.getState().slot).toBe(3);
     expect(useGameStore.getState().state?.player.firstName).toBe('Meera');
+  });
+
+  it('marks itself booted so screens can tell startup from an empty slot list', () => {
+    expect(useGameStore.getState().booted).toBe(false);
+    useGameStore.getState().bootstrap();
+    expect(useGameStore.getState().booted).toBe(true);
   });
 
   it('does nothing when a career is already loaded', () => {

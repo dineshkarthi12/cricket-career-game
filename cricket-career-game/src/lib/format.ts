@@ -136,6 +136,13 @@ export function decimal(value: number | null, places = 1): string {
   return value.toFixed(places);
 }
 
+/** Real-world save time, e.g. "21 Sep 2026, 13:31". Used on slot cards. */
+export function formatTimestamp(ms: number): string {
+  const d = new Date(ms);
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${time}`;
+}
+
 /** Balls into overs, e.g. 291 -> "48.3". */
 export function ballsToOvers(balls: number): string {
   const remainder = balls % 6;

@@ -20,6 +20,9 @@ import type {
   Venue,
 } from '@/types';
 
+/** In-game date a brand new career begins on. */
+export const DEFAULT_START_DATE = '2026-06-01';
+
 export interface NewCareerOptions {
   firstName: string;
   lastName: string;
@@ -291,7 +294,7 @@ function emptySeason(year: number, startDate: string, stageId: CareerStageId): S
  * Nothing here grants progress - the player starts at stage 1 with a club side.
  */
 export function createNewCareer(options: NewCareerOptions): GameState {
-  const startDate = options.startDate ?? '2026-06-01';
+  const startDate = options.startDate ?? DEFAULT_START_DATE;
   const startStageId = options.startStageId ?? CAREER_STAGES[0].id;
   const stage = getStage(startStageId);
   const role = options.role ?? 'BATTER';

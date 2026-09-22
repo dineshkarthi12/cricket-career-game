@@ -28,7 +28,7 @@ export function HeroBanner({ state }: { state: GameState }) {
           src="/assets/player-hero.png"
           alt=""
           aria-hidden
-          className="absolute top-1.5 right-2 hidden h-[104%] w-auto object-contain object-top sm:block md:right-[8%] xl:right-[42%]"
+          className="absolute top-1.5 right-2 hidden h-[104%] w-auto object-contain object-top sm:block md:right-[8%] 2xl:right-[42%]"
         />
         <div className="hero-wash absolute inset-0" aria-hidden />
 
@@ -122,7 +122,7 @@ export function HeroBanner({ state }: { state: GameState }) {
             <button
               type="button"
               onClick={() => setStoryOpen(true)}
-              className="ml-auto hidden items-center gap-3 rounded-full py-1 pr-4 pl-1 text-[14px] font-medium text-white transition-colors hover:bg-white/10 lg:flex xl:mr-[27%]"
+              className="ml-3 hidden items-center gap-3 rounded-full py-1 pr-4 pl-1 text-[14px] font-medium text-white transition-colors hover:bg-white/10 lg:flex 2xl:ml-auto 2xl:mr-[27%]"
             >
               <span className="grid size-11 place-items-center rounded-full border-2 border-white/80 bg-white/10 backdrop-blur-sm">
                 <Play className="ml-0.5 size-4 fill-white text-white" />

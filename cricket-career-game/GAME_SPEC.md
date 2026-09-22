@@ -301,7 +301,7 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 
 | Screen | Route | Contents |
 |---|---|---|
-| **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import, player creation |
+| **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import, player creation — **built in Phase 2** |
 | **Live Match** | `/match/:id` | 2D top-down ground, fielders as dots, ball-path lines, ball-by-ball commentary, intent controls, Quick Sim |
 | **Scorecard** | `/match/:id/scorecard` | Full innings scorecards, fall of wickets, bowling figures, match report |
 | **Squad / Team** | `/team/:id` | Squad list, XI, rivals, team needs |
@@ -339,10 +339,13 @@ The shell in `/src/layout` (`AppShell`, `Sidebar`, `TopBar`, `MobileTabBar`,
 
 | Width | Navigation | Dashboard grid |
 |---|---|---|
-| ≥1280px | 200px sidebar | Hero with Next Match lapped over it, 4 cards per row |
+| ≥1536px | 200px sidebar | Hero with Next Match lapped over it, 4 cards per row |
 | ≥1024px | 200px sidebar | Next Match under the hero, 2 cards per row |
 | ≥768px | 72px icon rail | Next Match under the hero, 2 cards per row |
 | <768px | Bottom tab bar + "More" sheet | Everything stacked |
+
+The entry screens (`/slots`, `/new`) sit outside the shell entirely - there is
+nothing to navigate to until a career is loaded.
 
 UI-side derivations live in `/src/lib`: `format.ts` (timezone-safe dates,
 in-game relative times, overs, style labels) and `selectors.ts` (every

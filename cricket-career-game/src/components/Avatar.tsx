@@ -7,6 +7,11 @@ interface AvatarProps {
   size?: number;
   /** Ring around the avatar, as on the top bar. */
   ring?: boolean;
+  /**
+   * Set when the name is already visible next to the avatar, so screen
+   * readers do not announce it twice.
+   */
+  decorative?: boolean;
   className?: string;
 }
 
@@ -32,7 +37,14 @@ export function initialsOf(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-export function Avatar({ name, src, size = 40, ring = false, className }: AvatarProps) {
+export function Avatar({
+  name,
+  src,
+  size = 40,
+  ring = false,
+  decorative = false,
+  className,
+}: AvatarProps) {
   const tone = toneFor(name);
   return (
     <span
@@ -51,11 +63,11 @@ export function Avatar({ name, src, size = 40, ring = false, className }: Avatar
       title={name}
     >
       {src ? (
-        <img src={src} alt={name} className="size-full object-cover" />
+        <img src={src} alt={decorative ? '' : name} className="size-full object-cover" />
       ) : (
         <span aria-hidden>{initialsOf(name)}</span>
       )}
-      {src ? null : <span className="sr-only">{name}</span>}
+      {src || decorative ? null : <span className="sr-only">{name}</span>}
     </span>
   );
 }

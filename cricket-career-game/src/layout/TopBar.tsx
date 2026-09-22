@@ -1,4 +1,5 @@
 import { Bell, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Avatar, ProgressBar } from '@/components';
 
 interface TopBarProps {
@@ -47,13 +48,18 @@ export function TopBar({
           ) : null}
         </button>
 
-        <div className="flex items-center gap-2.5">
+        <Link
+          to="/slots"
+          title="Switch career"
+          className="flex items-center gap-2.5 rounded-xl p-1 transition-colors hover:bg-surface"
+        >
           <Avatar name={playerName} size={38} ring />
           <div className="hidden leading-tight sm:block">
             <p className="text-[14px] font-semibold text-ink">{playerName}</p>
             <p className="text-[12px] text-ink-muted">{title}</p>
           </div>
-        </div>
+          <span className="sr-only">Switch career</span>
+        </Link>
 
         <div className="hidden h-8 w-px bg-line lg:block" aria-hidden />
 
