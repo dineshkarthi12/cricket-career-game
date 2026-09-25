@@ -12,12 +12,14 @@ export function InningsBreak({
   userPlayerId,
   onContinue,
   onSimulateRest,
+  onFollowOn,
 }: {
   snap: LiveSnapshot;
   teamNameOf: (id: string) => string;
   userPlayerId: string | null;
   onContinue: () => void;
   onSimulateRest: () => void;
+  onFollowOn: (enforce: boolean) => void;
 }) {
   const last = snap.completed[snap.completed.length - 1];
   if (!last) return null;
@@ -39,10 +41,12 @@ export function InningsBreak({
           <div>
             <p className="text-[12px] font-semibold tracking-wide text-ink-soft uppercase">
               {snap.completed.length === 1 ? 'Innings break' : `End of innings ${last.number}`}
+              {last.declared ? ' · declared' : ''}
             </p>
             <p className="mt-1 text-[24px] leading-tight font-bold text-ink">
               {battingTeam} {last.runs}
               {last.allOut ? '' : `/${last.wickets}`}
+              {last.declared ? 'd' : ''}
               <span className="ml-2 text-[15px] font-semibold text-ink-muted">
                 ({ballsToOvers(last.balls)})
               </span>
@@ -55,6 +59,32 @@ export function InningsBreak({
             ) : null}
           </div>
 
+          {snap.followOnChoice ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-[13px] font-semibold text-ink">
+                A lead of {snap.followOnChoice.lead}. Enforce the follow-on?
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onFollowOn(true)}
+                  className="rounded-xl bg-brand-blue px-4 py-3 text-[13.5px] font-semibold text-white hover:bg-brand-blue/90"
+                >
+                  Enforce it
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onFollowOn(false)}
+                  className="rounded-xl border border-line bg-surface px-4 py-3 text-[13.5px] font-semibold text-ink hover:bg-page"
+                >
+                  Bat again
+                </button>
+              </div>
+              <p className="text-[11.5px] text-ink-muted">
+                Enforcing saves time but asks tired bowlers to go again.
+              </p>
+            </div>
+          ) : (
           <div className="flex flex-col gap-2">
             <button
               type="button"
@@ -72,6 +102,7 @@ export function InningsBreak({
               Sim the rest of the match
             </button>
           </div>
+          )}
         </div>
 
         <dl className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-3">

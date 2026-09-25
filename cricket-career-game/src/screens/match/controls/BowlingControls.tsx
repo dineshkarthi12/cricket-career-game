@@ -5,6 +5,7 @@
 import { memo } from 'react';
 import { Gauge } from 'lucide-react';
 import { ProgressBar } from '@/components';
+import { MATCH } from '@/engine/config';
 import type { BowlerPlan, SimPlayer } from '@/engine/match/types';
 import type { BowlerInningsLine, DeliveryLength, DeliveryLine } from '@/types';
 
@@ -44,6 +45,7 @@ export const BowlingControls = memo(function BowlingControls({
   roundTheWicket,
   overComplete,
   oversLeft,
+  spellOvers,
   onBowler,
   onPlan,
   onRoundTheWicket,
@@ -57,6 +59,8 @@ export const BowlingControls = memo(function BowlingControls({
   /** True between overs, when a new bowler may be chosen. */
   overComplete: boolean;
   oversLeft: number | null;
+  /** Overs in the current spell, including this one. */
+  spellOvers: number;
   onBowler: (id: string | null) => void;
   onPlan: (patch: Partial<BowlerPlan>) => void;
   onRoundTheWicket: (on: boolean) => void;
@@ -78,6 +82,14 @@ export const BowlingControls = memo(function BowlingControls({
             Economy {bowlerLine.economy.toFixed(2)} · {bowlerLine.maidens} maiden
             {bowlerLine.maidens === 1 ? '' : 's'}
             {oversLeft !== null ? ` · ${oversLeft} over${oversLeft === 1 ? '' : 's'} left` : ''}
+          </p>
+          <p className="mt-0.5 text-[11.5px] text-ink-muted">
+            Spell: {spellOvers} over{spellOvers === 1 ? '' : 's'}
+            {spellOvers > spellLimitOf(bowler) ? (
+              <span className="ml-1 font-semibold text-brand-orange">— tiring, losing their edge</span>
+            ) : (
+              <span className="text-ink-soft"> of about {spellLimitOf(bowler)} before tiring</span>
+            )}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <span className="flex items-center gap-1 text-[11px] text-ink-muted">
@@ -191,6 +203,12 @@ export const BowlingControls = memo(function BowlingControls({
     </div>
   );
 });
+
+function spellLimitOf(player: SimPlayer): number {
+  return bowlerKindLabel(player) === 'spin'
+    ? MATCH.bowling.spinSpellOvers
+    : MATCH.bowling.paceSpellOvers;
+}
 
 function bowlerKindLabel(player: SimPlayer): string {
   const style = player.bowlingStyle;

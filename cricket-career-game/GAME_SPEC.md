@@ -303,8 +303,8 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 | Screen | Route | Contents |
 |---|---|---|
 | **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import, player creation — **built in Phase 2** |
-| **Live Match** | `/match/:id` | 2D top-down ground, fielders as dots, ball-path lines, ball-by-ball commentary, intent controls, Quick Sim |
-| **Scorecard** | `/match/:id/scorecard` | Full innings scorecards, fall of wickets, bowling figures, match report |
+| **Live Match** | `/match/:fixtureId` | Pre-match, toss, 2D ground with controls and panels, innings break, post-match — **built in Phase 4** |
+| **Scorecard** | `/matches/:matchId` | Full innings scorecards, fall of wickets, bowling figures, charts, commentary — **built in Phase 4** |
 | **Squad / Team** | `/team/:id` | Squad list, XI, rivals, team needs |
 | **Player Profile** | `/player/:id` | Attributes, radar, condition, full record |
 | **Tournament** | `/tournament/:id` | Standings, fixtures, knockout bracket |
@@ -414,6 +414,34 @@ bands the tests enforce are recorded in `PROGRESS.md`.
 
 ---
 
+## 8c. Live match (built in Phase 4)
+
+- **One code path.** `stepBall` plays one delivery; `simulateInnings` and the
+  live controller (`createLiveMatch`) both call it, so watched and simulated
+  matches are the same game.
+- **Player decisions reach the ball.** `BallOverrides` — bowler, intent, plan,
+  field, shot direction, over/round the wicket. Unset decisions fall back to
+  the AI. Intent defaults to the AI's read of the situation.
+- **Captaincy.** Toss (captain only), declaration and follow-on (the user's
+  side, multi-day). Unanswered, the AI captain decides with the same random
+  draw the batch simulator uses.
+- **Parity.** `createLiveMatch` follows `simulateMatch` call for call (rain,
+  DLS, super over, time loss, declarations, follow-on); a test checks the two
+  produce identical matches from the same seed when the player decides nothing.
+- **Geometry.** Metres throughout (`src/lib/ground.ts`). Screen convention:
+  angle 0 up the screen, 90 screen-right (off side, right-hander), 180 down,
+  270 screen-left; left-handers mirrored. The circle is 27.43 m round both
+  sets of stumps; "inside" is measured to the line between them.
+- **Field rules** (`src/lib/fieldRules.ts`): the format's outside-the-circle
+  limit and five on the leg side in limited overs; two behind square on the
+  leg side in every format. Illegal fields never reach the engine.
+- **Rendering.** Ground, fielders and ball are separate memoised SVG layers;
+  the ball uses `animateMotion`, so nothing re-renders between balls.
+- **Career write-back.** `commitMatch` stores the match, marks the fixture,
+  updates season and career records, condition, XP, injuries and the inbox.
+
+---
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
@@ -421,8 +449,8 @@ bands the tests enforce are recorded in `PROGRESS.md`.
 | 1 | Project setup, spec, data models, save system, placeholder Home | ✅ Done |
 | 2 | Design-system components + full Home dashboard | ✅ Done |
 | 3 | Match engine (ball-by-ball, commentary, scorecards) | ✅ Done |
-| 4 | 2D ground view and live match screen | Next |
-| 5 | Selection, training and progression engines | Planned |
+| 4 | 2D ground view and live match screen | ✅ Done |
+| 5 | Selection, training and progression engines | Next |
 | 6 | Season, calendar and tournament flow | Planned |
 | 7 | IPL scouting and auction | Planned |
 | 8 | Stats, awards, community, settings, polish | Planned |

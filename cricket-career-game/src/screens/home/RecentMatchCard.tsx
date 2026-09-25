@@ -4,7 +4,7 @@ import { Badge, Card, Crest } from '@/components';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { ballsToOvers } from '@/lib/format';
 import { recentMatch } from '@/lib/selectors';
-import type { GameState } from '@/types';
+import type { GameState, Innings } from '@/types';
 
 /** The last completed match: both innings, your own contribution, the result. */
 export function RecentMatchCard({ state }: { state: GameState }) {
@@ -24,7 +24,11 @@ export function RecentMatchCard({ state }: { state: GameState }) {
   const home = state.teams[match.homeTeamId];
   const away = state.teams[match.awayTeamId];
   const tournament = TOURNAMENTS_BY_ID[match.tournamentId];
-  const [first, second] = match.innings;
+  // Each side's innings, in order: one each in limited overs, up to two each
+  // in a multi-day game ("301 & 160").
+  const inningsOf = (teamId: string) => match.innings.filter((i) => i.battingTeamId === teamId);
+  const homeInnings = inningsOf(match.homeTeamId);
+  const awayInnings = inningsOf(match.awayTeamId);
   const performance = match.userPerformance;
   const won = match.result?.type === 'WIN';
 
@@ -49,21 +53,8 @@ export function RecentMatchCard({ state }: { state: GameState }) {
       <div className="mt-1.5 flex items-center justify-between gap-2.5">
         {home ? <Crest crest={home.crest} size={32} label={home.name} /> : null}
         <div className="flex min-w-0 flex-1 items-start justify-between gap-2 px-1">
-          <InningsScore
-            team={home?.shortName ?? ''}
-            runs={first?.runs ?? 0}
-            wickets={first?.wickets ?? 0}
-            balls={first?.balls ?? 0}
-            allOut={first?.allOut ?? false}
-          />
-          <InningsScore
-            team={away?.shortName ?? ''}
-            runs={second?.runs ?? 0}
-            wickets={second?.wickets ?? 0}
-            balls={second?.balls ?? 0}
-            allOut={second?.allOut ?? false}
-            align="right"
-          />
+          <InningsScore team={home?.shortName ?? ''} innings={homeInnings} />
+          <InningsScore team={away?.shortName ?? ''} innings={awayInnings} align="right" />
         </div>
         {away ? <Crest crest={away.crest} size={32} label={away.name} /> : null}
       </div>
@@ -102,26 +93,26 @@ export function RecentMatchCard({ state }: { state: GameState }) {
 
 function InningsScore({
   team,
-  runs,
-  wickets,
-  balls,
-  allOut,
+  innings,
   align = 'left',
 }: {
   team: string;
-  runs: number;
-  wickets: number;
-  balls: number;
-  allOut: boolean;
+  innings: Innings[];
   align?: 'left' | 'right';
 }) {
+  const score = (i: Innings) => `${i.runs}${i.allOut ? '' : `/${i.wickets}`}${i.declared ? 'd' : ''}`;
+  const only = innings.length === 1 ? innings[0] : null;
+
   return (
     <span className={align === 'right' ? 'text-right' : 'text-left'}>
       <span className="block text-[13px] font-medium text-ink">{team}</span>
       <span className="block text-[16px] font-bold text-ink">
-        {runs}
-        {allOut ? '' : `/${wickets}`}{' '}
-        <span className="text-[13px] font-normal text-ink-soft">({ballsToOvers(balls)})</span>
+        {innings.length === 0 ? '—' : innings.map(score).join(' & ')}
+        {only ? (
+          <span className="ml-1 text-[13px] font-normal text-ink-soft">
+            ({ballsToOvers(only.balls)})
+          </span>
+        ) : null}
       </span>
     </span>
   );

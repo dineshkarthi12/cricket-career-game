@@ -389,11 +389,109 @@ a release shot; wickets cluster; and a rising required rate forces the pace.
 
 ---
 
-## ▶️ Next — Phase 4: 2D ground view and live match screen
+## ✅ Phase 4 — 2D match screen (complete)
 
-1. Top-down 2D ground with fielders as dots, drawn from `FieldSetting`.
-2. Ball-path lines from each delivery's `shotAngle` and `shotDistance`.
-3. Live match screen: commentary feed, intent controls, over-by-over scorecard.
-4. Wire "Play Match" and "Quick Sim" on the Home dashboard to the engine and
-   drop the "Coming in match engine phase" tooltip.
-5. Build the Matches screen and the scorecard over their placeholders.
+**Engine: one code path for watching and simulating**
+- `innings.ts` split into `createInningsState` / `stepBall` / `finishInnings`.
+  `simulateInnings` is now a loop over `stepBall`, so a match played on screen
+  and one simulated in the background follow exactly the same rules (a test
+  checks ball-by-ball play against bulk play from the same seed).
+- `BallOverrides` carries the player's decisions into the outcome calculation:
+  bowler for the over, batting intent, length / line / variation, field preset
+  or a hand-placed field, preferred shot direction, and over / round the wicket.
+  Anything left unset is decided by the AI exactly as in a simulated match.
+- `steer()` bends a shot towards the preferred direction in proportion to
+  contact and technique. Round the wicket raises the LBW share, cuts the
+  caught-behind share and costs a little accuracy (`MATCH.aroundTheWicket`).
+- `live.ts` — `createLiveMatch`: follows `simulateMatch` call for call — toss,
+  rain and DLS, super overs in tied knockouts, multi-day time loss,
+  declarations and the follow-on — plus alerts and a read-only snapshot that
+  includes the in-progress innings in the same `Innings` shape that gets
+  stored. A parity test plays 180 matches both ways and checks they are
+  identical ball for ball (scores, result, player of the match), plus a super
+  over, a follow-on and a rain-revised chase. So with no decisions from the
+  player, live play and Quick Sim are exactly the matches the balance suite
+  measures.
+- `lineup.ts` — career state → engine input: squads (generated from the save's
+  seed with stable ids when a save has none), a balanced default XI, batting
+  order, selection warnings, and a complete setup for a fixture.
+- `commit.ts` — folds a finished match back into the career: scorecard,
+  fixture, season figures, format and competition records, condition, XP and
+  level, injury, and an inbox report.
+
+**Ground view** (`src/screens/match/ground`, geometry in `src/lib/ground.ts`)
+- SVG in a metre-based viewBox drawn from the venue's real boundaries: oval,
+  mown bands, rope, 30-yard circle round both sets of stumps, square, strip,
+  creases and stumps. A straight drive has further to travel than a hook,
+  because the striker stands off the centre of the oval.
+- Three memoised layers — ground, fielders, ball — so a new ball only redraws
+  the ball layer. The ball runs on SVG `animateMotion`, so the browser
+  animates it and React renders nothing between balls.
+- 11 fielders with position labels; keeper, bowler and close catchers marked
+  differently. Distinct highlights for fours, sixes, wickets, drops and wides.
+- Run-up marker, pitch map, beehive, wagon wheel (overlay and chart).
+- Day / night, overcast, dry-pitch and worn-pitch looks; rain overlay.
+
+**Controls**
+- Batting: aggression slider (defaults to "reading the game" — the AI's call
+  — until the player moves it) and a target area.
+- Bowling: figures, spell, overs left, live fatigue, next bowler from those
+  legally available, length, line, variation, over / round the wicket.
+- Field: 7 presets, drag with snapping onto named positions and rings, live
+  count outside the circle, warnings for illegal fields (`src/lib/fieldRules.ts`).
+  An illegal field is never sent to the engine.
+- Captaincy: the toss call (when the user is captain), bowling changes, the
+  field, declaring a multi-day innings, and whether to enforce the follow-on
+  when the user's side has earned it. When nobody is asked (Quick Sim, "sim
+  the rest") the AI captain makes the same calls it makes in the batch sim.
+- Sim: next ball / over / wicket / innings, auto play, 4 speeds.
+
+**Panels and screens**
+- Score strip (score, overs, RR, RRR, runs needed, partnership, extras, both
+  batters, bowler, free hit, last six balls), scorecard, commentary, alerts,
+  worm, manhattan, over-by-over, wagon wheel, beehive, match info with pitch and
+  weather reports, ball condition, dew and reviews.
+- Pre-match (XI selection, batting order, opposition, conditions), toss,
+  innings break, post-match (result, every scorecard, your card, player of the
+  match, condition before/after, injury, charts).
+- Matches screen: fixtures to play or Quick Sim, results, and a full scorecard
+  page per match. Home's Play Match / Quick Sim buttons work; Recent Match shows
+  both innings per side for a multi-day game and links to its scorecard.
+
+**Responsive**
+- ≥1280px: ground and controls on the left, alerts and tabbed panels pinned on
+  the right. Below that: ground on top (height-capped), tabbed panels
+  (including Controls) underneath, and a compact sim bar pinned above the
+  mobile tab bar within thumb reach.
+
+**Bugs fixed on the way**
+- `placeField` indexed two player orderings with one counter, so a player
+  could be placed twice and another left off the field — in every match.
+- A bowler's overs and economy went stale when an innings ended mid-over.
+- The demo career shared one object between its format and competition
+  records, so a played match counted twice. `commitMatch` now clones the
+  competition record so an aliased save cannot double-count.
+
+**Balance (1000 matches per format, after the fielding fix)**
+
+| | T20 | ODI | Multi-day |
+|---|---|---|---|
+| 1st innings | 165.7 (RR 8.51) | 281.0 (RR 5.81) | 315.1 in 100.4 ov |
+| Spread p10 / med / p90 | 103 / 167 / 226 | 190 / 280 / 372 | 162 / 323 / 457 |
+| Top-six avg / SR | 27.3 / 144.5 | 41.2 / 97.6 | 35.6 / 56.3 |
+| Results | 0.5% ties | 0.7% ties | 43.4% draws |
+
+First-class career averages against mixed opposition: 39.2 / 44.3.
+
+**Tests — 264 passing across 21 files.**
+
+**Known limits**
+- A match in progress lives in memory; leaving the screen and coming back
+  resumes it, but reloading the page starts the fixture again.
+- The toss call is tied to the user being captain; the in-match team calls
+  (bowling, field, declaration, follow-on) are the player's either way, as in
+  other management sims.
+
+---
+
+## ▶️ Next — Phase 5: selection, training and progression engines

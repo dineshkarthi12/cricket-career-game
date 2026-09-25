@@ -73,10 +73,10 @@ export const Worm = memo(function Worm({
   return (
     <div style={{ height }} role="img" aria-label="Runs scored over by over">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
+        <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
           <CartesianGrid stroke="#e8ecf5" vertical={false} />
           <XAxis dataKey="over" tick={AXIS} axisLine={false} tickLine={false} />
-          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={34} />
+          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={40} allowDecimals={false} />
           <Tooltip
             contentStyle={{ borderRadius: 12, border: '1px solid #e8ecf5', fontSize: 12 }}
             labelFormatter={(over) => `Over ${over}`}
@@ -113,10 +113,10 @@ export const Manhattan = memo(function Manhattan({
   return (
     <div style={{ height }} role="img" aria-label="Runs per over, with wickets marked">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
+        <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
           <CartesianGrid stroke="#e8ecf5" vertical={false} />
           <XAxis dataKey="over" tick={AXIS} axisLine={false} tickLine={false} />
-          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={34} />
+          <YAxis tick={AXIS} axisLine={false} tickLine={false} width={40} allowDecimals={false} />
           <Tooltip
             contentStyle={{ borderRadius: 12, border: '1px solid #e8ecf5', fontSize: 12 }}
             labelFormatter={(over) => `Over ${over}`}

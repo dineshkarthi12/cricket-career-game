@@ -59,7 +59,15 @@ export const GroundBase = memo(function GroundBase({
 
   return (
     <g aria-hidden>
-      <rect x={0} y={0} width={box.width} height={box.height} fill={base} />
+      {/* Drawn well past the viewBox: when the ground is height-capped and
+          letterboxed, the spare space either side is still grass. */}
+      <rect
+        x={-box.width}
+        y={-box.height}
+        width={box.width * 3}
+        height={box.height * 3}
+        fill={base}
+      />
 
       <clipPath id="ground-oval">
         <ellipse
@@ -155,14 +163,21 @@ export const GroundBase = memo(function GroundBase({
       ))}
 
       {underLights ? (
-        <rect x={0} y={0} width={box.width} height={box.height} fill="#0f1b33" opacity={0.22} />
+        <rect
+          x={-box.width}
+          y={-box.height}
+          width={box.width * 3}
+          height={box.height * 3}
+          fill="#0f1b33"
+          opacity={0.22}
+        />
       ) : null}
       {cloudCover > 55 && !underLights ? (
         <rect
-          x={0}
-          y={0}
-          width={box.width}
-          height={box.height}
+          x={-box.width}
+          y={-box.height}
+          width={box.width * 3}
+          height={box.height * 3}
           fill="#4b5563"
           opacity={Math.min(0.22, (cloudCover - 55) / 200)}
         />

@@ -4,7 +4,6 @@
  */
 import { memo } from 'react';
 import { Target } from 'lucide-react';
-import { INTENT_BY_LEVEL } from '@/engine/match/types';
 
 const INTENT_LABELS = ['Block', 'Defend', 'Normal', 'Attack', 'All out'];
 const INTENT_HELP = [
@@ -34,9 +33,9 @@ export const BattingControls = memo(function BattingControls({
   onShotPreference,
   disabled = false,
 }: {
-  intent: number;
+  intent: number | null;
   shotPreference: number | null;
-  onIntent: (level: number) => void;
+  onIntent: (level: number | null) => void;
   onShotPreference: (angle: number | null) => void;
   disabled?: boolean;
 }) {
@@ -48,7 +47,7 @@ export const BattingControls = memo(function BattingControls({
             Aggression
           </label>
           <span className="text-[12.5px] font-semibold text-brand-blue">
-            {INTENT_LABELS[intent - 1]}
+            {intent === null ? 'Reading the game' : INTENT_LABELS[intent - 1]}
           </span>
         </div>
         <input
@@ -57,10 +56,10 @@ export const BattingControls = memo(function BattingControls({
           min={1}
           max={5}
           step={1}
-          value={intent}
+          value={intent ?? 3}
           disabled={disabled}
           onChange={(event) => onIntent(Number(event.target.value))}
-          className="mt-2 w-full accent-brand-blue"
+          className={`mt-2 w-full accent-brand-blue ${intent === null ? 'opacity-50' : ''}`}
           aria-describedby="intent-help"
         />
         <div className="mt-1 flex justify-between text-[10px] text-ink-soft">
@@ -69,8 +68,18 @@ export const BattingControls = memo(function BattingControls({
           ))}
         </div>
         <p id="intent-help" className="mt-1.5 text-[11.5px] text-ink-muted">
-          {INTENT_HELP[intent - 1]}
+          {intent === null
+            ? 'The batters judge it themselves: see off a spell, push on before a declaration, chase the rate.'
+            : INTENT_HELP[intent - 1]}
         </p>
+        <button
+          type="button"
+          disabled={disabled || intent === null}
+          onClick={() => onIntent(null)}
+          className="mt-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[11.5px] font-semibold text-ink hover:bg-page disabled:opacity-50"
+        >
+          Let them read the game
+        </button>
       </div>
 
       <div className="border-t border-line pt-3">
@@ -108,9 +117,6 @@ export const BattingControls = memo(function BattingControls({
         </div>
       </div>
 
-      <p className="text-[11px] text-ink-soft">
-        Engine intent: <span className="font-semibold">{INTENT_BY_LEVEL[intent - 1]}</span>
-      </p>
     </div>
   );
 });

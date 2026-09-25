@@ -7,6 +7,7 @@ import { FastForward, Pause, Play, SkipForward, Zap } from 'lucide-react';
 import { BALL_SPEEDS } from '@/store/matchStore';
 
 export const SimControls = memo(function SimControls({
+  compact = false,
   autoPlay,
   speed,
   busy,
@@ -17,6 +18,8 @@ export const SimControls = memo(function SimControls({
   onAuto,
   onSpeed,
 }: {
+  /** One row of buttons and no speed slider, for the pinned phone bar. */
+  compact?: boolean;
   autoPlay: boolean;
   speed: number;
   /** True while play cannot be advanced (innings break, match over). */
@@ -28,6 +31,51 @@ export const SimControls = memo(function SimControls({
   onAuto: (on: boolean) => void;
   onSpeed: (index: number) => void;
 }) {
+  if (compact) {
+    return (
+      <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-1.5">
+        <button
+          type="button"
+          onClick={onBall}
+          disabled={busy || autoPlay}
+          className="flex items-center justify-center gap-1 rounded-xl bg-brand-blue px-2 py-3 text-[13px] font-semibold text-white disabled:opacity-50"
+        >
+          <Play className="size-4 fill-white" aria-hidden />
+          Ball
+        </button>
+        <button
+          type="button"
+          onClick={() => onAuto(!autoPlay)}
+          disabled={busy}
+          aria-label={autoPlay ? 'Pause' : 'Auto play'}
+          className={[
+            'flex items-center justify-center gap-1 rounded-xl px-2 py-3 text-[12.5px] font-semibold disabled:opacity-50',
+            autoPlay ? 'bg-brand-orange text-white' : 'border border-line bg-surface text-ink',
+          ].join(' ')}
+        >
+          {autoPlay ? <Pause className="size-4" aria-hidden /> : <FastForward className="size-4" aria-hidden />}
+          {autoPlay ? 'Pause' : 'Auto'}
+        </button>
+        <button
+          type="button"
+          onClick={onOver}
+          disabled={busy || autoPlay}
+          className="rounded-xl border border-line bg-surface px-2 py-3 text-[12.5px] font-semibold text-ink disabled:opacity-50"
+        >
+          Over
+        </button>
+        <button
+          type="button"
+          onClick={onWicket}
+          disabled={busy || autoPlay}
+          className="rounded-xl border border-line bg-surface px-2 py-3 text-[12.5px] font-semibold text-ink disabled:opacity-50"
+        >
+          Wicket
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2.5">
       <div className="grid grid-cols-2 gap-2">

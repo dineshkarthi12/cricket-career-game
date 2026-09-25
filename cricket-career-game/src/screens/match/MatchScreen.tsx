@@ -117,6 +117,7 @@ export default function MatchScreen() {
         userPlayerId={state.player.id}
         onContinue={store.startNextInnings}
         onSimulateRest={store.simulateRest}
+        onFollowOn={store.chooseFollowOn}
       />
     );
   }
@@ -165,6 +166,7 @@ export default function MatchScreen() {
         onOver={store.nextOver}
         onWicket={store.toNextWicket}
         onInnings={store.toEndOfInnings}
+        onDeclare={store.declare}
         onAuto={store.setAutoPlay}
         onSpeed={store.setSpeed}
         showWagonWheel={showWagonWheel}

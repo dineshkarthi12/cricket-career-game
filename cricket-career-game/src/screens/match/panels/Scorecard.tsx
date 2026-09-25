@@ -13,14 +13,12 @@ export function Scorecard({
   /** Highlight the user's own line. */
   userPlayerId,
   strikerId,
-  nonStrikerId,
 }: {
   innings: Innings;
   battingTeam: string;
   bowlingTeam: string;
   userPlayerId?: string | null;
   strikerId?: string | null;
-  nonStrikerId?: string | null;
 }) {
   const batting = [...innings.batting].sort((a, b) => a.battingPosition - b.battingPosition);
   const yetToBat = 11 - batting.length;
@@ -56,7 +54,6 @@ export function Scorecard({
                 line={line}
                 isUser={line.playerId === userPlayerId}
                 onStrike={line.playerId === strikerId}
-                atCrease={line.playerId === strikerId || line.playerId === nonStrikerId}
               />
             ))}
           </tbody>
@@ -135,12 +132,10 @@ function BattingRow({
   line,
   isUser,
   onStrike,
-  atCrease,
 }: {
   line: BatterInningsLine;
   isUser: boolean;
   onStrike: boolean;
-  atCrease: boolean;
 }) {
   return (
     <tr className={isUser ? 'bg-brand-blue-soft/60' : undefined}>
@@ -150,7 +145,8 @@ function BattingRow({
           {onStrike ? <span className="text-brand-blue"> *</span> : null}
         </span>
         <span className="block text-[11px] text-ink-soft">
-          {line.out ? line.dismissalText : atCrease ? 'not out' : 'did not bat'}
+          {/* Only batters who came in are listed, so anyone not out is not out. */}
+          {line.out ? line.dismissalText : 'not out'}
         </span>
       </td>
       <td className="py-1 text-right font-semibold text-ink">{line.runs}</td>

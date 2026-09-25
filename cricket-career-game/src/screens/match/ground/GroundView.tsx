@@ -99,7 +99,7 @@ export function GroundView({
         <svg
           ref={svgRef}
           viewBox={`0 0 ${box.width} ${box.height}`}
-          className="ground-animated block h-full w-full touch-none select-none"
+          className="ground-animated block max-h-[72vh] w-full touch-none select-none"
           role="img"
           aria-label={`Top-down view of ${venue.name}`}
           onPointerMove={editable ? onMove : undefined}

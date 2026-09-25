@@ -6,8 +6,10 @@
 import { memo } from 'react';
 import { RotateCcw, Users } from 'lucide-react';
 import { FIELD_POSITIONS, FIELD_PRESET_NAMES, fieldersAllowedOutside } from '@/engine/match/field';
+import { fieldProblems, outsideCount } from '@/lib/fieldRules';
 import { CIRCLE_RADIUS } from '@/lib/ground';
 import type { FieldSetting } from '@/engine/match/types';
+import type { MatchFormat, Venue } from '@/types';
 
 const PRESET_LABELS: Record<string, string> = {
   ATTACKING_NEW_BALL: 'Attacking (new ball)',
@@ -19,31 +21,9 @@ const PRESET_LABELS: Record<string, string> = {
   POWERPLAY: 'Powerplay',
 };
 
-/** How many of a field's nine are outside the circle. */
-export function outsideCount(field: FieldSetting | null): number {
-  if (!field) return 0;
-  return field.fielders.filter((f) => f.distance > CIRCLE_RADIUS).length;
-}
-
-export function fieldProblems(
-  field: FieldSetting | null,
-  format: string,
-  over: number,
-): string[] {
-  if (!field) return [];
-  const allowed = fieldersAllowedOutside(format, over);
-  const outside = outsideCount(field);
-  const problems: string[] = [];
-  if (outside > allowed) {
-    problems.push(`${outside} outside the circle — only ${allowed} allowed right now.`);
-  }
-  const legSide = field.fielders.filter((f) => f.angle > 180).length;
-  if (legSide > 5) problems.push(`${legSide} behind square on the leg side — the limit is five.`);
-  return problems;
-}
-
 export const FieldEditor = memo(function FieldEditor({
   field,
+  venue,
   preset,
   format,
   over,
@@ -52,16 +32,18 @@ export const FieldEditor = memo(function FieldEditor({
   onReset,
 }: {
   field: FieldSetting | null;
+  venue: Venue;
   preset: string | null;
-  format: string;
+  format: MatchFormat;
   over: number;
   hasCustomField: boolean;
   onPreset: (name: string | null) => void;
   onReset: () => void;
 }) {
-  const allowed = fieldersAllowedOutside(format, over);
-  const outside = outsideCount(field);
-  const problems = fieldProblems(field, format, over);
+  const limited = format === 'T20' || format === 'ODI' || format === 'ONE_DAY';
+  const allowed = limited ? fieldersAllowedOutside(format, over) : 9;
+  const outside = outsideCount(field, venue);
+  const problems = fieldProblems(field, venue, format, over);
 
   return (
     <div className="flex flex-col gap-3">
@@ -117,13 +99,20 @@ export const FieldEditor = memo(function FieldEditor({
       ) : null}
 
       {problems.length > 0 ? (
-        <ul className="flex flex-col gap-1 rounded-lg bg-brand-red/8 p-2.5">
-          {problems.map((problem) => (
-            <li key={problem} className="text-[11.5px] font-medium text-brand-red">
-              {problem}
-            </li>
-          ))}
-        </ul>
+        <div className="rounded-lg bg-brand-red/8 p-2.5">
+          <ul className="flex flex-col gap-1">
+            {problems.map((problem) => (
+              <li key={problem} className="text-[11.5px] font-medium text-brand-red">
+                {problem}
+              </li>
+            ))}
+          </ul>
+          {hasCustomField ? (
+            <p className="mt-1.5 text-[11px] text-ink-muted">
+              The umpire will not allow it. The captain's field is used until you fix it.
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {field ? (
