@@ -1,0 +1,266 @@
+/**
+ * The balance harness: run a lot of matches and report what came out.
+ *
+ * This is engine code rather than test code because the report is the thing
+ * `config.ts` was tuned against, and it needs to stay runnable.
+ */
+import { VENUES_BY_ID } from '@/data/venues';
+import { createRng } from './rng';
+import { generateXi } from './squad';
+import { simulateMatch } from './simulate';
+import { isLimitedOvers } from './simulate';
+import type { MatchFormat, Venue } from '@/types';
+
+export interface Spread {
+  min: number;
+  p10: number;
+  p25: number;
+  median: number;
+  p75: number;
+  p90: number;
+  max: number;
+  /** Standard deviation of first-innings totals. */
+  stdDev: number;
+}
+
+export interface BalanceReport {
+  format: MatchFormat;
+  matches: number;
+  /** Mean first-innings total. */
+  firstInningsRuns: number;
+  firstInningsWickets: number;
+  firstInningsOvers: number;
+  runRate: number;
+  /** Mean across every completed batting innings by a top-six batter. */
+  battingAverage: number;
+  strikeRate: number;
+  economy: number;
+  bowlingAverage: number;
+  /** Share of dismissals by type, 0-1. */
+  dismissals: Record<string, number>;
+  /** Share of results. */
+  results: Record<string, number>;
+  boundariesPerInnings: { fours: number; sixes: number };
+  extrasPerInnings: number;
+  /** Per-ball rates from first innings only, which is what config is tuned on. */
+  perBall: { runs: number; wickets: number; fours: number; sixes: number };
+  hundredsPer100Innings: number;
+  fiftiesPer100Innings: number;
+  /** Spread of first-innings totals - real cricket is not all near the mean. */
+  spread: Spread;
+  /** Share of first innings under/over notable marks, 0-1. */
+  tails: Record<string, number>;
+}
+
+/** Run `count` matches of one format and summarise them. */
+export function runBalance(format: MatchFormat, count: number, seed = 20260925): BalanceReport {
+  const rng = createRng(seed);
+  const venue: Venue = VENUES_BY_ID['venue-chepauk'] ?? Object.values(VENUES_BY_ID)[0];
+
+  let firstRuns = 0;
+  let firstWickets = 0;
+  let firstBalls = 0;
+  let countedFirstInnings = 0;
+  let firstFours = 0;
+  let firstSixes = 0;
+  const firstTotals: number[] = [];
+
+  let topOrderRuns = 0;
+  let topOrderDismissals = 0;
+  let topOrderInnings = 0;
+  let topOrderBalls = 0;
+
+  let bowlRuns = 0;
+  let bowlBalls = 0;
+  let bowlWickets = 0;
+
+  let fifties = 0;
+  let hundreds = 0;
+  let battingInnings = 0;
+
+  let fours = 0;
+  let sixes = 0;
+  let extras = 0;
+  let inningsCount = 0;
+
+  const dismissals: Record<string, number> = {};
+  const results: Record<string, number> = {};
+
+  for (let i = 0; i < count; i += 1) {
+    const matchSeed = rng.int(1, 2 ** 30);
+    const strengthHome = rng.int(52, 72);
+    const strengthAway = rng.int(52, 72);
+
+    const homeXi = generateXi('home', strengthHome, createRng(matchSeed ^ 0x1111));
+    const awayXi = generateXi('away', strengthAway, createRng(matchSeed ^ 0x2222));
+
+    const { match } = simulateMatch({
+      fixtureId: `fx-${i}`,
+      tournamentId: 'balance',
+      seasonYear: 2026,
+      format,
+      stage: 'League',
+      date: '2026-11-15',
+      venue,
+      homeTeamId: 'home',
+      awayTeamId: 'away',
+      homeXi,
+      awayXi,
+      userIsHome: true,
+      seed: matchSeed,
+      month: 11,
+    });
+
+    results[match.result?.type ?? 'NONE'] = (results[match.result?.type ?? 'NONE'] ?? 0) + 1;
+
+    const first = match.innings[0];
+    if (first) {
+      // Only count innings that were actually completed, so a chase that
+      // finished early does not drag the average down.
+      firstRuns += first.runs;
+      firstWickets += first.wickets;
+      firstBalls += first.balls;
+      countedFirstInnings += 1;
+      firstTotals.push(first.runs);
+      for (const bat of first.batting) {
+        firstFours += bat.fours;
+        firstSixes += bat.sixes;
+      }
+    }
+
+    for (const innings of match.innings) {
+      inningsCount += 1;
+      extras += innings.extrasTotal;
+
+      for (const bat of innings.batting) {
+        battingInnings += 1;
+        fours += bat.fours;
+        sixes += bat.sixes;
+        if (bat.runs >= 100) hundreds += 1;
+        else if (bat.runs >= 50) fifties += 1;
+
+        if (bat.battingPosition <= 6) {
+          topOrderRuns += bat.runs;
+          topOrderBalls += bat.balls;
+          topOrderInnings += 1;
+          if (bat.out) topOrderDismissals += 1;
+        }
+      }
+
+      for (const bowl of innings.bowling) {
+        bowlRuns += bowl.runsConceded;
+        bowlBalls += bowl.balls;
+        bowlWickets += bowl.wickets;
+      }
+
+      for (const ball of innings.deliveries) {
+        if (ball.wicket) {
+          dismissals[ball.wicket.type] = (dismissals[ball.wicket.type] ?? 0) + 1;
+        }
+      }
+    }
+  }
+
+  const totalDismissals = Object.values(dismissals).reduce((a, b) => a + b, 0) || 1;
+  const share = (source: Record<string, number>, total: number) =>
+    Object.fromEntries(Object.entries(source).map(([k, v]) => [k, Number((v / total).toFixed(4))]));
+
+  return {
+    format,
+    matches: count,
+    firstInningsRuns: round(firstRuns / Math.max(1, countedFirstInnings)),
+    firstInningsWickets: round(firstWickets / Math.max(1, countedFirstInnings)),
+    firstInningsOvers: round(firstBalls / 6 / Math.max(1, countedFirstInnings)),
+    runRate: round((firstRuns / Math.max(1, firstBalls)) * 6),
+    battingAverage: round(topOrderRuns / Math.max(1, topOrderDismissals)),
+    strikeRate: round((topOrderRuns / Math.max(1, topOrderBalls)) * 100),
+    economy: round((bowlRuns / Math.max(1, bowlBalls)) * 6),
+    bowlingAverage: round(bowlRuns / Math.max(1, bowlWickets)),
+    dismissals: share(dismissals, totalDismissals),
+    results: share(results, count),
+    boundariesPerInnings: {
+      fours: round(fours / Math.max(1, inningsCount)),
+      sixes: round(sixes / Math.max(1, inningsCount)),
+    },
+    extrasPerInnings: round(extras / Math.max(1, inningsCount)),
+    hundredsPer100Innings: round((hundreds / Math.max(1, battingInnings)) * 100),
+    fiftiesPer100Innings: round((fifties / Math.max(1, battingInnings)) * 100),
+    spread: describeSpread(firstTotals),
+    tails: tailsFor(format, firstTotals),
+    perBall: {
+      runs: Number((firstRuns / Math.max(1, firstBalls)).toFixed(5)),
+      wickets: Number((firstWickets / Math.max(1, firstBalls)).toFixed(5)),
+      fours: Number((firstFours / Math.max(1, firstBalls)).toFixed(5)),
+      sixes: Number((firstSixes / Math.max(1, firstBalls)).toFixed(5)),
+    },
+  };
+}
+
+function round(value: number): number {
+  return Number(value.toFixed(2));
+}
+
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.round((p / 100) * (sorted.length - 1))));
+  return sorted[index];
+}
+
+function describeSpread(values: number[]): Spread {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mean = sorted.reduce((a, b) => a + b, 0) / Math.max(1, sorted.length);
+  const variance =
+    sorted.reduce((sum, v) => sum + (v - mean) ** 2, 0) / Math.max(1, sorted.length - 1);
+  return {
+    min: sorted[0] ?? 0,
+    p10: percentile(sorted, 10),
+    p25: percentile(sorted, 25),
+    median: percentile(sorted, 50),
+    p75: percentile(sorted, 75),
+    p90: percentile(sorted, 90),
+    max: sorted[sorted.length - 1] ?? 0,
+    stdDev: round(Math.sqrt(variance)),
+  };
+}
+
+/** Share of innings at the extremes each format should be able to reach. */
+function tailsFor(format: MatchFormat, totals: number[]): Record<string, number> {
+  const n = Math.max(1, totals.length);
+  const share = (fn: (v: number) => boolean) => Number((totals.filter(fn).length / n).toFixed(4));
+
+  if (format === 'T20') {
+    return { 'under 100': share((v) => v < 100), 'over 200': share((v) => v > 200), 'over 240': share((v) => v > 240) };
+  }
+  if (format === 'ODI' || format === 'ONE_DAY') {
+    return { 'under 150': share((v) => v < 150), 'over 350': share((v) => v > 350), 'over 400': share((v) => v > 400) };
+  }
+  return { 'under 150': share((v) => v < 150), 'over 450': share((v) => v > 450), 'over 550': share((v) => v > 550) };
+}
+
+/** Format a report as a block of text for the console. */
+export function formatReport(report: BalanceReport): string {
+  const pct = (record: Record<string, number>) =>
+    Object.entries(record)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k} ${(v * 100).toFixed(1)}%`)
+      .join(', ');
+
+  const overs = isLimitedOvers(report.format) ? '' : ` in ${report.firstInningsOvers} overs`;
+  const s = report.spread;
+  const tails = Object.entries(report.tails)
+    .map(([k, v]) => `${k} ${(v * 100).toFixed(1)}%`)
+    .join(', ');
+
+  return [
+    `--- ${report.format} (${report.matches} matches) ---`,
+    `1st innings      ${report.firstInningsRuns}/${report.firstInningsWickets}${overs}  (RR ${report.runRate})`,
+    `Top-six batting  avg ${report.battingAverage}, SR ${report.strikeRate}`,
+    `Bowling          econ ${report.economy}, avg ${report.bowlingAverage}`,
+    `Boundaries/inns  ${report.boundariesPerInnings.fours} fours, ${report.boundariesPerInnings.sixes} sixes, extras ${report.extrasPerInnings}`,
+    `Milestones       ${report.fiftiesPer100Innings} fifties, ${report.hundredsPer100Innings} hundreds per 100 innings`,
+    `Spread (1st)     min ${s.min} | p10 ${s.p10} | p25 ${s.p25} | med ${s.median} | p75 ${s.p75} | p90 ${s.p90} | max ${s.max}  (sd ${s.stdDev})`,
+    `Tails            ${tails}`,
+    `Dismissals       ${pct(report.dismissals)}`,
+    `Results          ${pct(report.results)}`,
+  ].join('\n');
+}

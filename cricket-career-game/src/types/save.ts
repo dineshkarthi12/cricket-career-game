@@ -19,7 +19,7 @@ export const SAVE_SLOT_IDS: readonly SaveSlotId[] = [1, 2, 3] as const;
  * Bumped whenever the shape of `GameState` changes. `migrate` in
  * `src/save/migrate.ts` upgrades older saves to the current version.
  */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 /** The complete, serialisable state of one career. */
 export interface GameState {

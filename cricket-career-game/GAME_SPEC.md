@@ -22,10 +22,13 @@ Source of truth for rules is `CAREER_MODE.md`; source of truth for visuals is
 |---|---|
 | `/src/types` | Data models only. No logic. |
 | `/src/engine` | Pure game logic: match sim, selection, training, progression. |
+| `/src/engine/match` | The ball-by-ball engine: delivery resolution, innings and match state machines, AI captain, DLS, post-match effects. |
 | `/src/data` | Static data: stages, tournaments, venues, trophies, name pools. |
 | `/src/save` | 3-slot localStorage save system, autosave, export/import. |
 | `/src/store` | Zustand stores; the only bridge between engine and UI. |
-| `/src/components` | Reusable UI: Card, StatTile, ProgressBar, Tabs, Badge, Stepper. |
+| `/src/components` | Reusable UI: Card, StatTile, ProgressBar, Tabs, Badge, Avatar, Stepper, SkillRadar, Crest, Modal, Tooltip. |
+| `/src/layout` | The app shell: sidebar, icon rail, top bar, mobile tab bar. |
+| `/src/lib` | UI-side helpers: formatting and `GameState` selectors. |
 | `/src/screens` | Routed pages. |
 | `/public/assets` | Images. |
 
@@ -106,7 +109,7 @@ batting axes marked ★ below, current vs. potential.
 | Group | Attributes |
 |---|---|
 | `batting` | ★technique, ★timing, ★power, ★shotRange, ★vsPace, ★vsSpin, vsSwing, footwork, running, concentration |
-| `bowling` | pace, accuracy, swing, seam, spin, bounce, variation, newBall, deathBowling, control |
+| `bowling` | pace, accuracy, swing, seam, spin, flight, bounce, variation, newBall, deathBowling, control |
 | `fielding` | catching, groundFielding, throwing, agility, wicketKeeping |
 | `physical` | stamina, strength, speed, durability |
 | `mental` | temperament, matchAwareness, aggression, discipline, leadership, workRate |
@@ -299,7 +302,7 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 
 | Screen | Route | Contents |
 |---|---|---|
-| **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import, player creation |
+| **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import, player creation — **built in Phase 2** |
 | **Live Match** | `/match/:id` | 2D top-down ground, fielders as dots, ball-path lines, ball-by-ball commentary, intent controls, Quick Sim |
 | **Scorecard** | `/match/:id/scorecard` | Full innings scorecards, fall of wickets, bowling figures, match report |
 | **Squad / Team** | `/team/:id` | Squad list, XI, rivals, team needs |
@@ -310,14 +313,115 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 
 ---
 
+## 8a. Design system (built in Phase 2)
+
+Tokens live in `src/index.css` under `@theme`; nothing hard-codes a colour.
+
+| Token | Value | Used for |
+|---|---|---|
+| `--color-page` | `#F4F6FB` | Page background |
+| `--color-surface` | `#FFFFFF` | Cards |
+| `--color-brand-blue` / `-soft` | `#1E5EF0` / `#E8EFFE` | Primary actions, active nav |
+| `--color-brand-green` | `#22A45D` | OVR, good form, wins |
+| `--color-brand-orange` | `#F59E0B` | Assessments, "vs" |
+| `--color-brand-red` | `#E5484D` | Selection meetings, fatigue, alerts |
+| `--color-brand-gold` | `#F5C518` | Crown, trophies, banner CTA |
+| `--color-brand-navy` | `#0F1B33` | Ink, bottom banner |
+| `--radius-card` / `--radius-tile` | 16px / 12px | Cards / tiles |
+| `--font-sans` / `--font-hand` | Poppins / Caveat | UI / handwritten quotes |
+
+Components in `/src/components` (barrel `@/components`): `Card`, `CardHeader`,
+`CardAction`, `StatTile`, `HeroStatTile`, `ProgressBar`, `Tabs`, `Badge`,
+`Avatar`, `Stepper`, `SkillRadar`, `RadarLegend`, `Crest`, `Modal`, `Tooltip`.
+Every screen must build from these rather than restyling a div.
+
+The shell in `/src/layout` (`AppShell`, `Sidebar`, `TopBar`, `MobileTabBar`,
+`Logo`, `navItems`) wraps every route:
+
+| Width | Navigation | Dashboard grid |
+|---|---|---|
+| ≥1536px | 200px sidebar | Hero with Next Match lapped over it, 4 cards per row |
+| ≥1024px | 200px sidebar | Next Match under the hero, 2 cards per row |
+| ≥768px | 72px icon rail | Next Match under the hero, 2 cards per row |
+| <768px | Bottom tab bar + "More" sheet | Everything stacked |
+
+The entry screens (`/slots`, `/new`) sit outside the shell entirely - there is
+nothing to navigate to until a career is loaded.
+
+UI-side derivations live in `/src/lib`: `format.ts` (timezone-safe dates,
+in-game relative times, overs, style labels) and `selectors.ts` (every
+dashboard figure read out of `GameState`). Screens never reach into the save
+shape directly.
+
+---
+
+## 8b. Match engine (built in Phase 3)
+
+Pure TypeScript in `/src/engine/match`, driven entirely by a seeded RNG so a
+match replays ball for ball. Public surface is the barrel `@/engine/match`.
+
+| Module | Holds |
+|---|---|
+| `rng.ts` | Deterministic mulberry32 generator and seed derivation. |
+| `skill.ts` | Attributes + condition -> batter and bowler ability; pressure. |
+| `conditions.ts` | Pitch and weather generation, ball ageing, deterioration, swing/seam/turn/bounce on offer, dew, phase. |
+| `field.ts` | Named positions, seven field presets, nearest-fielder and catch maths. |
+| `ai.ts` | AI captain (bowling changes, fields) and AI batter aggression. |
+| `delivery.ts` | Resolves one ball into runs, extras or a dismissal. |
+| `commentary.ts` | A commentary line for every delivery. |
+| `innings.ts` | Innings state machine: overs, strike, extras, partnerships, spells, scorecards. |
+| `simulate.ts` | Match state machine: toss, formats, days, declarations, follow-on, DLS, ties, super over, player of the match. |
+| `dls.ts` | Resource curve and revised targets. |
+| `aftermath.ts` | Post-match form, confidence, morale, fatigue, fitness, injury, reputation, selector trust, XP. |
+| `squad.ts` | Generates balanced AI XIs at a given strength. |
+| `balance.ts` | The harness the config was tuned against. |
+
+### Shot geometry
+
+Every delivery the batter makes contact with records `shotAngle` (0-360
+degrees) and `shotDistance` (metres), plus the normalised `landingPoint` the
+2D ground view draws. Angles are always written for a right-handed batter and
+mirrored for a left-hander: **0 straight down the ground, 90 square on the off
+side, 180 back past the keeper, 270 square leg.**
+
+### Situational behaviour
+
+Everything in this table changes the ball outcome; none of it is cosmetic.
+
+| Area | What the engine does |
+|---|---|
+| Acceleration | Reads wickets in hand against overs left. Two down: go from 70% of the innings; three down 75%; five down 82%; seven down protect the tail. Scales to any format length. |
+| Roles | Openers and number threes anchor, five to seven finish, tailenders block, a recognised batter with the tail in farms the strike. |
+| Milestones | Inside ten runs of 50/100/150/200 a batter takes fewer risks and carries more danger. |
+| Left-right pair | Costs the bowler accuracy, because the line resets every single. |
+| Nightwatchman | Can go in late on a day of a multi-day match, once per innings. |
+| Field restrictions | T20: 2 outside the circle for 6 overs, then 5. ODI: 2 / 4 / 5 across the three blocks. Enforced by pulling outfielders into the ring. |
+| Bowling changes | Spells, rest, per-format over limits, death bowlers held back, part-timers when the game is safe, seamers with the new ball. |
+| Match-ups | Spin turning away from the bat is the dangerous one; left-arm seam angles across a right-hander; each batter has a pace/spin preference. |
+| Toss | Batting ease vs grass and cloud, dew under lights, batting first worth more in the longer game. The user calls it when captain. |
+| Dew | Builds through a night innings: spinners lose grip, every bowler loses execution. |
+| Ground size | Straight and square boundaries feed the six chance. Home side gets a small skill bonus. |
+| DRS | Two reviews a side an innings; overturned, upheld or umpire's call. |
+| Free hit | Follows a no-ball in limited overs; only a run-out can end it. |
+| Fielding incidents | Dropped catches on catching skill, misfields worth an extra run, direct-hit run-outs on the arm. |
+| In-match injury | Retired hurt, including concussion. |
+| Pressure | Dot balls build; wickets cluster; a rising required rate forces the pace. |
+
+### Balance targets
+
+`config.ts` was tuned against 1000 matches per format. Current output and the
+bands the tests enforce are recorded in `PROGRESS.md`.
+
+---
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Project setup, spec, data models, save system, placeholder Home | ✅ Done |
-| 2 | Design-system components + full Home dashboard | Next |
-| 3 | Match engine (ball-by-ball, commentary, scorecards) | Planned |
-| 4 | 2D ground view and live match screen | Planned |
+| 2 | Design-system components + full Home dashboard | ✅ Done |
+| 3 | Match engine (ball-by-ball, commentary, scorecards) | ✅ Done |
+| 4 | 2D ground view and live match screen | Next |
 | 5 | Selection, training and progression engines | Planned |
 | 6 | Season, calendar and tournament flow | Planned |
 | 7 | IPL scouting and auction | Planned |

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createDemoCareer } from '@/data/demoCareer';
 import { createNewCareer, type NewCareerOptions } from '@/engine/newCareer';
 import {
   cancelAutosave,
@@ -13,11 +14,17 @@ import {
   setActiveSlot,
 } from '@/save';
 import { downloadSave } from '@/save/file';
+import { SAVE_SLOT_IDS } from '@/types';
 import type { GameState, SaveError, SaveMeta, SaveSlotId } from '@/types';
 
 interface GameStore {
   /** The career currently loaded, or `null` on the slot-picker screen. */
   state: GameState | null;
+  /**
+   * True once `bootstrap()` has run. Screens use it to tell "still starting up"
+   * apart from "there is genuinely no career loaded".
+   */
+  booted: boolean;
   slot: SaveSlotId | null;
   /** Headers for the three slots, refreshed after every write. */
   slots: (SaveMeta | null)[];
@@ -25,12 +32,21 @@ interface GameStore {
   lastSavedAt: number | null;
 
   refreshSlots: () => void;
+  /**
+   * Resume the last career, or seed the demo career into slot 1 when this
+   * browser has never played. Safe to call more than once.
+   */
+  bootstrap: () => void;
   startNewCareer: (slot: SaveSlotId, options: NewCareerOptions) => boolean;
+  /** Write the `design/dashboard.png` career into a slot and load it. */
+  loadDemoCareer: (slot?: SaveSlotId) => boolean;
   loadCareer: (slot: SaveSlotId) => boolean;
   resumeLastCareer: () => boolean;
   saveNow: () => boolean;
   deleteCareer: (slot: SaveSlotId) => boolean;
   exportCareer: () => boolean;
+  /** Download any slot's career, loaded or not. */
+  exportSlot: (slot: SaveSlotId) => boolean;
   importCareer: (json: string, slot: SaveSlotId) => boolean;
   /**
    * Apply a change to the loaded career and queue an autosave.
@@ -43,12 +59,51 @@ interface GameStore {
 
 export const useGameStore = create<GameStore>((set, get) => ({
   state: null,
+  booted: false,
   slot: null,
   slots: [null, null, null],
   lastError: null,
   lastSavedAt: null,
 
   refreshSlots: () => set({ slots: listSlots() }),
+
+  bootstrap: () => {
+    if (get().booted) return;
+    if (get().state) {
+      set({ booted: true });
+      return;
+    }
+    const resumed = get().resumeLastCareer();
+    if (resumed) {
+      set({ booted: true });
+      return;
+    }
+    const slots = listSlots();
+    const firstUsed = SAVE_SLOT_IDS.find((slot) => slots[slot - 1]);
+    if (firstUsed) get().loadCareer(firstUsed);
+    else get().loadDemoCareer(1);
+    set({ booted: true });
+  },
+
+  loadDemoCareer: (slot = 1) => {
+    const state = createDemoCareer();
+    const result = saveToSlot(slot, state);
+    if (!result.ok) {
+      // Storage may be unavailable (private mode, quota). The demo career is
+      // still perfectly playable in memory, so show it anyway.
+      set({ state, slot: null, lastError: result.error });
+      return false;
+    }
+    setActiveSlot(slot);
+    set({
+      state,
+      slot,
+      slots: listSlots(),
+      lastError: null,
+      lastSavedAt: result.value.savedAt,
+    });
+    return true;
+  },
 
   startNewCareer: (slot, options) => {
     const state = createNewCareer(options);
@@ -116,6 +171,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastError: null,
       ...(closingCurrent ? { state: null, slot: null } : {}),
     });
+    return true;
+  },
+
+  exportSlot: (slot) => {
+    const loaded = loadSlot(slot);
+    if (!loaded.ok) {
+      set({ lastError: loaded.error });
+      return false;
+    }
+    const result = downloadSave(loaded.value.state, slot);
+    if (!result.ok) {
+      set({ lastError: result.error });
+      return false;
+    }
+    set({ lastError: null });
     return true;
   },
 

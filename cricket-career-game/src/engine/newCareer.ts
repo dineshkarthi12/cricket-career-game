@@ -20,6 +20,9 @@ import type {
   Venue,
 } from '@/types';
 
+/** In-game date a brand new career begins on. */
+export const DEFAULT_START_DATE = '2026-06-01';
+
 export interface NewCareerOptions {
   firstName: string;
   lastName: string;
@@ -74,6 +77,7 @@ function startingAttributes(): Attributes {
       swing: 18,
       seam: 18,
       spin: 14,
+      flight: 16,
       bounce: 20,
       variation: 15,
       newBall: 18,
@@ -120,6 +124,7 @@ function startingPotential(): Attributes {
       swing: 55,
       seam: 54,
       spin: 35,
+      flight: 38,
       bounce: 52,
       variation: 48,
       newBall: 52,
@@ -158,6 +163,7 @@ function startingCondition(): Condition {
     recentRatings: [],
     recentWorkload: 0,
     reputation: 5,
+    selectorTrust: 40,
   };
 }
 
@@ -291,7 +297,7 @@ function emptySeason(year: number, startDate: string, stageId: CareerStageId): S
  * Nothing here grants progress - the player starts at stage 1 with a club side.
  */
 export function createNewCareer(options: NewCareerOptions): GameState {
-  const startDate = options.startDate ?? '2026-06-01';
+  const startDate = options.startDate ?? DEFAULT_START_DATE;
   const startStageId = options.startStageId ?? CAREER_STAGES[0].id;
   const stage = getStage(startStageId);
   const role = options.role ?? 'BATTER';
@@ -343,7 +349,7 @@ export function createNewCareer(options: NewCareerOptions): GameState {
   const seasonYear = new Date(startDate).getFullYear();
 
   return {
-    version: 1,
+    version: 2,
     seed: options.seed ?? Math.floor(Math.random() * 2 ** 31),
     player,
     career: {

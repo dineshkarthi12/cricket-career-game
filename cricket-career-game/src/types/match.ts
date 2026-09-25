@@ -85,6 +85,23 @@ export interface Ball {
   wicket: Dismissal | null;
   /** Where the ball ended up - drives the ball-path line on the 2D ground. */
   landingPoint: GroundPoint | null;
+  /**
+   * Direction the ball was hit, 0-360 degrees, always from a right-hander's
+   * point of view (a left-hander's shots are mirrored when drawn):
+   * 0 straight down the ground, 90 square on the off side, 180 back past the
+   * keeper, 270 square leg. `null` when the batter did not make contact.
+   */
+  shotAngle: number | null;
+  /** How far the ball travelled, in metres. */
+  shotDistance: number | null;
+  /** Fielder who ended the ball, by name, when one did. */
+  fielderName: string | null;
+  /** Set when the decision went upstairs. Optional: older saves have none. */
+  review?: { by: 'BATTING' | 'BOWLING'; outcome: 'OVERTURNED' | 'UPHELD' | 'UMPIRES_CALL' } | null;
+  /** Set when a catch went down. */
+  dropped?: { fielderName: string } | null;
+  /** True when this delivery was a free hit. */
+  freeHit?: boolean;
   /** Ball-by-ball text commentary line. */
   commentary: string;
   /** Snapshot of the conditions for this delivery. */
