@@ -13,6 +13,8 @@ import { newId } from '../id';
 import { createPitch, createWeather, newBall } from './conditions';
 import { hasResult, revisedTarget } from './dls';
 import { chooseBowler } from './ai';
+import { chooseField, placeField } from './field';
+import { bowlerKindOf } from './skill';
 import {
   beginOver,
   bowlerChoiceInput,
@@ -796,6 +798,29 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
 
   let retiredSeen = 0;
 
+  /**
+   * Before the first ball of an innings the engine has not placed a field
+   * yet. Show the one the vice-captain would set, so a captain can see it and
+   * change it. Its own random numbers: looking changes nothing.
+   */
+  function previewField(s: InningsState) {
+    const input = bowlerChoiceInput(s);
+    const bowlerId = s.currentBowlerId ?? s.bowlers[0]?.id ?? '';
+    const bowler = s.bowlers.find((b) => b.id === bowlerId);
+    const preset = chooseField({
+      phase: input.phase,
+      bowlerKind: bowler ? bowlerKindOf(bowler) : 'PACE',
+      ballAgeOvers: input.ballAgeOvers,
+      wicketsLost: s.wickets,
+      runRatePressure: input.runRatePressure,
+      unlimitedOvers: s.setup.oversAvailable === null,
+    });
+    return placeField(preset, s.setup.bowling, bowlerId, createRng(deriveSeed(setup.seed, 9100 + s.setup.number)), {
+      format: s.setup.format,
+      over: Math.floor(s.legalBalls / 6),
+    });
+  }
+
   /** Multi-day: the day and session in progress. */
   function sessionNow(): { day: number; session: number } | null {
     if (limited || !state) return null;
@@ -938,7 +963,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
             maxOversPerBowler: rates.maxOversPerBowler,
           }
         : null,
-      field: s?.field ?? null,
+      field: s ? (s.field ?? previewField(s)) : null,
       toss,
       result,
       alerts,

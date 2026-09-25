@@ -150,7 +150,7 @@ export const CaptainPanel = memo(function CaptainPanel({
             <label htmlFor="next-bowler" className="text-[12.5px] font-semibold text-ink">
               Next over
             </label>
-            <ul className="flex flex-col gap-1">
+            <ul className="grid gap-1 sm:grid-cols-2">
               {available.map((bowler) => {
                 const bowled = cur.oversBowledBy[bowler.id] ?? 0;
                 const line = cur.bowling.find((b) => b.playerId === bowler.id);

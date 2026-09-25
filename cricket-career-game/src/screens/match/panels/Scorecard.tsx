@@ -138,7 +138,7 @@ function BattingRow({
   onStrike: boolean;
 }) {
   return (
-    <tr className={isUser ? 'bg-brand-blue-soft/60' : undefined}>
+    <tr className={isUser ? 'bg-brand-gold/15' : undefined}>
       <td className="py-1 pr-2">
         <span className={isUser ? 'font-semibold text-ink' : 'text-ink'}>
           {line.name}
@@ -160,7 +160,7 @@ function BattingRow({
 
 function BowlingRow({ line, isUser }: { line: BowlerInningsLine; isUser: boolean }) {
   return (
-    <tr className={isUser ? 'bg-brand-blue-soft/60' : undefined}>
+    <tr className={isUser ? 'bg-brand-gold/15' : undefined}>
       <td className={`py-1 pr-2 ${isUser ? 'font-semibold text-ink' : 'text-ink'}`}>{line.name}</td>
       <td className="py-1 text-right text-ink-muted">{line.overs.toFixed(1)}</td>
       <td className="py-1 text-right text-ink-muted">{line.maidens}</td>
