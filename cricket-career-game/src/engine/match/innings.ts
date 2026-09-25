@@ -16,7 +16,16 @@ import { resolveDelivery } from './delivery';
 import { bowlerKindOf, computePressure } from './skill';
 import { INTENT_BY_LEVEL } from './types';
 import type { Rng } from './rng';
-import type { BowlerPlan, FieldSetting, SimPlayer } from './types';
+import type {
+  BatterApproach,
+  BowlerPlan,
+  DecisionHooks,
+  DecisionQuestion,
+  DeliveryContext,
+  DeliveryOutcome,
+  FieldSetting,
+  SimPlayer,
+} from './types';
 import type {
   Ball,
   Pitch,
@@ -27,6 +36,7 @@ import type {
   Innings,
   MatchConditions,
   MatchFormat,
+  MatchPhase,
   Venue,
 } from '@/types';
 
@@ -63,6 +73,12 @@ export interface InningsSetup {
   /** Stop once this many runs are scored (a declaration or a chase). */
   declareAt?: number | null;
   underLights: boolean;
+  /**
+   * How much the captain trusts each bowler, as a multiplier on how often they
+   * are thrown the ball. 1 when unset. A bowler in poor form, or one the
+   * selectors are unsure of, bowls less.
+   */
+  bowlerTrust?: Record<string, number>;
 }
 
 export interface InningsResult {
@@ -96,12 +112,64 @@ export interface BallOverrides {
   shotPreference?: number | null;
   /** Bowl from round the wicket rather than over it. */
   aroundTheWicket?: boolean;
+  /** Leave the ball: no shot offered. */
+  leave?: boolean;
+  /** Work the ball into gaps rather than look for boundaries. */
+  rotate?: boolean;
+  /**
+   * In career mode the player controls one batter and one bowler. When set,
+   * the batting decisions above (intent, direction, leave, rotate) apply only
+   * while this batter is on strike...
+   */
+  battingFor?: string | null;
+  /** ...and the bowling decisions (plan, angle) only while this bowler bowls. */
+  bowlingFor?: string | null;
+  /**
+   * A captain's instruction to the rest of the batting side. It adjusts the
+   * batters' own read of the game rather than replacing it.
+   */
+  instruction?: 'ATTACK' | 'ROTATE' | 'PROTECT' | null;
+  /** Go after this bowler. */
+  targetBowlerId?: string | null;
+  /** Questions the engine may put to the player; see `DecisionHooks`. */
+  hooks?: DecisionHooks;
 }
 
 /** The whole mutable state of an innings in progress. */
+/** A delivery waiting on the player's answer to a question. */
+export interface PendingBall {
+  question: DecisionQuestion;
+  /** Everything worked out before the question came up. */
+  prepared: PreparedBall;
+  /** Where the random numbers stood when the delivery was resolved. */
+  rngMark: number;
+}
+
+interface PreparedBall {
+  context: DeliveryContext;
+  bowler: SimPlayer;
+  striker: SimPlayer;
+  nonStriker: SimPlayer;
+  plan: BowlerPlan;
+  approach: BatterApproach;
+  overNumber: number;
+  phase: MatchPhase;
+}
+
+/** Thrown by a decision hook to stop a delivery until the player answers. */
+export class DecisionNeeded extends Error {
+  question: DecisionQuestion;
+  constructor(question: DecisionQuestion) {
+    super('A decision is needed');
+    this.question = question;
+  }
+}
+
 export interface InningsState {
   /** Stable id, so the scorecard on screen and the stored one match. */
   id: string;
+  /** A delivery parked on a question, if any. */
+  pending: PendingBall | null;
   setup: InningsSetup;
   batting: SimPlayer[];
   bowlers: SimPlayer[];
@@ -224,6 +292,7 @@ export function createInningsState(setup: InningsSetup): InningsState {
 
   return {
     id: newId('inn'),
+    pending: null,
     setup,
     batting,
     bowlers: bowlersOf(setup.bowling),
@@ -319,6 +388,7 @@ function startOver(state: InningsState, rng: Rng, overrides?: BallOverrides): Si
     ballAgeOvers,
     runRatePressure: chaseHeat,
     share: oversShare,
+    trust: setup.bowlerTrust,
     rng,
   });
 
@@ -402,6 +472,8 @@ function endOver(state: InningsState, bowler: SimPlayer): void {
  * Everything the player has decided comes in through `overrides`.
  */
 export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverrides): Ball | null {
+  // A delivery waiting on the player has to be finished first.
+  if (state.pending) return null;
   if (state.complete || checkComplete(state)) return null;
 
   const { setup } = state;
@@ -447,15 +519,40 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     savingTheGame: setup.oversAvailable === null && setup.number === 4 && setup.target === null,
   };
 
-  // The player's aggression setting replaces the AI's read of the situation.
+  // In career mode the player's batting and bowling decisions only reach the
+  // ball when it is their own player on strike or bowling.
+  const own =
+    overrides && (overrides.battingFor == null || overrides.battingFor === striker.id)
+      ? overrides
+      : undefined;
+  const ownBowling =
+    overrides && (overrides.bowlingFor == null || overrides.bowlingFor === bowler.id)
+      ? overrides
+      : undefined;
+
+  const byLevel = (raw: number): BatterApproach => {
+    const level = Math.max(1, Math.min(5, Math.round(raw)));
+    return { level, intent: INTENT_BY_LEVEL[level - 1] };
+  };
+
+  // The player's own intent replaces the AI's read of the situation; a
+  // captain's instruction to the others adjusts it.
   const aiApproach = chooseApproach(striker, situation, rng);
-  const approach =
-    overrides?.intentLevel === undefined
-      ? aiApproach
-      : {
-          level: Math.max(1, Math.min(5, Math.round(overrides.intentLevel))),
-          intent: INTENT_BY_LEVEL[Math.max(1, Math.min(5, Math.round(overrides.intentLevel))) - 1],
-        };
+  let approach: BatterApproach = aiApproach;
+  let rotate = own?.rotate ?? false;
+  if (own?.intentLevel !== undefined) {
+    approach = byLevel(own.intentLevel);
+  } else if (overrides?.instruction || overrides?.targetBowlerId) {
+    let level = aiApproach.level;
+    if (overrides.instruction === 'ATTACK') level += 1;
+    if (overrides.instruction === 'PROTECT') level -= 1;
+    if (overrides.instruction === 'ROTATE') {
+      level = Math.min(level, 3);
+      rotate = true;
+    }
+    if (overrides.targetBowlerId && overrides.targetBowlerId === bowler.id) level += 1;
+    approach = level === aiApproach.level ? aiApproach : byLevel(level);
+  }
 
   const aiPlan = choosePlan({
     bowler,
@@ -465,7 +562,7 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     batterBallsFaced: situation.strikerBallsFaced,
     rng,
   });
-  const plan: BowlerPlan = { ...aiPlan, ...(overrides?.plan ?? {}) };
+  const plan: BowlerPlan = { ...aiPlan, ...(ownBowling?.plan ?? {}) };
 
   const fieldName =
     overrides?.fieldPreset ??
@@ -495,8 +592,7 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     battingAtHome: setup.battingAtHome,
   });
 
-  const outcome = resolveDelivery(
-    {
+  const context: DeliveryContext = {
       format: setup.format,
       phase,
       conditions: state.conditions,
@@ -530,11 +626,68 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
         square: setup.venue.squareBoundary,
       },
       day: state.day,
-      shotPreference: overrides?.shotPreference ?? null,
-      aroundTheWicket: overrides?.aroundTheWicket ?? false,
-    },
-    rng,
-  );
+      shotPreference: own?.shotPreference ?? null,
+      aroundTheWicket: ownBowling?.aroundTheWicket ?? false,
+      leave: own?.leave ?? false,
+      rotate,
+      hooks: overrides?.hooks,
+  };
+
+  return resolveAndApply(state, rng, {
+    context,
+    bowler,
+    striker,
+    nonStriker,
+    plan,
+    approach,
+    overNumber,
+    phase,
+  });
+}
+
+/**
+ * Resolve a prepared delivery and write it into the innings. If one of the
+ * decision hooks needs the player, the delivery is parked in `state.pending`
+ * with the random numbers wound back, and nothing is written.
+ */
+function resolveAndApply(state: InningsState, rng: Rng, prepared: PreparedBall): Ball | null {
+  const mark = rng.state();
+  let outcome: DeliveryOutcome;
+  try {
+    outcome = resolveDelivery(prepared.context, rng);
+  } catch (error) {
+    if (!(error instanceof DecisionNeeded)) throw error;
+    rng.restore(mark);
+    state.pending = { question: error.question, prepared, rngMark: mark };
+    return null;
+  }
+  return applyOutcome(state, rng, prepared, outcome);
+}
+
+/**
+ * Finish a delivery that was waiting on the player. `hooks` must answer the
+ * pending question; the delivery replays from the same random numbers, so the
+ * only thing that changes is what the player decided.
+ */
+export function resumeBall(state: InningsState, rng: Rng, hooks: DecisionHooks): Ball | null {
+  const pending = state.pending;
+  if (!pending) return null;
+  state.pending = null;
+  rng.restore(pending.rngMark);
+  return resolveAndApply(state, rng, {
+    ...pending.prepared,
+    context: { ...pending.prepared.context, hooks },
+  });
+}
+
+function applyOutcome(
+  state: InningsState,
+  rng: Rng,
+  prepared: PreparedBall,
+  outcome: DeliveryOutcome,
+): Ball {
+  const { setup } = state;
+  const { bowler, striker, nonStriker, plan, approach, overNumber, phase } = prepared;
 
   const bowlLine = state.bowlingLines.get(bowler.id)!;
   const batLine = state.battingLines.get(striker.id)!;
@@ -600,8 +753,12 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
         ? false
         : state.freeHit;
 
-  if (outcome.review && outcome.review.outcome !== 'OVERTURNED') {
+  if (outcome.review?.by === 'BATTING' && outcome.review.outcome !== 'OVERTURNED') {
     state.reviewsLeft.batting = Math.max(0, state.reviewsLeft.batting - 1);
+  }
+  // A fielding side keeps its review on umpire's call and when it is right.
+  if (outcome.review?.by === 'BOWLING' && outcome.review.outcome === 'UPHELD') {
+    state.reviewsLeft.bowling = Math.max(0, state.reviewsLeft.bowling - 1);
   }
 
   const extraRuns = outcome.extras?.runs ?? 0;

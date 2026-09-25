@@ -175,7 +175,7 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   MULTI_DAY: {
     overs: null,
-    wicket: 0.01893,
+    wicket: 0.01836,
     four: 0.05364,
     six: 0.00260,
     dotWeight: 2.5140,
@@ -186,7 +186,7 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   TEST: {
     overs: null,
-    wicket: 0.01817,
+    wicket: 0.01762,
     four: 0.0523,
     six: 0.0025,
     dotWeight: 2.5894,
@@ -474,6 +474,43 @@ export const MATCH = {
     wideRate: 1.15,
   },
 
+  /**
+   * Leaving the ball. No shot means no edge and no runs off the bat, but a
+   * ball on the stumps that is left can hit them or the pad.
+   */
+  leave: {
+    /** Wicket rate relative to the format's base, by line. */
+    lineRisk: {
+      WIDE_OFF: 0,
+      OUTSIDE_OFF: 0.04,
+      OFF_STUMP: 1.9,
+      MIDDLE: 2.8,
+      LEG_STUMP: 1.4,
+      DOWN_LEG: 0,
+    } as Record<string, number>,
+    /** A short ball goes over the top; a full one is the dangerous leave. */
+    lengthRisk: {
+      FULL_TOSS: 0.6,
+      YORKER: 1.6,
+      FULL: 1.4,
+      GOOD: 1.0,
+      SHORT_OF_GOOD: 0.45,
+      SHORT: 0.1,
+    } as Record<string, number>,
+    /** Share of those wickets that are lbw rather than bowled. */
+    lbwShare: 0.45,
+  },
+
+  /**
+   * Rotating the strike: working it into the gaps. Fewer boundaries, fewer
+   * dots and a lower wicket risk than a normal intent.
+   */
+  rotate: {
+    boundary: 0.45,
+    dot: 0.72,
+    wicket: 0.8,
+  },
+
   /** Run-outs are rolled while the batters are running, not off the bat. */
   runOut: {
     /** Chance per completed run that a run-out is even in play. */
@@ -686,6 +723,15 @@ export const MATCH = {
     reviewJudgement: 0.55,
     /** Chance a side burns a review on a decision that was right. */
     speculativeReviewChance: 0.28,
+    /**
+     * The fielding side's reviews. A beaten batter in front on a straight ball
+     * brings a big appeal; now and then the not-out is wrong.
+     */
+    appealContact: 0.3,
+    appealChance: 0.2,
+    missedLbwShare: 0.08,
+    /** The fielding side sees more of it than the batter, so judges it better. */
+    bowlingReviewJudgement: 0.75,
   },
 
   /** A free hit follows a no-ball in limited-overs cricket. */

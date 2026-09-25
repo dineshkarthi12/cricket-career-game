@@ -150,6 +150,53 @@ export interface DeliveryContext {
    * the batter: more chance of trapping them in front, less of finding the edge.
    */
   aroundTheWicket?: boolean;
+  /** The batter shoulders arms: no shot, so only a straight ball can get them. */
+  leave?: boolean;
+  /** The batter is working the ball into gaps rather than looking for boundaries. */
+  rotate?: boolean;
+  /**
+   * Questions the engine can put to someone else - a catch coming to a
+   * particular fielder, a review. Each hook is given what the engine would do on
+   * its own; calling it keeps a simulated match exactly as it was.
+   */
+  hooks?: DecisionHooks;
+}
+
+/** Something the engine needs a person to decide. */
+export type DecisionQuestion =
+  | {
+      kind: 'CATCH';
+      fielderId: string;
+      /** 0-1: how likely the catch is for this fielder with average timing. */
+      probability: number;
+      /** A boundary rider trying to stop a six. */
+      onTheRope: boolean;
+    }
+  | {
+      kind: 'RUN_OUT';
+      fielderId: string;
+      probability: number;
+      /** The batter who was running to the danger end. */
+      batterId: string;
+    }
+  | {
+      kind: 'REVIEW';
+      side: 'BATTING' | 'BOWLING';
+      batterId: string;
+      bowlerId: string;
+      dismissal: 'LBW' | 'CAUGHT_BEHIND';
+      /** What the players out in the middle think - a hint, not the answer. */
+      feel: 'CONFIDENT' | 'UNSURE' | 'PLUMB';
+    };
+
+export type FieldingQuestion = Extract<DecisionQuestion, { kind: 'CATCH' | 'RUN_OUT' }>;
+export type ReviewQuestion = Extract<DecisionQuestion, { kind: 'REVIEW' }>;
+
+export interface DecisionHooks {
+  /** A catch or run-out chance. `roll` is the engine's own decision. */
+  fieldingChance?: (question: FieldingQuestion, roll: () => boolean) => boolean;
+  /** Whether to review a decision. `ai` is what the AI captain would do. */
+  review?: (question: ReviewQuestion, ai: () => boolean) => boolean;
 }
 
 /** The result of one delivery, before it is written into the innings. */

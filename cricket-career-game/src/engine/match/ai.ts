@@ -148,6 +148,8 @@ export function chooseBowler(input: {
   runRatePressure: number;
   /** How far through the innings, 0-1. */
   share: number;
+  /** The captain's trust in each bowler, as a multiplier. 1 when unset. */
+  trust?: Record<string, number>;
   rng: Rng;
 }): SimPlayer {
   const rates = MATCH_FORMATS[input.format] ?? MATCH_FORMATS.ODI;
@@ -220,7 +222,9 @@ export function chooseBowler(input: {
       score -= (used / limit) * 30;
     }
 
-    return { item: bowler, weight: Math.max(1, score) };
+    // A captain gives the ball to the bowlers he believes in.
+    const trust = input.trust?.[bowler.id] ?? 1;
+    return { item: bowler, weight: Math.max(1, score * trust) };
   });
 
   return input.rng.weighted(scored);

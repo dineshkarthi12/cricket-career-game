@@ -438,7 +438,8 @@ describe('umpiring and incidents', () => {
   });
 
   it('sends close decisions upstairs, and sometimes they are overturned', () => {
-    const reviews = fcBalls.filter((b) => b.review);
+    // A batter reviewing an out decision.
+    const reviews = fcBalls.filter((b) => b.review?.by === 'BATTING');
     expect(reviews.length).toBeGreaterThan(0);
 
     const outcomes = new Set(reviews.map((b) => b.review!.outcome));
@@ -456,10 +457,26 @@ describe('umpiring and incidents', () => {
     }
   });
 
+  it('lets the fielding side review a not-out lbw, the other way round', () => {
+    const reviews = fcBalls.filter((b) => b.review?.by === 'BOWLING');
+    expect(reviews.length).toBeGreaterThan(0);
+    for (const ball of reviews) {
+      if (ball.review!.outcome === 'OVERTURNED') {
+        expect(ball.wicket?.type).toBe('LBW');
+        expect(ball.commentary).toMatch(/overturned/i);
+      } else {
+        // Upheld or umpire's call: the not-out stands.
+        expect(ball.wicket).toBeNull();
+      }
+    }
+  });
+
   it("umpire's call leaves the decision standing", () => {
     const calls = fcBalls.filter((b) => b.review?.outcome === 'UMPIRES_CALL');
     for (const ball of calls) {
-      expect(ball.wicket).not.toBeNull();
+      // Out stays out for the batter; not out stays not out for the bowler.
+      if (ball.review!.by === 'BATTING') expect(ball.wicket).not.toBeNull();
+      else expect(ball.wicket).toBeNull();
       expect(ball.commentary).toMatch(/umpire's call/i);
     }
   });
@@ -474,10 +491,16 @@ describe('umpiring and incidents', () => {
         userIsHome: true, seed: seed * 23, month: 11,
       });
       for (const innings of match.innings) {
-        const spent = innings.deliveries.filter(
-          (b) => b.review && b.review.outcome !== 'OVERTURNED',
+        // A batting side loses a review unless it is overturned; a fielding
+        // side only when it was wrong.
+        const batting = innings.deliveries.filter(
+          (b) => b.review?.by === 'BATTING' && b.review.outcome !== 'OVERTURNED',
         ).length;
-        expect(spent).toBeLessThanOrEqual(MATCH.umpiring.reviewsPerInnings);
+        const bowling = innings.deliveries.filter(
+          (b) => b.review?.by === 'BOWLING' && b.review.outcome === 'UPHELD',
+        ).length;
+        expect(batting).toBeLessThanOrEqual(MATCH.umpiring.reviewsPerInnings);
+        expect(bowling).toBeLessThanOrEqual(MATCH.umpiring.reviewsPerInnings);
       }
     }
   });

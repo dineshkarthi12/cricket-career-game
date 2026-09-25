@@ -208,6 +208,9 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     };
   }
 
+  // --- No shot offered ----------------------------------------------------
+  if (context.leave) return resolveLeave(context, deliveryThreat(context, error), speed, rng);
+
   // --- The duel -----------------------------------------------------------
   const batter = batterSkill(context);
   const bowler = bowlerSkill(context);
@@ -264,7 +267,8 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     dotWicket *
     milestone *
     (1 - partnership * cfg.momentum.settledPartnershipWicket) *
-    (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2);
+    (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2) *
+    (context.rotate ? cfg.rotate.wicket : 1);
   pWicket = clamp01(
     Math.max(
       rates.wicket * cfg.limits.wicketFloor,
@@ -286,7 +290,9 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
 
   const intentBoundary = cfg.intent.boundary[intentIndex] / cfg.intent.boundary[defaultIntentIndex];
 
-  const capped = Math.min(cfg.limits.boundaryCeiling, intentBoundary * boundaryBase * easeBoundary);
+  const capped =
+    Math.min(cfg.limits.boundaryCeiling, intentBoundary * boundaryBase * easeBoundary) *
+    (context.rotate ? cfg.rotate.boundary : 1);
 
   let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76));
   // Ground size matters: a short square boundary turns a mis-hit pull into
@@ -335,6 +341,62 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     { contact, edge, speed, intentIndex, phaseDot: phaseMod.dot, cluster },
     rng,
   );
+}
+
+/** The batter leaves it. Safe outside off; on the stumps, it is a gamble. */
+function resolveLeave(
+  context: DeliveryContext,
+  threat: number,
+  speed: number,
+  rng: Rng,
+): DeliveryOutcome {
+  const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
+  const cfg = MATCH.leave;
+  const risk = (cfg.lineRisk[context.plan.line] ?? 0) * (cfg.lengthRisk[context.plan.length] ?? 1);
+  const pOut = context.freeHit ? 0 : clamp01(rates.wicket * risk * (0.55 + 0.9 * threat));
+  const { striker, bowler } = context;
+
+  const base = {
+    extras: null,
+    isLegalDelivery: true,
+    isBoundaryFour: false,
+    isBoundarySix: false,
+    shot: 'LEAVE' as const,
+    contactQuality: 0,
+    shotAngle: null,
+    shotDistance: null,
+    speed,
+    strikeRotated: false,
+    review: null,
+    dropped: null,
+    retired: null,
+  };
+
+  if (rng.chance(pOut)) {
+    const lbw = rng.chance(cfg.lbwShare);
+    return {
+      ...base,
+      runsOffBat: 0,
+      wicket: { type: lbw ? 'LBW' : 'BOWLED', bowlerId: bowler.id, fielderId: null },
+      dismissedPlayerId: striker.id,
+      fielderName: null,
+      commentary: lbw
+        ? `${striker.name} shoulders arms and it raps the pad in front. Plumb - out lbw.`
+        : `${striker.name} leaves it... and hears the death rattle. Bowled, leaving!`,
+    };
+  }
+
+  return {
+    ...base,
+    runsOffBat: 0,
+    wicket: null,
+    dismissedPlayerId: null,
+    fielderName: context.field.keeperName,
+    commentary:
+      context.plan.line === 'OFF_STUMP' || context.plan.line === 'MIDDLE'
+        ? `${striker.name} leaves it, and it goes perilously close to the off stump.`
+        : `${striker.name} leaves it alone outside off. Good judgement.`,
+  };
 }
 
 /** A wicket: work out how, and who takes the catch. */
@@ -431,7 +493,14 @@ function resolveWicket(
         MATCH.fielding.regulationCatch +
           normalise(nearest.fielder.catching) * MATCH.fielding.regulationCatchSkill,
       );
-      if (!rng.chance(held)) {
+      const roll = () => rng.chance(held);
+      const caught = context.hooks?.fieldingChance
+        ? context.hooks.fieldingChance(
+            { kind: 'CATCH', fielderId: nearest.fielder.playerId, probability: held, onTheRope: false },
+            roll,
+          )
+        : roll();
+      if (!caught) {
         // Put down. The batter carries on, and they usually run one.
         const runs = rng.chance(0.55) ? 1 : 0;
         return {
@@ -470,9 +539,29 @@ function resolveWicket(
 
     if (hasReview) {
       // A side that reviews well spots the wrong ones and leaves the rest.
-      const shouldReview = wrong
-        ? rng.chance(cfg.reviewJudgement + 0.35)
-        : rng.chance(cfg.speculativeReviewChance);
+      const aiReview = () =>
+        wrong ? rng.chance(cfg.reviewJudgement + 0.35) : rng.chance(cfg.speculativeReviewChance);
+      // What the batter felt: a hint for whoever is deciding, never a certainty.
+      const feel: 'CONFIDENT' | 'UNSURE' | 'PLUMB' = wrong
+        ? input.threat < 0.55
+          ? 'CONFIDENT'
+          : 'UNSURE'
+        : input.threat > 0.6
+          ? 'PLUMB'
+          : 'UNSURE';
+      const shouldReview = context.hooks?.review
+        ? context.hooks.review(
+            {
+              kind: 'REVIEW',
+              side: 'BATTING',
+              batterId: striker.id,
+              bowlerId: context.bowler.id,
+              dismissal: type,
+              feel,
+            },
+            aiReview,
+          )
+        : aiReview();
 
       if (shouldReview) {
         if (wrong) {
@@ -553,12 +642,21 @@ function resolveBoundary(
   // A six hit flat to a boundary rider is sometimes a catch instead.
   if (input.six) {
     const nearest = nearestFielder(context.field, angle, distance);
-    if (
+    const reachable =
       nearest &&
       nearest.fielder.ring === 'OUTER' &&
-      nearest.travel < MATCH.fielding.boundaryCatchReach &&
-      rng.chance(catchChance(nearest.fielder, nearest.travel, 0.55))
-    ) {
+      nearest.travel < MATCH.fielding.boundaryCatchReach;
+    const probability = reachable ? catchChance(nearest.fielder, nearest.travel, 0.55) : 0;
+    const roll = () => rng.chance(probability);
+    const caught =
+      reachable &&
+      (context.hooks?.fieldingChance
+        ? context.hooks.fieldingChance(
+            { kind: 'CATCH', fielderId: nearest.fielder.playerId, probability, onTheRope: true },
+            roll,
+          )
+        : roll());
+    if (nearest && caught) {
       return {
         runsOffBat: 0,
         extras: null,
@@ -657,7 +755,8 @@ function resolvePlacedShot(
       (input.cluster > 0 ? cfg.momentum.collapseDot : 1) *
       (1 - input.edge * cfg.edge.dot) *
       (1 + straightAt * cfg.fielding.ringSaveChance * 0.6) *
-      (1.2 - contact * 0.4),
+      (1.2 - contact * 0.4) *
+      (context.rotate ? cfg.rotate.dot : 1),
   );
 
   const runFactor = cfg.intent.running[intentIndex] * (0.7 + running * 0.6);
@@ -678,6 +777,12 @@ function resolvePlacedShot(
     { item: 2, weight: evenTwo },
     { item: 3, weight: threeWeight },
   ]);
+
+  // Beaten in front on a straight one: a big appeal, turned down.
+  if (runs === 0 && contact < MATCH.umpiring.appealContact) {
+    const appeal = rollAppeal(context, { contact, speed: input.speed, shot, angle, distance }, rng);
+    if (appeal) return appeal;
+  }
 
   // Beaten outside off? Sometimes it runs away for byes or off the pad.
   if (runs === 0 && contact < 0.28) {
@@ -764,6 +869,92 @@ function resolvePlacedShot(
   };
 }
 
+/**
+ * A big lbw shout given not out. Most are right; a few are not, and a fielding
+ * side with a review left can go upstairs. Returns null when play simply goes
+ * on as a dot ball.
+ */
+function rollAppeal(
+  context: DeliveryContext,
+  input: { contact: number; speed: number; shot: ShotType; angle: number; distance: number },
+  rng: Rng,
+): DeliveryOutcome | null {
+  const cfg = MATCH.umpiring;
+  const straight =
+    context.plan.line === 'OFF_STUMP' ||
+    context.plan.line === 'MIDDLE' ||
+    context.plan.line === 'LEG_STUMP';
+  const pitchedUp =
+    context.plan.length === 'FULL' || context.plan.length === 'GOOD' || context.plan.length === 'YORKER';
+  if (!straight || !pitchedUp || context.freeHit) return null;
+  if (context.reviewsLeft.bowling <= 0) return null;
+  if (!rng.chance(cfg.appealChance)) return null;
+
+  // Was it actually hitting?
+  const wrong = rng.chance(cfg.missedLbwShare);
+  const aiReview = () =>
+    wrong ? rng.chance(cfg.bowlingReviewJudgement) : rng.chance(cfg.speculativeReviewChance * 0.5);
+  const feel: 'PLUMB' | 'UNSURE' = input.contact < (wrong ? 0.22 : 0.08) ? 'PLUMB' : 'UNSURE';
+  const shouldReview = context.hooks?.review
+    ? context.hooks.review(
+        {
+          kind: 'REVIEW',
+          side: 'BOWLING',
+          batterId: context.striker.id,
+          bowlerId: context.bowler.id,
+          dismissal: 'LBW',
+          feel,
+        },
+        aiReview,
+      )
+    : aiReview();
+  if (!shouldReview) return null;
+
+  const base = {
+    extras: null,
+    isLegalDelivery: true,
+    isBoundaryFour: false,
+    isBoundarySix: false,
+    shot: input.shot,
+    contactQuality: Math.round(input.contact * 100),
+    shotAngle: null,
+    shotDistance: null,
+    fielderName: null,
+    speed: input.speed,
+    strikeRotated: false,
+    dropped: null,
+    retired: null,
+    runsOffBat: 0,
+  };
+  const { striker, bowler } = context;
+
+  if (!wrong) {
+    return {
+      ...base,
+      wicket: null,
+      dismissedPlayerId: null,
+      review: { by: 'BOWLING', outcome: 'UPHELD' },
+      commentary: `Big shout for lbw against ${striker.name}, turned down. They review - and it is missing. Review lost.`,
+    };
+  }
+  if (rng.chance(cfg.umpiresCallShare)) {
+    return {
+      ...base,
+      wicket: null,
+      dismissedPlayerId: null,
+      review: { by: 'BOWLING', outcome: 'UMPIRES_CALL' },
+      commentary: `Appeal against ${striker.name}, not out. Reviewed: umpire's call. The not-out stands, review retained.`,
+    };
+  }
+  return {
+    ...base,
+    wicket: { type: 'LBW', bowlerId: bowler.id, fielderId: null },
+    dismissedPlayerId: striker.id,
+    review: { by: 'BOWLING', outcome: 'OVERTURNED' },
+    commentary: `Given not out, but ${bowler.name} was sure. Reviewed - three reds. ${striker.name} is out lbw, overturned!`,
+  };
+}
+
 /** A sharp single, a direct hit, and someone is walking off. */
 function rollRunOut(
   context: DeliveryContext,
@@ -786,7 +977,19 @@ function rollRunOut(
 
   const converted =
     cfg.conversion * (0.5 + fieldingSharpness * cfg.fieldingWeight * 2) * (1.3 - batterRunning * cfg.runningWeight);
-  if (!rng.chance(clamp01(converted))) return null;
+  const roll = () => rng.chance(clamp01(converted));
+  const hit = context.hooks?.fieldingChance
+    ? context.hooks.fieldingChance(
+        {
+          kind: 'RUN_OUT',
+          fielderId: fielder.playerId,
+          probability: clamp01(converted),
+          batterId: context.striker.id,
+        },
+        roll,
+      )
+    : roll();
+  if (!hit) return null;
 
   // The batter who was going for the extra run is usually the one who goes.
   const directHit = rng.chance(MATCH.fielding.directHitChance * (0.5 + fieldingSharpness));

@@ -12,6 +12,8 @@ export {
   simulateInnings,
   createInningsState,
   stepBall,
+  resumeBall,
+  DecisionNeeded,
   finishInnings,
   strikerOf,
   nonStrikerOf,
@@ -21,6 +23,7 @@ export {
   type InningsResult,
   type InningsState,
   type BallOverrides,
+  type PendingBall,
   type Partnership,
 } from './innings';
 export {
@@ -97,5 +100,9 @@ export type {
   DeliveryOutcome,
   FieldSetting,
   PlacedFielder,
+  DecisionHooks,
+  DecisionQuestion,
+  FieldingQuestion,
+  ReviewQuestion,
 } from './types';
 export { INTENT_LEVELS, INTENT_BY_LEVEL } from './types';
