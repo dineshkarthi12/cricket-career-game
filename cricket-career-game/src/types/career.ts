@@ -140,6 +140,62 @@ export interface CareerEvent {
   detail: string;
 }
 
+/** Wins, losses and the rest as captain. */
+export interface CaptaincyRecord {
+  matches: number;
+  won: number;
+  lost: number;
+  drawn: number;
+  tied: number;
+  noResult: number;
+}
+
+/** Which captaincy calls the player hands to the AI vice-captain. */
+export interface CaptainDelegation {
+  toss: boolean;
+  battingOrder: boolean;
+  /** Instructions to the batters. */
+  instructions: boolean;
+  /** Choosing the bowler for each over. */
+  bowling: boolean;
+  field: boolean;
+  reviews: boolean;
+  /** Declarations and the follow-on. */
+  declarations: boolean;
+}
+
+export interface CaptaincyEvent {
+  date: ISODate;
+  kind: 'APPOINTED' | 'SACKED' | 'RESIGNED' | 'RECOMMENDED';
+  teamId: Id;
+  note: string;
+}
+
+/**
+ * Captaincy. Team controls in a match only unlock while the player captains
+ * the side they are playing for.
+ */
+export interface CaptaincyState {
+  /** Team the player captains, or `null`. */
+  teamId: Id | null;
+  since: ISODate | null;
+  /** 0-100: results, tactics and the dressing room, rolled together. */
+  rating: number;
+  /** 0-100 how well the recent tactical calls have worked. */
+  tactics: number;
+  /** 0-100 accumulated strain. High stress costs the player their own form. */
+  stress: number;
+  /** Positive: wins in a row. Negative: losses in a row. */
+  streak: number;
+  /** Every match as captain, across every team. */
+  record: CaptaincyRecord;
+  byTeam: Record<Id, CaptaincyRecord>;
+  delegate: CaptainDelegation;
+  history: CaptaincyEvent[];
+  /** A strong record has put the player in line for a bigger captaincy. */
+  recommendedForHigher: boolean;
+}
+
 /** Complete career state for the save file. */
 export interface CareerState {
   currentStageId: CareerStageId;
@@ -152,4 +208,9 @@ export interface CareerState {
   lastAppearance: ISODate | null;
   /** How many times the player has been dropped and fought back. */
   comebacks: number;
+  captaincy: CaptaincyState;
+  /** How each team-mate feels about the player, -100 to 100. */
+  relationships: Record<Id, number>;
+  /** 0-100 standing with the press, separate from reputation with selectors. */
+  mediaReputation: number;
 }

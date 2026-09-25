@@ -1,3 +1,4 @@
+import { emptyCaptaincy } from './career/captaincy';
 import { CAREER_STAGES, getStage } from '@/data/stages';
 import { createTrophyCabinet } from '@/data/trophies';
 import { VENUES, VENUES_BY_ID } from '@/data/venues';
@@ -242,6 +243,7 @@ function startingClub(venueId: Id): Team {
     captainId: null,
     needs: ['TOP_ORDER_BATTER'],
     isUserTeam: true,
+    morale: 60,
   };
 }
 
@@ -369,6 +371,9 @@ export function createNewCareer(options: NewCareerOptions): GameState {
       matchesOnBench: 0,
       lastAppearance: null,
       comebacks: 0,
+      captaincy: emptyCaptaincy(),
+      relationships: {},
+      mediaReputation: 30,
     },
     season: emptySeason(seasonYear, startDate, startStageId),
     seasonHistory: [],
@@ -400,6 +405,7 @@ export function createNewCareer(options: NewCareerOptions): GameState {
       difficulty: 'REALISTIC',
       soundEnabled: true,
       reduceMotion: false,
+      devCaptainMode: false,
     },
   };
 }

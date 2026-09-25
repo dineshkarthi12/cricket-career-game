@@ -1,3 +1,4 @@
+import { emptyCaptaincy } from '@/engine/career/captaincy';
 import { CAREER_STAGES } from './stages';
 import { createTrophyCabinet } from './trophies';
 import { VENUES } from './venues';
@@ -155,6 +156,7 @@ function team(
     captainId: null,
     needs: ['TOP_ORDER_BATTER'],
     isUserTeam,
+    morale: isUserTeam ? 64 : 58,
   };
 }
 
@@ -525,6 +527,9 @@ export function createDemoCareer(): GameState {
       matchesOnBench: 0,
       lastAppearance: '2026-10-04',
       comebacks: 0,
+      captaincy: emptyCaptaincy(),
+      relationships: {},
+      mediaReputation: 30,
     },
     season: {
       year: SEASON_YEAR,
@@ -658,6 +663,7 @@ export function createDemoCareer(): GameState {
       difficulty: 'REALISTIC',
       soundEnabled: true,
       reduceMotion: false,
+      devCaptainMode: false,
     },
   };
 }

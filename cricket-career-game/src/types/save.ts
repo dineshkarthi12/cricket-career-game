@@ -19,7 +19,7 @@ export const SAVE_SLOT_IDS: readonly SaveSlotId[] = [1, 2, 3] as const;
  * Bumped whenever the shape of `GameState` changes. `migrate` in
  * `src/save/migrate.ts` upgrades older saves to the current version.
  */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /** The complete, serialisable state of one career. */
 export interface GameState {
@@ -51,6 +51,11 @@ export interface GameSettings {
   difficulty: 'CASUAL' | 'REALISTIC' | 'BRUTAL';
   soundEnabled: boolean;
   reduceMotion: boolean;
+  /**
+   * Development only: treat the player as captain of their team, so captain
+   * mode can be tested before the career reaches it. Ignored in production.
+   */
+  devCaptainMode: boolean;
 }
 
 /** Lightweight header shown in the slot picker without loading the full save. */

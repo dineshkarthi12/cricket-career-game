@@ -42,6 +42,8 @@ export interface Team {
   needs: TeamNeed[];
   /** Does the user currently belong to this team? */
   isUserTeam: boolean;
+  /** 0-100 dressing-room mood. Feeds every player's morale on match day. */
+  morale: number;
 }
 
 export type TeamNeed =

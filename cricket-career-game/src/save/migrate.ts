@@ -1,5 +1,6 @@
 import { SAVE_VERSION } from '@/types';
 import type { Attributes, BowlingAttributes, GameState, SaveResult } from '@/types';
+import { emptyCaptaincy } from '@/engine/career/captaincy';
 import { fail, ok } from './storage';
 
 /**
@@ -43,6 +44,27 @@ const MIGRATIONS: Record<number, (state: GameState) => GameState> = {
         },
       ]),
     ),
+  }),
+  /**
+   * v3 (Phase 4, career model): captaincy, relationships, media reputation,
+   * team morale, and the dev-only captain toggle.
+   */
+  2: (state) => ({
+    ...state,
+    version: 3,
+    career: {
+      ...state.career,
+      captaincy: state.career.captaincy ?? emptyCaptaincy(),
+      relationships: state.career.relationships ?? {},
+      mediaReputation: numberOr(state.career.mediaReputation, 30),
+    },
+    teams: Object.fromEntries(
+      Object.entries(state.teams ?? {}).map(([id, team]) => [
+        id,
+        { ...team, morale: numberOr(team.morale, 60) },
+      ]),
+    ),
+    settings: { ...state.settings, devCaptainMode: false },
   }),
 };
 
