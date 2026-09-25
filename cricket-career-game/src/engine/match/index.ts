@@ -34,7 +34,18 @@ export {
 export { resolveDelivery } from './delivery';
 export { describeBall } from './commentary';
 export { applyAftermath, formBandFor, moraleBandFor, type AftermathInput, type AftermathResult } from './aftermath';
-export { generateXi, toRivalPlayers } from './squad';
+export { generateXi, generateSquad, toRivalPlayers } from './squad';
+export {
+  buildMatch,
+  squadFor,
+  defaultXiIds,
+  battingOrderOf,
+  xiWarnings,
+  simFromRival,
+  simFromUser,
+  rivalFromSim,
+  type MatchBuild,
+} from './lineup';
 export {
   createPitch,
   createWeather,
