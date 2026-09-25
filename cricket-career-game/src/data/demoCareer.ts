@@ -50,6 +50,7 @@ function demoAttributes(): Attributes {
       swing: 30,
       seam: 28,
       spin: 16,
+      flight: 18,
       bounce: 32,
       variation: 24,
       newBall: 30,
@@ -90,6 +91,7 @@ function demoPotential(): Attributes {
       swing: 44,
       seam: 42,
       spin: 24,
+      flight: 26,
       bounce: 46,
       variation: 38,
       newBall: 44,
@@ -415,7 +417,7 @@ export function createDemoCareer(): GameState {
   record.manOfTheMatch = 2;
 
   return {
-    version: 1,
+    version: 2,
     seed: 20261010,
     player: {
       id: 'plr-demo-dinesh',
@@ -448,6 +450,7 @@ export function createDemoCareer(): GameState {
         recentRatings: [6.4, 7.1, 6.8, 8.2, 7.8],
         recentWorkload: 0,
         reputation: 38,
+        selectorTrust: 66,
       },
       overall: computeOverall(attributes, 'BATTER'),
       potentialOverall: computeOverall(potential, 'BATTER'),

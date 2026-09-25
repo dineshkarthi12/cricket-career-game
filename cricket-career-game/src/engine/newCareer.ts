@@ -77,6 +77,7 @@ function startingAttributes(): Attributes {
       swing: 18,
       seam: 18,
       spin: 14,
+      flight: 16,
       bounce: 20,
       variation: 15,
       newBall: 18,
@@ -123,6 +124,7 @@ function startingPotential(): Attributes {
       swing: 55,
       seam: 54,
       spin: 35,
+      flight: 38,
       bounce: 52,
       variation: 48,
       newBall: 52,
@@ -161,6 +163,7 @@ function startingCondition(): Condition {
     recentRatings: [],
     recentWorkload: 0,
     reputation: 5,
+    selectorTrust: 40,
   };
 }
 
@@ -346,7 +349,7 @@ export function createNewCareer(options: NewCareerOptions): GameState {
   const seasonYear = new Date(startDate).getFullYear();
 
   return {
-    version: 1,
+    version: 2,
     seed: options.seed ?? Math.floor(Math.random() * 2 ** 31),
     player,
     career: {

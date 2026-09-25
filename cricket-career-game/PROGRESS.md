@@ -178,11 +178,123 @@
 
 ---
 
-## ▶️ Next — Phase 3: match engine
+## ✅ Phase 3 — Ball-by-ball match engine (complete)
 
-1. Ball-by-ball resolution from attributes, condition, pitch, weather, ball age,
-   format, phase and pressure (`GAME_SPEC.md` §5).
-2. Text commentary, full innings scorecards and match reports.
-3. Wire "Play Match" and "Quick Sim" on the Home dashboard to the engine and
+Pure TypeScript in `/src/engine/match`. No React, no DOM, no `localStorage`,
+and no `Math.random` — there is a test that breaks `Math.random` and replays a
+match to prove it. Every tunable number is in `/src/engine/config.ts`.
+
+**Delivery resolution** (`delivery.ts`, `skill.ts`, `conditions.ts`, `field.ts`)
+Each ball is resolved in the order GAME_SPEC §5 lays out:
+1. The bowler executes a plan — length (yorker / full / good / back of a length
+   / short / full toss), line (wide of off through to down leg) and a variation
+   (slower ball, cutter, bouncer, googly, arm ball, doosra, carrom ball…) — with
+   an execution error driven by accuracy, control and fatigue. Wides and
+   no-balls come out of the same roll.
+2. **Threat** is built from what the conditions offer: swing (pitch + cloud
+   cover + humidity + wind, multiplied up for a new ball, and reverse swing once
+   the ball is old and the square abrasive), seam off a hard ball, turn (less
+   under dew), bounce, and how hard the surface is to bat on. It saturates
+   softly rather than clamping, so extra movement is never wasted.
+3. **Contact quality** comes from the batter's technique, timing, shot range,
+   footwork and the vs-pace / vs-spin match-up, scaled by form, confidence,
+   fatigue and match fitness, damped by pressure resolved against temperament,
+   and reduced while a batter is still playing themselves in.
+4. The outcome falls out: dot, 1, 2, 3, 4, 6, wide, no-ball, bye, leg-bye, or a
+   dismissal — bowled, caught (the fielder is named), lbw, run out, stumped,
+   caught behind, caught and bowled, hit wicket. Which dismissal depends on the
+   delivery: full and straight bowls and traps lbw, short is caught, wide edges
+   behind, spin stumps an advancing batter.
+5. Every ball also carries a shot type, a **direction (0-360°) and distance in
+   metres** for the 2D ground view in Phase 4, and a commentary line.
+
+**Field placement** — nine named positions from seven presets (attacking new
+ball, attacking spin, standard, defensive ring, boundary protection, death,
+powerplay). The nearest fielder to a shot decides catches, saved runs and
+whether a boundary rider pulls one back on the rope. Run-outs are rolled while
+the batters are actually running, off their running against the fielder's arm.
+
+**State machines** (`innings.ts`, `simulate.ts`)
+Overs, strike rotation, extras, partnerships, fall of wickets and full batting
+and bowling scorecards. Bowler spells, workload, fatigue, no consecutive overs
+and the per-format over limit (4 in a T20, 10 in an ODI). Multi-day matches run
+days and a pitch that wears with them, with declarations, the follow-on, draws
+and innings victories. Limited-overs matches handle rain, a **DLS** revised
+target, no-results, ties and a **super over** in a knockout.
+
+**AI** (`ai.ts`) — the opposition captain picks bowlers by match-up, phase,
+spell length, fatigue and remaining overs, sets a field to the situation, and
+AI batters choose an aggression level (1-5) from the format, the phase, wickets
+in hand, the required rate and their own temperament.
+
+**After the match** (`aftermath.ts`) — a 0-10 rating built from runs, wickets,
+catches and the result feeds form, confidence, morale, fatigue, fitness,
+injury risk (with severity and a return date), reputation, selector trust and
+XP. `Condition.selectorTrust` is new, alongside a `flight` bowling attribute
+and the shot direction on `Ball`; `SAVE_VERSION` is 2 with a migration.
+
+### Balance report — 1000 matches per format
+
+```
+--- T20 (1000 matches) ---
+1st innings      158.56/6.34  (RR 8.08)
+Top-six batting  avg 25.36, SR 138.78
+Bowling          econ 7.99, avg 24.31
+Dismissals       CAUGHT 54.8%, BOWLED 14.0%, CAUGHT_BEHIND 12.9%, LBW 8.3%,
+                 STUMPED 4.2%, C&B 2.8%, RUN_OUT 2.7%, HIT_WICKET 0.4%
+
+--- ODI (1000 matches) ---
+1st innings      279.03/7.18  (RR 5.75)
+Top-six batting  avg 39.41, SR 96.8
+Bowling          econ 5.56, avg 37.9
+Dismissals       CAUGHT 49.7%, BOWLED 15.4%, CAUGHT_BEHIND 14.1%, LBW 9.6%,
+                 RUN_OUT 4.1%, STUMPED 3.6%, C&B 3.1%, HIT_WICKET 0.4%
+
+--- MULTI_DAY (1000 matches) ---
+1st innings      326.16/10 in 106.11 overs  (RR 3.07)
+Top-six batting  avg 34.31, SR 57.17
+Bowling          econ 2.94, avg 31.94
+Results          WIN 79.7%, DRAW 20.2%, TIE 0.1%
+Dismissals       CAUGHT 47.5%, BOWLED 16.3%, CAUGHT_BEHIND 14.4%, LBW 11.2%,
+                 RUN_OUT 3.9%, C&B 3.1%, STUMPED 3.1%, HIT_WICKET 0.5%
+
+Good first-class top order averages 47.1
+```
+
+Every target from the brief is met: T20 first innings 150-190 ✓, ODI 250-320 ✓,
+first-class 250-400 ✓; good first-class batters average 35-50 ✓; T20 strike
+rates 130-160 ✓; economy realistic per format ✓; caught is the most common
+dismissal, then bowled, then lbw ✓.
+
+**Tests — 154 passing across 14 files** (51 new)
+- `balance.test.ts` — 1000 matches per format, prints the report above and
+  asserts every band; a separate run checks a good first-class batter's average
+  and that the dismissal ordering holds in all three formats.
+- `factors.test.ts` — pitch, weather and ball age each move outcomes the way a
+  cricketer would expect: a green seamer beats a flat deck, a worn pitch turns
+  and takes more wickets, overcast skies swing it and take more new-ball
+  wickets than sunshine, dew kills a spinner's grip, the new ball takes more
+  wickets than the same ball once soft, and reverse swing arrives late and only
+  on an abrasive square.
+- `engine.test.ts` — determinism (same seed replays ball for ball, and the
+  engine never touches `Math.random`), scorecard arithmetic, over limits, no
+  consecutive overs, bowler fatigue, format state machines, follow-on,
+  declarations, draws, DLS, super over, field placement, and every post-match
+  effect including injuries.
+
+**Two bugs the tests caught, both fixed**
+- Threat was hard-clamped at 1, so on a seaming pitch it saturated and extra
+  swing from cloud cover changed nothing at all. It now saturates softly.
+- The dew figure passed into the turn calculation was the pitch's own turn
+  value rather than the dew level.
+
+---
+
+## ▶️ Next — Phase 4: 2D ground view and live match screen
+
+1. Top-down 2D ground with fielders as dots, drawn from `FieldSetting`.
+2. Ball-path lines from each delivery's `shotAngle` and `shotDistance`.
+3. Live match screen: commentary feed, intent controls, over-by-over scorecard.
+4. Wire "Play Match" and "Quick Sim" on the Home dashboard to the engine and
    drop the "Coming in match engine phase" tooltip.
-4. Build the Matches screen over the placeholder.
+5. Build the Matches screen and the scorecard over their placeholders.

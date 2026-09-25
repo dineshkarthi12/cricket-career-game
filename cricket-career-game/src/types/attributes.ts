@@ -23,6 +23,8 @@ export interface BowlingAttributes {
   swing: Rating;
   seam: Rating;
   spin: Rating;
+  /** Loop and dip through the air. Drives a spinner's wicket-taking balls. */
+  flight: Rating;
   bounce: Rating;
   variation: Rating;
   newBall: Rating;

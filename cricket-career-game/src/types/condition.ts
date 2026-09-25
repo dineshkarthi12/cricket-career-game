@@ -50,4 +50,9 @@ export interface Condition {
   recentWorkload: number;
   /** Reputation 1-99: how well known the player is to selectors and scouts. */
   reputation: Rating;
+  /**
+   * 0-100 standing with the selectors of the current team. Reputation is who
+   * knows your name; trust is whether they pick you this week.
+   */
+  selectorTrust: Percent;
 }

@@ -22,6 +22,7 @@ Source of truth for rules is `CAREER_MODE.md`; source of truth for visuals is
 |---|---|
 | `/src/types` | Data models only. No logic. |
 | `/src/engine` | Pure game logic: match sim, selection, training, progression. |
+| `/src/engine/match` | The ball-by-ball engine: delivery resolution, innings and match state machines, AI captain, DLS, post-match effects. |
 | `/src/data` | Static data: stages, tournaments, venues, trophies, name pools. |
 | `/src/save` | 3-slot localStorage save system, autosave, export/import. |
 | `/src/store` | Zustand stores; the only bridge between engine and UI. |
@@ -108,7 +109,7 @@ batting axes marked ★ below, current vs. potential.
 | Group | Attributes |
 |---|---|
 | `batting` | ★technique, ★timing, ★power, ★shotRange, ★vsPace, ★vsSpin, vsSwing, footwork, running, concentration |
-| `bowling` | pace, accuracy, swing, seam, spin, bounce, variation, newBall, deathBowling, control |
+| `bowling` | pace, accuracy, swing, seam, spin, flight, bounce, variation, newBall, deathBowling, control |
 | `fielding` | catching, groundFielding, throwing, agility, wicketKeeping |
 | `physical` | stamina, strength, speed, durability |
 | `mental` | temperament, matchAwareness, aggression, discipline, leadership, workRate |
@@ -354,14 +355,50 @@ shape directly.
 
 ---
 
+## 8b. Match engine (built in Phase 3)
+
+Pure TypeScript in `/src/engine/match`, driven entirely by a seeded RNG so a
+match replays ball for ball. Public surface is the barrel `@/engine/match`.
+
+| Module | Holds |
+|---|---|
+| `rng.ts` | Deterministic mulberry32 generator and seed derivation. |
+| `skill.ts` | Attributes + condition -> batter and bowler ability; pressure. |
+| `conditions.ts` | Pitch and weather generation, ball ageing, deterioration, swing/seam/turn/bounce on offer, dew, phase. |
+| `field.ts` | Named positions, seven field presets, nearest-fielder and catch maths. |
+| `ai.ts` | AI captain (bowling changes, fields) and AI batter aggression. |
+| `delivery.ts` | Resolves one ball into runs, extras or a dismissal. |
+| `commentary.ts` | A commentary line for every delivery. |
+| `innings.ts` | Innings state machine: overs, strike, extras, partnerships, spells, scorecards. |
+| `simulate.ts` | Match state machine: toss, formats, days, declarations, follow-on, DLS, ties, super over, player of the match. |
+| `dls.ts` | Resource curve and revised targets. |
+| `aftermath.ts` | Post-match form, confidence, morale, fatigue, fitness, injury, reputation, selector trust, XP. |
+| `squad.ts` | Generates balanced AI XIs at a given strength. |
+| `balance.ts` | The harness the config was tuned against. |
+
+### Shot geometry
+
+Every delivery the batter makes contact with records `shotAngle` (0-360
+degrees) and `shotDistance` (metres), plus the normalised `landingPoint` the
+2D ground view draws. Angles are always written for a right-handed batter and
+mirrored for a left-hander: **0 straight down the ground, 90 square on the off
+side, 180 back past the keeper, 270 square leg.**
+
+### Balance targets
+
+`config.ts` was tuned against 1000 matches per format. Current output and the
+bands the tests enforce are recorded in `PROGRESS.md`.
+
+---
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Project setup, spec, data models, save system, placeholder Home | ✅ Done |
 | 2 | Design-system components + full Home dashboard | ✅ Done |
-| 3 | Match engine (ball-by-ball, commentary, scorecards) | Next |
-| 4 | 2D ground view and live match screen | Planned |
+| 3 | Match engine (ball-by-ball, commentary, scorecards) | ✅ Done |
+| 4 | 2D ground view and live match screen | Next |
 | 5 | Selection, training and progression engines | Planned |
 | 6 | Season, calendar and tournament flow | Planned |
 | 7 | IPL scouting and auction | Planned |
