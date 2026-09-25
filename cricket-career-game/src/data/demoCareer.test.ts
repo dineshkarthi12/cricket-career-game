@@ -57,7 +57,12 @@ describe('demo career', () => {
   });
 
   it('has the fixtures, match and messages the dashboard renders', () => {
-    expect(Object.keys(state.fixtures)).toHaveLength(5);
+    // The five from the design, then the rest of the season from the calendar.
+    for (const id of ['fx-ka-u16', 'fx-camp', 'fx-kl-u16', 'fx-fitness', 'fx-selection']) {
+      expect(state.fixtures[id]).toBeDefined();
+    }
+    const later = Object.values(state.fixtures).filter((f) => !f.id.startsWith('fx-') || f.date > '2026-11-12');
+    expect(later.every((f) => f.date > '2026-11-12')).toBe(true);
     expect(state.inbox).toHaveLength(3);
     expect(state.inbox.every((message) => !message.read)).toBe(true);
     const match = state.matches['match-andhra-u16'];

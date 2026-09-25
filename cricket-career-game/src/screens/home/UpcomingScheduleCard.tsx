@@ -2,20 +2,8 @@ import { Card, CardHeader } from '@/components';
 import { upcomingFixtures } from '@/lib/selectors';
 import { formatDayMonth } from '@/lib/format';
 import { cn } from '@/lib/cn';
-import type { FixtureKind, GameState } from '@/types';
-
-/** Colour of the marker beside a date - matches the design's four accents. */
-const KIND_BAR: Record<FixtureKind, string> = {
-  MATCH: 'bg-brand-navy/70',
-  TRIAL: 'bg-brand-blue',
-  SELECTION_CAMP: 'bg-brand-blue',
-  TRAINING_CAMP: 'bg-brand-navy/70',
-  FITNESS_ASSESSMENT: 'bg-brand-orange',
-  SELECTION_MEETING: 'bg-brand-red',
-  AUCTION: 'bg-brand-gold',
-  AWARDS: 'bg-brand-gold',
-  REST: 'bg-line',
-};
+import { styleForKind } from '@/lib/calendar';
+import type { GameState } from '@/types';
 
 export function UpcomingScheduleCard({ state }: { state: GameState }) {
   const fixtures = upcomingFixtures(state, 5);
@@ -34,7 +22,7 @@ export function UpcomingScheduleCard({ state }: { state: GameState }) {
           {fixtures.map((fixture) => (
             <li key={fixture.id} className="flex items-center gap-2.5 py-1.5">
               <span
-                className={cn('h-7 w-[3px] shrink-0 rounded-full', KIND_BAR[fixture.kind])}
+                className={cn('h-7 w-[3px] shrink-0 rounded-full', styleForKind(fixture.kind).bar)}
                 aria-hidden
               />
               <span className="w-[46px] shrink-0 text-[11.5px] font-semibold text-ink">

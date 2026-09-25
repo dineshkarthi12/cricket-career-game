@@ -7,6 +7,10 @@
  */
 import { KNOCKOUT_STAGES } from '../career/afterMatch';
 import { emptyCareerRecord } from '../records';
+import { traitSum } from '@/data/traits';
+import { STATES_BY_NAME } from '@/data/places';
+import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
+import { clampRating } from '@/types';
 import { createRng, deriveSeed } from './rng';
 import { generateSquad } from './squad';
 import { isLimitedOvers } from './simulate';
@@ -50,7 +54,29 @@ export function simFromRival(rival: RivalPlayer, battingPosition: number): SimPl
   };
 }
 
-export function simFromUser(player: Player, teamId: Id, battingPosition: number): SimPlayer {
+export function simFromUser(
+  player: Player,
+  teamId: Id,
+  battingPosition: number,
+  occasion: { bigMatch?: boolean } = {},
+): SimPlayer {
+  const dev = player.development;
+  // Back from a lay-off, the player is not yet match-sharp.
+  const sharpness = 0.75 + 0.25 * ((dev?.matchFitness ?? 100) / 100);
+  // Personality at the crease: some rise to the big day, some are jittery.
+  const traits = dev?.traits ?? [];
+  const temperamentShift =
+    traitSum(traits, 'nervousStart') * 0.5 + (occasion.bigMatch ? traitSum(traits, 'bigMatch') : 0);
+  const attributes =
+    temperamentShift === 0
+      ? player.attributes
+      : {
+          ...player.attributes,
+          mental: {
+            ...player.attributes.mental,
+            temperament: clampRating(player.attributes.mental.temperament + temperamentShift),
+          },
+        };
   return {
     id: player.id,
     name: `${player.firstName} ${player.lastName}`,
@@ -58,10 +84,11 @@ export function simFromUser(player: Player, teamId: Id, battingPosition: number)
     role: player.role,
     battingStyle: player.battingStyle,
     bowlingStyle: player.bowlingStyle,
-    attributes: player.attributes,
-    condition: player.condition,
+    attributes,
+    condition: { ...player.condition, fitness: Math.round(player.condition.fitness * sharpness) },
     battingPosition,
     isUser: true,
+    aggressionComfort: dev?.comfort,
   };
 }
 
@@ -218,6 +245,9 @@ export function buildMatch(
   const userTeamId = state.teams[homeTeamId]?.isUserTeam ? homeTeamId : awayTeamId;
   const oppositionTeamId = userTeamId === homeTeamId ? awayTeamId : homeTeamId;
   const userSelected = options.userSelected ?? true;
+  const bigOccasion =
+    (fixture.stage !== null && KNOCKOUT_STAGES.includes(fixture.stage)) ||
+    (TOURNAMENTS_BY_ID[fixture.tournamentId ?? '']?.prestige ?? 0) >= 60;
 
   /**
    * Match-day morale: each player's own, pulled towards the dressing room's.
@@ -242,7 +272,7 @@ export function buildMatch(
     const isUserSide = teamId === userTeamId;
     let pool = squad;
     if (isUserSide) {
-      pool = [simFromUser(state.player, teamId, 4), ...squad];
+      pool = [simFromUser(state.player, teamId, 4, { bigMatch: bigOccasion }), ...squad];
     }
 
     // An explicit order is used exactly as given.
@@ -302,6 +332,7 @@ export function buildMatch(
       [awayTeamId]: state.teams[awayTeamId]?.shortName ?? awayTeamId,
     },
     month: Number(fixture.date.slice(5, 7)),
+    region: venue ? STATES_BY_NAME[venue.state]?.region : undefined,
   };
 
   return { setup, homeXi, awayXi, userTeamId, oppositionTeamId };

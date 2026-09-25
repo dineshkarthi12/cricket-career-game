@@ -5,13 +5,14 @@
  */
 import { CONDITION, MATCH, XP } from '../config';
 import type { Rng } from './rng';
+import { createInjury, pickInjuryType } from '../development/injuries';
 import type {
   Condition,
   FormBand,
   Injury,
-  InjurySeverity,
   MoraleBand,
   PlayerMatchPerformance,
+  PlayerRole,
 } from '@/types';
 
 export interface AftermathInput {
@@ -27,6 +28,11 @@ export interface AftermathInput {
   /** In-game date, used to date an injury. */
   date: string;
   durability: number;
+  /** The player's role and age shape which injury it is. */
+  role?: PlayerRole;
+  age?: number;
+  /** Trait multiplier on the chance (injury-prone, fitness freak). */
+  injuryMultiplier?: number;
 }
 
 export interface AftermathResult {
@@ -60,50 +66,26 @@ export function moraleBandFor(morale: number): MoraleBand {
   return MORALE_BANDS.find((b) => morale >= b.min)?.band ?? 'STEADY';
 }
 
-const BODY_PARTS = ['Hamstring', 'Lower back', 'Side strain', 'Shoulder', 'Ankle', 'Finger', 'Groin'];
-
-const SEVERITY_DAYS: Record<InjurySeverity, number> = {
-  NIGGLE: 5,
-  MINOR: 12,
-  MODERATE: 28,
-  SERIOUS: 70,
-  SEVERE: 140,
-};
-
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 /** Roll for an injury. Fatigue is the main driver; durability is the defence. */
 function rollInjury(input: AftermathInput, fatigue: number, rng: Rng): Injury | null {
   const base = CONDITION.baseInjuryChance + (fatigue / 100) * CONDITION.fatigueInjuryChance;
   const workload = 1 + input.performance.oversBowled / 30;
   const resistance = 1 - (input.durability / 100) * 0.55;
   const recurrence = input.condition.injury?.recurrence ? 1.5 : 1;
+  const traits = input.injuryMultiplier ?? 1;
 
-  if (!rng.chance(base * workload * resistance * recurrence)) return null;
+  if (!rng.chance(base * workload * resistance * recurrence * traits)) return null;
 
-  const severity = rng.weighted<InjurySeverity>([
-    { item: 'NIGGLE', weight: 46 },
-    { item: 'MINOR', weight: 30 },
-    { item: 'MODERATE', weight: 16 },
-    { item: 'SERIOUS', weight: 6 },
-    { item: 'SEVERE', weight: 2 },
-  ]);
-
-  return {
-    id: `inj-${input.date}-${severity}`,
-    name: `${rng.pick(BODY_PARTS)} injury`,
-    bodyPart: rng.pick(BODY_PARTS),
-    severity,
-    startedOn: input.date,
-    expectedReturn: addDays(input.date, SEVERITY_DAYS[severity]),
-    matchesMissed: 0,
-    attributePenalty: Math.round(SEVERITY_DAYS[severity] / 12),
-    recurrence: Boolean(input.condition.injury),
-  };
+  const type = pickInjuryType(
+    {
+      role: input.role ?? 'BATTER',
+      context: 'MATCH',
+      age: input.age ?? 24,
+      paceLoad: input.performance.oversBowled / 8,
+    },
+    rng,
+  );
+  return createInjury(type, input.date, rng, Boolean(input.condition.injury));
 }
 
 /** Apply everything a match leaves behind. */

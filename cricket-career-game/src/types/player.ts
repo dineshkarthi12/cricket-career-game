@@ -1,5 +1,6 @@
 import type { Attributes } from './attributes';
 import type { Condition } from './condition';
+import type { DevelopmentState } from './development';
 import type {
   BattingStyle,
   BowlingStyle,
@@ -116,6 +117,9 @@ export interface Player {
   level: number;
   xp: number;
   xpToNextLevel: number;
+
+  /** Hidden potential, traits, comfort, injuries, studies and training history. */
+  development: DevelopmentState;
 
   record: CareerRecord;
   contracts: Contract[];

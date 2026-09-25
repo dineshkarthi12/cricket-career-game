@@ -19,6 +19,16 @@ import {
 import { pressConferenceFor, type PressConference } from '../career/press';
 import type { MatchSelection } from '../career/selection';
 import { applyAftermath } from './aftermath';
+import { XP } from '../config';
+import { traitProduct } from '@/data/traits';
+import {
+  addXp,
+  formStreak,
+  historyEntry,
+  practiseComfort,
+  startRehab,
+  streakConfidence,
+} from '../development';
 import { createRng, deriveSeed } from './rng';
 import { newId } from '../id';
 import { emptyFormatRecord } from '../records';
@@ -360,6 +370,9 @@ function commitScorecard(state: GameState, match: Match, options: CommitOptions)
       prestige: tournament?.prestige ?? 20,
       date: endDate,
       durability: state.player.attributes.physical.durability,
+      role: state.player.role,
+      age: state.player.age,
+      injuryMultiplier: traitProduct(state.player.development?.traits ?? [], 'injury'),
     },
     createRng(deriveSeed(state.seed, match.id.length + performance.runs + 7)),
   );
@@ -378,13 +391,36 @@ function commitScorecard(state: GameState, match: Match, options: CommitOptions)
   accumulate(record.byCompetition[match.tournamentId], performance, batted);
   if (performance.manOfTheMatch) record.manOfTheMatch += 1;
 
-  let xp = state.player.xp + aftermath.xpEarned;
-  let level = state.player.level;
-  let toNext = state.player.xpToNextLevel;
-  while (xp >= toNext) {
-    xp -= toNext;
-    level += 1;
-    toNext = Math.round(toNext * 1.12);
+  // Milestones pay extra XP on top of the appearance.
+  const milestoneXp =
+    (performance.runs >= 100 ? XP.perHundred : performance.runs >= 50 ? XP.perFifty : 0) +
+    (performance.wickets >= 5 ? XP.perFiveFor : 0);
+  const xpEarned = aftermath.xpEarned + milestoneXp;
+  const { xp, level, xpToNextLevel: toNext } = addXp(state.player, xpEarned);
+
+  // Streaks feed confidence; a match sharpens match fitness; playing at a
+  // level makes the player more comfortable there.
+  const streak = formStreak(aftermath.condition.recentRatings);
+  const condition = {
+    ...aftermath.condition,
+    confidence: Math.max(0, Math.min(100, aftermath.condition.confidence + streakConfidence(streak))),
+  };
+  const dev = state.player.development;
+  const comfort = { batting: [...dev.comfort.batting], bowling: [...dev.comfort.bowling] };
+  const levels = state.career.aggression ?? { batting: 3, bowling: 3 };
+  if (performance.ballsFaced > 0) practiseComfort(comfort, 'BATTING', levels.batting, 0.6);
+  if (performance.oversBowled > 0) practiseComfort(comfort, 'BOWLING', levels.bowling, 0.6);
+  let development = {
+    ...dev,
+    comfort,
+    matchFitness: Math.min(100, dev.matchFitness + 6 * match.days),
+  };
+  if (aftermath.injury) {
+    development = {
+      ...development,
+      rehab: startRehab(aftermath.injury),
+      injuryHistory: [historyEntry(aftermath.injury), ...development.injuryHistory],
+    };
   }
 
   // The stored scorecard carries the XP that was actually awarded.
@@ -392,17 +428,23 @@ function commitScorecard(state: GameState, match: Match, options: CommitOptions)
     ...next.matches,
     [match.id]: {
       ...match,
-      userPerformance: { ...performance, xpEarned: aftermath.xpEarned },
+      userPerformance: { ...performance, xpEarned },
     },
   };
 
   next.player = {
     ...state.player,
-    condition: aftermath.condition,
+    condition,
     record,
     xp,
     level,
     xpToNextLevel: toNext,
+    development,
+  };
+  next.career = {
+    ...next.career,
+    lastAppearance: endDate,
+    ...(aftermath.injury ? { selectionStatus: 'INJURED_OUT' as const } : {}),
   };
 
   if (aftermath.injury) {

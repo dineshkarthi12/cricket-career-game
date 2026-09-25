@@ -53,8 +53,12 @@ export const XP = {
   /** Multiplier applied to XP by tournament prestige (0-100). */
   prestigeScale: 0.02,
   /** XP needed for level n is `base * n^curve`. */
-  levelBase: 120,
-  levelCurve: 1.35,
+  levelBase: 150,
+  levelCurve: 0.83,
+  /** Milestones reached in a match. */
+  perFifty: 40,
+  perHundred: 100,
+  perFiveFor: 100,
 } as const;
 
 export const SELECTION = {
@@ -87,17 +91,187 @@ export const PROGRESSION = {
   ageGraceSeasons: 2,
 } as const;
 
+/* ------------------------------------------------------------------ *
+ * Player development (Phase 5)
+ *
+ * Tuned against the 50-career simulation in
+ * `src/engine/development/simulation.test.ts` - change one and re-run it.
+ * ------------------------------------------------------------------ */
+
+export const DEVELOPMENT = {
+  /** Hidden potential range for a new player's overall. */
+  potentialRange: [60, 95] as [number, number],
+  /**
+   * Share of an attribute's ceiling a body and mind of this age can reach,
+   * whatever the training. Growth tracks this up to about 24.
+   */
+  maturity: [
+    [8, 0.36],
+    [10, 0.44],
+    [12, 0.53],
+    [14, 0.63],
+    [16, 0.73],
+    [18, 0.82],
+    [20, 0.9],
+    [22, 0.96],
+    [24, 1],
+  ] as [number, number][],
+  /** Years a late bloomer lags, and an early bloomer leads, on maturity. */
+  lateBloomerLag: 1.8,
+  earlyBloomerLead: 1.2,
+  /** A new player starts at this share of their age's reachable level. */
+  startShare: [0.66, 0.84] as [number, number],
+  /** How fast training converts, by age. Fast when young, slow after 30. */
+  learningRate: [
+    [8, 1.2],
+    [13, 1.35],
+    [17, 1.3],
+    [20, 1.1],
+    [23, 0.85],
+    [26, 0.55],
+    [30, 0.32],
+    [33, 0.2],
+    [40, 0.12],
+  ] as [number, number][],
+  /**
+   * Past the peak the ceiling itself comes down, per year, by group. Physical
+   * goes first and fastest; mental keeps growing for a long time.
+   */
+  decline: {
+    startAge: 31.5,
+    fastAge: 35.5,
+    perYear: { batting: 1.3, bowling: 1.6, fielding: 1.9, physical: 3, mental: 0 },
+    fastPerYear: { batting: 3, bowling: 3.5, fielding: 4, physical: 5.5, mental: 0.5 },
+    /** Share of the gap above the lowered ceiling lost each week. */
+    weeklyPull: 0.025,
+    /** Share of the yearly decline that erodes the current level directly. */
+    erosionShare: 1,
+  },
+  /** Diminishing returns: gain x (1 - e^(-headroom / this)). */
+  headroomScale: 9,
+  /** Growing up: every attribute creeps towards the age's reachable level. */
+  passiveShare: 0.05,
+  /** Mental attributes that grow with experience on their own. */
+  experienceGrowth: 0.012,
+} as const;
+
 export const TRAINING = {
-  /** Attribute points gained per week at MODERATE intensity, before modifiers. */
-  baseWeeklyGain: 0.18,
-  intensityMultiplier: { LIGHT: 0.5, MODERATE: 1.0, HARD: 1.5, MAXIMUM: 2.0 },
-  /** Fatigue added per week at each intensity. */
-  intensityFatigue: { LIGHT: 3, MODERATE: 7, HARD: 13, MAXIMUM: 20 },
-  /** Gains shrink as an attribute approaches its potential. */
-  potentialFalloff: 0.85,
-  /** Age past which attributes start to decline without maintenance. */
-  declineAge: 32,
-  declinePerSeason: 1.2,
+  /** Attribute points per session at NORMAL intensity, full weight, before modifiers. */
+  sessionGain: 0.52,
+  intensity: {
+    LIGHT: { gain: 0.55, fatigue: 0.5, energy: 1, injury: 0.6 },
+    NORMAL: { gain: 1, fatigue: 1, energy: 2, injury: 1 },
+    HARD: { gain: 1.45, fatigue: 1.75, energy: 3, injury: 1.8 },
+  },
+  /** Sessions allowed in a week. */
+  maxSessions: 7,
+  /** Weekly energy by age band. */
+  energyByAge: [
+    [8, 9],
+    [12, 11],
+    [16, 12],
+    [34, 12],
+    [40, 11],
+  ] as [number, number][],
+  /** Energy lost to school work at full study focus (under 16). */
+  studyEnergy: 4,
+  /** Share of energy left in an exam week. */
+  examEnergyShare: 0.5,
+  /** Energy lost when carrying heavy fatigue. */
+  tiredEnergyPenalty: 2,
+  tiredFatigue: 65,
+  /** Fatigue recovered every week before anything else. */
+  weeklyRecovery: 22,
+  /** Extra recovery per rest session. */
+  restRecovery: 9,
+  /** Gains fall off above this fatigue, to `tiredGainFloor` at 100. */
+  fatigueGainThreshold: 55,
+  tiredGainFloor: 0.45,
+  /** Consistency: +x per week the plan runs unchanged, capped. */
+  consistencyPerWeek: 0.01,
+  consistencyCap: 0.1,
+  /** XP per session at NORMAL intensity. */
+  xpPerSession: 6,
+  /** Comfort gained at the level trained, per NORMAL session. */
+  comfortGain: 7,
+  comfortNeighbourShare: 0.3,
+  /** Weekly drift of comfort towards 0 at levels never used, per week. */
+  comfortDecay: 0.15,
+  /** Match fitness rebuilt per match-simulation session. */
+  matchFitnessPerSim: 7,
+  matchFitnessPerWeek: 3,
+  lifestyle: {
+    sleep: {
+      SHORT: { recovery: -7, injury: 1.2, energy: 1, morale: -0.5 },
+      NORMAL: { recovery: 0, injury: 1, energy: 0, morale: 0 },
+      FULL: { recovery: 4, injury: 0.9, energy: 0, morale: 0.3 },
+    },
+    diet: {
+      CARELESS: { fitness: -1, injury: 1.12, morale: 0.3 },
+      BALANCED: { fitness: 0.3, injury: 1, morale: 0 },
+      STRICT: { fitness: 1, injury: 0.92, morale: -0.2 },
+    },
+    recovery: {
+      NONE: { recovery: 0, injury: 1, energy: 0 },
+      STRETCHING: { recovery: 2, injury: 0.93, energy: 0 },
+      FULL: { recovery: 5, injury: 0.85, energy: 1 },
+    },
+  },
+} as const;
+
+export const INJURY = {
+  /** Weekly chance of a training injury on an ordinary week. */
+  baseWeekly: 0.0035,
+  /** Extra weekly chance at 100 fatigue, rising with the square of fatigue. */
+  fatigueWeekly: 0.06,
+  /** Per unit of drill injury load (sum over sessions, intensity-weighted). */
+  loadWeekly: 0.0016,
+  /** Durability 100 takes this share off the risk. */
+  durabilityRelief: 0.5,
+  injuryProne: 1.6,
+  fitnessFreak: 0.85,
+  /** Risk multiplier for this many weeks after a rushed return. */
+  rushedMultiplier: 2.2,
+  rushedWeeks: 10,
+  /** Match fitness on return, falling with weeks out. */
+  returnMatchFitness: 78,
+  matchFitnessLostPerWeekOut: 2.2,
+  /** Rehab plans: time needed and re-injury risk afterwards. */
+  rehab: {
+    CAUTIOUS: { time: 1.25, reinjury: 0.5, passChance: 0.94 },
+    STANDARD: { time: 1, reinjury: 1, passChance: 0.84 },
+    AGGRESSIVE: { time: 0.75, reinjury: 2, passChance: 0.62 },
+  },
+  /** A lay-off this long costs selector trust, and this long a squad place. */
+  trustLossWeeks: 6,
+  trustLoss: 10,
+  squadLossWeeks: 12,
+} as const;
+
+export const FITNESS_TEST = {
+  /** Yo-yo level = base + stamina/100 x staminaScale + ... */
+  yoyoBase: 11,
+  yoyoStamina: 9,
+  yoyoFitness: 3,
+  yoyoFatigue: 2.2,
+  sprintBase: 3.78,
+  sprintSpeed: 0.95,
+  sprintFatigue: 0.003,
+  /** Selector trust moved by the result. */
+  passTrust: 2,
+  failTrust: -8,
+} as const;
+
+export const STUDIES = {
+  /** Players at school until this age. */
+  schoolUntil: 16,
+  /** Study focus below this lets grades slide. */
+  neutralFocus: 35,
+  gradeRate: 0.06,
+  examPenalty: 4,
+  /** Family unhappy below this grade. */
+  familyWorry: 45,
+  familyRate: 1.5,
 } as const;
 
 export const SAVE = {
@@ -551,6 +725,15 @@ export const MATCH = {
      * multiple of the format's base wicket rate.
      */
     riskLabels: { medium: 0.6, high: 1.2, veryHigh: 2.1 },
+    /**
+     * Playing away from a comfortable level: contact lost at zero comfort.
+     * Only players with a comfort profile (the career player) are affected.
+     */
+    comfortPenalty: 0.06,
+    /** Comfort (0-100) at or above which there is no penalty. */
+    comfortableAt: 70,
+    /** The same for a bowler's skill at an unpractised bowling level. */
+    bowlingComfortPenalty: 0.05,
   },
 
   /**

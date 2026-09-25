@@ -43,6 +43,7 @@ import {
 } from './simulate';
 import type { DecisionHooks, DecisionQuestion, SimPlayer } from './types';
 import type {
+  ClimateRegion,
   Ball,
   CaptainDelegation,
   Innings,
@@ -76,6 +77,8 @@ export interface LiveMatchSetup {
   underLights?: boolean;
   seed: number;
   month?: number;
+  /** Climate region of the venue; shapes monsoon, heat and dew. */
+  region?: ClimateRegion;
   /** Display names by team id, for alerts. Falls back to the id. */
   teamNames?: Record<string, string>;
   /** How much the captains trust each bowler. See `InningsSetup.bowlerTrust`. */
@@ -260,7 +263,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   const rng = createRng(setup.seed);
   const matchId = setup.matchId ?? newId('match');
   const pitch = createPitch(rng, setup.venue);
-  const weather = createWeather(rng, setup.month ?? new Date(setup.date).getMonth() + 1);
+  const weather = createWeather(rng, setup.month ?? new Date(setup.date).getMonth() + 1, setup.region);
   const underLights = setup.underLights ?? false;
   const rates = MATCH_FORMATS[setup.format] ?? MATCH_FORMATS.ODI;
   const limited = isLimitedOvers(setup.format);

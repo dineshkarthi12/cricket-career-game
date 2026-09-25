@@ -8,6 +8,19 @@ export type MoraleBand = 'BROKEN' | 'LOW' | 'STEADY' | 'HIGH' | 'FLYING';
 
 export type InjurySeverity = 'NIGGLE' | 'MINOR' | 'MODERATE' | 'SERIOUS' | 'SEVERE';
 
+/** Injury types with realistic recovery times - see `src/data/injuries.ts`. */
+export type InjuryType =
+  | 'HAMSTRING'
+  | 'SIDE_STRAIN'
+  | 'BACK_STRESS_FRACTURE'
+  | 'FINGER_FRACTURE'
+  | 'ANKLE_SPRAIN'
+  | 'CONCUSSION'
+  | 'SHOULDER'
+  | 'KNEE'
+  | 'GROIN'
+  | 'NIGGLE';
+
 export interface Injury {
   id: string;
   name: string;
@@ -23,6 +36,8 @@ export interface Injury {
   attributePenalty: number;
   /** A recurrence of a previous injury raises future risk. */
   recurrence: boolean;
+  /** What kind of injury it is. Missing on saves from before Phase 5. */
+  type?: InjuryType;
 }
 
 /**

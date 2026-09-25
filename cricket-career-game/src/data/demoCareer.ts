@@ -1,5 +1,7 @@
 import { emptyCaptaincy } from '@/engine/career/captaincy';
-import { DEFAULT_AGGRESSION } from '@/types';
+import { DEFAULT_AGGRESSION, SAVE_VERSION } from '@/types';
+import { applySeasonCalendar } from '@/engine/calendar';
+import { coachHints, emptyDevelopment, sessionFrom } from '@/engine/development';
 import { CAREER_STAGES } from './stages';
 import { createTrophyCabinet } from './trophies';
 import { VENUES } from './venues';
@@ -7,6 +9,8 @@ import { computeOverall } from '@/engine/ratings';
 import { emptyCareerRecord, emptyFormatRecord } from '@/engine/records';
 import type {
   Attributes,
+  DevelopmentState,
+  TrainingPlan,
   BattingRecord,
   CareerStageId,
   CareerStageProgress,
@@ -110,6 +114,50 @@ function demoPotential(): Attributes {
       leadership: 74,
       workRate: 95,
     },
+  };
+}
+
+/** A batter's week, shaped like the Training Focus card in the design. */
+function demoPlan(): TrainingPlan {
+  return {
+    id: 'plan-demo',
+    name: 'U-16 Season Plan',
+    sessions: [
+      { ...sessionFrom('DEFENCE', 'HARD', 2), id: 'ses-demo-1' },
+      { ...sessionFrom('NETS_PACE', 'NORMAL', 3), id: 'ses-demo-2' },
+      { ...sessionFrom('NETS_SPIN', 'LIGHT', 3), id: 'ses-demo-3' },
+      { ...sessionFrom('ENDURANCE', 'NORMAL', null), id: 'ses-demo-4' },
+      { ...sessionFrom('TEMPERAMENT', 'LIGHT', null), id: 'ses-demo-5' },
+      { ...sessionFrom('REST', 'LIGHT', null), id: 'ses-demo-6' },
+    ],
+    lifestyle: { sleep: 'FULL', diet: 'BALANCED', recovery: 'STRETCHING' },
+    studyFocus: 40,
+    lastAppliedOn: '2026-10-05',
+    weeksActive: 9,
+  };
+}
+
+/** A hard-working stroke-maker with a big-match temperament. */
+function demoDevelopment(potentialOverall: number, overall: number): DevelopmentState {
+  const development = emptyDevelopment({
+    hiddenPotential: potentialOverall,
+    traits: ['HARD_WORKER', 'BIG_MATCH_TEMPERAMENT'],
+    battingApproach: 'STROKE_MAKER',
+    preferredAggression: 3,
+    coachEstimate: potentialOverall,
+  });
+  return {
+    ...development,
+    coachQuality: 58,
+    matchFitness: 94,
+    coachHints: coachHints(development, 16),
+    overallHistory: [
+      { date: '2025-06-01', age: 15.1, overall: overall - 6 },
+      { date: '2025-10-01', age: 15.5, overall: overall - 4 },
+      { date: '2026-02-01', age: 15.8, overall: overall - 2 },
+      { date: '2026-06-01', age: 16.1, overall: overall - 1 },
+      { date: '2026-10-01', age: 16.5, overall },
+    ],
   };
 }
 
@@ -420,8 +468,8 @@ export function createDemoCareer(): GameState {
   record.byCompetition['vijay-merchant'] = structuredClone(u16Record);
   record.manOfTheMatch = 2;
 
-  return {
-    version: 2,
+  const state: GameState = {
+    version: SAVE_VERSION,
     seed: 20261010,
     player: {
       id: 'plr-demo-dinesh',
@@ -458,6 +506,7 @@ export function createDemoCareer(): GameState {
       },
       overall: computeOverall(attributes, 'BATTER'),
       potentialOverall: computeOverall(potential, 'BATTER'),
+      development: demoDevelopment(computeOverall(potential, 'BATTER'), computeOverall(attributes, 'BATTER')),
       level: 12,
       xp: 820,
       xpToNextLevel: 1200,
@@ -609,56 +658,14 @@ export function createDemoCareer(): GameState {
       },
     ],
     trophies: trophies(),
-    trainingPlan: {
-      id: 'plan-demo',
-      name: 'U-16 Season Plan',
-      intensity: 'MODERATE',
-      lastAppliedOn: '2026-10-05',
-      weeksActive: 9,
-      injuryRisk: 11,
-      active: true,
-      slots: [
-        {
-          id: 'slot-batting',
-          focus: 'BATTING_NETS',
-          intensity: 'HARD',
-          weight: 0.4,
-          group: 'batting',
-          attributeKeys: ['technique', 'timing', 'footwork'],
-          progress: 0.62,
-          fatigueCost: 9,
-        },
-        {
-          id: 'slot-fitness',
-          focus: 'FITNESS',
-          intensity: 'MODERATE',
-          weight: 0.25,
-          group: 'physical',
-          attributeKeys: ['stamina', 'speed'],
-          progress: 0.68,
-          fatigueCost: 7,
-        },
-        {
-          id: 'slot-mental',
-          focus: 'MENTAL_TRAINING',
-          intensity: 'LIGHT',
-          weight: 0.2,
-          group: 'mental',
-          attributeKeys: ['temperament', 'matchAwareness'],
-          progress: 0.45,
-          fatigueCost: 3,
-        },
-        {
-          id: 'slot-rest',
-          focus: 'REST_RECOVERY',
-          intensity: 'LIGHT',
-          weight: 0.15,
-          group: 'physical',
-          attributeKeys: ['durability'],
-          progress: 0.28,
-          fatigueCost: -6,
-        },
-      ],
+    trainingPlan: demoPlan(),
+    calendar: {
+      seasonYear: SEASON_YEAR,
+      stageId: CURRENT_STAGE,
+      windows: [],
+      region: 'SOUTH_EAST',
+      weeksPlayed: 18,
+      pendingFixtureId: null,
     },
     activeMatchId: null,
     settings: {
@@ -670,4 +677,8 @@ export function createDemoCareer(): GameState {
       devCaptainMode: false,
     },
   };
+  // The rest of the season - the Vijay Merchant group games after the
+  // selection meeting - comes from the same calendar as any other career.
+  return applySeasonCalendar(state, SEASON_YEAR, '2026-11-13');
 }
+

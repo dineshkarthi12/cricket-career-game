@@ -88,7 +88,11 @@ export type FixtureKind =
   | 'SELECTION_MEETING'
   | 'AUCTION'
   | 'AWARDS'
-  | 'REST';
+  | 'REST'
+  | 'EXAMS'
+  | 'TRAVEL'
+  | 'TRAINING'
+  | 'BIRTHDAY';
 
 export interface Fixture {
   id: Id;

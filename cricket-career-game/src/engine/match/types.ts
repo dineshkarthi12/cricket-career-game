@@ -3,6 +3,7 @@
  * saved shapes live in `/src/types`.
  */
 import type {
+  AggressionComfort,
   Attributes,
   BattingIntent,
   Condition,
@@ -33,6 +34,11 @@ export interface SimPlayer {
   battingPosition: number;
   /** True for the one player the save actually belongs to. */
   isUser: boolean;
+  /**
+   * How comfortable the player is at each aggression level (career player
+   * only). Playing away from it costs a little; absent means no effect.
+   */
+  aggressionComfort?: AggressionComfort;
 }
 
 export type BowlerKind = 'PACE' | 'SPIN';
