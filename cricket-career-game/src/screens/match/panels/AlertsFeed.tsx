@@ -4,10 +4,13 @@ import {
   Activity,
   AlertTriangle,
   BadgeCheck,
+  Clock,
+  CloudRain,
   HandHelping,
   Search,
   Star,
   Trophy,
+  UserRound,
 } from 'lucide-react';
 import type { LiveAlert } from '@/engine/match/live';
 
@@ -20,6 +23,9 @@ const ICONS: Record<LiveAlert['kind'], typeof Star> = {
   DROP: HandHelping,
   RESULT: Trophy,
   INNINGS: BadgeCheck,
+  WEATHER: CloudRain,
+  SESSION: Clock,
+  YOU: UserRound,
 };
 
 const TONES: Record<LiveAlert['kind'], string> = {
@@ -31,6 +37,9 @@ const TONES: Record<LiveAlert['kind'], string> = {
   DROP: 'text-brand-orange bg-brand-orange/15',
   RESULT: 'text-brand-green bg-brand-green/10',
   INNINGS: 'text-ink-muted bg-page',
+  WEATHER: 'text-brand-blue bg-brand-blue-soft',
+  SESSION: 'text-ink-muted bg-page',
+  YOU: 'text-brand-navy bg-brand-gold/25',
 };
 
 export const AlertsFeed = memo(function AlertsFeed({

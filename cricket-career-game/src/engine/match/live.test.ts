@@ -154,8 +154,9 @@ describe('live match controller', () => {
   });
 
   it('matches the batch simulator when nothing is overridden', () => {
-    const live = createLiveMatch(setup({ seed: 31337 }));
-    const ball = createLiveMatch(setup({ seed: 31337 }));
+    // Not captain: a captain is asked about reviews, which would stop play.
+    const live = createLiveMatch(setup({ seed: 31337, userIsCaptain: false }));
+    const ball = createLiveMatch(setup({ seed: 31337, userIsCaptain: false }));
     live.toEnd();
     // Step the second one ball at a time instead of in bulk.
     ball.doToss();

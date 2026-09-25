@@ -361,7 +361,11 @@ function checkComplete(state: InningsState): boolean {
 }
 
 /** Start a new over: pick the bowler, do the spell bookkeeping, read the dew. */
-function startOver(state: InningsState, rng: Rng, overrides?: BallOverrides): SimPlayer {
+/**
+ * Everything the AI captain weighs when choosing a bowler, as it stands right
+ * now. Shared by the real choice and by the advice shown to a human captain.
+ */
+export function bowlerChoiceInput(state: InningsState) {
   const { setup } = state;
   const overNumber = Math.floor(state.legalBalls / 6);
   const ballAgeOvers = state.conditions.ball.ageInBalls / 6;
@@ -377,7 +381,7 @@ function startOver(state: InningsState, rng: Rng, overrides?: BallOverrides): Si
           Math.min(1, ((setup.target - state.runs) / Math.max(1, state.maxBalls - state.legalBalls)) * 6 - 4) / 8,
         );
 
-  const chosen = chooseBowler({
+  return {
     bowlers: state.bowlers,
     oversBowledBy: state.oversBowledBy,
     spellOvers: state.spellOvers,
@@ -389,12 +393,25 @@ function startOver(state: InningsState, rng: Rng, overrides?: BallOverrides): Si
     runRatePressure: chaseHeat,
     share: oversShare,
     trust: setup.bowlerTrust,
-    rng,
-  });
+  };
+}
 
-  // The player's choice wins, as long as it is a legal one.
+function startOver(state: InningsState, rng: Rng, overrides?: BallOverrides): SimPlayer {
+  const { setup } = state;
+  const overNumber = Math.floor(state.legalBalls / 6);
+
+  const chosen = chooseBowler({ ...bowlerChoiceInput(state), rng });
+
+  // The player's choice wins, as long as it is a legal one: not the bowler
+  // who bowled the last over, and not one who has bowled their quota.
+  const limit = (MATCH_FORMATS[setup.format] ?? MATCH_FORMATS.ODI).maxOversPerBowler;
   const forced = overrides?.bowlerId
-    ? state.bowlers.find((b) => b.id === overrides.bowlerId && b.id !== state.lastBowlerId)
+    ? state.bowlers.find(
+        (b) =>
+          b.id === overrides.bowlerId &&
+          b.id !== state.lastBowlerId &&
+          (limit === null || (state.oversBowledBy[b.id] ?? 0) < limit),
+      )
     : undefined;
   const bowler = forced ?? chosen;
 
@@ -465,6 +482,23 @@ function endOver(state: InningsState, bowler: SimPlayer): void {
   }
 
   state.currentBowlerId = null;
+}
+
+/**
+ * Hand the ball to the bowler for the next over without bowling it yet, so the
+ * screen can show who is on before the first ball. `stepBall` would do exactly
+ * this as its first step, so calling it early changes nothing about the match.
+ */
+export function beginOver(
+  state: InningsState,
+  rng: Rng,
+  overrides?: BallOverrides,
+): SimPlayer | null {
+  if (state.pending || state.complete || checkComplete(state)) return null;
+  if (state.currentBowlerId !== null) {
+    return state.bowlers.find((b) => b.id === state.currentBowlerId) ?? null;
+  }
+  return startOver(state, rng, overrides);
 }
 
 /**

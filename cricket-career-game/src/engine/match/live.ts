@@ -12,10 +12,15 @@ import { MATCH, MATCH_FORMATS } from '../config';
 import { newId } from '../id';
 import { createPitch, createWeather, newBall } from './conditions';
 import { hasResult, revisedTarget } from './dls';
+import { chooseBowler } from './ai';
 import {
+  beginOver,
+  bowlerChoiceInput,
   createInningsState,
+  DecisionNeeded,
   finishInnings,
   inningsView,
+  resumeBall,
   nonStrikerOf,
   stepBall,
   strikerOf,
@@ -32,9 +37,10 @@ import {
   pickManOfTheMatch,
   rollOversLost,
 } from './simulate';
-import type { SimPlayer } from './types';
+import type { DecisionHooks, DecisionQuestion, SimPlayer } from './types';
 import type {
   Ball,
+  CaptainDelegation,
   Innings,
   Match,
   MatchConditions,
@@ -70,6 +76,22 @@ export interface LiveMatchSetup {
   teamNames?: Record<string, string>;
   /** How much the captains trust each bowler. See `InningsSetup.bowlerTrust`. */
   bowlerTrust?: Record<string, number>;
+  /** Captaincy calls the player has handed to the AI vice-captain. */
+  delegate?: CaptainDelegation;
+}
+
+/** How good the player's timing was on a catch or run-out, 0 (awful) to 1. */
+export function timedChance(probability: number, timing: number): number {
+  const t = Math.max(0, Math.min(1, timing));
+  return Math.max(0.02, Math.min(0.99, probability + (t - 0.5) * MATCH.fielding.timingWeight));
+}
+
+/** A moment the player had a hand in, for the screen to celebrate or rue. */
+export interface UserMoment {
+  kind: 'CATCH' | 'RUN_OUT' | 'REVIEW';
+  success: boolean;
+  text: string;
+  ballId: string;
 }
 
 /** A read-only view of the match, for the screen to render. */
@@ -121,6 +143,20 @@ export interface LiveSnapshot {
   alerts: LiveAlert[];
   userBatting: boolean;
   userBowling: boolean;
+  /** A question waiting on the player: a catch, a run-out or a review. */
+  question: DecisionQuestion | null;
+  /** Where the player is right now. */
+  involvement: {
+    playing: boolean;
+    onStrike: boolean;
+    atCrease: boolean;
+    bowling: boolean;
+    fielding: boolean;
+  };
+  /** Moments the player had a hand in, newest last. */
+  moments: UserMoment[];
+  /** Multi-day: the day and session in progress. */
+  session: { day: number; session: number } | null;
   /** The user's side can declare now. */
   canDeclare: boolean;
   /** The user's side has earned the follow-on and must say whether to enforce it. */
@@ -129,7 +165,18 @@ export interface LiveSnapshot {
 
 export interface LiveAlert {
   id: string;
-  kind: 'MILESTONE' | 'WICKET' | 'COLLAPSE' | 'REVIEW' | 'INJURY' | 'DROP' | 'RESULT' | 'INNINGS';
+  kind:
+    | 'MILESTONE'
+    | 'WICKET'
+    | 'COLLAPSE'
+    | 'REVIEW'
+    | 'INJURY'
+    | 'DROP'
+    | 'RESULT'
+    | 'INNINGS'
+    | 'WEATHER'
+    | 'SESSION'
+    | 'YOU';
   text: string;
   ballNumber: number;
 }
@@ -152,12 +199,26 @@ export interface LiveMatch {
   snapshot(): LiveSnapshot;
   /** Settle the toss. Pass a decision when the user is captain and won it. */
   doToss(userDecision?: 'BAT' | 'BOWL'): void;
-  /** Bowl one ball. Returns it, or null when nothing more can be bowled. */
+  /**
+   * Bowl one ball. Returns it, or null when nothing more can be bowled - or
+   * when a question for the player has come up (see `snapshot().question`).
+   */
   nextBall(overrides?: BallOverrides): Ball | null;
-  /** Bowl to the end of the current over. */
+  /** Bowl to the end of the current over. Stops early on a question. */
   nextOver(overrides?: BallOverrides): Ball[];
-  /** Bowl until the next wicket, or the innings ends. */
+  /** Bowl until the next wicket, or the innings ends. Stops early on a question. */
   toNextWicket(overrides?: BallOverrides): Ball[];
+  /** Bowl until the player is on strike, bowling, or has a question to answer. */
+  untilInvolved(overrides?: BallOverrides): Ball[];
+  /** Answer the open question: timing 0-1 for a chance, yes/no for a review. */
+  answer(answer: { timing?: number; review?: boolean }): Ball | null;
+  /**
+   * Let the AI captain name the next over's bowler before the first ball, so
+   * the player sees who is on. Only when the player is not choosing bowlers.
+   */
+  prepareNextOver(overrides?: BallOverrides): SimPlayer | null;
+  /** Who the AI would bowl next, as advice. Draws nothing from the match. */
+  suggestBowler(): SimPlayer | null;
   /** Play the rest of the innings out. */
   toEndOfInnings(overrides?: BallOverrides): Ball[];
   /** Play the whole match out. */
@@ -226,6 +287,18 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   const vary = (base: number) => Math.round(base * (1 + rng.spread() * cfg.declareVariance));
   /** The result of the innings that has just finished. */
   let lastEnding = '';
+
+  // --- The player's part in the match --------------------------------------
+  const userId = setup.userPlayerId ?? null;
+  const userTeamId = setup.userTeamId;
+  const playing = userId !== null && allPlayers.some((p) => p.id === userId);
+  /** A captaincy call the player makes, rather than the vice-captain. */
+  const captainCalls = (area: keyof CaptainDelegation) =>
+    Boolean(setup.userIsCaptain) && !(setup.delegate?.[area] ?? false);
+  const moments: UserMoment[] = [];
+  /** Multi-day: time each day lost, and what took it. */
+  const dayLosses: { overs: number; cause: 'RAIN' | 'BAD_LIGHT' }[] = [];
+  let announcedDay = 1;
 
   const xiOf = (teamId: string) => (teamId === setup.homeTeamId ? setup.homeXi : setup.awayXi);
   const other = (teamId: string) =>
@@ -537,7 +610,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         firstInningsLead >= cfg.followOnLead && ballsUsed < maxMatchBalls * 0.6;
 
       // When it is the user's side that has earned it, the call is theirs.
-      if (canEnforce && battingFirstTeamId === setup.userTeamId) {
+      if (canEnforce && battingFirstTeamId === setup.userTeamId && captainCalls('declarations')) {
         awaitingFollowOn = true;
         phase = 'INNINGS_BREAK';
         pending = null;
@@ -673,7 +746,9 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       const name = allPlayers.find((p) => p.id === ball.wicket?.bowlerId)?.name;
       addAlert('WICKET', `Wicket! ${s.runs}/${s.wickets}${name ? ` — ${name} strikes` : ''}.`);
       const recent = s.wicketBalls.filter((b) => s.legalBalls - b <= 24).length;
-      if (recent >= 3) addAlert('COLLAPSE', `Collapse — ${recent} wickets in four overs.`);
+      if (recent === 3 || recent === 5) {
+        addAlert('COLLAPSE', `Collapse — ${recent} wickets in four overs.`);
+      }
     }
     if (ball.dropped) addAlert('DROP', `Dropped by ${ball.dropped.fielderName}.`);
     if (ball.review) addAlert('REVIEW', `Review: ${ball.review.outcome.replace('_', ' ').toLowerCase()}.`);
@@ -690,6 +765,129 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     if (bowl && ball.wicket && bowl.wickets === 5) {
       addAlert('MILESTONE', `${bowl.name} has five wickets.`);
     }
+
+    // A batter off the field hurt.
+    if (s.retiredHurt.length > retiredSeen) {
+      const hurt = allPlayers.find((p) => p.id === s.retiredHurt[s.retiredHurt.length - 1]);
+      addAlert('INJURY', `${hurt?.name ?? 'A batter'} retires hurt.`);
+      retiredSeen = s.retiredHurt.length;
+    }
+
+    // Multi-day: stumps, a new day, and what the weather does to it.
+    const clock = sessionNow();
+    if (clock && clock.day > announcedDay) {
+      announcedDay = clock.day;
+      addAlert('SESSION', `Stumps on day ${clock.day - 1}. Day ${clock.day} begins.`);
+      const loss = dayLosses[clock.day];
+      if (loss) {
+        addAlert(
+          'WEATHER',
+          loss.cause === 'RAIN'
+            ? `Rain on day ${clock.day}: about ${loss.overs} overs lost.`
+            : `Bad light on day ${clock.day}: about ${loss.overs} overs lost.`,
+        );
+      }
+    }
+  }
+
+  let retiredSeen = 0;
+
+  /** Multi-day: the day and session in progress. */
+  function sessionNow(): { day: number; session: number } | null {
+    if (limited || !state) return null;
+    const ballsToday = cfg.oversPerDay * 6;
+    const played = ballsUsed + state.legalBalls;
+    return {
+      day: Math.min(cfg.days, 1 + Math.floor(played / ballsToday)),
+      session: Math.min(
+        cfg.sessionsPerDay,
+        1 + Math.floor((played % ballsToday) / (cfg.oversPerSession * 6)),
+      ),
+    };
+  }
+
+  // --- Questions for the player --------------------------------------------
+
+  /** Is this question the player's to answer? */
+  function isMine(q: DecisionQuestion): boolean {
+    if (!state) return false;
+    if (q.kind === 'CATCH' || q.kind === 'RUN_OUT') return playing && q.fielderId === userId;
+    if (q.side === 'BATTING') {
+      if (state.setup.battingTeamId !== userTeamId) return false;
+      // A batter reviews their own dismissal; the captain has the final say otherwise.
+      return (playing && q.batterId === userId) || captainCalls('reviews');
+    }
+    return state.setup.bowlingTeamId === userTeamId && captainCalls('reviews');
+  }
+
+  /** Hooks that stop the delivery whenever the question is the player's. */
+  const askHooks: DecisionHooks = {
+    fieldingChance: (q, roll) => {
+      if (isMine(q)) throw new DecisionNeeded(q);
+      return roll();
+    },
+    review: (q, ai) => {
+      if (isMine(q)) throw new DecisionNeeded(q);
+      return ai();
+    },
+  };
+
+  function recordMoment(q: DecisionQuestion, ball: Ball, reviewed: boolean) {
+    if (q.kind === 'CATCH') {
+      const held = ball.wicket?.type === 'CAUGHT' && ball.wicket.fielderId === userId;
+      moments.push({
+        kind: 'CATCH',
+        success: held,
+        ballId: ball.id,
+        text: held
+          ? q.onTheRope
+            ? 'You judge it on the rope and hold on!'
+            : 'You hold on to it!'
+          : q.onTheRope
+            ? 'It goes over your hands and into the crowd.'
+            : 'You put it down.',
+      });
+    } else if (q.kind === 'RUN_OUT') {
+      const hit = ball.wicket?.type === 'RUN_OUT';
+      moments.push({
+        kind: 'RUN_OUT',
+        success: hit,
+        ballId: ball.id,
+        text: hit ? 'Direct hit - run out!' : 'The throw misses. They make their ground.',
+      });
+    } else if (reviewed) {
+      const good =
+        ball.review?.outcome === 'OVERTURNED' ||
+        (q.side === 'BOWLING' && ball.review?.outcome === 'UMPIRES_CALL');
+      moments.push({
+        kind: 'REVIEW',
+        success: good,
+        ballId: ball.id,
+        text: good
+          ? 'Review successful.'
+          : ball.review?.outcome === 'UMPIRES_CALL'
+            ? "Umpire's call - the decision stands."
+            : 'Review lost.',
+      });
+    }
+    const latest = moments[moments.length - 1];
+    if (latest && latest.ballId === ball.id) addAlert('YOU', latest.text);
+  }
+
+  /** One delivery, asking the player when it is their call. */
+  function step(overrides: BallOverrides | undefined, ask: boolean): Ball | null {
+    if (phase !== 'IN_PLAY' || !state) return null;
+    const ball = stepBall(state, inningsRng, { ...overrides, hooks: ask ? askHooks : undefined });
+    if (ball) raiseAlerts(ball);
+    if (state.complete) closeInnings();
+    return ball;
+  }
+
+  /** The player is on strike, bowling, or has a question waiting. */
+  function involvedNow(): boolean {
+    if (!state || !playing) return false;
+    if (state.pending) return true;
+    return strikerOf(state).id === userId || state.currentBowlerId === userId;
   }
 
   function snapshot(): LiveSnapshot {
@@ -742,8 +940,25 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       alerts,
       userBatting: userBattingTeam,
       userBowling: s ? s.setup.bowlingTeamId === setup.userTeamId : false,
+      question: s?.pending?.question ?? null,
+      involvement: {
+        playing,
+        onStrike: Boolean(s && playing && strikerOf(s).id === userId),
+        atCrease: Boolean(
+          s && playing && (strikerOf(s).id === userId || nonStrikerOf(s).id === userId),
+        ),
+        bowling: Boolean(s && playing && s.currentBowlerId === userId),
+        fielding: Boolean(s && playing && s.setup.bowlingTeamId === userTeamId),
+      },
+      moments,
+      session: sessionNow(),
       canDeclare:
-        !limited && userBattingTeam && phase === 'IN_PLAY' && Boolean(current) && !current?.superOver,
+        !limited &&
+        userBattingTeam &&
+        captainCalls('declarations') &&
+        phase === 'IN_PLAY' &&
+        Boolean(current) &&
+        !current?.superOver,
       followOnChoice: awaitingFollowOn ? { lead: firstInningsLead } : null,
     };
   }
@@ -786,10 +1001,23 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       for (let d = 1; d <= cfg.days; d += 1) {
         const wet = weather.rainRisk / 100;
         if (rng.chance(cfg.washoutChance + wet * 0.35)) {
-          oversLost += cfg.oversPerDay * rng.range(0.55, 1);
+          const lost = cfg.oversPerDay * rng.range(0.55, 1);
+          oversLost += lost;
+          dayLosses[d] = { overs: Math.round(lost), cause: 'RAIN' };
         } else if (rng.chance(cfg.sessionLossChance + wet * 0.5)) {
-          oversLost += cfg.oversPerSession * rng.range(0.5, 1.4);
+          const lost = cfg.oversPerSession * rng.range(0.5, 1.4);
+          oversLost += lost;
+          // A dry day that still loses a session has lost it to the light.
+          dayLosses[d] = { overs: Math.round(lost), cause: weather.rainRisk >= 30 ? 'RAIN' : 'BAD_LIGHT' };
         }
+      }
+      if (dayLosses[1]) {
+        addAlert(
+          'INNINGS',
+          dayLosses[1].cause === 'RAIN'
+            ? `Rain about on day 1: around ${dayLosses[1].overs} overs will be lost.`
+            : `Bad light will cost around ${dayLosses[1].overs} overs on day 1.`,
+        );
       }
       maxMatchBalls = Math.max(
         cfg.oversPerDay * 6,
@@ -810,11 +1038,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     },
 
     nextBall(overrides) {
-      if (phase !== 'IN_PLAY' || !state) return null;
-      const ball = stepBall(state, inningsRng, overrides);
-      if (ball) raiseAlerts(ball);
-      if (state.complete) closeInnings();
-      return ball;
+      return step(overrides, true);
     },
 
     nextOver(overrides) {
@@ -822,7 +1046,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       if (phase !== 'IN_PLAY' || !state) return balls;
       const startOverNumber = Math.floor(state.legalBalls / 6);
       while (phase === 'IN_PLAY' && state) {
-        const ball = this.nextBall(overrides);
+        const ball = step(overrides, true);
         if (!ball) break;
         balls.push(ball);
         if (!state || Math.floor(state.legalBalls / 6) !== startOverNumber) break;
@@ -833,7 +1057,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     toNextWicket(overrides) {
       const balls: Ball[] = [];
       while (phase === 'IN_PLAY' && state) {
-        const ball = this.nextBall(overrides);
+        const ball = step(overrides, true);
         if (!ball) break;
         balls.push(ball);
         if (ball.wicket) break;
@@ -841,14 +1065,81 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       return balls;
     },
 
-    toEndOfInnings(overrides) {
+    untilInvolved(overrides) {
       const balls: Ball[] = [];
-      while (phase === 'IN_PLAY' && state) {
-        const ball = this.nextBall(overrides);
+      let guard = 0;
+      while (phase === 'IN_PLAY' && state && guard < 3000) {
+        guard += 1;
+        if (state.pending) break;
+        // Name the bowler first, so an over the player bowls is caught before
+        // its first ball rather than after it.
+        if (state.currentBowlerId === null) beginOver(state, inningsRng, overrides);
+        if (involvedNow()) break;
+        const ball = step(overrides, true);
         if (!ball) break;
         balls.push(ball);
       }
       return balls;
+    },
+
+    // Sims to the end never stop to ask: the engine makes the player's calls
+    // exactly as it would in a simulated match.
+    toEndOfInnings(overrides) {
+      const balls: Ball[] = [];
+      while (phase === 'IN_PLAY' && state) {
+        const ball = step(overrides, false);
+        if (!ball) break;
+        balls.push(ball);
+      }
+      return balls;
+    },
+
+    answer(response) {
+      if (phase !== 'IN_PLAY' || !state?.pending) return null;
+      const question = state.pending.question;
+      let used = false;
+      const hooks: DecisionHooks = {
+        fieldingChance: (q, roll) => {
+          if (
+            !used &&
+            question.kind !== 'REVIEW' &&
+            q.kind === question.kind &&
+            q.fielderId === question.fielderId
+          ) {
+            used = true;
+            return inningsRng.chance(timedChance(q.probability, response.timing ?? 0.5));
+          }
+          return roll();
+        },
+        review: (q, ai) => {
+          if (!used && question.kind === 'REVIEW' && q.side === question.side) {
+            used = true;
+            return Boolean(response.review);
+          }
+          return ai();
+        },
+      };
+      const ball = resumeBall(state, inningsRng, hooks);
+      if (ball) {
+        recordMoment(question, ball, Boolean(response.review));
+        raiseAlerts(ball);
+      }
+      if (state.complete) closeInnings();
+      return ball;
+    },
+
+    prepareNextOver(overrides) {
+      if (phase !== 'IN_PLAY' || !state || state.pending) return null;
+      const bowler = beginOver(state, inningsRng, overrides);
+      if (state.complete) closeInnings();
+      return bowler;
+    },
+
+    suggestBowler() {
+      if (phase !== 'IN_PLAY' || !state) return null;
+      // Advice only: its own random numbers, so asking changes nothing.
+      const advice = createRng(deriveSeed(setup.seed, 7000 + state.legalBalls + completed.length * 1000));
+      return chooseBowler({ ...bowlerChoiceInput(state), rng: advice });
     },
 
     toEnd() {
@@ -875,6 +1166,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     declare() {
       if (limited || phase !== 'IN_PLAY' || !state || !current) return false;
       if (state.setup.battingTeamId !== setup.userTeamId) return false;
+      if (!captainCalls('declarations')) return false;
       state.ending = 'DECLARED';
       state.complete = true;
       const name = setup.teamNames?.[state.setup.battingTeamId] ?? state.setup.battingTeamId;

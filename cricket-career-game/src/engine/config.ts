@@ -524,6 +524,11 @@ export const MATCH = {
 
   /** Fielding: catches, saved runs and misfields. */
   fielding: {
+    /**
+     * How far the player's timing on a catch or run-out moves the odds: a
+     * perfect tap adds half of this, a dreadful one takes half away.
+     */
+    timingWeight: 0.9,
     /** Catch chance for an average fielder with the ball straight at them. */
     baseCatch: 0.82,
     /** Chance lost per metre the fielder has to move. */
