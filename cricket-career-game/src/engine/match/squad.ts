@@ -3,11 +3,9 @@
  * season code in a later phase will want the same builder.
  */
 import { newId } from '../id';
-import { computeOverall } from '../ratings';
-import { emptyCareerRecord } from '../records';
 import type { Rng } from './rng';
 import type { SimPlayer } from './types';
-import type { Attributes, BowlingStyle, Condition, PlayerRole, RivalPlayer } from '@/types';
+import type { Attributes, BowlingStyle, Condition, PlayerRole } from '@/types';
 
 const FIRST_NAMES = [
   'Arun', 'Vikram', 'Rohan', 'Sanjay', 'Karthik', 'Nikhil', 'Aditya', 'Manish',
@@ -105,7 +103,7 @@ function buildAttributes(rng: Rng, role: PlayerRole, strength: number): Attribut
   };
 }
 
-function bowlingStyleFor(rng: Rng, role: PlayerRole): BowlingStyle {
+export function bowlingStyleFor(rng: Rng, role: PlayerRole): BowlingStyle {
   if (role === 'SPIN_BOWLER') {
     return rng.pick<BowlingStyle>(['OFF_SPIN', 'LEG_SPIN', 'LEFT_ARM_ORTHODOX', 'LEFT_ARM_WRIST_SPIN']);
   }
@@ -118,7 +116,7 @@ function bowlingStyleFor(rng: Rng, role: PlayerRole): BowlingStyle {
   return rng.chance(0.25) ? 'RIGHT_ARM_MEDIUM' : 'NONE';
 }
 
-function freshCondition(rng: Rng, strength: number): Condition {
+export function freshCondition(rng: Rng, strength: number): Condition {
   return {
     form: around(rng, 55, 16),
     formBand: 'AVERAGE',
@@ -201,21 +199,3 @@ export function generateXi(teamId: string, strength: number, rng: Rng): SimPlaye
 }
 
 /** The same players, in the shape the save file stores them. */
-export function toRivalPlayers(players: SimPlayer[]): RivalPlayer[] {
-  return players.map((p) => ({
-    id: p.id,
-    name: p.name,
-    age: 24,
-    teamId: p.teamId,
-    role: p.role,
-    battingStyle: p.battingStyle,
-    bowlingStyle: p.bowlingStyle,
-    attributes: p.attributes,
-    overall: computeOverall(p.attributes, p.role),
-    potentialOverall: computeOverall(p.attributes, p.role),
-    condition: p.condition,
-    record: emptyCareerRecord(),
-    isDirectRival: false,
-    selectorFavour: 50,
-  }));
-}

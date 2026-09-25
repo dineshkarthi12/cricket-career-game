@@ -6,7 +6,8 @@
  * returns engine input, and never writes to the store.
  */
 import { KNOCKOUT_STAGES } from '../career/afterMatch';
-import { emptyCareerRecord } from '../records';
+import { emptySeasonLine } from '../world/players';
+import { computeOverall } from '../ratings';
 import { traitSum } from '@/data/traits';
 import { STATES_BY_NAME } from '@/data/places';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
@@ -93,11 +94,13 @@ export function simFromUser(
 }
 
 /** The same players in the shape the save stores them. */
-export function rivalFromSim(sim: SimPlayer, overall: number): RivalPlayer {
+export function rivalFromSim(sim: SimPlayer, overall: number, seasonYear = 2026): RivalPlayer {
   return {
     id: sim.id,
     name: sim.name,
     age: 24,
+    dateOfBirth: `${seasonYear - 24}-01-01`,
+    region: 'Tamil Nadu',
     teamId: sim.teamId,
     role: sim.role,
     battingStyle: sim.battingStyle,
@@ -106,7 +109,9 @@ export function rivalFromSim(sim: SimPlayer, overall: number): RivalPlayer {
     overall,
     potentialOverall: overall,
     condition: sim.condition,
-    record: emptyCareerRecord(),
+    season: emptySeasonLine(seasonYear),
+    history: [],
+    injuredUntil: null,
     isDirectRival: false,
     selectorFavour: 50,
   };
@@ -336,4 +341,9 @@ export function buildMatch(
   };
 
   return { setup, homeXi, awayXi, userTeamId, oppositionTeamId };
+}
+
+/** Generated players in the shape the save stores them. */
+export function toRivalPlayers(players: SimPlayer[], seasonYear = 2026): RivalPlayer[] {
+  return players.map((p) => rivalFromSim(p, computeOverall(p.attributes, p.role), seasonYear));
 }

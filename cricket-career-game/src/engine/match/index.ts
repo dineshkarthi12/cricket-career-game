@@ -37,7 +37,7 @@ export {
 export { resolveDelivery } from './delivery';
 export { describeBall } from './commentary';
 export { applyAftermath, formBandFor, moraleBandFor, type AftermathInput, type AftermathResult } from './aftermath';
-export { generateXi, generateSquad, toRivalPlayers } from './squad';
+export { generateXi, generateSquad } from './squad';
 export {
   buildMatch,
   squadFor,
@@ -47,6 +47,7 @@ export {
   simFromRival,
   simFromUser,
   rivalFromSim,
+  toRivalPlayers,
   type MatchBuild,
 } from './lineup';
 export {

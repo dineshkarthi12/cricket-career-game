@@ -278,6 +278,72 @@ export const STUDIES = {
   familyRate: 1.5,
 } as const;
 
+/** AI cricketers: how they are generated and how they age (Phase 6). */
+export const WORLD = {
+  /** Share of reachable level an established (selected) player has developed. */
+  developedShare: 0.9,
+  /** Each year the overall closes this share of the gap to its target. */
+  annualPull: 0.55,
+  annualNoise: 1.6,
+  declineStart: 31,
+  declinePerYear: 1.4,
+  /** Chance a player starts a season injured. */
+  seasonInjuryChance: 0.1,
+  /** Squad size for every generated side. */
+  squadSize: 16,
+} as const;
+
+/**
+ * The fast score-only sim (`engine/sim/quickMatch.ts`) used for matches the
+ * user is not in. Calibrated against the ball-by-ball engine in
+ * `quickMatch.test.ts` - change one and re-run it.
+ */
+export const QUICK_SIM = {
+  /** How strongly the batting-vs-bowling ability gap moves a batter's average. */
+  skillK: { T20: 1.45, ODI: 1.9, MULTI_DAY: 2.1 },
+  /** ...and their strike rate. */
+  srK: 0.9,
+  /**
+   * A side's day: every batter's mean in an innings is scaled by
+   * e^(spread x this), so upsets happen as often as in the full engine.
+   */
+  dayVariance: { T20: 0.66, ODI: 0.5, MULTI_DAY: 0.45 },
+  T20: {
+    average: 26,
+    strikeRate: 146,
+    position: [1, 1, 1, 1, 0.95, 0.85, 0.6, 0.42, 0.3, 0.2, 0.16],
+    extras: 8,
+    fourShare: 0.42,
+    sixShare: 0.2,
+  },
+  ODI: {
+    average: 35,
+    strikeRate: 97,
+    position: [1, 1, 1, 1, 0.95, 0.85, 0.62, 0.45, 0.32, 0.22, 0.16],
+    extras: 12,
+    fourShare: 0.4,
+    sixShare: 0.1,
+  },
+  MULTI_DAY: {
+    average: 32,
+    strikeRate: 52,
+    position: [1, 1, 1, 1, 0.95, 0.9, 0.85, 0.65, 0.48, 0.35, 0.28],
+    extras: 18,
+    fourShare: 0.5,
+    sixShare: 0.04,
+    /** Overs a day, before time lost to weather and slow over rates. */
+    oversPerDay: 62,
+    /** First innings declared on this many. */
+    declareFirst: 520,
+    /** Second innings declared once this far ahead. */
+    declareLead: 180,
+    /** Target the side batting third tries to set. */
+    fourthInningsTarget: 330,
+    /** Overs the side batting third leaves to bowl the opposition out. */
+    leaveForFourth: 70,
+  },
+} as const;
+
 export const SAVE = {
   /** localStorage key prefix. */
   keyPrefix: 'cricket-career',
@@ -902,7 +968,7 @@ export const MATCH = {
   /** Multi-day structure. */
   multiDay: {
     days: 4,
-    oversPerDay: 90,
+    oversPerDay: 62,
     sessionsPerDay: 3,
     oversPerSession: 30,
     /** First-innings lead that lets the captain enforce the follow-on. */

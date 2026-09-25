@@ -85,6 +85,74 @@ export const STATES: StateInfo[] = [
   { name: 'Uttarakhand', team: 'Uttarakhand', monogram: 'UK', region: 'NORTH', zone: 'Central', towns: ['Dehradun', 'Haridwar', 'Haldwani'], colors: ['#117A65', '#FFFFFF'] },
 ];
 
+/**
+ * Cricket associations that field teams but are not the player's home state:
+ * the extra sides in the national competitions (Mumbai, Vidarbha, Saurashtra,
+ * the services, the north-east...). Names are real places; every player in
+ * them is fictional.
+ */
+export interface Association {
+  team: string;
+  monogram: string;
+  /** State whose climate and name pool the side uses. */
+  state: string;
+  zone: StateInfo['zone'];
+  city: string;
+  colors: [string, string];
+}
+
+export const EXTRA_ASSOCIATIONS: Association[] = [
+  { team: 'Mumbai', monogram: 'MU', state: 'Maharashtra', zone: 'West', city: 'Mumbai', colors: ['#1B4F9C', '#F5C518'] },
+  { team: 'Vidarbha', monogram: 'VI', state: 'Maharashtra', zone: 'Central', city: 'Nagpur', colors: ['#6C3483', '#FFFFFF'] },
+  { team: 'Saurashtra', monogram: 'SA', state: 'Gujarat', zone: 'West', city: 'Rajkot', colors: ['#B03A2E', '#F5C518'] },
+  { team: 'Baroda', monogram: 'BA', state: 'Gujarat', zone: 'West', city: 'Vadodara', colors: ['#1F618D', '#FFFFFF'] },
+  { team: 'Railways', monogram: 'RL', state: 'Delhi', zone: 'Central', city: 'New Delhi', colors: ['#922B21', '#F5C518'] },
+  { team: 'Services', monogram: 'SE', state: 'Delhi', zone: 'North', city: 'New Delhi', colors: ['#1C2833', '#E5484D'] },
+  { team: 'Tripura', monogram: 'TR', state: 'Assam', zone: 'East', city: 'Agartala', colors: ['#148F77', '#FFFFFF'] },
+  { team: 'Meghalaya', monogram: 'ME', state: 'Assam', zone: 'East', city: 'Shillong', colors: ['#2874A6', '#F5C518'] },
+  { team: 'Manipur', monogram: 'MN', state: 'Assam', zone: 'East', city: 'Imphal', colors: ['#A93226', '#FFFFFF'] },
+  { team: 'Nagaland', monogram: 'NA', state: 'Assam', zone: 'East', city: 'Dimapur', colors: ['#212F3D', '#F59E0B'] },
+  { team: 'Mizoram', monogram: 'MZ', state: 'Assam', zone: 'East', city: 'Aizawl', colors: ['#117864', '#F5C518'] },
+  { team: 'Sikkim', monogram: 'SK', state: 'West Bengal', zone: 'East', city: 'Gangtok', colors: ['#5B2C6F', '#FFFFFF'] },
+  { team: 'Arunachal Pradesh', monogram: 'AR', state: 'Assam', zone: 'East', city: 'Itanagar', colors: ['#D35400', '#0F1B33'] },
+  { team: 'Chandigarh', monogram: 'CH', state: 'Punjab', zone: 'North', city: 'Chandigarh', colors: ['#2E4053', '#F5C518'] },
+];
+
+/** One side in the national competitions: a state or an extra association. */
+export interface CricketSide {
+  team: string;
+  monogram: string;
+  state: string;
+  zone: StateInfo['zone'];
+  city: string;
+  colors: [string, string];
+}
+
+/** Every state and association side in the country, home states first. */
+export const ALL_SIDES: CricketSide[] = [
+  ...STATES.map((s) => ({ team: s.team, monogram: s.monogram, state: s.name, zone: s.zone, city: s.towns[0], colors: s.colors })),
+  ...EXTRA_ASSOCIATIONS,
+];
+
+/** National U-19 sides for India U-19 cricket. */
+export const U19_NATIONS = [
+  'Australia',
+  'England',
+  'South Africa',
+  'New Zealand',
+  'Pakistan',
+  'Sri Lanka',
+  'West Indies',
+  'Bangladesh',
+  'Afghanistan',
+  'Ireland',
+  'Zimbabwe',
+  'Scotland',
+  'Nepal',
+  'United Arab Emirates',
+  'United States',
+];
+
 export const STATES_BY_NAME: Record<string, StateInfo> = Object.fromEntries(
   STATES.map((state) => [state.name, state]),
 );

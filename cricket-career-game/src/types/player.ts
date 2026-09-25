@@ -129,23 +129,59 @@ export interface Player {
   retiredOn: ISODate | null;
 }
 
+/** One season of an AI player's cricket, kept compact. */
+export interface RivalSeasonLine {
+  seasonYear: number;
+  matches: number;
+  innings: number;
+  notOuts: number;
+  runs: number;
+  balls: number;
+  highScore: number;
+  fifties: number;
+  hundreds: number;
+  wickets: number;
+  ballsBowled: number;
+  runsConceded: number;
+  catches: number;
+  /** Match ratings, newest last (last 8). */
+  ratings: number[];
+}
+
+/** A past season, for the rival's history. */
+export interface RivalSeasonSummary {
+  seasonYear: number;
+  teamName: string;
+  matches: number;
+  runs: number;
+  wickets: number;
+}
+
 /**
- * An AI player: a team-mate, an opponent, or a rival competing for the same
- * selection spot. Lighter than `Player` - no XP, no contracts history.
+ * An AI cricketer: a team-mate, an opponent, or a rival competing for the
+ * same spot. They live across seasons - they age, improve, get injured, get
+ * promoted or dropped - but carry far less than the user's `Player`.
  */
 export interface RivalPlayer {
   id: Id;
   name: string;
   age: number;
+  dateOfBirth: ISODate;
+  /** State (or nation) the player is from; picks their name pool. */
+  region: string;
   teamId: Id;
   role: PlayerRole;
   battingStyle: BattingStyle;
   bowlingStyle: BowlingStyle;
   attributes: Attributes;
   overall: Rating;
+  /** Hidden ceiling for the overall. */
   potentialOverall: Rating;
   condition: Condition;
-  record: CareerRecord;
+  season: RivalSeasonLine;
+  history: RivalSeasonSummary[];
+  /** Injured and unavailable until this date. */
+  injuredUntil: ISODate | null;
   /** True when this player competes with the user for the same XI slot. */
   isDirectRival: boolean;
   /** 1-99 standing with selectors; the user must out-perform this. */
