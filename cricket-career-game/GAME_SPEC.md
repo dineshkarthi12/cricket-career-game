@@ -269,7 +269,9 @@ resume.
   (`UNSUPPORTED_VERSION`).
 - **Migrations** — `SAVE_VERSION` in `src/types/save.ts`; add a step to
   `MIGRATIONS` in `src/save/migrate.ts` whenever `GameState` changes. Old
-  careers must keep loading.
+  careers must keep loading. v2 (Phase 3): shot geometry, selector trust.
+  v3 (Phase 4): captaincy, relationships, media reputation, team morale, the
+  dev captain toggle.
 - **Errors** — `STORAGE_UNAVAILABLE`, `QUOTA_EXCEEDED`, `NOT_FOUND`, `CORRUPT`,
   `WRONG_APP`, `UNSUPPORTED_VERSION`, `UNKNOWN`. Nothing throws.
 
@@ -303,7 +305,7 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 | Screen | Route | Contents |
 |---|---|---|
 | **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import, player creation — **built in Phase 2** |
-| **Live Match** | `/match/:fixtureId` | Pre-match, toss, 2D ground with controls and panels, innings break, post-match — **built in Phase 4** |
+| **Live Match** | `/match/:fixtureId` | Selection and role, toss, 2D ground with the player's controls (and captain's, when appointed), innings break, post-match with career effects and press — **built in Phase 4** |
 | **Scorecard** | `/matches/:matchId` | Full innings scorecards, fall of wickets, bowling figures, charts, commentary — **built in Phase 4** |
 | **Squad / Team** | `/team/:id` | Squad list, XI, rivals, team needs |
 | **Player Profile** | `/player/:id` | Attributes, radar, condition, full record |
@@ -414,31 +416,52 @@ bands the tests enforce are recorded in `PROGRESS.md`.
 
 ---
 
-## 8c. Live match (built in Phase 4)
+## 8c. Live match and the career model (built in Phase 4)
 
-- **One code path.** `stepBall` plays one delivery; `simulateInnings` and the
-  live controller (`createLiveMatch`) both call it, so watched and simulated
-  matches are the same game.
-- **Player decisions reach the ball.** `BallOverrides` — bowler, intent, plan,
-  field, shot direction, over/round the wicket. Unset decisions fall back to
-  the AI. Intent defaults to the AI's read of the situation.
-- **Captaincy.** Toss (captain only), declaration and follow-on (the user's
-  side, multi-day). Unanswered, the AI captain decides with the same random
-  draw the batch simulator uses.
-- **Parity.** `createLiveMatch` follows `simulateMatch` call for call (rain,
-  DLS, super over, time loss, declarations, follow-on); a test checks the two
-  produce identical matches from the same seed when the player decides nothing.
-- **Geometry.** Metres throughout (`src/lib/ground.ts`). Screen convention:
-  angle 0 up the screen, 90 screen-right (off side, right-hander), 180 down,
-  270 screen-left; left-handers mirrored. The circle is 27.43 m round both
-  sets of stumps; "inside" is measured to the line between them.
-- **Field rules** (`src/lib/fieldRules.ts`): the format's outside-the-circle
-  limit and five on the leg side in limited overs; two behind square on the
-  leg side in every format. Illegal fields never reach the engine.
-- **Rendering.** Ground, fielders and ball are separate memoised SVG layers;
-  the ball uses `animateMotion`, so nothing re-renders between balls.
-- **Career write-back.** `commitMatch` stores the match, marks the fixture,
-  updates season and career records, condition, XP, injuries and the inbox.
+**Who controls what.** Career mode is the default: the player controls only
+their own cricketer. `BallOverrides.battingFor` / `bowlingFor` confine their
+intent, shot direction, leave, rotate, line, length, variation and angle to
+their own batter on strike and their own overs. Team controls - the toss,
+XI and order, instructions to batters, the bowler each over, the field,
+reviews, declarations and the follow-on - unlock only through
+`isCaptainOf()` (a real appointment, or the dev-only toggle in a development
+build), and each can be delegated to the AI vice-captain
+(`CaptaincyState.delegate`).
+
+**Questions.** `DecisionHooks` on a catch, a run-out and a review default to
+the engine's own roll. When the question is the player's, the live controller
+throws `DecisionNeeded`; `resumeBall` replays the delivery from the saved
+random state with their answer. Catch and run-out success =
+`timedChance(fielder's chance, timing)`. Bulk sims never ask.
+
+**Parity.** `createLiveMatch` follows `simulateMatch` call for call; with no
+decisions from the player the two produce identical matches (tested).
+
+**Selection** (`engine/career/selection.ts`): §6 score + `(selectorTrust -
+50) × 0.12` - fatigue, per-fixture whim, hard gates, balanced XI. Status per
+match: `PLAYING_XI`, `TWELFTH_MAN`, `BENCH`, `NOT_SELECTED`. The coach moves an
+in-form batter up to two places (down on a lean run); `bowlerTrust` weights
+how often the AI captain picks the player. A captain's XI is reviewed change
+by change; acceptance rises with captaincy rating, reputation and merit.
+
+**After the match** (`engine/career/afterMatch.ts`, `press.ts`): team morale
+for both sides; relationships; the selectors' note; for a captain, the record,
+rating (`CAPTAINCY` constants: result 55%, tactics 25%, morale 20%), tactics
+score from their actual calls, stress and its cost to form, sacking after five
+straight defeats or a rating at 24 or below, and a recommendation after a
+strong record; appointment when the case is made; press conference after big
+matches (knockouts, a hundred or five-for, a thrashing as captain).
+
+**Engine additions**: leave (`MATCH.leave`), rotate (`MATCH.rotate`),
+captain's instructions and a bowler to target, fielding-side lbw reviews
+(`MATCH.umpiring.appeal*`), round the wicket (`MATCH.aroundTheWicket`), quotas
+enforced for a forced bowler.
+
+**Geometry and rendering.** Metres throughout (`src/lib/ground.ts`); angle 0
+up the screen, 90 screen-right for a right-hander; the circle is 27.43 m round
+both sets of stumps. Field rules in `src/lib/fieldRules.ts`; an illegal field
+never reaches the engine. Ground, fielders and ball are separate memoised SVG
+layers; motion is SVG `animateMotion`.
 
 ---
 
