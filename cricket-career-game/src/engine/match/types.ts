@@ -143,6 +143,8 @@ export interface DeliveryContext {
   freeHit: boolean;
   /** Reviews the batting and bowling sides have left. */
   reviewsLeft: { batting: number; bowling: number };
+  /** Direction the batter is trying to hit in, in degrees, or null. */
+  shotPreference?: number | null;
 }
 
 /** The result of one delivery, before it is written into the innings. */

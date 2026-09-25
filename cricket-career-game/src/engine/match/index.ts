@@ -8,7 +8,29 @@ export {
   type MatchSetup,
   type MatchSimulation,
 } from './simulate';
-export { simulateInnings, oversFor, bowlersOf, type InningsSetup, type InningsResult, type Partnership } from './innings';
+export {
+  simulateInnings,
+  createInningsState,
+  stepBall,
+  finishInnings,
+  strikerOf,
+  nonStrikerOf,
+  oversFor,
+  bowlersOf,
+  type InningsSetup,
+  type InningsResult,
+  type InningsState,
+  type BallOverrides,
+  type Partnership,
+} from './innings';
+export {
+  createLiveMatch,
+  type LiveMatch,
+  type LiveMatchSetup,
+  type LiveSnapshot,
+  type LiveAlert,
+  type LivePhase,
+} from './live';
 export { resolveDelivery } from './delivery';
 export { describeBall } from './commentary';
 export { applyAftermath, formBandFor, moraleBandFor, type AftermathInput, type AftermathResult } from './aftermath';
@@ -33,6 +55,8 @@ export {
   catchChance,
   fieldersAllowedOutside,
   FIELD_POSITIONS,
+  FIELD_PRESETS,
+  FIELD_PRESET_NAMES,
 } from './field';
 export {
   chooseApproach,

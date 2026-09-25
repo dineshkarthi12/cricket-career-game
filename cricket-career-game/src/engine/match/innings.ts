@@ -1,6 +1,11 @@
 /**
  * The innings state machine: overs, strike, wickets, extras, partnerships and
  * bowler spells, driven ball by ball off `resolveDelivery`.
+ *
+ * The loop body lives in `stepBall`, so the batch simulator and the live match
+ * screen run through exactly the same code. `simulateInnings` is a thin loop
+ * over `stepBall`; the live controller calls it one ball at a time and can
+ * feed in the player's own decisions through `BallOverrides`.
  */
 import { MATCH, MATCH_FORMATS } from '../config';
 import { newId } from '../id';
@@ -9,8 +14,9 @@ import { chooseApproach, chooseBowler, choosePlan, runRatePressure, type Situati
 import { chooseField, placeField } from './field';
 import { resolveDelivery } from './delivery';
 import { bowlerKindOf, computePressure } from './skill';
+import { INTENT_BY_LEVEL } from './types';
 import type { Rng } from './rng';
-import type { SimPlayer } from './types';
+import type { BowlerPlan, FieldSetting, SimPlayer } from './types';
 import type {
   Ball,
   Pitch,
@@ -71,6 +77,71 @@ export interface InningsResult {
   day: number;
 }
 
+/**
+ * What the player has asked for on this ball. Anything left out is decided by
+ * the AI exactly as it would be in a simulated match.
+ */
+export interface BallOverrides {
+  /** Only honoured at the start of an over. */
+  bowlerId?: string;
+  /** Batting aggression, 1-5. */
+  intentLevel?: number;
+  /** Parts of the bowler's plan the player has chosen. */
+  plan?: Partial<BowlerPlan>;
+  /** A named preset for the field. */
+  fieldPreset?: string;
+  /** A field the player has arranged themselves, which wins over the preset. */
+  field?: FieldSetting;
+  /** Preferred direction to hit in, in degrees. */
+  shotPreference?: number | null;
+}
+
+/** The whole mutable state of an innings in progress. */
+export interface InningsState {
+  setup: InningsSetup;
+  batting: SimPlayer[];
+  bowlers: SimPlayer[];
+  battingLines: Map<string, BatterInningsLine>;
+  bowlingLines: Map<string, BowlerInningsLine>;
+  deliveries: Ball[];
+  fallOfWickets: FallOfWicket[];
+  partnerships: Partnership[];
+  extras: Record<ExtraType, number>;
+  ballsFaced: Record<string, number>;
+  oversBowledBy: Record<string, number>;
+  spellOvers: Record<string, number>;
+  oversSinceBowled: Record<string, number>;
+  conditions: MatchConditions;
+  runs: number;
+  wickets: number;
+  legalBalls: number;
+  strikerIndex: number;
+  nonStrikerIndex: number;
+  nextBatterIndex: number;
+  lastBowlerId: string | null;
+  day: number;
+  ending: InningsResult['ending'];
+  partnershipRuns: number;
+  partnershipBalls: number;
+  wicketBalls: number[];
+  dotStreak: Record<string, number>;
+  nightwatchmanUsed: boolean;
+  freeHit: boolean;
+  reviewsLeft: { batting: number; bowling: number };
+  retiredHurt: string[];
+  maxBalls: number;
+  crowdFactor: number;
+  complete: boolean;
+
+  /** Per-over state, reset each time a new over starts. */
+  currentBowlerId: string | null;
+  ballsThisOver: number;
+  runsAtOverStart: number;
+  currentDew: number;
+  /** The field as it currently stands, so the ground view can draw it. */
+  field: FieldSetting | null;
+}
+
 function emptyExtras(): Record<ExtraType, number> {
   return { WIDE: 0, NO_BALL: 0, BYE: 0, LEG_BYE: 0, PENALTY: 0 };
 }
@@ -107,11 +178,7 @@ function bowlingLine(player: SimPlayer): BowlerInningsLine {
 }
 
 /** Scorecard text for a dismissal, e.g. "c Kumar b Iyer". */
-function dismissalText(
-  ball: Ball,
-  bowlerName: string,
-  fielderName: string | null,
-): string {
+function dismissalText(ball: Ball, bowlerName: string, fielderName: string | null): string {
   const type = ball.wicket?.type;
   switch (type) {
     case 'BOWLED':
@@ -146,492 +213,555 @@ export function bowlersOf(side: SimPlayer[]): SimPlayer[] {
   );
 }
 
-/**
- * Play a complete innings. Pure: the same setup and seed always produce the
- * same scorecard.
- */
-export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
+/** Set an innings up, ready for the first ball. */
+export function createInningsState(setup: InningsSetup): InningsState {
   const batting = [...setup.batting].sort((a, b) => a.battingPosition - b.battingPosition);
-  const bowlers = bowlersOf(setup.bowling);
+  if (batting.length < 2) throw new Error('An innings needs at least two batters');
 
-  const battingLines = new Map(batting.map((p) => [p.id, battingLine(p)]));
-  const bowlingLines = new Map<string, BowlerInningsLine>();
-  const deliveries: Ball[] = [];
-  const fallOfWickets: FallOfWicket[] = [];
-  const partnerships: Partnership[] = [];
-  const extras = emptyExtras();
-  const ballsFaced: Record<string, number> = {};
-  const oversBowledBy: Record<string, number> = {};
-  const spellOvers: Record<string, number> = {};
-  const oversSinceBowled: Record<string, number> = {};
-
-  let conditions = setup.conditions;
-  let runs = 0;
-  let wickets = 0;
-  let legalBalls = 0;
-  let strikerIndex = 0;
-  let nonStrikerIndex = 1;
-  let nextBatterIndex = 2;
-  let lastBowlerId: string | null = null;
-  let day = setup.day;
-  let ending: InningsResult['ending'] = 'ALL_OUT';
-  let partnershipRuns = 0;
-  let partnershipBalls = 0;
-  /** Ball index of each wicket, so recent ones can be counted. */
-  const wicketBalls: number[] = [];
-  /** Consecutive dots faced, per batter. */
-  const dotStreak: Record<string, number> = {};
-  /** One nightwatchman per innings is plenty. */
-  let nightwatchmanUsed = false;
-  /** The next ball is a free hit, after a no-ball in limited overs. */
-  let freeHit = false;
-  /** Reviews each side has left. */
-  const reviewsLeft = {
-    batting: MATCH.umpiring.reviewsPerInnings,
-    bowling: MATCH.umpiring.reviewsPerInnings,
+  return {
+    setup,
+    batting,
+    bowlers: bowlersOf(setup.bowling),
+    battingLines: new Map(batting.map((p) => [p.id, battingLine(p)])),
+    bowlingLines: new Map(),
+    deliveries: [],
+    fallOfWickets: [],
+    partnerships: [],
+    extras: emptyExtras(),
+    ballsFaced: {},
+    oversBowledBy: {},
+    spellOvers: {},
+    oversSinceBowled: {},
+    conditions: setup.conditions,
+    runs: 0,
+    wickets: 0,
+    legalBalls: 0,
+    strikerIndex: 0,
+    nonStrikerIndex: 1,
+    nextBatterIndex: 2,
+    lastBowlerId: null,
+    day: setup.day,
+    ending: 'ALL_OUT',
+    partnershipRuns: 0,
+    partnershipBalls: 0,
+    wicketBalls: [],
+    dotStreak: {},
+    nightwatchmanUsed: false,
+    freeHit: false,
+    reviewsLeft: {
+      batting: MATCH.umpiring.reviewsPerInnings,
+      bowling: MATCH.umpiring.reviewsPerInnings,
+    },
+    retiredHurt: [],
+    maxBalls: setup.oversAvailable === null ? Infinity : setup.oversAvailable * 6,
+    crowdFactor: Math.min(1, setup.venue.capacity / 60000),
+    complete: false,
+    currentBowlerId: null,
+    ballsThisOver: 0,
+    runsAtOverStart: 0,
+    currentDew: 0,
+    field: null,
   };
-  /** Batters who had to go off, so they are not sent back out. */
-  const retiredHurt: string[] = [];
+}
 
-  const maxBalls = setup.oversAvailable === null ? Infinity : setup.oversAvailable * 6;
-  const crowdFactor = Math.min(1, setup.venue.capacity / 60000);
+export const strikerOf = (s: InningsState): SimPlayer => s.batting[s.strikerIndex];
+export const nonStrikerOf = (s: InningsState): SimPlayer => s.batting[s.nonStrikerIndex];
 
-  const striker = () => batting[strikerIndex];
-  const nonStriker = () => batting[nonStrikerIndex];
+/** Has the innings run out of batters, overs, or reason to continue? */
+function checkComplete(state: InningsState): boolean {
+  const { setup } = state;
+  if (state.wickets >= state.batting.length - 1) {
+    state.ending = 'ALL_OUT';
+    state.complete = true;
+  } else if (state.legalBalls >= state.maxBalls) {
+    state.ending = 'OVERS_COMPLETE';
+    state.complete = true;
+  } else if (setup.target !== null && state.runs >= setup.target) {
+    state.ending = 'TARGET_REACHED';
+    state.complete = true;
+  } else if (setup.declareAt != null && state.runs >= setup.declareAt) {
+    state.ending = 'DECLARED';
+    state.complete = true;
+  }
+  return state.complete;
+}
 
-  // A side of fewer than two fit batters cannot start.
-  if (batting.length < 2) {
-    throw new Error('An innings needs at least two batters');
+/** Start a new over: pick the bowler, do the spell bookkeeping, read the dew. */
+function startOver(state: InningsState, rng: Rng, overrides?: BallOverrides): SimPlayer {
+  const { setup } = state;
+  const overNumber = Math.floor(state.legalBalls / 6);
+  const ballAgeOvers = state.conditions.ball.ageInBalls / 6;
+  const phase = phaseFor(overNumber, setup.oversAvailable, ballAgeOvers);
+
+  const oversShare =
+    setup.oversAvailable === null ? 0.5 : Math.min(1, overNumber / setup.oversAvailable);
+  const chaseHeat =
+    setup.target === null
+      ? 0
+      : Math.max(
+          0,
+          Math.min(1, ((setup.target - state.runs) / Math.max(1, state.maxBalls - state.legalBalls)) * 6 - 4) / 8,
+        );
+
+  const chosen = chooseBowler({
+    bowlers: state.bowlers,
+    oversBowledBy: state.oversBowledBy,
+    spellOvers: state.spellOvers,
+    oversSinceBowled: state.oversSinceBowled,
+    lastBowlerId: state.lastBowlerId,
+    format: setup.format,
+    phase,
+    ballAgeOvers,
+    runRatePressure: chaseHeat,
+    share: oversShare,
+    rng,
+  });
+
+  // The player's choice wins, as long as it is a legal one.
+  const forced = overrides?.bowlerId
+    ? state.bowlers.find((b) => b.id === overrides.bowlerId && b.id !== state.lastBowlerId)
+    : undefined;
+  const bowler = forced ?? chosen;
+
+  if (!state.bowlingLines.has(bowler.id)) state.bowlingLines.set(bowler.id, bowlingLine(bowler));
+
+  for (const b of state.bowlers) {
+    if (b.id === bowler.id) {
+      state.spellOvers[b.id] =
+        (state.oversSinceBowled[b.id] ?? 0) >= MATCH.bowling.recoveryOvers
+          ? 1
+          : (state.spellOvers[b.id] ?? 0) + 1;
+      state.oversSinceBowled[b.id] = 0;
+    } else {
+      state.oversSinceBowled[b.id] = (state.oversSinceBowled[b.id] ?? 0) + 1;
+    }
   }
 
-  outer: while (wickets < batting.length - 1 && legalBalls < maxBalls) {
-    // ---- new over -------------------------------------------------------
-    const overNumber = Math.floor(legalBalls / 6);
-    const ballAgeOvers = conditions.ball.ageInBalls / 6;
-    const phase = phaseFor(overNumber, setup.oversAvailable, ballAgeOvers);
+  state.currentDew = dewLevel(setup.venue, state.conditions.weather, setup.underLights, overNumber);
+  state.currentBowlerId = bowler.id;
+  state.ballsThisOver = 0;
+  state.runsAtOverStart = state.runs;
+  return bowler;
+}
 
-    const oversShare =
-      setup.oversAvailable === null ? 0.5 : Math.min(1, overNumber / setup.oversAvailable);
-    const chaseHeat =
-      setup.target === null
-        ? 0
-        : Math.max(
-            0,
-            Math.min(
-              1,
-              ((setup.target - runs) / Math.max(1, maxBalls - legalBalls)) * 6 - 4,
-            ) / 8,
-          );
+/** Close an over out: figures, maiden, ends change, ball and pitch wear. */
+function endOver(state: InningsState, bowler: SimPlayer): void {
+  const { setup } = state;
+  const bowlLine = state.bowlingLines.get(bowler.id)!;
+  bowlLine.overs = Math.floor(bowlLine.balls / 6) + (bowlLine.balls % 6) / 10;
+  bowlLine.economy = bowlLine.balls > 0 ? (bowlLine.runsConceded / bowlLine.balls) * 6 : 0;
+  if (state.runs === state.runsAtOverStart && state.ballsThisOver === 6) bowlLine.maidens += 1;
 
-    const bowler = chooseBowler({
-      bowlers,
-      oversBowledBy,
-      spellOvers,
-      oversSinceBowled,
-      lastBowlerId,
+  state.oversBowledBy[bowler.id] = (state.oversBowledBy[bowler.id] ?? 0) + 1;
+  state.lastBowlerId = bowler.id;
+
+  [state.strikerIndex, state.nonStrikerIndex] = [state.nonStrikerIndex, state.strikerIndex];
+
+  const kind = bowlerKindOf(bowler);
+  const overNumber = Math.floor(state.legalBalls / 6);
+  state.conditions = {
+    ...state.conditions,
+    ball: ageBall(state.conditions.ball, state.conditions.pitch),
+    pitch:
+      setup.oversAvailable === null
+        ? deterioratePitch(setup.basePitch ?? state.conditions.pitch, overNumber, state.day)
+        : state.conditions.pitch,
+    phase: phaseFor(overNumber, setup.oversAvailable, state.conditions.ball.ageInBalls / 6),
+    underLights: setup.underLights,
+  };
+
+  const fatigueAdd =
+    MATCH.bowling.fatiguePerOver * (kind === 'PACE' ? MATCH.bowling.paceFatigueMultiplier : 1) +
+    (state.conditions.weather.temperature > MATCH.weather.hotThreshold
+      ? MATCH.weather.hotFatiguePerOver *
+        (state.conditions.weather.temperature - MATCH.weather.hotThreshold)
+      : 0);
+  bowler.condition = {
+    ...bowler.condition,
+    fatigue: Math.min(100, bowler.condition.fatigue + fatigueAdd),
+  };
+
+  if (
+    setup.oversAvailable === null &&
+    state.legalBalls > 0 &&
+    state.legalBalls % (MATCH.multiDay.oversPerDay * 6) === 0
+  ) {
+    state.day += 1;
+  }
+
+  state.currentBowlerId = null;
+}
+
+/**
+ * Bowl one delivery. Returns the ball, or `null` once the innings is over.
+ * Everything the player has decided comes in through `overrides`.
+ */
+export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverrides): Ball | null {
+  if (state.complete || checkComplete(state)) return null;
+
+  const { setup } = state;
+  const startingNewOver = state.currentBowlerId === null;
+  const bowler = startingNewOver
+    ? startOver(state, rng, overrides)
+    : state.bowlers.find((b) => b.id === state.currentBowlerId)!;
+
+  const kind = bowlerKindOf(bowler);
+  const overNumber = Math.floor(state.legalBalls / 6);
+  const ballAgeOvers = state.conditions.ball.ageInBalls / 6;
+  const phase = phaseFor(overNumber, setup.oversAvailable, ballAgeOvers);
+
+  const striker = strikerOf(state);
+  const nonStriker = nonStrikerOf(state);
+
+  const currentRunRate = state.legalBalls > 0 ? (state.runs / state.legalBalls) * 6 : 0;
+  const runsRequired = setup.target === null ? null : Math.max(0, setup.target - state.runs);
+  const ballsRemaining =
+    setup.oversAvailable === null ? null : Math.max(0, state.maxBalls - state.legalBalls);
+
+  const partnerIsTail = nonStriker.battingPosition >= MATCH.batting.tailFromWicket + 2;
+  const farmingStrike =
+    partnerIsTail &&
+    striker.battingPosition < MATCH.batting.tailFromWicket + 2 &&
+    (state.ballsFaced[striker.id] ?? 0) > MATCH.newBatter.settleBalls;
+
+  const situation: Situation = {
+    format: setup.format,
+    phase,
+    oversBowled: overNumber,
+    totalOvers: setup.oversAvailable,
+    wicketsLost: state.wickets,
+    runsRequired,
+    ballsRemaining,
+    currentRunRate,
+    strikerBallsFaced: state.ballsFaced[striker.id] ?? 0,
+    strikerRuns: state.battingLines.get(striker.id)?.runs ?? 0,
+    strikerPosition: striker.battingPosition,
+    partnerIsTail,
+    consecutiveDots: state.dotStreak[striker.id] ?? 0,
+    inningsNumber: setup.number,
+    savingTheGame: setup.oversAvailable === null && setup.number === 4 && setup.target === null,
+  };
+
+  // The player's aggression setting replaces the AI's read of the situation.
+  const aiApproach = chooseApproach(striker, situation, rng);
+  const approach =
+    overrides?.intentLevel === undefined
+      ? aiApproach
+      : {
+          level: Math.max(1, Math.min(5, Math.round(overrides.intentLevel))),
+          intent: INTENT_BY_LEVEL[Math.max(1, Math.min(5, Math.round(overrides.intentLevel))) - 1],
+        };
+
+  const aiPlan = choosePlan({
+    bowler,
+    kind,
+    phase,
+    batterIntentLevel: approach.level,
+    batterBallsFaced: situation.strikerBallsFaced,
+    rng,
+  });
+  const plan: BowlerPlan = { ...aiPlan, ...(overrides?.plan ?? {}) };
+
+  const fieldName =
+    overrides?.fieldPreset ??
+    chooseField({
+      phase,
+      bowlerKind: kind,
+      ballAgeOvers,
+      wicketsLost: state.wickets,
+      runRatePressure: runRatePressure(situation),
+      unlimitedOvers: setup.oversAvailable === null,
+    });
+  const field =
+    overrides?.field ??
+    placeField(fieldName, setup.bowling, bowler.id, rng, {
+      format: setup.format,
+      over: overNumber,
+    });
+  state.field = field;
+
+  const pressure = computePressure({
+    runsRequired,
+    ballsRemaining,
+    wicketsLost: state.wickets,
+    currentRunRate,
+    knockout: setup.knockout,
+    crowdFactor: state.crowdFactor,
+    battingAtHome: setup.battingAtHome,
+  });
+
+  const outcome = resolveDelivery(
+    {
       format: setup.format,
       phase,
-      ballAgeOvers,
-      runRatePressure: chaseHeat,
-      share: oversShare,
-      rng,
-    });
-    const kind = bowlerKindOf(bowler);
-    if (!bowlingLines.has(bowler.id)) bowlingLines.set(bowler.id, bowlingLine(bowler));
+      conditions: state.conditions,
+      striker,
+      nonStriker,
+      bowler,
+      bowlerKind: kind,
+      plan,
+      approach,
+      field,
+      strikerBallsFaced: situation.strikerBallsFaced,
+      consecutiveDots: situation.consecutiveDots,
+      strikerRuns: situation.strikerRuns,
+      farmingStrike,
+      recentWickets: state.wicketBalls.filter((b) => state.legalBalls - b <= MATCH.momentum.window)
+        .length,
+      partnershipBalls: state.partnershipBalls,
+      spellOvers: state.spellOvers[bowler.id] ?? 1,
+      oversBowled: overNumber,
+      ballInOver: state.ballsThisOver + 1,
+      pressure,
+      runsRequired,
+      ballsRemaining,
+      wicketsInHand: state.batting.length - 1 - state.wickets,
+      battingAtHome: setup.battingAtHome,
+      freeHit: state.freeHit,
+      reviewsLeft: { ...state.reviewsLeft },
+      dew: state.currentDew,
+      boundaries: {
+        straight: setup.venue.straightBoundary,
+        square: setup.venue.squareBoundary,
+      },
+      day: state.day,
+      shotPreference: overrides?.shotPreference ?? null,
+    },
+    rng,
+  );
 
-    // Spell bookkeeping: bowling now continues a spell, everyone else rests.
-    for (const b of bowlers) {
-      if (b.id === bowler.id) {
-        spellOvers[b.id] = (oversSinceBowled[b.id] ?? 0) >= MATCH.bowling.recoveryOvers ? 1 : (spellOvers[b.id] ?? 0) + 1;
-        oversSinceBowled[b.id] = 0;
-      } else {
-        oversSinceBowled[b.id] = (oversSinceBowled[b.id] ?? 0) + 1;
-      }
-    }
+  const bowlLine = state.bowlingLines.get(bowler.id)!;
+  const batLine = state.battingLines.get(striker.id)!;
 
-    // Dew settles as the evening goes on, so it builds through the innings.
-    const currentDew = dewLevel(setup.venue, conditions.weather, setup.underLights, overNumber);
-
-    const runsAtOverStart = runs;
-    let ballsThisOver = 0;
-    let wicketsThisOver = 0;
-
-    while (ballsThisOver < 6) {
-      if (wickets >= batting.length - 1 || legalBalls >= maxBalls) break outer;
-      if (setup.target !== null && runs >= setup.target) {
-        ending = 'TARGET_REACHED';
-        break outer;
-      }
-      if (setup.declareAt != null && runs >= setup.declareAt) {
-        ending = 'DECLARED';
-        break outer;
-      }
-
-      const currentRunRate = legalBalls > 0 ? (runs / legalBalls) * 6 : 0;
-      const runsRequired = setup.target === null ? null : Math.max(0, setup.target - runs);
-      const ballsRemaining = setup.oversAvailable === null ? null : Math.max(0, maxBalls - legalBalls);
-
-      const partnerIsTail = nonStriker().battingPosition >= MATCH.batting.tailFromWicket + 2;
-      // With the tail in, a set batter tries to keep the strike for himself.
-      const farmingStrike =
-        partnerIsTail &&
-        striker().battingPosition < MATCH.batting.tailFromWicket + 2 &&
-        (ballsFaced[striker().id] ?? 0) > MATCH.newBatter.settleBalls;
-
-      const situation: Situation = {
-        format: setup.format,
-        phase,
-        oversBowled: overNumber,
-        totalOvers: setup.oversAvailable,
-        wicketsLost: wickets,
-        runsRequired,
-        ballsRemaining,
-        currentRunRate,
-        strikerBallsFaced: ballsFaced[striker().id] ?? 0,
-        strikerRuns: battingLines.get(striker().id)?.runs ?? 0,
-        strikerPosition: striker().battingPosition,
-        partnerIsTail,
-        consecutiveDots: dotStreak[striker().id] ?? 0,
-        inningsNumber: setup.number,
-        savingTheGame: setup.oversAvailable === null && setup.number === 4 && setup.target === null,
-      };
-
-      const approach = chooseApproach(striker(), situation, rng);
-      const plan = choosePlan({
-        bowler,
-        kind,
-        phase,
-        batterIntentLevel: approach.level,
-        batterBallsFaced: situation.strikerBallsFaced,
-        rng,
-      });
-
-      const fieldName = chooseField({
-        phase,
-        bowlerKind: kind,
-        ballAgeOvers,
-        wicketsLost: wickets,
-        runRatePressure: runRatePressure(situation),
-        unlimitedOvers: setup.oversAvailable === null,
-      });
-      const field = placeField(fieldName, setup.bowling, bowler.id, rng, {
-        format: setup.format,
-        over: overNumber,
-      });
-
-      const pressure = computePressure({
-        runsRequired,
-        ballsRemaining,
-        wicketsLost: wickets,
-        currentRunRate,
-        knockout: setup.knockout,
-        crowdFactor,
-        battingAtHome: setup.battingAtHome,
-      });
-
-      const outcome = resolveDelivery(
-        {
-          format: setup.format,
-          phase,
-          conditions,
-          striker: striker(),
-          nonStriker: nonStriker(),
-          bowler,
-          bowlerKind: kind,
-          plan,
-          approach,
-          field,
-          strikerBallsFaced: situation.strikerBallsFaced,
-          consecutiveDots: situation.consecutiveDots,
-          strikerRuns: situation.strikerRuns,
-          farmingStrike,
-          recentWickets: wicketBalls.filter((b) => legalBalls - b <= MATCH.momentum.window).length,
-          partnershipBalls,
-          spellOvers: spellOvers[bowler.id] ?? 1,
-          oversBowled: overNumber,
-          ballInOver: ballsThisOver + 1,
-          pressure,
-          runsRequired,
-          ballsRemaining,
-          wicketsInHand: batting.length - 1 - wickets,
-          battingAtHome: setup.battingAtHome,
-          freeHit,
-          reviewsLeft: { ...reviewsLeft },
-          dew: currentDew,
-          boundaries: {
-            straight: setup.venue.straightBoundary,
-            square: setup.venue.squareBoundary,
+  const ball: Ball = {
+    id: newId('ball'),
+    over: overNumber,
+    ballInOver: state.ballsThisOver + 1,
+    ballNumber: state.legalBalls + 1,
+    bowlerId: bowler.id,
+    strikerId: striker.id,
+    nonStrikerId: nonStriker.id,
+    line: plan.line,
+    length: plan.length,
+    speed: outcome.speed,
+    variation: plan.variation,
+    intent: approach.intent,
+    shot: outcome.shot,
+    contactQuality: outcome.contactQuality,
+    runsOffBat: outcome.runsOffBat,
+    extras: outcome.extras,
+    isLegalDelivery: outcome.isLegalDelivery,
+    isBoundaryFour: outcome.isBoundaryFour,
+    isBoundarySix: outcome.isBoundarySix,
+    wicket: outcome.wicket,
+    landingPoint:
+      outcome.shotAngle === null || outcome.shotDistance === null
+        ? null
+        : {
+            x: Math.sin((outcome.shotAngle * Math.PI) / 180) * Math.min(1, outcome.shotDistance / 70),
+            y: Math.cos((outcome.shotAngle * Math.PI) / 180) * Math.min(1, outcome.shotDistance / 70),
           },
-          day,
-        },
-        rng,
-      );
+    shotAngle: outcome.shotAngle,
+    shotDistance: outcome.shotDistance,
+    fielderName: outcome.fielderName,
+    review: outcome.review,
+    dropped: outcome.dropped,
+    freeHit: state.freeHit,
+    commentary: outcome.commentary,
+    phase,
+  };
+  state.deliveries.push(ball);
 
-      // ---- write the ball into the innings ------------------------------
-      const bowlLine = bowlingLines.get(bowler.id)!;
-      const batLine = battingLines.get(striker().id)!;
+  // A blow on the hand or the helmet can take a batter off.
+  if (
+    !outcome.wicket &&
+    outcome.isLegalDelivery &&
+    rng.chance(MATCH.inMatchInjury.batterPerBall) &&
+    state.nextBatterIndex < state.batting.length
+  ) {
+    const concussion = rng.chance(MATCH.inMatchInjury.concussionShare);
+    state.retiredHurt.push(striker.id);
+    const line = state.battingLines.get(striker.id)!;
+    line.dismissalText = concussion ? 'retired hurt (concussion)' : 'retired hurt';
+    state.strikerIndex = state.nextBatterIndex;
+    state.nextBatterIndex += 1;
+  }
 
-      const ball: Ball = {
-        id: newId('ball'),
-        over: overNumber,
-        ballInOver: ballsThisOver + 1,
-        ballNumber: legalBalls + 1,
-        bowlerId: bowler.id,
-        strikerId: striker().id,
-        nonStrikerId: nonStriker().id,
-        line: plan.line,
-        length: plan.length,
-        speed: outcome.speed,
-        variation: plan.variation,
-        intent: approach.intent,
-        shot: outcome.shot,
-        contactQuality: outcome.contactQuality,
-        runsOffBat: outcome.runsOffBat,
-        extras: outcome.extras,
-        isLegalDelivery: outcome.isLegalDelivery,
-        isBoundaryFour: outcome.isBoundaryFour,
-        isBoundarySix: outcome.isBoundarySix,
-        wicket: outcome.wicket,
-        landingPoint:
-          outcome.shotAngle === null || outcome.shotDistance === null
-            ? null
-            : {
-                x: Math.sin((outcome.shotAngle * Math.PI) / 180) * Math.min(1, outcome.shotDistance / 70),
-                y: Math.cos((outcome.shotAngle * Math.PI) / 180) * Math.min(1, outcome.shotDistance / 70),
-              },
-        shotAngle: outcome.shotAngle,
-        shotDistance: outcome.shotDistance,
-        fielderName: outcome.fielderName,
-        review: outcome.review,
-        dropped: outcome.dropped,
-        freeHit,
-        commentary: outcome.commentary,
-        phase,
-      };
-      deliveries.push(ball);
+  state.freeHit =
+    setup.oversAvailable !== null && outcome.extras?.type === 'NO_BALL'
+      ? true
+      : outcome.isLegalDelivery
+        ? false
+        : state.freeHit;
 
-      // A blow on the hand or the helmet can take a batter off. A head knock
-      // means a concussion substitute and he takes no further part.
-      if (
-        !outcome.wicket &&
-        outcome.isLegalDelivery &&
-        rng.chance(MATCH.inMatchInjury.batterPerBall) &&
-        nextBatterIndex < batting.length
-      ) {
-        const concussion = rng.chance(MATCH.inMatchInjury.concussionShare);
-        const hurt = striker();
-        retiredHurt.push(hurt.id);
-        const line = battingLines.get(hurt.id)!;
-        line.dismissalText = concussion ? 'retired hurt (concussion)' : 'retired hurt';
-        strikerIndex = nextBatterIndex;
-        nextBatterIndex += 1;
-      }
+  if (outcome.review && outcome.review.outcome !== 'OVERTURNED') {
+    state.reviewsLeft.batting = Math.max(0, state.reviewsLeft.batting - 1);
+  }
 
-      // A no-ball in limited-overs cricket buys the batter a free hit.
-      freeHit =
-        setup.oversAvailable !== null && outcome.extras?.type === 'NO_BALL'
-          ? true
-          : outcome.isLegalDelivery
-            ? false
-            : freeHit;
+  const extraRuns = outcome.extras?.runs ?? 0;
+  const extraType = outcome.extras?.type ?? null;
+  state.runs += outcome.runsOffBat + extraRuns;
+  state.partnershipRuns += outcome.runsOffBat + extraRuns;
 
-      // A failed review costs the side one of theirs.
-      if (outcome.review && outcome.review.outcome !== 'OVERTURNED') {
-        reviewsLeft.batting = Math.max(0, reviewsLeft.batting - 1);
-      }
+  if (extraType) state.extras[extraType] += extraRuns;
+  if (extraType === 'WIDE') bowlLine.wides += extraRuns;
+  if (extraType === 'NO_BALL') bowlLine.noBalls += extraRuns;
 
-      // Runs.
-      const extraRuns = outcome.extras?.runs ?? 0;
-      const extraType = outcome.extras?.type ?? null;
-      runs += outcome.runsOffBat + extraRuns;
-      partnershipRuns += outcome.runsOffBat + extraRuns;
+  bowlLine.runsConceded +=
+    outcome.runsOffBat + (extraType === 'WIDE' || extraType === 'NO_BALL' ? extraRuns : 0);
 
-      if (extraType) extras[extraType] += extraRuns;
+  if (outcome.isLegalDelivery) {
+    const scored = outcome.runsOffBat + extraRuns;
+    state.dotStreak[striker.id] = scored === 0 ? (state.dotStreak[striker.id] ?? 0) + 1 : 0;
+    state.legalBalls += 1;
+    state.ballsThisOver += 1;
+    bowlLine.balls += 1;
+    batLine.balls += 1;
+    state.partnershipBalls += 1;
+    state.ballsFaced[striker.id] = (state.ballsFaced[striker.id] ?? 0) + 1;
+  }
 
-      // A wide or no-ball costs the bowler and does not count as a ball.
-      if (extraType === 'WIDE') bowlLine.wides += extraRuns;
-      if (extraType === 'NO_BALL') bowlLine.noBalls += extraRuns;
+  batLine.runs += outcome.runsOffBat;
+  if (outcome.isBoundaryFour) batLine.fours += 1;
+  if (outcome.isBoundarySix) batLine.sixes += 1;
+  batLine.strikeRate = batLine.balls > 0 ? (batLine.runs / batLine.balls) * 100 : 0;
 
-      const chargedToBowler =
-        outcome.runsOffBat + (extraType === 'WIDE' || extraType === 'NO_BALL' ? extraRuns : 0);
-      bowlLine.runsConceded += chargedToBowler;
+  if (outcome.wicket && outcome.dismissedPlayerId) {
+    state.wickets += 1;
+    state.wicketBalls.push(state.legalBalls);
+    if (outcome.wicket.type !== 'RUN_OUT') bowlLine.wickets += 1;
 
-      if (outcome.isLegalDelivery) {
-        const scored = outcome.runsOffBat + (outcome.extras?.runs ?? 0);
-        dotStreak[striker().id] = scored === 0 ? (dotStreak[striker().id] ?? 0) + 1 : 0;
-        legalBalls += 1;
-        ballsThisOver += 1;
-        bowlLine.balls += 1;
-        batLine.balls += 1;
-        partnershipBalls += 1;
-        ballsFaced[striker().id] = (ballsFaced[striker().id] ?? 0) + 1;
-      }
+    const outLine = state.battingLines.get(outcome.dismissedPlayerId)!;
+    outLine.out = true;
+    outLine.dismissal = outcome.wicket;
+    outLine.dismissalText = dismissalText(ball, bowler.name, outcome.fielderName);
 
-      batLine.runs += outcome.runsOffBat;
-      if (outcome.isBoundaryFour) batLine.fours += 1;
-      if (outcome.isBoundarySix) batLine.sixes += 1;
-      batLine.strikeRate = batLine.balls > 0 ? (batLine.runs / batLine.balls) * 100 : 0;
+    state.fallOfWickets.push({
+      wicketNumber: state.wickets,
+      runs: state.runs,
+      over: state.legalBalls / 6,
+      playerId: outcome.dismissedPlayerId,
+    });
 
-      // ---- a wicket -----------------------------------------------------
-      if (outcome.wicket && outcome.dismissedPlayerId) {
-        wickets += 1;
-        wicketBalls.push(legalBalls);
-        wicketsThisOver += 1;
-        if (outcome.wicket.type !== 'RUN_OUT') bowlLine.wickets += 1;
+    state.partnerships.push({
+      runs: state.partnershipRuns,
+      balls: state.partnershipBalls,
+      batterIds: [striker.id, nonStriker.id],
+      wicketNumber: state.wickets,
+    });
+    state.partnershipRuns = 0;
+    state.partnershipBalls = 0;
 
-        const outLine = battingLines.get(outcome.dismissedPlayerId)!;
-        outLine.out = true;
-        outLine.dismissal = outcome.wicket;
-        outLine.dismissalText = dismissalText(ball, bowler.name, outcome.fielderName);
+    if (state.nextBatterIndex < state.batting.length) {
+      let incoming = state.nextBatterIndex;
 
-        fallOfWickets.push({
-          wicketNumber: wickets,
-          runs,
-          over: legalBalls / 6,
-          playerId: outcome.dismissedPlayerId,
-        });
-
-        partnerships.push({
-          runs: partnershipRuns,
-          balls: partnershipBalls,
-          batterIds: [striker().id, nonStriker().id],
-          wicketNumber: wickets,
-        });
-        partnershipRuns = 0;
-        partnershipBalls = 0;
-
-        // The new batter replaces whoever actually got out. Late in the day
-        // of a multi-day match a captain may send a nightwatchman instead of
-        // exposing a front-line batter for a handful of overs.
-        if (nextBatterIndex < batting.length) {
-          let incoming = nextBatterIndex;
-
-          if (setup.oversAvailable === null && !nightwatchmanUsed) {
-            const oversLeftToday =
-              MATCH.multiDay.oversPerDay - (Math.floor(legalBalls / 6) % MATCH.multiDay.oversPerDay);
-            const worthShielding = batting[nextBatterIndex].battingPosition <= 6;
-            if (
-              oversLeftToday <= MATCH.batting.nightwatchmanOversLeft &&
-              worthShielding &&
-              rng.chance(MATCH.batting.nightwatchmanChance)
-            ) {
-              // Send the best of whoever is left further down the order.
-              const candidate = batting.findIndex(
-                (p, i) => i > nextBatterIndex && p.bowlingStyle !== 'NONE',
-              );
-              if (candidate > -1) {
-                incoming = candidate;
-                nightwatchmanUsed = true;
-                // The batter who was next keeps his place for the morning.
-                [batting[nextBatterIndex], batting[candidate]] = [
-                  batting[candidate],
-                  batting[nextBatterIndex],
-                ];
-                incoming = nextBatterIndex;
-              }
-            }
+      if (setup.oversAvailable === null && !state.nightwatchmanUsed) {
+        const oversLeftToday =
+          MATCH.multiDay.oversPerDay -
+          (Math.floor(state.legalBalls / 6) % MATCH.multiDay.oversPerDay);
+        const worthShielding = state.batting[state.nextBatterIndex].battingPosition <= 6;
+        if (
+          oversLeftToday <= MATCH.batting.nightwatchmanOversLeft &&
+          worthShielding &&
+          rng.chance(MATCH.batting.nightwatchmanChance)
+        ) {
+          const candidate = state.batting.findIndex(
+            (p, i) => i > state.nextBatterIndex && p.bowlingStyle !== 'NONE',
+          );
+          if (candidate > -1) {
+            state.nightwatchmanUsed = true;
+            [state.batting[state.nextBatterIndex], state.batting[candidate]] = [
+              state.batting[candidate],
+              state.batting[state.nextBatterIndex],
+            ];
+            incoming = state.nextBatterIndex;
           }
-
-          if (outcome.dismissedPlayerId === striker().id) strikerIndex = incoming;
-          else nonStrikerIndex = incoming;
-          nextBatterIndex += 1;
         }
-
-        if (wickets >= batting.length - 1) {
-          ending = 'ALL_OUT';
-          break outer;
-        }
-      } else if (outcome.strikeRotated) {
-        [strikerIndex, nonStrikerIndex] = [nonStrikerIndex, strikerIndex];
       }
+
+      if (outcome.dismissedPlayerId === striker.id) state.strikerIndex = incoming;
+      else state.nonStrikerIndex = incoming;
+      state.nextBatterIndex += 1;
     }
-
-    // ---- end of over ----------------------------------------------------
-    const bowlLine = bowlingLines.get(bowler.id)!;
-    bowlLine.overs = Math.floor(bowlLine.balls / 6) + (bowlLine.balls % 6) / 10;
-    bowlLine.economy = bowlLine.balls > 0 ? (bowlLine.runsConceded / bowlLine.balls) * 6 : 0;
-    if (runs === runsAtOverStart && ballsThisOver === 6 && wicketsThisOver >= 0) {
-      const conceded = runs - runsAtOverStart;
-      if (conceded === 0) bowlLine.maidens += 1;
-    }
-
-    oversBowledBy[bowler.id] = (oversBowledBy[bowler.id] ?? 0) + 1;
-    lastBowlerId = bowler.id;
-
-    // Ends change, the ball wears, the pitch wears, and bowlers tire.
-    [strikerIndex, nonStrikerIndex] = [nonStrikerIndex, strikerIndex];
-
-    conditions = {
-      ...conditions,
-      ball: ageBall(conditions.ball, conditions.pitch),
-      // Multi-day pitches are re-derived from the base surface each over, so
-      // the moisture and the wear are applied once rather than compounding.
-      pitch:
-        setup.oversAvailable === null
-          ? deterioratePitch(setup.basePitch ?? conditions.pitch, Math.floor(legalBalls / 6), day)
-          : conditions.pitch,
-      phase,
-      underLights: setup.underLights,
-    };
-
-    const fatigueAdd =
-      MATCH.bowling.fatiguePerOver * (kind === 'PACE' ? MATCH.bowling.paceFatigueMultiplier : 1) +
-      (conditions.weather.temperature > MATCH.weather.hotThreshold
-        ? MATCH.weather.hotFatiguePerOver * (conditions.weather.temperature - MATCH.weather.hotThreshold)
-        : 0);
-    bowler.condition = {
-      ...bowler.condition,
-      fatigue: Math.min(100, bowler.condition.fatigue + fatigueAdd),
-    };
-
-    // A day of a multi-day match runs out of overs.
-    if (setup.oversAvailable === null && legalBalls > 0 && legalBalls % (MATCH.multiDay.oversPerDay * 6) === 0) {
-      day += 1;
-    }
+  } else if (outcome.strikeRotated) {
+    [state.strikerIndex, state.nonStrikerIndex] = [state.nonStrikerIndex, state.strikerIndex];
   }
 
-  if (legalBalls >= maxBalls && ending === 'ALL_OUT' && wickets < batting.length - 1) {
-    ending = 'OVERS_COMPLETE';
+  // The over is done once six legal balls have been bowled.
+  if (state.ballsThisOver >= 6) endOver(state, bowler);
+
+  checkComplete(state);
+  return ball;
+}
+
+/** Wrap a finished (or abandoned) innings up into its result. */
+export function finishInnings(state: InningsState): InningsResult {
+  const { setup } = state;
+
+  // An innings that ended mid-over leaves the bowler's figures unfinalised,
+  // so every line is recomputed here rather than only at an over boundary.
+  for (const line of state.bowlingLines.values()) {
+    line.overs = Math.floor(line.balls / 6) + (line.balls % 6) / 10;
+    line.economy = line.balls > 0 ? (line.runsConceded / line.balls) * 6 : 0;
   }
 
-  // Close out the last partnership.
-  if (partnershipBalls > 0 || partnershipRuns > 0) {
-    partnerships.push({
-      runs: partnershipRuns,
-      balls: partnershipBalls,
-      batterIds: [striker().id, nonStriker().id],
-      wicketNumber: wickets + 1,
+  if (state.partnershipBalls > 0 || state.partnershipRuns > 0) {
+    state.partnerships.push({
+      runs: state.partnershipRuns,
+      balls: state.partnershipBalls,
+      batterIds: [strikerOf(state).id, nonStrikerOf(state).id],
+      wicketNumber: state.wickets + 1,
     });
   }
 
-  void retiredHurt;
-  const extrasTotal = Object.values(extras).reduce((sum, n) => sum + n, 0);
-  const batted = batting.filter((p) => (battingLines.get(p.id)?.balls ?? 0) > 0 || battingLines.get(p.id)?.out);
+  const extrasTotal = Object.values(state.extras).reduce((sum, n) => sum + n, 0);
+  const batted = state.batting.filter(
+    (p) => (state.battingLines.get(p.id)?.balls ?? 0) > 0 || state.battingLines.get(p.id)?.out,
+  );
 
   const innings: Innings = {
     id: newId('inn'),
     number: setup.number,
     battingTeamId: setup.battingTeamId,
     bowlingTeamId: setup.bowlingTeamId,
-    runs,
-    wickets,
-    balls: legalBalls,
-    overs: Math.floor(legalBalls / 6) + (legalBalls % 6) / 10,
-    extras,
+    runs: state.runs,
+    wickets: state.wickets,
+    balls: state.legalBalls,
+    overs: Math.floor(state.legalBalls / 6) + (state.legalBalls % 6) / 10,
+    extras: state.extras,
     extrasTotal,
-    batting: batted.map((p) => battingLines.get(p.id)!),
-    bowling: [...bowlingLines.values()],
-    fallOfWickets,
-    deliveries,
-    declared: ending === 'DECLARED',
+    batting: batted.map((p) => state.battingLines.get(p.id)!),
+    bowling: [...state.bowlingLines.values()],
+    fallOfWickets: state.fallOfWickets,
+    deliveries: state.deliveries,
+    declared: state.ending === 'DECLARED',
     followOn: false,
-    allOut: ending === 'ALL_OUT',
+    allOut: state.ending === 'ALL_OUT',
     complete: true,
     target: setup.target,
     dlsTarget: null,
   };
 
-  return { innings, conditions, partnerships, oversBowledBy, ending, day };
+  return {
+    innings,
+    conditions: state.conditions,
+    partnerships: state.partnerships,
+    oversBowledBy: state.oversBowledBy,
+    ending: state.ending,
+    day: state.day,
+  };
+}
+
+/**
+ * Play a complete innings. Pure: the same setup and seed always produce the
+ * same scorecard.
+ */
+export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
+  const state = createInningsState(setup);
+  while (!state.complete) {
+    if (stepBall(state, rng) === null) break;
+  }
+  return finishInnings(state);
 }
 
 /** Overs available to a side, honouring a rain-shortened match. */

@@ -49,7 +49,7 @@ export const FIELD_POSITIONS: Record<string, PositionSpec> = {
 };
 
 /** Named field settings the AI captain picks between. */
-const FIELD_PRESETS: Record<string, string[]> = {
+export const FIELD_PRESETS: Record<string, string[]> = {
   ATTACKING_NEW_BALL: ['slip', 'secondSlip', 'gully', 'point', 'cover', 'midOff', 'midOn', 'midWicket', 'shortFineLeg'],
   ATTACKING_SPIN: ['slip', 'sillyPoint', 'shortLeg', 'point', 'cover', 'midOff', 'midOn', 'midWicket', 'squareLeg'],
   STANDARD: ['slip', 'point', 'cover', 'extraCover', 'midOff', 'midOn', 'midWicket', 'squareLeg', 'thirdMan'],
@@ -58,6 +58,9 @@ const FIELD_PRESETS: Record<string, string[]> = {
   DEATH: ['midOff', 'midOn', 'longOff', 'longOn', 'deepMidWicket', 'deepSquareLeg', 'deepPoint', 'thirdMan', 'fineLeg'],
   POWERPLAY: ['slip', 'point', 'cover', 'midOff', 'midOn', 'midWicket', 'squareLeg', 'thirdMan', 'fineLeg'],
 };
+
+/** Preset names, in order, for the field editor to offer. */
+export const FIELD_PRESET_NAMES = Object.keys(FIELD_PRESETS);
 
 /**
  * Choose a field. Limited-overs powerplays keep catchers in; the death spreads

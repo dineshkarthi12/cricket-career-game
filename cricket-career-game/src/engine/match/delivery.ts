@@ -132,6 +132,27 @@ function chooseShot(context: DeliveryContext, contact: number, rng: Rng): ShotTy
   }
 }
 
+/**
+ * Bend the natural angle for a shot towards where the batter was trying to
+ * hit. A well-timed shot from a good player goes close to the chosen side; a
+ * mishit still goes wherever the edge takes it.
+ */
+function steer(
+  natural: number,
+  preference: number | null | undefined,
+  contact: number,
+  technique: number,
+): number {
+  if (preference === null || preference === undefined) return natural;
+  const cfg = MATCH.shotPreference;
+  const control = clamp01(contact) * (1 - cfg.skillWeight + cfg.skillWeight * normalise(technique));
+  const pull = cfg.pull * control;
+  // Interpolate the short way round the circle.
+  let delta = ((preference - natural + 540) % 360) - 180;
+  delta *= pull;
+  return (natural + delta + 360) % 360;
+}
+
 /** Where a given shot tends to go, in degrees. */
 const SHOT_ANGLES: Record<ShotType, { angle: number; spread: number }> = {
   DEFEND: { angle: 20, spread: 55 },
@@ -362,7 +383,12 @@ function resolveWicket(
   // Where the ball went, so the ground view can draw the chance.
   const shot = chooseShot(context, input.contact, rng);
   const spec = SHOT_ANGLES[shot];
-  const angle = (spec.angle + rng.spread() * spec.spread + 360) % 360;
+  const angle = steer(
+    (spec.angle + rng.spread() * spec.spread + 360) % 360,
+    context.shotPreference,
+    input.contact,
+    context.striker.attributes.batting.technique,
+  );
   const distance = Math.max(4, 12 + input.contact * 34 + rng.spread() * 8);
 
   let fielderName: string | null = null;
@@ -505,7 +531,12 @@ function resolveBoundary(
 ): DeliveryOutcome {
   const shot = chooseShot(context, input.contact, rng);
   const spec = SHOT_ANGLES[shot];
-  const angle = (spec.angle + rng.spread() * spec.spread + 360) % 360;
+  const angle = steer(
+    (spec.angle + rng.spread() * spec.spread + 360) % 360,
+    context.shotPreference,
+    input.contact,
+    context.striker.attributes.batting.technique,
+  );
   const distance = input.six ? rng.range(68, 92) : rng.range(58, 72);
 
   // A six hit flat to a boundary rider is sometimes a catch instead.
@@ -588,7 +619,12 @@ function resolvePlacedShot(
 
   const shot = chooseShot(context, contact, rng);
   const spec = SHOT_ANGLES[shot];
-  const angle = (spec.angle + rng.spread() * spec.spread + 360) % 360;
+  const angle = steer(
+    (spec.angle + rng.spread() * spec.spread + 360) % 360,
+    context.shotPreference,
+    contact,
+    context.striker.attributes.batting.technique,
+  );
   const distance = Math.max(2, 6 + contact * 46 + rng.spread() * 10);
 
   const nearest = nearestFielder(context.field, angle, distance);

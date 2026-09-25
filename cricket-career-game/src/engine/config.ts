@@ -421,6 +421,12 @@ export const MATCH = {
     maxIntent: 1.2,
   },
 
+  /**
+    * How much a batter can steer the ball when they have picked a side of the
+    * ground. Good players place it; a mishit goes where it goes.
+    */
+  shotPreference: { pull: 0.55, skillWeight: 0.5 },
+
   /** A batter who is properly in is a different proposition. */
   setBatter: {
     /** Balls beyond the settling window before a batter is fully set. */
