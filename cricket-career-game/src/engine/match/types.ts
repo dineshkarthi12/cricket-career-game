@@ -109,6 +109,10 @@ export interface DeliveryContext {
   field: FieldSetting;
   /** Balls this batter has already faced in the innings. */
   strikerBallsFaced: number;
+  /** Wickets that have fallen in the last `momentum.window` balls. */
+  recentWickets: number;
+  /** Balls the current pair have been together. */
+  partnershipBalls: number;
   /** Overs this bowler has sent down in the current spell. */
   spellOvers: number;
   /** Overs bowled in the innings so far. */

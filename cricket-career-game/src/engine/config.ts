@@ -142,10 +142,10 @@ export interface FormatRates {
 export const MATCH_FORMATS: Record<string, FormatRates> = {
   T20: {
     overs: 20,
-    wicket: 0.05159,
-    four: 0.14793,
-    six: 0.07276,
-    dotWeight: 0.4876,
+    wicket: 0.04747,
+    four: 0.16018,
+    six: 0.07885,
+    dotWeight: 0.4657,
     twoWeight: 0.19,
     threeWeight: 0.022,
     maxOversPerBowler: 4,
@@ -153,10 +153,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ODI: {
     overs: 50,
-    wicket: 0.02567,
-    four: 0.10013,
-    six: 0.02425,
-    dotWeight: 0.9935,
+    wicket: 0.02595,
+    four: 0.09682,
+    six: 0.02246,
+    dotWeight: 0.9781,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -164,10 +164,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ONE_DAY: {
     overs: 50,
-    wicket: 0.02630,
-    four: 0.09650,
-    six: 0.02090,
-    dotWeight: 1.0500,
+    wicket: 0.0266,
+    four: 0.09295,
+    six: 0.01954,
+    dotWeight: 1.0368,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -175,10 +175,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   MULTI_DAY: {
     overs: null,
-    wicket: 0.01858,
-    four: 0.06687,
-    six: 0.00402,
-    dotWeight: 2.2010,
+    wicket: 0.01889,
+    four: 0.06880,
+    six: 0.00434,
+    dotWeight: 2.1939,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -186,10 +186,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   TEST: {
     overs: null,
-    wicket: 0.01790,
-    four: 0.06520,
-    six: 0.00385,
-    dotWeight: 2.2650,
+    wicket: 0.01813,
+    four: 0.06708,
+    six: 0.00417,
+    dotWeight: 2.2597,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -201,8 +201,8 @@ export const MATCH = {
   /** How strongly the batter-vs-bowler skill gap moves each outcome. */
   edge: {
     /** Wickets fall less often as the batter out-classes the bowler. */
-    wicket: 0.6,
-    boundary: 0.62,
+    wicket: 0.46,
+    boundary: 0.58,
     dot: 0.45,
     /** Skill gap is clamped to this before it is applied. */
     clamp: 0.75,
@@ -273,6 +273,14 @@ export const MATCH = {
     turnWicket: 0.45,
     /** Bounce drives edges and top-edged pulls. */
     bounceCaught: 0.3,
+    /**
+     * Day one carries moisture: a little more for the seamers and a slightly
+     * harder surface to bat on. It bakes out over the first two days, which is
+     * why day two is so often the best batting day, and only then does the
+     * pitch start to break up.
+     */
+    dayOneMoistureSeam: 16,
+    dayOneMoistureEase: 9,
     /** Deterioration per day of a multi-day match, added to turn. */
     deteriorationPerDay: 13,
     deteriorationPerOver: 0.28,
@@ -328,6 +336,52 @@ export const MATCH = {
   /** Powerplay is the first this fraction of a limited-overs innings. */
   powerplayFraction: 0.3,
   deathFraction: 0.8,
+
+  /**
+    * Momentum inside an innings. Wickets cluster in real cricket and set
+    * batters get harder to shift; both are what gives a season its fat tails.
+    */
+  momentum: {
+    /** Balls over which recent wickets count as a cluster. */
+    window: 36,
+    /** Extra wicket chance per wicket in the window beyond the first. */
+    collapseWicket: 0.2,
+    /** Scoring dries up while a side is losing wickets in a heap. */
+    collapseBoundary: 0.78,
+    collapseDot: 1.16,
+    /** A long partnership grinds the bowling side down. */
+    settledPartnershipBalls: 150,
+    settledPartnershipBoundary: 0.1,
+    settledPartnershipWicket: 0.14,
+  },
+
+  /**
+    * Bounds on how far the stacked modifiers may push one delivery. Without
+    * them the feedback loops run away: a set pair on a flat pitch against a
+    * weaker attack drove the wicket chance so low that innings never ended,
+    * which is what produced 1000-run first innings and 580-run ODIs. Even on
+    * the flattest day a good ball, a lapse in concentration or a run-out is
+    * always possible.
+    */
+  limits: {
+    /** pWicket may not fall below this fraction of the format's base rate. */
+    wicketFloor: 0.54,
+    /** ...nor rise above this multiple of it. */
+    wicketCeiling: 3.4,
+    /** Cap on the combined boundary multiplier. */
+    boundaryCeiling: 2.5,
+  },
+
+  /** A batter who is properly in is a different proposition. */
+  setBatter: {
+    /** Balls beyond the settling window before a batter is fully set. */
+    balls: 80,
+    /** Wicket chance multiplier once fully set. */
+    wicket: 0.7,
+    boundary: 1.1,
+    /** Added to effective batting skill once fully set. */
+    skill: 0.1,
+  },
 
   /** How a new batter plays before they are set. */
   newBatter: {
@@ -394,12 +448,31 @@ export const MATCH = {
     days: 4,
     oversPerDay: 90,
     sessionsPerDay: 3,
+    oversPerSession: 30,
     /** First-innings lead that lets the captain enforce the follow-on. */
     followOnLead: 150,
     /** A declaration is considered once the lead passes this. */
-    declarationLead: 280,
+    declarationLead: 300,
     /** ...and the side has used at least this fraction of the match. */
     declarationOversFraction: 0.55,
+    /**
+     * A side batting first declares eventually rather than batting for ever.
+     * Without this a dominant side could bat 300 overs for 1000.
+     */
+    firstInningsDeclareRuns: 460,
+    firstInningsDeclareOvers: 140,
+    /**
+     * Captains differ, so the declaration point varies by this much either
+     * way. A fixed threshold produced a wall of innings ending on exactly the
+     * same score.
+     */
+    declareVariance: 0.22,
+    /** Overs lost every day to a slow over rate. */
+    slowOverRatePerDay: 1.5,
+    /** Chance per day of losing a session to bad light or rain. */
+    sessionLossChance: 0.085,
+    /** Chance per day of losing most of it to weather. */
+    washoutChance: 0.025,
   },
 
   /** Rain, interruptions and DLS. */

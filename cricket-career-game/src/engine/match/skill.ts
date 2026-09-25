@@ -68,7 +68,15 @@ export function batterSkill(context: DeliveryContext): number {
 
   // A batter who has only just walked in is not yet the player they will be.
   const settle = clamp01(context.strikerBallsFaced / MATCH.newBatter.settleBalls);
-  return clamp01(raw * lerp(0.74, 1, settle));
+  // ...and one who has been in for an hour is a different proposition again.
+  const set = setLevel(context.strikerBallsFaced);
+  return clamp01(raw * lerp(0.74, 1, settle) * (1 + set * MATCH.setBatter.skill));
+}
+
+/** 0-1, how well set the batter is beyond simply having survived a few balls. */
+export function setLevel(ballsFaced: number): number {
+  const beyond = ballsFaced - MATCH.newBatter.settleBalls;
+  return beyond <= 0 ? 0 : clamp01(beyond / MATCH.setBatter.balls);
 }
 
 /** Power decides whether a well-timed shot clears the rope. */

@@ -36,6 +36,16 @@ describe('balance', () => {
       expect(report.economy).toBeLessThan(9.5);
       expect(report.firstInningsWickets).toBeGreaterThan(4.5);
       expect(report.firstInningsWickets).toBeLessThan(8.5);
+
+      // Spread: not every match near 160. Collapses and huge scores both happen.
+      const s = report.spread;
+      expect(s.stdDev).toBeGreaterThan(32);
+      expect(s.min).toBeLessThan(95);
+      expect(s.p10).toBeLessThan(125);
+      expect(s.p90).toBeGreaterThan(200);
+      expect(s.max).toBeGreaterThan(235);
+      expect(report.tails['under 100']).toBeGreaterThan(0.02);
+      expect(report.tails['over 200']).toBeGreaterThan(0.06);
     },
     TIMEOUT,
   );
@@ -55,6 +65,16 @@ describe('balance', () => {
       expect(report.economy).toBeLessThan(6.4);
       expect(report.battingAverage).toBeGreaterThan(28);
       expect(report.battingAverage).toBeLessThan(50);
+
+      // Both ends have to be reachable: collapses under 150 and 400-plus.
+      const s = report.spread;
+      expect(s.stdDev).toBeGreaterThan(55);
+      expect(s.min).toBeLessThan(140);
+      expect(s.p10).toBeLessThan(200);
+      expect(s.p90).toBeGreaterThan(330);
+      expect(s.max).toBeGreaterThan(400);
+      expect(report.tails['under 150']).toBeGreaterThan(0.02);
+      expect(report.tails['over 350']).toBeGreaterThan(0.05);
     },
     TIMEOUT,
   );
@@ -72,57 +92,81 @@ describe('balance', () => {
       expect(report.runRate).toBeLessThan(3.8);
       expect(report.economy).toBeGreaterThan(2.3);
       expect(report.economy).toBeLessThan(3.8);
-      // Multi-day cricket has to be able to end in a draw.
-      expect(report.results.DRAW ?? 0).toBeGreaterThan(0.02);
+      // Real first-class cricket draws 35-45% of the time. It gets there
+      // through match flow - time lost, flat days, set partnerships and
+      // conservative declarations - never by forcing the result.
+      expect(report.results.DRAW ?? 0).toBeGreaterThan(0.35);
+      expect(report.results.DRAW ?? 0).toBeLessThan(0.45);
+
+      // A side can be shot out under 100, or bat all day for 450.
+      const s = report.spread;
+      expect(s.stdDev).toBeGreaterThan(85);
+      expect(s.min).toBeLessThan(120);
+      expect(s.p10).toBeLessThan(220);
+      expect(s.p90).toBeGreaterThan(430);
+      expect(report.tails['under 150']).toBeGreaterThan(0.02);
+      expect(report.tails['over 450']).toBeGreaterThan(0.05);
     },
     TIMEOUT,
   );
 
   it(
-    'a good first-class batter averages 35-50',
+    'a good first-class batter averages 40-44 over a career',
     () => {
       const venue = VENUES_BY_ID['venue-chepauk'];
-      const rng = createRng(4242);
-      let runs = 0;
-      let dismissals = 0;
 
-      // A strong side against ordinary opposition is what "a good batter" means.
-      for (let i = 0; i < 260; i += 1) {
-        const seed = rng.int(1, 2 ** 30);
-        const strong = generateXi('home', 74, createRng(seed ^ 0xaaa));
-        const ordinary = generateXi('away', 62, createRng(seed ^ 0xbbb));
+      // A career average means facing the whole range of attacks a season
+      // throws up. Measuring one strong side against one weak attack every
+      // week flatters the batter and is not what an average means.
+      const careerAverage = (batStrength: number) => {
+        const rng = createRng(4242);
+        let runs = 0;
+        let dismissals = 0;
 
-        const { match } = simulateMatch({
-          fixtureId: `good-${i}`,
-          tournamentId: 'balance',
-          seasonYear: 2026,
-          format: 'MULTI_DAY',
-          stage: 'League',
-          date: '2026-11-15',
-          venue,
-          homeTeamId: 'home',
-          awayTeamId: 'away',
-          homeXi: strong,
-          awayXi: ordinary,
-          userIsHome: true,
-          seed,
-          month: 11,
-        });
+        for (let i = 0; i < 260; i += 1) {
+          const seed = rng.int(1, 2 ** 30);
+          const opposition = rng.int(55, 75);
+          const { match } = simulateMatch({
+            fixtureId: `good-${i}`,
+            tournamentId: 'balance',
+            seasonYear: 2026,
+            format: 'MULTI_DAY',
+            stage: 'League',
+            date: '2026-11-15',
+            venue,
+            homeTeamId: 'home',
+            awayTeamId: 'away',
+            homeXi: generateXi('home', batStrength, createRng(seed ^ 0xaaa)),
+            awayXi: generateXi('away', opposition, createRng(seed ^ 0xbbb)),
+            userIsHome: true,
+            seed,
+            month: 11,
+          });
 
-        for (const innings of match.innings) {
-          if (innings.battingTeamId !== 'home') continue;
-          for (const bat of innings.batting) {
-            if (bat.battingPosition > 6) continue;
-            runs += bat.runs;
-            if (bat.out) dismissals += 1;
+          for (const innings of match.innings) {
+            if (innings.battingTeamId !== 'home') continue;
+            for (const bat of innings.batting) {
+              if (bat.battingPosition > 6) continue;
+              runs += bat.runs;
+              if (bat.out) dismissals += 1;
+            }
           }
         }
-      }
+        return runs / Math.max(1, dismissals);
+      };
 
-      const average = runs / Math.max(1, dismissals);
-      console.log(`\nGood first-class top order averages ${average.toFixed(1)}`);
-      expect(average).toBeGreaterThan(35);
-      expect(average).toBeLessThan(50);
+      const good = careerAverage(70);
+      const veryGood = careerAverage(74);
+      console.log(
+        `\nFirst-class career averages: good top order ${good.toFixed(1)}, very good ${veryGood.toFixed(1)}`,
+      );
+
+      expect(good).toBeGreaterThan(38);
+      expect(good).toBeLessThan(44);
+      expect(veryGood).toBeGreaterThan(40);
+      expect(veryGood).toBeLessThan(48);
+      // Class has to tell, but not treble the average.
+      expect(veryGood).toBeGreaterThan(good);
     },
     TIMEOUT,
   );

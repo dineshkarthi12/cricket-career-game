@@ -353,7 +353,25 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
   const bowlingFirstTeamId =
     ctx.battingFirstTeamId === setup.homeTeamId ? setup.awayTeamId : setup.homeTeamId;
 
-  const maxBalls = cfg.days * cfg.oversPerDay * 6;
+  // A four-day match almost never gets four full days of cricket. Over rates
+  // are slow, the light goes, and weather takes sessions out. All three eat
+  // into the time available for a result, which is why first-class cricket
+  // draws as often as it does.
+  const rng = ctx.rng;
+  let oversLost = cfg.days * cfg.slowOverRatePerDay;
+  for (let day = 1; day <= cfg.days; day += 1) {
+    const wet = ctx.conditions.weather.rainRisk / 100;
+    if (rng.chance(cfg.washoutChance + wet * 0.35)) {
+      oversLost += cfg.oversPerDay * rng.range(0.55, 1);
+    } else if (rng.chance(cfg.sessionLossChance + wet * 0.5)) {
+      oversLost += cfg.oversPerSession * rng.range(0.5, 1.4);
+    }
+  }
+
+  const maxBalls = Math.max(
+    cfg.oversPerDay * 6,
+    Math.floor((cfg.days * cfg.oversPerDay - oversLost) * 6),
+  );
   let ballsUsed = 0;
   let day = 1;
   const innings: Innings[] = [];
@@ -366,7 +384,9 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
     bowlingTeamId: string,
     target: number | null,
     declareAt: number | null,
+    declareAfterOvers: number | null = null,
   ): InningsResult => {
+    const oversLeft = Math.max(1, Math.floor((maxBalls - ballsUsed) / 6));
     const result = simulateInnings(
       {
         number,
@@ -377,7 +397,8 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
         format: setup.format,
         venue: setup.venue,
         conditions,
-        oversAvailable: Math.max(1, Math.floor((maxBalls - ballsUsed) / 6)),
+        basePitch: ctx.conditions.pitch,
+        oversAvailable: declareAfterOvers === null ? oversLeft : Math.min(oversLeft, declareAfterOvers),
         target,
         battingAtHome: battingTeamId === setup.homeTeamId,
         knockout: setup.knockout ?? false,
@@ -395,8 +416,18 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
     return result;
   };
 
-  // First innings each.
-  const first = play(1, ctx.battingFirstTeamId, bowlingFirstTeamId, null, null);
+  // First innings each. The side batting first declares once it has enough
+  // runs or has used too much of the match - otherwise a dominant side simply
+  // bats on for ever, which is how a 1000-run innings happened.
+  const vary = (base: number) => Math.round(base * (1 + rng.spread() * cfg.declareVariance));
+  const first = play(
+    1,
+    ctx.battingFirstTeamId,
+    bowlingFirstTeamId,
+    null,
+    vary(cfg.firstInningsDeclareRuns),
+    vary(cfg.firstInningsDeclareOvers),
+  );
   if (ballsUsed >= maxBalls) return drawn(innings, partnerships, conditions);
 
   const second = play(2, bowlingFirstTeamId, ctx.battingFirstTeamId, null, null);
@@ -435,8 +466,11 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
     return resolveChase(innings, partnerships, conditions, chase, ctx.battingFirstTeamId, bowlingFirstTeamId, -deficit + 1, ballsUsed >= maxBalls);
   }
 
-  // Third innings, with a declaration once the lead is big enough.
-  const declareAt = lead > 0 ? Math.max(0, cfg.declarationLead - lead) : cfg.declarationLead;
+  // Third innings, with a declaration once the lead is big enough. A captain
+  // with little time left is more conservative: the target has to be safe.
+  const timeLeft = (maxBalls - ballsUsed) / maxBalls;
+  const wantedLead = cfg.declarationLead * (timeLeft < 0.3 ? 1.35 : 1);
+  const declareAt = vary(lead > 0 ? Math.max(0, wantedLead - lead) : wantedLead);
   const third = play(3, ctx.battingFirstTeamId, bowlingFirstTeamId, null, declareAt);
   if (ballsUsed >= maxBalls) return drawn(innings, partnerships, conditions);
 

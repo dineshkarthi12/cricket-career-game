@@ -8,7 +8,7 @@
 import { MATCH, MATCH_FORMATS } from '../config';
 import { bounceOnOffer, seamOnOffer, swingOnOffer, turnOnOffer } from './conditions';
 import { catchChance, nearestFielder } from './field';
-import { batterPower, batterSkill, bowlerSkill, clamp01, normalise, pressureBite } from './skill';
+import { batterPower, batterSkill, bowlerSkill, clamp01, normalise, pressureBite, setLevel } from './skill';
 import { describeBall } from './commentary';
 import type { Rng } from './rng';
 import type { DeliveryContext, DeliveryOutcome } from './types';
@@ -172,7 +172,17 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   );
 
   const settle = clamp01(context.strikerBallsFaced / cfg.newBatter.settleBalls);
+  const set = setLevel(context.strikerBallsFaced);
   const phaseMod = cfg.phase[context.phase] ?? { boundary: 1, wicket: 1, dot: 1 };
+
+  // --- Momentum ------------------------------------------------------------
+  // Wickets come in clusters: a new batter walking in while the last two went
+  // cheaply is in far more trouble than the same batter in a calm innings.
+  const cluster = Math.max(0, context.recentWickets - 1);
+  const collapse = 1 + cluster * cfg.momentum.collapseWicket;
+  // The other side of it: a pair who have been in for twenty overs have worn
+  // the bowling down, and the captain is running out of ideas.
+  const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
 
   // --- Wicket -------------------------------------------------------------
   const defaultIntentIndex = Math.max(0, Math.min(4, rates.defaultIntent - 1));
@@ -185,28 +195,35 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     phaseMod.wicket *
     (1 + bite * cfg.pressure.wicketAtMax) *
     (1 + (1 - settle) * cfg.newBatter.wicketPenalty) *
+    (1 - set * (1 - cfg.setBatter.wicket)) *
+    collapse *
+    (1 - partnership * cfg.momentum.settledPartnershipWicket) *
     (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2);
-  pWicket = clamp01(pWicket);
+  pWicket = clamp01(
+    Math.max(
+      rates.wicket * cfg.limits.wicketFloor,
+      Math.min(rates.wicket * cfg.limits.wicketCeiling, pWicket),
+    ),
+  );
 
   // --- Boundaries ---------------------------------------------------------
   const power = batterPower(context.striker);
-  const boundaryBase = (1 + edge * cfg.edge.boundary) * phaseMod.boundary * (1 - (1 - settle) * cfg.newBatter.boundaryPenalty);
+  const boundaryBase =
+    (1 + edge * cfg.edge.boundary) *
+    phaseMod.boundary *
+    (1 - (1 - settle) * cfg.newBatter.boundaryPenalty) *
+    (1 + set * (cfg.setBatter.boundary - 1)) *
+    (cluster > 0 ? cfg.momentum.collapseBoundary : 1) *
+    (1 + partnership * cfg.momentum.settledPartnershipBoundary);
   const softBall = context.conditions.ball.hardness < 55 ? cfg.ball.softBallBoundary : 1;
   const easeBoundary = 1 + (context.conditions.pitch.battingEase / 100 - 0.5) * cfg.pitch.battingEaseBoundary * 2;
 
   const intentBoundary = cfg.intent.boundary[intentIndex] / cfg.intent.boundary[defaultIntentIndex];
 
-  let pFour = clamp01(
-    rates.four * intentBoundary * boundaryBase * softBall * easeBoundary * (0.62 + contact * 0.76),
-  );
-  let pSix = clamp01(
-    rates.six *
-      intentBoundary *
-      boundaryBase *
-      easeBoundary *
-      (0.5 + power * 1.0) *
-      (0.45 + contact * 1.1),
-  );
+  const capped = Math.min(cfg.limits.boundaryCeiling, intentBoundary * boundaryBase * easeBoundary);
+
+  let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76));
+  let pSix = clamp01(rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1));
 
   // Nothing can be more likely than the total probability space allows.
   const total = pWicket + pFour + pSix;
@@ -232,7 +249,11 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   }
 
   // --- Everything else: dots, ones, twos, threes --------------------------
-  return resolvePlacedShot(context, { contact, edge, speed, intentIndex, phaseDot: phaseMod.dot }, rng);
+  return resolvePlacedShot(
+    context,
+    { contact, edge, speed, intentIndex, phaseDot: phaseMod.dot, cluster },
+    rng,
+  );
 }
 
 /** A wicket: work out how, and who takes the catch. */
@@ -395,7 +416,14 @@ function resolveBoundary(
 /** Dots, singles, twos and threes - decided by placement against the field. */
 function resolvePlacedShot(
   context: DeliveryContext,
-  input: { contact: number; edge: number; speed: number; intentIndex: number; phaseDot: number },
+  input: {
+    contact: number;
+    edge: number;
+    speed: number;
+    intentIndex: number;
+    phaseDot: number;
+    cluster: number;
+  },
   rng: Rng,
 ): DeliveryOutcome {
   const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
@@ -423,6 +451,7 @@ function resolvePlacedShot(
     rates.dotWeight *
       input.phaseDot *
       cfg.intent.dot[intentIndex] *
+      (input.cluster > 0 ? cfg.momentum.collapseDot : 1) *
       (1 - input.edge * cfg.edge.dot) *
       (1 + straightAt * cfg.fielding.ringSaveChance * 0.6) *
       (1.2 - contact * 0.4),

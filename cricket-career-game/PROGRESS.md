@@ -237,39 +237,83 @@ and the shot direction on `Ball`; `SAVE_VERSION` is 2 with a migration.
 
 ```
 --- T20 (1000 matches) ---
-1st innings      158.56/6.34  (RR 8.08)
-Top-six batting  avg 25.36, SR 138.78
-Bowling          econ 7.99, avg 24.31
-Dismissals       CAUGHT 54.8%, BOWLED 14.0%, CAUGHT_BEHIND 12.9%, LBW 8.3%,
-                 STUMPED 4.2%, C&B 2.8%, RUN_OUT 2.7%, HIT_WICKET 0.4%
+1st innings      156.93/6.53  (RR 8.11)
+Top-six batting  avg 24.96, SR 140.91
+Bowling          econ 7.97, avg 22.93
+Spread (1st)     min 22 | p10 96 | p25 123 | med 153 | p75 193 | p90 222 | max 308  (sd 49.7)
+Tails            under 100 11.3%, over 200 20.1%, over 240 4.8%
+Dismissals       CAUGHT 52.9%, BOWLED 14.5%, CAUGHT_BEHIND 13.2%, LBW 9.0%,
+                 STUMPED 4.3%, C&B 2.8%, RUN_OUT 2.8%, HIT_WICKET 0.4%
 
 --- ODI (1000 matches) ---
-1st innings      279.03/7.18  (RR 5.75)
-Top-six batting  avg 39.41, SR 96.8
-Bowling          econ 5.56, avg 37.9
-Dismissals       CAUGHT 49.7%, BOWLED 15.4%, CAUGHT_BEHIND 14.1%, LBW 9.6%,
-                 RUN_OUT 4.1%, STUMPED 3.6%, C&B 3.1%, HIT_WICKET 0.4%
+1st innings      270.42/7.12  (RR 5.66)
+Top-six batting  avg 37.78, SR 96.85
+Bowling          econ 5.49, avg 36.68
+Spread (1st)     min 37 | p10 168 | p25 219 | med 271 | p75 326 | p90 371 | max 504  (sd 79.1)
+Tails            under 150 7.0%, over 350 16.7%, over 400 4.4%
+Dismissals       CAUGHT 49.0%, BOWLED 15.7%, CAUGHT_BEHIND 13.7%, LBW 10.1%,
+                 RUN_OUT 4.5%, STUMPED 3.6%, C&B 3.0%, HIT_WICKET 0.5%
 
 --- MULTI_DAY (1000 matches) ---
-1st innings      326.16/10 in 106.11 overs  (RR 3.07)
-Top-six batting  avg 34.31, SR 57.17
-Bowling          econ 2.94, avg 31.94
-Results          WIN 79.7%, DRAW 20.2%, TIE 0.1%
-Dismissals       CAUGHT 47.5%, BOWLED 16.3%, CAUGHT_BEHIND 14.4%, LBW 11.2%,
-                 RUN_OUT 3.9%, C&B 3.1%, STUMPED 3.1%, HIT_WICKET 0.5%
+1st innings      314.14/9.15 in 100.77 overs  (RR 3.12)
+Top-six batting  avg 36.32, SR 59.11
+Bowling          econ 3.06, avg 34.13
+Spread (1st)     min 28 | p10 152 | p25 227 | med 321 | p75 413 | p90 459 | max 539  (sd 113.7)
+Tails            under 150 9.3%, over 450 12.4%
+Results          WIN 58.7%, DRAW 41.3%
+Dismissals       CAUGHT 47.7%, BOWLED 16.1%, CAUGHT_BEHIND 14.6%, LBW 10.9%,
+                 RUN_OUT 3.9%, C&B 3.3%, STUMPED 3.1%, HIT_WICKET 0.5%
 
-Good first-class top order averages 47.1
+First-class career averages: good top order 39.4, very good 44.7
 ```
 
-Every target from the brief is met: T20 first innings 150-190 ✓, ODI 250-320 ✓,
-first-class 250-400 ✓; good first-class batters average 35-50 ✓; T20 strike
-rates 130-160 ✓; economy realistic per format ✓; caught is the most common
-dismissal, then bowled, then lbw ✓.
+Averages are in band for all three formats, caught leads the dismissals
+everywhere followed by bowled then lbw, and each format now has the spread
+real cricket has rather than clustering on its mean.
+
+### How the variance is produced
+
+None of it is a forced result. Four mechanisms create the tails:
+
+1. **Momentum.** Wickets cluster. Every delivery knows how many wickets have
+   fallen in the last 36 balls; while a side is going down in a heap, new
+   batters face a higher wicket chance and the boundaries dry up. That is what
+   turns 40-3 into 70 all out.
+2. **Set batters.** Surviving the first 15 balls is only the start; a batter
+   keeps improving for another 80, gaining effective skill, losing a third of
+   their wicket chance and hitting more boundaries. Two set batters on a flat
+   pitch is how a side gets to 400.
+3. **A long partnership** grinds the bowling side down, adding a little to the
+   boundary rate and taking a little off the wicket chance.
+4. **Conditions.** Pitch type, day-one moisture, cloud cover, ball age and the
+   gap in team quality all shift the same delivery a long way.
+
+Feedback loops need bounds or they run away - an early version produced a
+1000-run first innings and 580-run ODIs. `MATCH.limits` caps how far the
+stacked modifiers may push one ball in either direction: even on the flattest
+day a good ball, a lapse or a run-out is always possible.
+
+### Why first-class cricket now draws 41%
+
+Again, through match flow rather than a forced result:
+
+- **The pitch is not simply worse every day.** Day one carries moisture, which
+  helps the seamers and makes batting harder. It bakes out over the first day
+  and a half - which is why day two is so often the best batting day - and only
+  then does the surface start to break up.
+- **Four days is never four days of cricket.** Slow over rates cost overs every
+  day, and bad light, rain and the occasional washed-out day take out sessions.
+- **Set partnerships are harder to break**, so sides bat longer.
+- **Captains declare, and conservatively.** A side batting first declares
+  around 460 or after 140 overs rather than batting for ever, and the
+  declaration point varies by captain so totals do not pile up on one number.
+  A captain with little time left wants a bigger cushion before declaring.
 
 **Tests — 154 passing across 14 files** (51 new)
 - `balance.test.ts` — 1000 matches per format, prints the report above and
-  asserts every band; a separate run checks a good first-class batter's average
-  and that the dismissal ordering holds in all three formats.
+  asserts every band **and the spread** (standard deviation, p10, p90, min, max
+  and the share of innings in each tail), the first-class draw rate, career
+  batting averages and the dismissal ordering.
 - `factors.test.ts` — pitch, weather and ball age each move outcomes the way a
   cricketer would expect: a green seamer beats a flat deck, a worn pitch turns
   and takes more wickets, overcast skies swing it and take more new-ball
@@ -282,11 +326,13 @@ dismissal, then bowled, then lbw ✓.
   declarations, draws, DLS, super over, field placement, and every post-match
   effect including injuries.
 
-**Two bugs the tests caught, both fixed**
+**Three bugs the tests caught, all fixed**
 - Threat was hard-clamped at 1, so on a seaming pitch it saturated and extra
   swing from cloud cover changed nothing at all. It now saturates softly.
 - The dew figure passed into the turn calculation was the pitch's own turn
   value rather than the dew level.
+- A side batting first never declared, so a dominant team could bat 300 overs.
+  One first innings reached 1075. Captains now declare, with variation.
 
 ---
 

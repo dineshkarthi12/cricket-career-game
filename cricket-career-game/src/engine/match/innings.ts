@@ -13,6 +13,7 @@ import type { Rng } from './rng';
 import type { SimPlayer } from './types';
 import type {
   Ball,
+  Pitch,
   BatterInningsLine,
   BowlerInningsLine,
   ExtraType,
@@ -48,6 +49,11 @@ export interface InningsSetup {
   knockout: boolean;
   /** Day of a multi-day match this innings starts on. */
   day: number;
+  /**
+   * The surface as it was laid out, before any wear. Multi-day matches derive
+   * the day's pitch from this so the effects do not compound over four days.
+   */
+  basePitch?: Pitch;
   /** Stop once this many runs are scored (a declaration or a chase). */
   declareAt?: number | null;
   underLights: boolean;
@@ -171,6 +177,8 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
   let ending: InningsResult['ending'] = 'ALL_OUT';
   let partnershipRuns = 0;
   let partnershipBalls = 0;
+  /** Ball index of each wicket, so recent ones can be counted. */
+  const wicketBalls: number[] = [];
 
   const maxBalls = setup.oversAvailable === null ? Infinity : setup.oversAvailable * 6;
   const crowdFactor = Math.min(1, setup.venue.capacity / 60000);
@@ -289,6 +297,8 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
           approach,
           field,
           strikerBallsFaced: situation.strikerBallsFaced,
+          recentWickets: wicketBalls.filter((b) => legalBalls - b <= MATCH.momentum.window).length,
+          partnershipBalls,
           spellOvers: spellOvers[bowler.id] ?? 1,
           oversBowled: overNumber,
           pressure,
@@ -374,6 +384,7 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
       // ---- a wicket -----------------------------------------------------
       if (outcome.wicket && outcome.dismissedPlayerId) {
         wickets += 1;
+        wicketBalls.push(legalBalls);
         wicketsThisOver += 1;
         if (outcome.wicket.type !== 'RUN_OUT') bowlLine.wickets += 1;
 
@@ -432,9 +443,11 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
     conditions = {
       ...conditions,
       ball: ageBall(conditions.ball, conditions.pitch),
+      // Multi-day pitches are re-derived from the base surface each over, so
+      // the moisture and the wear are applied once rather than compounding.
       pitch:
         setup.oversAvailable === null
-          ? deterioratePitch(conditions.pitch, Math.floor(legalBalls / 6), day)
+          ? deterioratePitch(setup.basePitch ?? conditions.pitch, Math.floor(legalBalls / 6), day)
           : conditions.pitch,
       phase,
       underLights: setup.underLights,

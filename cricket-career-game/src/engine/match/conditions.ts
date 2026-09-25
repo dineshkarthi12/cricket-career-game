@@ -110,22 +110,42 @@ export function ageBall(ball: BallState, pitch: Pitch): BallState {
   };
 }
 
-/** Wear the pitch as a multi-day match goes on: more turn, less to bat on. */
+/**
+ * How much day-one moisture is still in the surface, 1 at the first ball and
+ * gone by the end of day two. It is what makes day two the best batting day.
+ */
+export function moistureAt(day: number, oversBowled: number): number {
+  const played = (day - 1) * MATCH.multiDay.oversPerDay + oversBowled;
+  return Math.max(0, 1 - played / (MATCH.multiDay.oversPerDay * 1.4));
+}
+
+/**
+ * Wear the pitch as a multi-day match goes on. Two things happen at once: the
+ * moisture bakes out over the first day and a half, which makes batting easier,
+ * and from then on the surface breaks up, which makes it harder again.
+ */
 export function deterioratePitch(pitch: Pitch, oversBowled: number, day: number): Pitch {
   const cfg = MATCH.pitch;
   const deterioration = Math.min(
     100,
-    (day - 1) * cfg.deteriorationPerDay + oversBowled * cfg.deteriorationPerOver,
+    Math.max(0, (day - 2) * cfg.deteriorationPerDay + oversBowled * cfg.deteriorationPerOver),
   );
-  const delta = deterioration - pitch.deterioration;
-  if (delta <= 0) return pitch;
+  const moisture = moistureAt(day, oversBowled);
+
   return {
     ...pitch,
     deterioration,
     // Cracks open up: the ball grips and the bounce goes uneven and lower.
-    turn: Math.min(100, pitch.turn + delta * 0.45),
-    bounce: Math.max(10, pitch.bounce - delta * 0.12),
-    battingEase: Math.max(8, pitch.battingEase - delta * cfg.easeLossPerDeterioration),
+    turn: Math.min(100, pitch.turn + deterioration * 0.45),
+    bounce: Math.max(10, pitch.bounce - deterioration * 0.12),
+    seamMovement: Math.min(100, pitch.seamMovement + moisture * cfg.dayOneMoistureSeam),
+    battingEase: Math.max(
+      8,
+      Math.min(
+        98,
+        pitch.battingEase - moisture * cfg.dayOneMoistureEase - deterioration * cfg.easeLossPerDeterioration,
+      ),
+    ),
   };
 }
 
