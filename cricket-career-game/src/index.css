@@ -113,3 +113,49 @@ body {
     rgb(10 20 40 / 0.9) 100%
   );
 }
+
+/* ------------------------------------------------------------------ *
+ * 2D match screen
+ * ------------------------------------------------------------------ */
+
+/* The ball's trail is drawn on as the ball travels. */
+@keyframes ball-trail {
+  from {
+    stroke-dashoffset: var(--trail-length, 200);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Boundary / wicket highlight. */
+@keyframes ball-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  55% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+}
+
+/* Rain streaks across the ground while play is suspended. */
+@keyframes rain-fall {
+  from {
+    transform: translateY(-12%);
+  }
+  to {
+    transform: translateY(12%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*='animate-'],
+  .ground-animated * {
+    animation: none !important;
+  }
+}
