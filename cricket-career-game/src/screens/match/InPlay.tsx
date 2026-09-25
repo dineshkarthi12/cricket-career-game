@@ -1,41 +1,39 @@
 /**
- * The match in progress. On a wide screen the ground sits on the left with the
- * panels beside it; on a phone the ground is on top, the panels are tabbed
- * underneath, and the controls sit at the bottom within thumb reach.
+ * The match in progress. On a wide screen the ground sits on the left with
+ * the player's controls under it and the panels pinned beside it; on a phone
+ * the ground is on top, everything else is tabbed underneath, and the sim
+ * buttons sit at the bottom within thumb reach.
+ *
+ * Career mode is the default: "You" shows the player's own controls. Team
+ * controls appear only when the player captains.
  */
 import { useMemo, useState } from 'react';
 import { Card, CardHeader, Tabs } from '@/components';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { FieldSetting, SimPlayer } from '@/engine/match/types';
-import type { Ball, Venue } from '@/types';
+import { groundBox, insideCircle } from '@/lib/ground';
+import { useMediaQuery } from '@/lib/useMediaQuery';
+import type { BallIntent, CaptainDecisions, PlayerDecisions } from '@/store/matchStore';
+import type { Ball, CaptainDelegation, Venue } from '@/types';
+import { CaptainPanel } from './controls/CaptainPanel';
+import { snapFielder } from './controls/FieldEditor';
+import { SimControls } from './controls/SimControls';
+import { YouPanel } from './controls/YouPanel';
 import { GroundView } from './ground/GroundView';
-import { WagonWheelSpokes } from './ground/WagonWheel';
 import { Beehive, DELIVERY_LEGEND, PitchMap } from './ground/PitchMap';
+import { WagonWheelSpokes } from './ground/WagonWheel';
 import { AlertsFeed } from './panels/AlertsFeed';
 import { CommentaryFeed } from './panels/CommentaryFeed';
 import { Manhattan, OverByOver, WagonWheelPanel, Worm, chartInnings } from './panels/MatchCharts';
 import { MatchInfo } from './panels/MatchInfo';
 import { Scorecard } from './panels/Scorecard';
 import { ScoreStrip } from './panels/ScoreStrip';
-import { BattingControls } from './controls/BattingControls';
-import { BowlingControls } from './controls/BowlingControls';
-import { FieldEditor, snapFielder } from './controls/FieldEditor';
-import { SimControls } from './controls/SimControls';
-import { groundBox, insideCircle } from '@/lib/ground';
-import { useMediaQuery } from '@/lib/useMediaQuery';
-import type { MatchDecisions } from '@/store/matchStore';
 
 const PANEL_TABS = [
   { id: 'scorecard', label: 'Scorecard' },
   { id: 'commentary', label: 'Commentary' },
   { id: 'charts', label: 'Charts' },
   { id: 'info', label: 'Match' },
-];
-
-const MOBILE_TABS = [
-  { id: 'controls', label: 'Controls' },
-  ...PANEL_TABS,
-  { id: 'alerts', label: 'Alerts' },
 ];
 
 export interface InPlayProps {
@@ -46,64 +44,67 @@ export interface InPlayProps {
   awayTeam: string;
   teamNameOf: (id: string) => string;
   playerById: (id: string) => SimPlayer | undefined;
+  userId: string;
+  userName: string;
+  captain: boolean;
+  delegate: CaptainDelegation;
   availableBowlers: SimPlayer[];
-  userPlayerId: string | null;
+  suggestedBowler: SimPlayer | null;
+  player: PlayerDecisions;
+  captainDecisions: CaptainDecisions;
   lastBall: Ball | null;
   ballMs: number;
   reduceMotion: boolean;
-  decisions: MatchDecisions;
   autoPlay: boolean;
+  autoWatch: boolean;
   speed: number;
-  onDecisions: (patch: Partial<MatchDecisions>) => void;
-  onBall: () => void;
+  onPlay: (intent?: BallIntent) => void;
   onOver: () => void;
   onWicket: () => void;
+  onInvolved: () => void;
+  onUntilOut: () => void;
   onInnings: () => void;
+  onSimRest: () => void;
   onDeclare: () => void;
   onAuto: (on: boolean) => void;
+  onAutoWatch: (on: boolean) => void;
   onSpeed: (index: number) => void;
-  /** Show the wagon wheel over the live ground. */
-  showWagonWheel: boolean;
-  onToggleWagonWheel: (on: boolean) => void;
+  onPlayer: (patch: Partial<PlayerDecisions>) => void;
+  onCaptain: (patch: Partial<CaptainDecisions>) => void;
+  onDelegate: (patch: Partial<CaptainDelegation>) => void;
 }
 
 export function InPlay(props: InPlayProps) {
   const { snap, venue, playerById } = props;
   const [tab, setTab] = useState('scorecard');
+  const [mobileTab, setMobileTab] = useState('you');
+  const [showWagonWheel, setShowWagonWheel] = useState(false);
   const wide = useMediaQuery('(min-width: 1280px)');
-  const cur = snap.current;
   const box = useMemo(() => groundBox(venue), [venue]);
+  const cur = snap.current;
 
   if (!cur) return null;
 
   const striker = playerById(cur.strikerId);
   const leftHanded = striker?.battingStyle === 'LEFT_HAND_BAT';
   const bowler = cur.bowlerId ? playerById(cur.bowlerId) : undefined;
-  const bowlerLine = cur.bowling.find((b) => b.playerId === cur.bowlerId);
-  const overComplete = cur.balls % 6 === 0;
-  const over = Math.floor(cur.balls / 6);
-
-  /** Runs the batting side leads by, counting every innings so far. */
-  const leadNow = () => {
-    const own = snap.completed
-      .filter((i) => i.battingTeamId === cur.battingTeamId)
-      .reduce((sum, i) => sum + i.runs, 0);
-    const theirs = snap.completed
-      .filter((i) => i.battingTeamId !== cur.battingTeamId)
-      .reduce((sum, i) => sum + i.runs, 0);
-    return own + cur.runs - theirs;
-  };
+  const leftArmBowler = Boolean(bowler?.bowlingStyle.startsWith('LEFT_ARM'));
+  const me = playerById(props.userId);
+  const busy = snap.question !== null;
 
   const battingTeam = props.teamNameOf(cur.battingTeamId);
   const bowlingTeam = props.teamNameOf(cur.bowlingTeamId);
 
-  const overlay = props.showWagonWheel ? (
+  const overlay = showWagonWheel ? (
     <WagonWheelSpokes box={box} balls={cur.deliveries} leftHanded={leftHanded} />
   ) : null;
 
-  /** A fielder the player has dragged. Snaps onto a sensible spot. */
+  const fieldEditable = props.captain && snap.userBowling && !props.delegate.field;
+  const field = fieldEditable ? (props.captainDecisions.field ?? snap.field) : snap.field;
+
+  /** A fielder the captain has dragged. Snaps onto a sensible spot. */
   const moveFielder = (playerId: string, angle: number, distance: number) => {
-    const source = props.decisions.field ?? snap.field;
+    const source = props.captainDecisions.field ?? snap.field;
     if (!source) return;
     const snapped = snapFielder(angle, distance, venue.straightBoundary);
     const next: FieldSetting = {
@@ -124,31 +125,40 @@ export function InPlay(props: InPlayProps) {
           : fielder,
       ),
     };
-    props.onDecisions({ field: next });
+    props.onCaptain({ field: next });
   };
+
+  // The opposition's bowlers, for "target a bowler".
+  const opposingBowlers = snap.userBatting
+    ? cur.bowling.map((b) => ({ id: b.playerId, name: b.name }))
+    : [];
 
   const groundCard = (
     <Card flush className="overflow-hidden">
       <GroundView
         venue={venue}
         conditions={cur.conditions}
-        field={props.decisions.field ?? snap.field}
+        field={field}
         ball={props.lastBall}
         leftHanded={leftHanded}
+        userId={props.userId}
+        bowlerId={cur.bowlerId}
+        userOnStrike={snap.involvement.onStrike}
+        leftArmBowler={leftArmBowler}
         durationMs={props.ballMs}
         reduceMotion={props.reduceMotion}
-        editable={snap.userBowling}
+        editable={fieldEditable}
         onMoveFielder={moveFielder}
         overlay={overlay}
       />
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
         <ul className="flex flex-wrap items-center gap-2.5">
+          <li className="flex items-center gap-1 text-[11px] text-ink-muted">
+            <span className="inline-block size-2 rounded-full bg-brand-gold" /> You
+          </li>
           {DELIVERY_LEGEND.map((entry) => (
             <li key={entry.label} className="flex items-center gap-1 text-[11px] text-ink-muted">
-              <span
-                className="inline-block size-2 rounded-full"
-                style={{ backgroundColor: entry.colour }}
-              />
+              <span className="inline-block size-2 rounded-full" style={{ backgroundColor: entry.colour }} />
               {entry.label}
             </li>
           ))}
@@ -156,8 +166,8 @@ export function InPlay(props: InPlayProps) {
         <label className="flex items-center gap-1.5 text-[11.5px] font-semibold text-ink">
           <input
             type="checkbox"
-            checked={props.showWagonWheel}
-            onChange={(event) => props.onToggleWagonWheel(event.target.checked)}
+            checked={showWagonWheel}
+            onChange={(event) => setShowWagonWheel(event.target.checked)}
             className="accent-brand-blue"
           />
           Wagon wheel
@@ -166,105 +176,62 @@ export function InPlay(props: InPlayProps) {
     </Card>
   );
 
-  const decisionControls = (
-    <div className="grid gap-4 md:grid-cols-2">
-      {snap.userBatting ? (
-        <>
-          <BattingControls
-            intent={props.decisions.intent}
-            shotPreference={props.decisions.shotPreference}
-            onIntent={(intent) => props.onDecisions({ intent })}
-            onShotPreference={(shotPreference) => props.onDecisions({ shotPreference })}
-            disabled={props.autoPlay}
-          />
-          <div>
-            <p className="text-[12.5px] font-semibold text-ink">Where they are bowling</p>
-            <PitchMap
-              balls={cur.deliveries}
-              bowlerId={cur.bowlerId}
-              leftHanded={leftHanded}
-              className="mx-auto mt-2 h-[190px] w-auto"
-            />
-            {snap.canDeclare ? (
-              <div className="mt-3 border-t border-line pt-3">
-                <p className="text-[12.5px] font-semibold text-ink">Declaration</p>
-                <p className="mt-0.5 text-[11.5px] text-ink-muted">
-                  {cur.target === null && snap.completed.length >= 1
-                    ? `Lead of ${leadNow()} — enough to bowl them out with the time left?`
-                    : 'Close the innings and give your bowlers a go.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm(`Declare on ${cur.runs}/${cur.wickets}?`)) props.onDeclare();
-                  }}
-                  disabled={props.autoPlay}
-                  className="mt-2 rounded-lg bg-brand-navy px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-brand-navy/90 disabled:opacity-50"
-                >
-                  Declare
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </>
-      ) : (
-        <>
-          <BowlingControls
-            bowler={bowler}
-            bowlerLine={bowlerLine}
-            available={props.availableBowlers}
-            nextBowlerId={props.decisions.nextBowlerId}
-            plan={props.decisions.plan}
-            roundTheWicket={props.decisions.roundTheWicket}
-            overComplete={overComplete}
-            oversLeft={
-              cur.maxOversPerBowler !== null && cur.bowlerId
-                ? Math.max(0, cur.maxOversPerBowler - (cur.oversBowledBy[cur.bowlerId] ?? 0))
-                : null
-            }
-            spellOvers={cur.bowlerId ? (cur.spellOvers[cur.bowlerId] ?? 0) : 0}
-            onBowler={(nextBowlerId) => props.onDecisions({ nextBowlerId })}
-            onPlan={(patch) => props.onDecisions({ plan: { ...props.decisions.plan, ...patch } })}
-            onRoundTheWicket={(roundTheWicket) => props.onDecisions({ roundTheWicket })}
-          />
-          <FieldEditor
-            field={props.decisions.field ?? snap.field}
-            venue={venue}
-            preset={props.decisions.fieldPreset}
-            format={snap.format}
-            over={over}
-            hasCustomField={Boolean(props.decisions.field)}
-            onPreset={(fieldPreset) => props.onDecisions({ fieldPreset, field: null })}
-            onReset={() => props.onDecisions({ field: null })}
-          />
-        </>
-      )}
-    </div>
+  const you = (
+    <YouPanel
+      snap={snap}
+      me={me}
+      name={props.userName}
+      decisions={props.player}
+      busy={busy || props.autoPlay}
+      autoWatch={props.autoWatch}
+      onPlay={props.onPlay}
+      onDecisions={props.onPlayer}
+      onSimOver={props.onOver}
+      onSimUntilOut={props.onUntilOut}
+      onAutoWatch={props.onAutoWatch}
+    />
   );
 
-  const simControls = (
+  const captainPanel = props.captain ? (
+    <CaptainPanel
+      snap={snap}
+      venue={venue}
+      decisions={props.captainDecisions}
+      delegate={props.delegate}
+      available={props.availableBowlers}
+      opposingBowlers={opposingBowlers}
+      suggestion={props.suggestedBowler}
+      maxOvers={cur.maxOversPerBowler}
+      onDecisions={props.onCaptain}
+      onDelegate={props.onDelegate}
+      onDeclare={props.onDeclare}
+    />
+  ) : null;
+
+  const simControls = (compact: boolean) => (
     <SimControls
+      compact={compact}
       autoPlay={props.autoPlay}
       speed={props.speed}
-      busy={false}
-      onBall={props.onBall}
+      busy={busy}
+      playing={snap.involvement.playing}
+      onBall={() => props.onPlay()}
       onOver={props.onOver}
       onWicket={props.onWicket}
+      onInvolved={props.onInvolved}
       onInnings={props.onInnings}
       onAuto={props.onAuto}
+      onSimRest={props.onSimRest}
       onSpeed={props.onSpeed}
     />
   );
 
-  const controlsTitle = snap.userBatting ? 'Batting' : 'Bowling and field';
-  const controlsSubtitle = snap.userBatting
-    ? 'Your call on how hard to go, and where to look for runs.'
-    : 'Your call on who bowls, what they bowl, and where the field stands.';
-
   const panel = (id: string) => {
     switch (id) {
-      case 'controls':
-        return decisionControls;
+      case 'you':
+        return you;
+      case 'captain':
+        return captainPanel;
       case 'alerts':
         return <AlertsFeed alerts={snap.alerts} />;
       case 'scorecard':
@@ -273,7 +240,7 @@ export function InPlay(props: InPlayProps) {
             innings={cur.innings}
             battingTeam={battingTeam}
             bowlingTeam={bowlingTeam}
-            userPlayerId={props.userPlayerId}
+            userPlayerId={props.userId}
             strikerId={cur.strikerId}
           />
         );
@@ -291,7 +258,15 @@ export function InPlay(props: InPlayProps) {
             <ChartBlock title="Wagon wheel">
               <WagonWheelPanel venue={venue} deliveries={cur.deliveries} leftHanded={leftHanded} />
             </ChartBlock>
-            <ChartBlock title="Beehive">
+            <ChartBlock title="Pitch map - this bowler">
+              <PitchMap
+                balls={cur.deliveries}
+                bowlerId={cur.bowlerId}
+                leftHanded={leftHanded}
+                className="mx-auto h-[190px] w-auto"
+              />
+            </ChartBlock>
+            <ChartBlock title="Beehive - this bowler">
               <Beehive
                 balls={cur.deliveries}
                 bowlerId={cur.bowlerId}
@@ -324,42 +299,31 @@ export function InPlay(props: InPlayProps) {
       battingTeam={battingTeam}
       bowlingTeam={bowlingTeam}
       nameOf={(id) => playerById(id)?.name ?? 'Batter'}
+      userId={props.userId}
     />
   );
 
   // Phone and tablet: ground on top, everything else tabbed underneath, and
   // the sim buttons pinned just above the tab bar where a thumb can reach.
   if (!wide) {
-    const mobileTab = MOBILE_TABS.some((t) => t.id === tab) ? tab : 'controls';
+    const mobileTabs = [
+      { id: 'you', label: 'You' },
+      ...(props.captain ? [{ id: 'captain', label: 'Captain' }] : []),
+      ...PANEL_TABS,
+      { id: 'alerts', label: 'Alerts' },
+    ];
+    const active = mobileTabs.some((t) => t.id === mobileTab) ? mobileTab : 'you';
     return (
       <div className="flex flex-col gap-3 pb-4">
         {scoreStrip}
         {groundCard}
         <Card>
-          <Tabs tabs={MOBILE_TABS} value={mobileTab} onChange={setTab} label="Match panels" />
-          {mobileTab === 'controls' ? (
-            <p className="mt-2.5 text-[12.5px] font-semibold text-ink">{controlsTitle}</p>
-          ) : null}
-          <div className="mt-3">{panel(mobileTab)}</div>
-          {mobileTab === 'controls' ? (
-            <div className="mt-4 border-t border-line pt-4">{simControls}</div>
-          ) : null}
+          <Tabs tabs={mobileTabs} value={active} onChange={setMobileTab} label="Match panels" />
+          <div className="mt-3">{panel(active)}</div>
+          {active === 'you' ? <div className="mt-4 border-t border-line pt-4">{simControls(false)}</div> : null}
         </Card>
         <div className="sticky bottom-[76px] z-20 md:bottom-3">
-          <Card className="p-2 shadow-card-hover">
-            <SimControls
-              compact
-              autoPlay={props.autoPlay}
-              speed={props.speed}
-              busy={false}
-              onBall={props.onBall}
-              onOver={props.onOver}
-              onWicket={props.onWicket}
-              onInnings={props.onInnings}
-              onAuto={props.onAuto}
-              onSpeed={props.onSpeed}
-            />
-          </Card>
+          <Card className="p-2 shadow-card-hover">{simControls(true)}</Card>
         </div>
       </div>
     );
@@ -373,14 +337,13 @@ export function InPlay(props: InPlayProps) {
         <div className="flex flex-col gap-4">
           {groundCard}
           <Card>
-            <CardHeader title={controlsTitle} subtitle={controlsSubtitle} />
-            <div className="mt-3">{decisionControls}</div>
-            <div className="mt-4 border-t border-line pt-4">{simControls}</div>
+            {you}
+            <div className="mt-4 border-t border-line pt-4">{simControls(false)}</div>
           </Card>
+          {captainPanel ? <Card>{captainPanel}</Card> : null}
         </div>
 
-        {/* Pinned beside the ground, so the scorecard stays in view while the
-            controls scroll. */}
+        {/* Pinned beside the ground, so the scorecard stays in view. */}
         <div className="sticky top-4 flex max-h-[calc(100vh-2rem)] flex-col gap-4">
           <Card className="shrink-0">
             <CardHeader title="Alerts" />
@@ -401,9 +364,7 @@ export function InPlay(props: InPlayProps) {
 function ChartBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h4 className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-soft uppercase">
-        {title}
-      </h4>
+      <h4 className="mb-1.5 text-[12px] font-semibold tracking-wide text-ink-soft uppercase">{title}</h4>
       {children}
     </div>
   );

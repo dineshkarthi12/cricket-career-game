@@ -12,12 +12,12 @@ import type { FieldSetting } from '@/engine/match/types';
 import type { MatchFormat, Venue } from '@/types';
 
 const PRESET_LABELS: Record<string, string> = {
-  ATTACKING_NEW_BALL: 'Attacking (new ball)',
-  ATTACKING_SPIN: 'Attacking (spin)',
+  ATTACKING_NEW_BALL: 'New ball (attacking)',
+  ATTACKING_SPIN: 'Spin (attacking)',
   STANDARD: 'Standard',
-  DEFENSIVE_RING: 'Defensive ring',
+  DEFENSIVE_RING: 'Defensive',
   BOUNDARY_PROTECTION: 'Protect the boundary',
-  DEATH: 'Death overs',
+  DEATH: 'T20 death',
   POWERPLAY: 'Powerplay',
 };
 
@@ -67,7 +67,7 @@ export const FieldEditor = memo(function FieldEditor({
           aria-pressed={preset === null && !hasCustomField}
           className={pill(preset === null && !hasCustomField)}
         >
-          Captain decides
+          Vice-captain's field
         </button>
         {FIELD_PRESET_NAMES.map((name) => (
           <button

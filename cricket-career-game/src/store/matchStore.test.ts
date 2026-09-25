@@ -1,109 +1,119 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { appointCaptain } from '@/engine/career/captaincy';
 import { recentMatch } from '@/lib/selectors';
 import { cancelAutosave } from '@/save';
 import { useGameStore } from './gameStore';
 import { __resetMatchStore, useMatchStore } from './matchStore';
 
 const FIXTURE = 'fx-ka-u16';
+const TEAM = 'team-tn-u16';
 
 function reset() {
   cancelAutosave();
   localStorage.clear();
-  useGameStore.setState({
-    state: null,
-    booted: false,
-    slot: null,
-    slots: [null, null, null],
-    lastError: null,
-  });
+  useGameStore.setState({ state: null, booted: false, slot: null, slots: [null, null, null], lastError: null });
   __resetMatchStore();
   useGameStore.getState().bootstrap();
 }
 
-function openFixture() {
+function open() {
   const state = useGameStore.getState().state!;
   useMatchStore.getState().open(state, state.fixtures[FIXTURE]);
 }
 
-describe('match store', () => {
+function makeCaptain() {
+  useGameStore.getState().update((s) => appointCaptain(s, TEAM, '2026-10-01', 'test'));
+}
+
+/** Play the match out, answering anything put to the player. */
+function playOut() {
+  let guard = 0;
+  while (useMatchStore.getState().stage !== 'DONE' && guard < 400) {
+    guard += 1;
+    const { stage, snap } = useMatchStore.getState();
+    if (stage === 'TOSS') useMatchStore.getState().toss('BAT');
+    else if (snap?.question) useMatchStore.getState().answer({ timing: 0.8, review: false });
+    else if (stage === 'BREAK') {
+      if (snap?.followOnChoice) useMatchStore.getState().chooseFollowOn(false);
+      useMatchStore.getState().startNextInnings();
+    } else useMatchStore.getState().toEndOfInnings();
+  }
+}
+
+describe('match store: career mode', () => {
   beforeEach(reset);
 
-  it('opens a fixture on the pre-match screen with the user in a full XI', () => {
-    openFixture();
-    const { stage, xiIds, squad } = useMatchStore.getState();
-    const player = useGameStore.getState().state!.player;
+  it('opens with the selectors’ decision, and no team controls', () => {
+    open();
+    const { stage, selection, captain, proposedIds } = useMatchStore.getState();
     expect(stage).toBe('PRE_MATCH');
-    expect(xiIds).toHaveLength(11);
-    expect(xiIds).toContain(player.id);
-    expect(squad.length).toBeGreaterThan(11);
+    expect(selection?.xi).toHaveLength(11);
+    expect(captain).toBe(false);
+    expect(proposedIds).toHaveLength(11);
   });
 
-  it('lets the player drop someone and bring in a reserve, but not a twelfth', () => {
-    openFixture();
-    const store = useMatchStore.getState();
-    const out = store.xiIds[5];
-    const reserve = store.squad.find((p) => !store.xiIds.includes(p.id))!;
-    store.toggleXi(reserve.id);
-    expect(useMatchStore.getState().xiIds).toHaveLength(11);
-    store.toggleXi(out);
-    useMatchStore.getState().toggleXi(reserve.id);
-    const ids = useMatchStore.getState().xiIds;
-    expect(ids).toHaveLength(11);
-    expect(ids).toContain(reserve.id);
-    expect(ids).not.toContain(out);
+  it('does not let a player who is not captain change the XI', () => {
+    open();
+    const before = useMatchStore.getState().proposedIds;
+    useMatchStore.getState().toggleProposed(before[3]);
+    useMatchStore.getState().moveProposed(before[0], 1);
+    expect(useMatchStore.getState().proposedIds).toEqual(before);
   });
 
-  it('plays ball by ball and only passes the batting side’s decisions when batting', () => {
-    openFixture();
-    const store = useMatchStore.getState();
-    store.start();
+  it('reads the conditions before the toss', () => {
+    open();
+    const snap = useMatchStore.getState().snap!;
+    expect(snap.phase).toBe('TOSS');
+    expect(snap.conditions.pitch.type).toBeTruthy();
+  });
+
+  it('goes through the toss into play, one ball at a time', () => {
+    open();
+    useMatchStore.getState().toToss();
+    expect(useMatchStore.getState().stage).toBe('TOSS');
     useMatchStore.getState().toss();
     expect(useMatchStore.getState().stage).toBe('PLAYING');
-    useMatchStore.getState().nextBall();
+    useMatchStore.getState().playBall();
     const { snap, lastBall } = useMatchStore.getState();
-    expect(lastBall).not.toBeNull();
-    expect(snap?.current?.deliveries.length).toBe(1);
+    expect(lastBall ?? snap?.question).toBeTruthy();
   });
 
-  it('writes a finished match back into the career exactly once', () => {
-    openFixture();
-    useMatchStore.getState().start();
+  it('only sends the player’s intent while their own batter is on strike', () => {
+    open();
+    useMatchStore.getState().toToss();
     useMatchStore.getState().toss();
-    useMatchStore.getState().simulateRest();
-
-    const { stage, committed } = useMatchStore.getState();
-    expect(stage).toBe('DONE');
-    expect(committed).not.toBeNull();
-
-    const state = useGameStore.getState().state!;
-    expect(state.matches[committed!.id]).toBeDefined();
-    expect(state.fixtures[FIXTURE].played).toBe(true);
-    expect(state.fixtures[FIXTURE].matchId).toBe(committed!.id);
-    expect(state.season.matchIds).toContain(committed!.id);
-    expect(recentMatch(state)?.id).toBe(committed!.id);
-    expect(state.inbox[0].relatedId).toBe(committed!.id);
-    // The stored card carries the XP that was actually awarded.
-    expect(committed!.userPerformance?.xpEarned).toBeGreaterThan(0);
-    expect(state.matches[committed!.id].userPerformance?.xpEarned).toBe(
-      committed!.userPerformance?.xpEarned,
-    );
-
-    // Calling it again changes nothing.
-    const before = Object.keys(state.matches).length;
-    useMatchStore.getState().simulateRest();
-    expect(Object.keys(useGameStore.getState().state!.matches)).toHaveLength(before);
+    useMatchStore.getState().setPlayer({ intent: 5 });
+    const me = useGameStore.getState().state!.player.id;
+    let guard = 0;
+    while (useMatchStore.getState().stage === 'PLAYING' && guard < 800) {
+      guard += 1;
+      const snap = useMatchStore.getState().snap!;
+      if (snap.question) useMatchStore.getState().answer({ timing: 0.5, review: false });
+      else useMatchStore.getState().playBall();
+    }
+    const innings = useMatchStore.getState().snap!;
+    const balls = [...innings.completed.flatMap((i) => i.deliveries), ...(innings.current?.deliveries ?? [])];
+    const mine = balls.filter((b) => b.strikerId === me);
+    const others = balls.filter((b) => b.strikerId !== me && b.isLegalDelivery);
+    if (mine.length > 0) expect(mine.every((b) => b.intent === 'ALL_OUT')).toBe(true);
+    expect(others.some((b) => b.intent !== 'ALL_OUT')).toBe(true);
   }, 60_000);
 
-  it('adds the match to the user’s career record', () => {
-    const before = structuredClone(useGameStore.getState().state!.player.record);
-    openFixture();
-    useMatchStore.getState().start();
-    useMatchStore.getState().toss();
+  it('writes a finished match back into the career exactly once', () => {
+    open();
+    useMatchStore.getState().toToss();
+    playOut();
+    const { stage, after } = useMatchStore.getState();
+    expect(stage).toBe('DONE');
+    expect(after).not.toBeNull();
+    const state = useGameStore.getState().state!;
+    expect(state.fixtures[FIXTURE].played).toBe(true);
+    expect(recentMatch(state)?.id).toBe(after!.match.id);
+    expect(state.inbox.some((m) => m.sender === 'SELECTOR' && m.relatedId === after!.match.id)).toBe(true);
+
+    const count = Object.keys(state.matches).length;
     useMatchStore.getState().simulateRest();
-    const after = useGameStore.getState().state!.player.record;
-    expect(after.byFormat.MULTI_DAY.batting.matches).toBe(
-      before.byFormat.MULTI_DAY.batting.matches + 1,
-    );
+    expect(Object.keys(useGameStore.getState().state!.matches)).toHaveLength(count);
   }, 60_000);
 
   it('quick-sims a fixture straight into the career', () => {
@@ -114,21 +124,64 @@ describe('match store', () => {
     expect(after.fixtures[FIXTURE].played).toBe(true);
     expect(recentMatch(after)?.id).toBe(match!.id);
   }, 60_000);
+});
 
-  it('never sends an illegal hand-placed field to the engine', () => {
-    openFixture();
-    useMatchStore.getState().start();
-    useMatchStore.getState().toss();
-    useMatchStore.getState().nextBall();
-    const snap = useMatchStore.getState().snap!;
-    if (!snap.userBowling || !snap.field) return; // Only meaningful when fielding.
-    const illegal = {
-      ...snap.field,
-      fielders: snap.field.fielders.map((f, i) => ({ ...f, angle: 200 + i * 5, distance: 50 })),
-    };
-    useMatchStore.getState().setDecisions({ field: illegal });
-    useMatchStore.getState().nextBall();
-    const placed = useMatchStore.getState().snap!.field!;
-    expect(placed.fielders.filter((f) => f.angle > 180 && f.angle < 270).length).toBeLessThanOrEqual(2);
+describe('match store: captain mode', () => {
+  beforeEach(reset);
+
+  it('unlocks when the player is appointed captain', () => {
+    makeCaptain();
+    open();
+    expect(useMatchStore.getState().captain).toBe(true);
+  });
+
+  it('unlocks with the dev toggle in a development build', () => {
+    useGameStore.getState().update((s) => ({ ...s, settings: { ...s.settings, devCaptainMode: true } }));
+    open();
+    expect(useMatchStore.getState().captain).toBe(import.meta.env.DEV === true);
+  });
+
+  it('lets a captain reshape the XI and the order', () => {
+    makeCaptain();
+    open();
+    const { proposedIds, selection } = useMatchStore.getState();
+    useMatchStore.getState().moveProposed(proposedIds[0], 1);
+    expect(useMatchStore.getState().proposedIds[1]).toBe(proposedIds[0]);
+
+    const out = proposedIds[8];
+    const reserve = selection!.ranked.find((r) => !proposedIds.includes(r.player.id))!.player.id;
+    useMatchStore.getState().toggleProposed(out);
+    useMatchStore.getState().toggleProposed(reserve);
+    expect(useMatchStore.getState().proposedIds).toContain(reserve);
+    expect(useMatchStore.getState().proposedIds).toHaveLength(11);
+  });
+
+  it('sends the captain’s XI to the selectors at the toss', () => {
+    makeCaptain();
+    open();
+    const { proposedIds, selection } = useMatchStore.getState();
+    const reserve = selection!.ranked.find((r) => !proposedIds.includes(r.player.id))!.player.id;
+    useMatchStore.getState().toggleProposed(proposedIds[9]);
+    useMatchStore.getState().toggleProposed(reserve);
+    useMatchStore.getState().toToss();
+    const review = useMatchStore.getState().xiReview!;
+    expect(review.accepted.length + review.overruled.length).toBe(1);
+  });
+
+  it('records the captaincy after the match', () => {
+    makeCaptain();
+    open();
+    useMatchStore.getState().toToss();
+    playOut();
+    const state = useGameStore.getState().state!;
+    expect(state.career.captaincy.record.matches).toBe(1);
+    expect(useMatchStore.getState().after?.result.captaincy).not.toBeNull();
+  }, 60_000);
+
+  it('remembers what the captain hands to the vice-captain', () => {
+    makeCaptain();
+    open();
+    useMatchStore.getState().setDelegate({ field: true });
+    expect(useGameStore.getState().state!.career.captaincy.delegate.field).toBe(true);
   });
 });

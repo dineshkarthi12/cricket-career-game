@@ -102,6 +102,8 @@ export interface Ball {
   dropped?: { fielderName: string } | null;
   /** True when this delivery was a free hit. */
   freeHit?: boolean;
+  /** Bowled from round the wicket. Optional: older saves have none. */
+  aroundTheWicket?: boolean;
   /** Ball-by-ball text commentary line. */
   commentary: string;
   /** Snapshot of the conditions for this delivery. */

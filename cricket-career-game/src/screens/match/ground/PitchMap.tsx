@@ -9,7 +9,7 @@ import { memo } from 'react';
 import type { Ball, DeliveryLength, DeliveryLine } from '@/types';
 
 /** Distance down the pitch, 0 at the batter's crease to 1 at the bowler's. */
-const LENGTH_AT: Record<DeliveryLength, number> = {
+export const LENGTH_AT: Record<DeliveryLength, number> = {
   YORKER: 0.05,
   FULL_TOSS: 0.02,
   FULL: 0.17,
@@ -19,7 +19,7 @@ const LENGTH_AT: Record<DeliveryLength, number> = {
 };
 
 /** Across the strip, -1 leg side to 1 off side (right-hander). */
-const LINE_AT: Record<DeliveryLine, number> = {
+export const LINE_AT: Record<DeliveryLine, number> = {
   DOWN_LEG: -0.95,
   LEG_STUMP: -0.45,
   MIDDLE: 0,

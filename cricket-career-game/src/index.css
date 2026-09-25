@@ -143,6 +143,16 @@ body {
   }
 }
 
+/* The timing-tap marker sweeping across its bar. */
+@keyframes timing-sweep {
+  from {
+    left: 0%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
 /* Rain streaks across the ground while play is suspended. */
 @keyframes rain-fall {
   from {

@@ -1,6 +1,6 @@
 /**
- * What the player decides while bowling: who bowls the over, what they try with
- * each ball, and which side of the wicket they come from.
+ * The player's own bowling, when the captain has thrown them the ball: what
+ * they try with each delivery, and which side of the wicket they come from.
  */
 import { memo } from 'react';
 import { Gauge } from 'lucide-react';
@@ -39,31 +39,27 @@ function variationsFor(bowler: SimPlayer | undefined): string[] {
 export const BowlingControls = memo(function BowlingControls({
   bowler,
   bowlerLine,
-  available,
-  nextBowlerId,
   plan,
   roundTheWicket,
-  overComplete,
   oversLeft,
   spellOvers,
-  onBowler,
   onPlan,
   onRoundTheWicket,
+  onBowl,
+  disabled = false,
 }: {
   bowler: SimPlayer | undefined;
   bowlerLine: BowlerInningsLine | undefined;
-  available: SimPlayer[];
-  nextBowlerId: string | null;
   plan: Partial<BowlerPlan>;
   roundTheWicket: boolean;
-  /** True between overs, when a new bowler may be chosen. */
-  overComplete: boolean;
   oversLeft: number | null;
   /** Overs in the current spell, including this one. */
   spellOvers: number;
-  onBowler: (id: string | null) => void;
   onPlan: (patch: Partial<BowlerPlan>) => void;
   onRoundTheWicket: (on: boolean) => void;
+  /** Bowl the next ball with the plan as set. */
+  onBowl: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-3.5">
@@ -107,28 +103,6 @@ export const BowlingControls = memo(function BowlingControls({
           </div>
         </div>
       ) : null}
-
-      <div className="border-t border-line pt-3">
-        <label htmlFor="next-bowler" className="text-[12.5px] font-semibold text-ink">
-          Next over
-        </label>
-        <select
-          id="next-bowler"
-          value={nextBowlerId ?? ''}
-          onChange={(event) => onBowler(event.target.value || null)}
-          className="mt-1.5 w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-[12.5px] text-ink"
-        >
-          <option value="">Captain decides</option>
-          {available.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name} — {bowlerKindLabel(option)}
-            </option>
-          ))}
-        </select>
-        {!overComplete ? (
-          <p className="mt-1 text-[11px] text-ink-soft">Takes effect at the end of this over.</p>
-        ) : null}
-      </div>
 
       <fieldset className="border-t border-line pt-3">
         <legend className="text-[12.5px] font-semibold text-ink">Length</legend>
@@ -200,6 +174,15 @@ export const BowlingControls = memo(function BowlingControls({
           </Pill>
         </div>
       </fieldset>
+
+      <button
+        type="button"
+        onClick={onBowl}
+        disabled={disabled}
+        className="rounded-xl bg-brand-blue px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-brand-blue/90 disabled:opacity-50"
+      >
+        Bowl
+      </button>
     </div>
   );
 });

@@ -9,12 +9,12 @@
  * ground.
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { CloudRain, Sun, Moon } from 'lucide-react';
+import { CloudRain, Moon, Sun } from 'lucide-react';
 import { direction, groundBox, type Point } from '@/lib/ground';
 import type { FieldSetting } from '@/engine/match/types';
 import type { Ball, MatchConditions, Venue } from '@/types';
-import { BallLayer } from './BallLayer';
-import { Fielders } from './Fielders';
+import { BallLayer, isFielded } from './BallLayer';
+import { bowlerPoint, fielderPoint, Fielders } from './Fielders';
 import { GroundBase } from './GroundBase';
 
 export interface GroundViewProps {
@@ -24,9 +24,15 @@ export interface GroundViewProps {
   ball: Ball | null;
   /** The striker's handedness, so shots are drawn on the right side. */
   leftHanded: boolean;
+  /** The player's own cricketer, in gold wherever they are. */
+  userId: string | null;
+  bowlerId: string | null;
+  /** The striker is the player. */
+  userOnStrike: boolean;
+  leftArmBowler: boolean;
   durationMs: number;
   reduceMotion: boolean;
-  /** Turns the field editor on. */
+  /** Turns the field editor on (captains only). */
   editable?: boolean;
   onMoveFielder?: (playerId: string, angle: number, distance: number) => void;
   /** Extra layers drawn over the ground, e.g. a wagon wheel. */
@@ -40,6 +46,10 @@ export function GroundView({
   field,
   ball,
   leftHanded,
+  userId,
+  bowlerId,
+  userOnStrike,
+  leftArmBowler,
   durationMs,
   reduceMotion,
   editable = false,
@@ -50,18 +60,26 @@ export function GroundView({
   const box = useMemo(() => groundBox(venue), [venue]);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   /** Turn a pointer event into ground coordinates. */
-  const toGround = useCallback((event: React.PointerEvent): Point | null => {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const rect = svg.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return null;
-    return {
-      x: ((event.clientX - rect.left) / rect.width) * box.width,
-      y: ((event.clientY - rect.top) / rect.height) * box.height,
-    };
-  }, [box.height, box.width]);
+  const toGround = useCallback(
+    (event: React.PointerEvent): Point | null => {
+      const svg = svgRef.current;
+      if (!svg) return null;
+      const rect = svg.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return null;
+      // The drawing is letterboxed inside the element; undo that first.
+      const scale = Math.min(rect.width / box.width, rect.height / box.height);
+      const offsetX = (rect.width - box.width * scale) / 2;
+      const offsetY = (rect.height - box.height * scale) / 2;
+      return {
+        x: (event.clientX - rect.left - offsetX) / scale,
+        y: (event.clientY - rect.top - offsetY) / scale,
+      };
+    },
+    [box.height, box.width],
+  );
 
   const onGrab = useCallback(
     (playerId: string, event: React.PointerEvent<SVGGElement>) => {
@@ -83,13 +101,27 @@ export function GroundView({
       let angle = (Math.atan2(dx, -dy) * 180) / Math.PI;
       if (leftHanded) angle = -angle;
       angle = ((angle % 360) + 360) % 360;
-      const distance = Math.max(3, Math.hypot(dx, dy));
-      onMoveFielder(dragging, angle, distance);
+      onMoveFielder(dragging, angle, Math.max(3, Math.hypot(dx, dy)));
     },
     [box.striker.x, box.striker.y, dragging, leftHanded, onMoveFielder, toGround],
   );
 
   const stopDrag = useCallback(() => setDragging(null), []);
+
+  const roundTheWicket = ball?.aroundTheWicket ?? false;
+  const release = bowlerPoint(box, roundTheWicket, leftArmBowler);
+
+  // Who dealt with the last ball, so they can be seen chasing it.
+  const chaser = useMemo(() => {
+    if (!ball?.fielderName || !field) return null;
+    const fielder = field.fielders.find((f) => f.name === ball.fielderName);
+    if (!fielder) return null;
+    return {
+      id: fielder.playerId,
+      from: fielderPoint(box, fielder.angle, fielder.distance, leftHanded),
+      isUser: fielder.playerId === userId,
+    };
+  }, [ball, box, field, leftHanded, userId]);
 
   const raining = conditions.weather.rainDelay;
 
@@ -118,8 +150,15 @@ export function GroundView({
             box={box}
             field={field}
             leftHanded={leftHanded}
-            showLabels
+            userId={userId}
+            bowlerId={bowlerId}
+            roundTheWicket={roundTheWicket}
+            leftArmBowler={leftArmBowler}
+            showAllLabels={editable}
+            selectedId={selected}
+            chasingId={reduceMotion || !ball || !isFielded(ball) ? null : (chaser?.id ?? null)}
             draggingId={dragging}
+            onSelect={setSelected}
             onGrab={editable ? onGrab : undefined}
           />
           {overlay}
@@ -127,11 +166,13 @@ export function GroundView({
             box={box}
             ball={ball}
             leftHanded={leftHanded}
+            release={release}
+            fielderFrom={chaser?.from ?? null}
+            fielderIsUser={chaser?.isUser ?? false}
             durationMs={durationMs}
             reduceMotion={reduceMotion}
           />
-          {/* Batter and the umpires, for a sense of scale. */}
-          <BatterMarker box={box} leftHanded={leftHanded} />
+          <BatterMarker box={box} leftHanded={leftHanded} isUser={userOnStrike} />
           {raining ? <RainOverlay box={box} /> : null}
         </svg>
 
@@ -144,6 +185,7 @@ export function GroundView({
           ) : (
             <Sun className="size-3" aria-hidden />
           )}
+          {conditions.underLights ? 'Under lights · ' : ''}
           {venue.straightBoundary}m × {venue.squareBoundary}m
         </div>
 
@@ -157,19 +199,24 @@ export function GroundView({
   );
 }
 
-function BatterMarker({ box, leftHanded }: { box: ReturnType<typeof groundBox>; leftHanded: boolean }) {
+function BatterMarker({
+  box,
+  leftHanded,
+  isUser,
+}: {
+  box: ReturnType<typeof groundBox>;
+  leftHanded: boolean;
+  isUser: boolean;
+}) {
   // The striker stands slightly to the leg side of the stumps.
   const legSide = direction(270, leftHanded);
+  const x = box.striker.x + legSide.x * 0.9;
+  const y = box.striker.y - 0.6;
   return (
     <g aria-hidden>
-      <circle
-        cx={box.striker.x + legSide.x * 0.9}
-        cy={box.striker.y - 0.6}
-        r={1.5}
-        fill="#1e5ef0"
-        stroke="#ffffff"
-        strokeWidth={0.3}
-      />
+      <title>{isUser ? 'You - on strike' : 'Striker'}</title>
+      {isUser ? <circle cx={x} cy={y} r={2.5} fill="#f5c518" opacity={0.35} /> : null}
+      <circle cx={x} cy={y} r={1.5} fill={isUser ? '#f5c518' : '#1e5ef0'} stroke="#ffffff" strokeWidth={0.3} />
     </g>
   );
 }

@@ -1,37 +1,62 @@
 /**
- * After the match: the result, every innings scorecard, the user's own card,
- * the player of the match, and what the whole thing cost them.
+ * After the match: the result, every innings scorecard, the player's own card,
+ * the player of the match, and what the match did to their career - form,
+ * fitness, reputation, the selectors, the dressing room, and the captaincy.
+ * After a big match, the press want a word.
  */
 import { useState } from 'react';
-import { Activity, ArrowRight, Award, HeartPulse, Home, Star } from 'lucide-react';
+import {
+  Activity,
+  ArrowRight,
+  Award,
+  Crown,
+  HeartPulse,
+  Home,
+  Megaphone,
+  Mic,
+  Newspaper,
+  Star,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge, Card, CardHeader, ProgressBar, Tabs } from '@/components';
+import { winPercent } from '@/engine/career/captaincy';
+import type { PressConference } from '@/engine/career/press';
 import { ballsToOvers } from '@/lib/format';
-import type { Condition, Match, Player } from '@/types';
+import type { AfterMatch } from '@/store/matchStore';
+import type { CaptaincyState, Player, Venue } from '@/types';
 import { Manhattan, WagonWheelPanel, Worm, chartInnings } from './panels/MatchCharts';
 import { Scorecard } from './panels/Scorecard';
-import type { Venue } from '@/types';
 
 export function PostMatch({
-  match,
+  after,
   venue,
   teamNameOf,
   nameOf,
   player,
-  /** The player's condition before the match, so the change can be shown. */
-  conditionBefore,
+  captaincy,
+  mediaNow,
+  teamMoraleNow,
   leftHanded,
+  onPress,
   onClose,
 }: {
-  match: Match;
+  after: AfterMatch;
   venue: Venue;
   teamNameOf: (id: string) => string;
   nameOf: (id: string) => string;
   player: Player;
-  conditionBefore: Condition | null;
+  captaincy: CaptaincyState;
+  /** Standing with the media now - after any press conference. */
+  mediaNow: number;
+  teamMoraleNow: number | null;
   leftHanded: boolean;
+  onPress: (answers: Record<string, string>) => void;
   onClose: () => void;
 }) {
+  const { match, result } = after;
+  const conditionBefore = after.conditionBefore;
   const [tab, setTab] = useState('0');
   const userTeamId = match.userIsHome ? match.homeTeamId : match.awayTeamId;
   const won = match.result?.type === 'WIN' && match.result.winningTeamId === userTeamId;
@@ -149,6 +174,60 @@ export function PostMatch({
           </p>
         </Card>
       )}
+
+      {after.press && !after.pressAnswered ? (
+        <PressCard conference={after.press} onSubmit={onPress} />
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Your standing" />
+          <dl className="mt-3 grid grid-cols-2 gap-2">
+            <Movement label="Reputation" pair={result.standing.reputation} />
+            <Movement label="Selector trust" pair={result.standing.selectorTrust} />
+            <Movement label="With the media" pair={[result.standing.mediaReputation[0], mediaNow]} />
+            {result.teamMorale ? (
+              <Movement label="Dressing room" pair={[result.teamMorale.before, teamMoraleNow ?? result.teamMorale.after]} />
+            ) : null}
+          </dl>
+        </Card>
+
+        {result.captaincy ? (
+          <Card>
+            <CardHeader title="Captaincy" />
+            <div className="mt-3 flex flex-col gap-2.5">
+              <dl className="grid grid-cols-3 gap-2">
+                <Movement label="Rating" pair={[result.captaincy.ratingBefore, result.captaincy.ratingAfter]} />
+                <div className="rounded-tile bg-page px-3 py-2">
+                  <dt className="text-[10.5px] font-semibold tracking-wide text-ink-soft uppercase">Tactics</dt>
+                  <dd className="text-[15px] font-bold text-ink">{result.captaincy.tactics}</dd>
+                </div>
+                <div className="rounded-tile bg-page px-3 py-2">
+                  <dt className="text-[10.5px] font-semibold tracking-wide text-ink-soft uppercase">Stress</dt>
+                  <dd className={`text-[15px] font-bold ${result.captaincy.stressAfter >= 70 ? 'text-brand-red' : 'text-ink'}`}>
+                    {result.captaincy.stressAfter}
+                  </dd>
+                </div>
+              </dl>
+              <p className="text-[12.5px] text-ink-muted">
+                As captain: {captaincy.record.matches} played, {captaincy.record.won} won, {captaincy.record.lost} lost,{' '}
+                {captaincy.record.drawn} drawn
+                {winPercent(captaincy.record) !== null ? ` - ${winPercent(captaincy.record)}% won` : ''}.
+              </p>
+              {result.captaincy.sacked ? (
+                <p className="rounded-lg bg-brand-red/8 px-3 py-2 text-[12.5px] font-semibold text-brand-red">
+                  The selectors have taken the captaincy away.
+                </p>
+              ) : result.captaincy.recommended ? (
+                <p className="flex items-center gap-1.5 rounded-lg bg-brand-gold/15 px-3 py-2 text-[12.5px] font-semibold text-brand-navy">
+                  <Crown className="size-4 text-brand-gold" aria-hidden />
+                  Your record has put you in line for a bigger captaincy.
+                </p>
+              ) : null}
+            </div>
+          </Card>
+        ) : null}
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Card>
@@ -285,5 +364,99 @@ function ConditionRow({
         ) : null}
       </span>
     </div>
+  );
+}
+
+function Movement({ label, pair }: { label: string; pair: [number, number | undefined] }) {
+  const [before, after] = pair;
+  const change = after === undefined ? 0 : Math.round(after - before);
+  return (
+    <div className="rounded-tile bg-page px-3 py-2">
+      <dt className="text-[10.5px] font-semibold tracking-wide text-ink-soft uppercase">{label}</dt>
+      <dd className="flex items-baseline gap-1.5 text-[15px] font-bold text-ink">
+        {Math.round(after ?? before)}
+        {change !== 0 ? (
+          <span className={`flex items-center text-[12px] ${change > 0 ? 'text-brand-green' : 'text-brand-red'}`}>
+            {change > 0 ? <TrendingUp className="size-3" aria-hidden /> : <TrendingDown className="size-3" aria-hidden />}
+            {change > 0 ? '+' : ''}
+            {change}
+          </span>
+        ) : null}
+      </dd>
+    </div>
+  );
+}
+
+function PressCard({
+  conference,
+  onSubmit,
+}: {
+  conference: PressConference;
+  onSubmit: (answers: Record<string, string>) => void;
+}) {
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const complete = conference.questions.every((q) => answers[q.id]);
+  return (
+    <Card>
+      <div className="flex items-center gap-2">
+        <span className="grid size-9 place-items-center rounded-full bg-brand-navy text-white">
+          <Mic className="size-4" aria-hidden />
+        </span>
+        <div>
+          <h2 className="text-[15px] font-semibold text-ink">Press conference</h2>
+          <p className="text-[12.5px] text-ink-muted">{conference.headline}</p>
+        </div>
+      </div>
+      <ol className="mt-4 flex flex-col gap-4">
+        {conference.questions.map((question) => (
+          <li key={question.id}>
+            <p className="flex items-start gap-1.5 text-[13px] text-ink">
+              <Megaphone className="mt-0.5 size-3.5 shrink-0 text-ink-soft" aria-hidden />
+              <span>
+                <span className="font-semibold">{question.asker}:</span> {question.text}
+              </span>
+            </p>
+            <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
+              {question.answers.map((a) => {
+                const chosen = answers[question.id] === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => setAnswers((prev) => ({ ...prev, [question.id]: a.id }))}
+                    aria-pressed={chosen}
+                    className={[
+                      'rounded-lg border px-3 py-2 text-left text-[12.5px] transition-colors',
+                      chosen ? 'border-brand-blue bg-brand-blue-soft' : 'border-line bg-surface hover:bg-page',
+                    ].join(' ')}
+                  >
+                    <span className="block text-[10.5px] font-bold tracking-wide text-ink-soft uppercase">{a.tone}</span>
+                    <span className="text-ink">"{a.text}"</span>
+                  </button>
+                );
+              })}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={!complete}
+          onClick={() => onSubmit(answers)}
+          className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-brand-blue/90 disabled:opacity-50"
+        >
+          <Newspaper className="size-4" aria-hidden />
+          Face the press
+        </button>
+        <button
+          type="button"
+          onClick={() => onSubmit({})}
+          className="rounded-xl px-3 py-2.5 text-[13px] font-semibold text-ink-muted hover:text-ink"
+        >
+          No comment
+        </button>
+      </div>
+    </Card>
   );
 }

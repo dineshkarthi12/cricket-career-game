@@ -760,6 +760,7 @@ function applyOutcome(
     review: outcome.review,
     dropped: outcome.dropped,
     freeHit: state.freeHit,
+    aroundTheWicket: prepared.context.aroundTheWicket ?? false,
     commentary: outcome.commentary,
     phase,
   };

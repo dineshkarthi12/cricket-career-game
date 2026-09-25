@@ -5,7 +5,7 @@
 import { Card } from '@/components';
 import { ballsToOvers } from '@/lib/format';
 import type { LiveSnapshot } from '@/engine/match/live';
-import type { Ball } from '@/types';
+import type { Ball, BatterInningsLine } from '@/types';
 
 function ballLabel(ball: Ball): { text: string; tone: string } {
   if (ball.wicket) return { text: 'W', tone: 'bg-brand-red text-white' };
@@ -24,11 +24,14 @@ export function ScoreStrip({
   battingTeam,
   bowlingTeam,
   nameOf,
+  userId,
 }: {
   snap: LiveSnapshot;
   battingTeam: string;
   bowlingTeam: string;
   nameOf: (id: string) => string;
+  /** The player's own cricketer, highlighted wherever they appear. */
+  userId?: string | null;
 }) {
   const cur = snap.current;
   if (!cur) return null;
@@ -63,6 +66,7 @@ export function ScoreStrip({
           {cur.requiredRate !== null ? (
             <Figure label="RRR" value={Math.max(0, cur.requiredRate).toFixed(2)} tone="text-brand-orange" />
           ) : null}
+          {cur.target !== null ? <Figure label="Target" value={String(cur.target)} /> : null}
           {needed !== null && needed > 0 ? (
             <Figure label="Need" value={`${needed}`} tone="text-brand-blue" />
           ) : null}
@@ -75,14 +79,14 @@ export function ScoreStrip({
         <div className="min-w-0">
           <BatterLine
             name={striker?.name ?? nameOf(cur.strikerId)}
-            runs={striker?.runs ?? 0}
-            balls={striker?.balls ?? 0}
+            line={striker}
             onStrike
+            isUser={cur.strikerId === userId}
           />
           <BatterLine
             name={nonStriker?.name ?? nameOf(cur.nonStrikerId)}
-            runs={nonStriker?.runs ?? 0}
-            balls={nonStriker?.balls ?? 0}
+            line={nonStriker}
+            isUser={cur.nonStrikerId === userId}
           />
         </div>
 
@@ -138,24 +142,28 @@ function Figure({ label, value, tone = 'text-ink' }: { label: string; value: str
 
 function BatterLine({
   name,
-  runs,
-  balls,
+  line,
   onStrike = false,
+  isUser = false,
 }: {
   name: string;
-  runs: number;
-  balls: number;
+  line: BatterInningsLine | undefined;
   onStrike?: boolean;
+  isUser?: boolean;
 }) {
   return (
-    <p className="flex items-baseline gap-1.5 text-[13px]">
-      <span className={onStrike ? 'font-semibold text-ink' : 'text-ink-muted'}>
+    <p className={`flex items-baseline gap-1.5 text-[13px] ${isUser ? 'rounded bg-brand-gold/15 px-1' : ''}`}>
+      <span className={onStrike ? 'truncate font-semibold text-ink' : 'truncate text-ink-muted'}>
         {name}
+        {isUser ? <span className="ml-1 text-[10.5px] font-bold text-brand-navy">YOU</span> : null}
         {onStrike ? <span className="text-brand-blue"> *</span> : null}
       </span>
-      <span className="ml-auto font-semibold text-ink">
-        {runs}
-        <span className="ml-1 font-normal text-ink-soft">({balls})</span>
+      <span className="ml-auto shrink-0 font-semibold text-ink tabular-nums">
+        {line?.runs ?? 0}
+        <span className="ml-1 font-normal text-ink-soft">({line?.balls ?? 0})</span>
+      </span>
+      <span className="hidden w-[92px] shrink-0 text-right text-[11px] text-ink-soft tabular-nums sm:inline">
+        {line?.fours ?? 0}×4 {line?.sixes ?? 0}×6 · {(line?.strikeRate ?? 0).toFixed(0)}
       </span>
     </p>
   );

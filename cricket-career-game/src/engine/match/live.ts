@@ -143,6 +143,10 @@ export interface LiveSnapshot {
   alerts: LiveAlert[];
   userBatting: boolean;
   userBowling: boolean;
+  /** The conditions as they stand - available before the toss, for the reports. */
+  conditions: MatchConditions;
+  /** Day-night fixture. */
+  underLights: boolean;
   /** A question waiting on the player: a catch, a run-out or a review. */
   question: DecisionQuestion | null;
   /** Where the player is right now. */
@@ -940,6 +944,8 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       alerts,
       userBatting: userBattingTeam,
       userBowling: s ? s.setup.bowlingTeamId === setup.userTeamId : false,
+      conditions: s?.conditions ?? conditions,
+      underLights,
       question: s?.pending?.question ?? null,
       involvement: {
         playing,

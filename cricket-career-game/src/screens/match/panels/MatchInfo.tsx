@@ -99,6 +99,11 @@ export function MatchInfo({
           <span className="font-semibold">{homeTeam}</span> v{' '}
           <span className="font-semibold">{awayTeam}</span>
         </p>
+        {snap.session ? (
+          <p className="font-semibold text-ink">
+            Day {snap.session.day}, session {snap.session.session}
+          </p>
+        ) : null}
         {snap.toss ? (
           <p>
             {teamNameOf(snap.toss.winnerTeamId)} won the toss and chose to{' '}
