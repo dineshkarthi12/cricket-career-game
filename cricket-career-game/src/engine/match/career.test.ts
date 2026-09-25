@@ -79,7 +79,7 @@ function playInnings(
 describe('decisions that belong to one player', () => {
   it('applies the player’s intent only while their own batter is on strike', () => {
     const setup = inningsSetup(7);
-    const me = setup.batting[3].id;
+    const me = setup.batting[1].id;
     const { balls } = playInnings(setup, 7, () => ({ intentLevel: 5, battingFor: me }));
     const mine = balls.filter((b) => b.strikerId === me);
     const others = balls.filter((b) => b.strikerId !== me);

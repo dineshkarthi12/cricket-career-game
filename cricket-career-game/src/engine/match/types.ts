@@ -154,6 +154,8 @@ export interface DeliveryContext {
   leave?: boolean;
   /** The batter is working the ball into gaps rather than looking for boundaries. */
   rotate?: boolean;
+  /** Bowling aggression, 1 (contain) to 5 (all-out attack). 3 when unset. */
+  bowlingAggression?: number;
   /**
    * Questions the engine can put to someone else - a catch coming to a
    * particular fielder, a review. Each hook is given what the engine would do on

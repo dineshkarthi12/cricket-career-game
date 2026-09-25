@@ -102,6 +102,15 @@ export interface BallOverrides {
   bowlerId?: string;
   /** Batting aggression, 1-5. */
   intentLevel?: number;
+  /** Bowling aggression, 1-5 (3 is the neutral plan). */
+  bowlingAggression?: number;
+  /**
+   * A captain's batting aggression for particular batters, by player id.
+   * Batters left out read the game for themselves.
+   */
+  batterLevels?: Record<string, number>;
+  /** A captain's bowling aggression for particular bowlers, by player id. */
+  bowlerLevels?: Record<string, number>;
   /** Parts of the bowler's plan the player has chosen. */
   plan?: Partial<BowlerPlan>;
   /** A named preset for the field. */
@@ -574,8 +583,11 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
   const aiApproach = chooseApproach(striker, situation, rng);
   let approach: BatterApproach = aiApproach;
   let rotate = own?.rotate ?? false;
+  const captainLevel = overrides?.batterLevels?.[striker.id];
   if (own?.intentLevel !== undefined) {
     approach = byLevel(own.intentLevel);
+  } else if (captainLevel !== undefined) {
+    approach = byLevel(captainLevel);
   } else if (overrides?.instruction || overrides?.targetBowlerId) {
     let level = aiApproach.level;
     if (overrides.instruction === 'ATTACK') level += 1;
@@ -588,12 +600,21 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     approach = level === aiApproach.level ? aiApproach : byLevel(level);
   }
 
+  // Bowling aggression: the player's own, a captain's call, or the neutral 3.
+  const bowlingAggression = Math.max(
+    1,
+    Math.min(
+      5,
+      Math.round(ownBowling?.bowlingAggression ?? overrides?.bowlerLevels?.[bowler.id] ?? 3),
+    ),
+  );
   const aiPlan = choosePlan({
     bowler,
     kind,
     phase,
     batterIntentLevel: approach.level,
     batterBallsFaced: situation.strikerBallsFaced,
+    aggression: bowlingAggression,
     rng,
   });
   const plan: BowlerPlan = { ...aiPlan, ...(ownBowling?.plan ?? {}) };
@@ -664,6 +685,7 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
       aroundTheWicket: ownBowling?.aroundTheWicket ?? false,
       leave: own?.leave ?? false,
       rotate,
+      bowlingAggression,
       hooks: overrides?.hooks,
   };
 
@@ -761,6 +783,9 @@ function applyOutcome(
     dropped: outcome.dropped,
     freeHit: state.freeHit,
     aroundTheWicket: prepared.context.aroundTheWicket ?? false,
+    ...(prepared.context.bowlingAggression !== undefined && prepared.context.bowlingAggression !== 3
+      ? { bowlingAggression: prepared.context.bowlingAggression }
+      : {}),
     commentary: outcome.commentary,
     phase,
   };

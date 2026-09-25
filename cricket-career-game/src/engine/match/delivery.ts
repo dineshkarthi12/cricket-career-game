@@ -56,7 +56,8 @@ function rollIllegal(
   // Bowlers go wider at the death, and a wide line is a wide in limited overs.
   const wideScale =
     (context.phase === 'DEATH' ? 1.9 : 1) *
-    (context.aroundTheWicket ? MATCH.aroundTheWicket.wideRate : 1);
+    (context.aroundTheWicket ? MATCH.aroundTheWicket.wideRate : 1) *
+    MATCH.bowlingAggression.wide[Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1))];
   if (rng.chance(cfg.wideChance * scale * wideScale)) return { type: 'WIDE', runs: 1 };
   if (rng.chance(cfg.noBallChance * scale)) return { type: 'NO_BALL', runs: 1 };
   return null;
@@ -111,6 +112,10 @@ function chooseShot(context: DeliveryContext, contact: number, rng: Rng): ShotTy
 
   if (!attacking && contact < 0.4) return rng.chance(0.75) ? 'DEFEND' : 'LEAVE';
   if (approach.level === 1) return rng.chance(0.9) ? 'BLOCK' : 'DEFEND';
+  // Very Aggressive: a big shot almost every ball.
+  if (approach.level === 5 && rng.chance(MATCH.aggression.bigShotLoft)) {
+    return context.bowlerKind === 'SPIN' && rng.chance(0.3) ? 'SWEEP' : 'LOFT';
+  }
 
   const onSide = plan.line === 'LEG_STUMP' || plan.line === 'DOWN_LEG' || plan.line === 'MIDDLE';
 
@@ -173,6 +178,116 @@ const SHOT_ANGLES: Record<ShotType, { angle: number; spread: number }> = {
   RAMP: { angle: 175, spread: 25 },
 };
 
+/** Everything about the duel that does not need a random number. */
+export interface DuelFactors {
+  batter: number;
+  bowler: number;
+  bite: number;
+  edge: number;
+  settle: number;
+  set: number;
+  phaseMod: { boundary: number; wicket: number; dot: number };
+  dotWicket: number;
+  milestone: number;
+  cluster: number;
+  collapse: number;
+  partnership: number;
+}
+
+export function duelFactors(context: DeliveryContext): DuelFactors {
+  const cfg = MATCH;
+  const batter = batterSkill(context);
+  const bowler = bowlerSkill(context);
+  const bite = pressureBite(context);
+  const edge = Math.max(-cfg.edge.clamp, Math.min(cfg.edge.clamp, batter - bowler));
+  const settle = clamp01(context.strikerBallsFaced / cfg.newBatter.settleBalls);
+  const set = setLevel(context.strikerBallsFaced);
+  const phaseMod = cfg.phase[context.phase] ?? { boundary: 1, wicket: 1, dot: 1 };
+
+  // A batter who has not scored for an over starts looking for a release
+  // shot, and that is usually when the wicket comes.
+  const dots = Math.max(0, context.consecutiveDots - cfg.dotPressure.from);
+  const dotWicket = 1 + Math.min(cfg.dotPressure.maxWicket, dots * cfg.dotPressure.wicketPerDot);
+
+  // Milestone nerves.
+  const nearMilestone = cfg.batting.milestone.marks.some((mark) => {
+    const gap = mark - context.strikerRuns;
+    return gap > 0 && gap <= cfg.batting.milestone.window;
+  });
+  const milestone = nearMilestone ? cfg.batting.milestone.wicketBump : 1;
+
+  // Wickets come in clusters: a new batter walking in while the last two went
+  // cheaply is in far more trouble than the same batter in a calm innings.
+  const cluster = Math.max(0, context.recentWickets - 1);
+  const collapse = 1 + cluster * cfg.momentum.collapseWicket;
+  // A pair who have been in for twenty overs have worn the bowling down.
+  const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
+
+  return { batter, bowler, bite, edge, settle, set, phaseMod, dotWicket, milestone, cluster, collapse, partnership };
+}
+
+/**
+ * How much of the extra risk of attacking this batter carries right now. The
+ * same shot is far riskier for a batter who is not in, on a hard pitch,
+ * against a better bowler, or without the temperament for it; raw power makes
+ * clearing the rope easier. 1 is an average situation.
+ */
+export function aggressionRiskScale(context: DeliveryContext, f: DuelFactors): number {
+  const r = MATCH.aggression.risk;
+  const temperament = normalise(context.striker.attributes.mental.temperament);
+  const power = batterPower(context.striker);
+  const ease = context.conditions.pitch.battingEase / 100;
+  const scale =
+    1 +
+    r.unsettled * (1 - f.settle) +
+    r.pitch * (0.5 - ease) * 2 +
+    r.bowler * (f.bowler - f.batter) +
+    r.temperament * (0.5 - temperament) * 2 -
+    r.power * (power - 0.5) * 2;
+  return Math.max(0.4, Math.min(2.5, scale));
+}
+
+/** Chance this delivery takes a wicket, before free hits and the roll. */
+export function wicketChance(context: DeliveryContext, threat: number, f: DuelFactors): number {
+  const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
+  const cfg = MATCH;
+  const index = Math.max(0, Math.min(4, context.approach.level - 1));
+  const defaultIndex = Math.max(0, Math.min(4, rates.defaultIntent - 1));
+  const bowlingIndex = Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1));
+
+  // Attacking multiplies the risk; how much depends on the situation.
+  const raw = cfg.intent.wicket[index] / cfg.intent.wicket[defaultIndex];
+  const intentWicket = raw > 1 ? 1 + (raw - 1) * aggressionRiskScale(context, f) : raw;
+
+  const p =
+    rates.wicket *
+    (0.55 + 0.9 * threat) *
+    intentWicket *
+    (1 - f.edge * cfg.edge.wicket) *
+    f.phaseMod.wicket *
+    (1 + f.bite * cfg.pressure.wicketAtMax) *
+    (1 + (1 - f.settle) * cfg.newBatter.wicketPenalty) *
+    (1 - f.set * (1 - cfg.setBatter.wicket)) *
+    f.collapse *
+    f.dotWicket *
+    f.milestone *
+    (1 - f.partnership * cfg.momentum.settledPartnershipWicket) *
+    (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2) *
+    (context.rotate ? cfg.rotate.wicket : 1) *
+    cfg.bowlingAggression.wicket[bowlingIndex];
+  return clamp01(
+    Math.max(rates.wicket * cfg.limits.wicketFloor, Math.min(rates.wicket * cfg.limits.wicketCeiling, p)),
+  );
+}
+
+/**
+ * The chance of a wicket on an ordinary delivery, for the risk label next to
+ * an aggression bar. No random numbers: it uses a typical execution error.
+ */
+export function estimateWicketChance(context: DeliveryContext): number {
+  return wicketChance(context, deliveryThreat(context, 0.25), duelFactors(context));
+}
+
 /** Resolve one legal or illegal delivery into everything the scorecard needs. */
 export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOutcome {
   const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
@@ -209,72 +324,36 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   }
 
   // --- No shot offered ----------------------------------------------------
-  if (context.leave) return resolveLeave(context, deliveryThreat(context, error), speed, rng);
+  // The batter chose to leave it, or - batting defensively - lets one go
+  // outside off stump of their own accord.
+  const levelIndex = Math.max(0, Math.min(4, context.approach.level - 1));
+  const outsideOff = context.plan.line === 'WIDE_OFF' || context.plan.line === 'OUTSIDE_OFF';
+  // Relative to the format's normal game, so an ordinary Test batter does not
+  // leave any more than before.
+  const formatLeave = cfg.aggression.leaveOutsideOff[Math.max(0, Math.min(4, rates.defaultIntent - 1))];
+  const autoLeave =
+    !context.leave && outsideOff ? Math.max(0, cfg.aggression.leaveOutsideOff[levelIndex] - formatLeave) : 0;
+  if (context.leave || (autoLeave > 0 && rng.chance(autoLeave))) {
+    return resolveLeave(context, deliveryThreat(context, error), speed, rng);
+  }
 
   // --- The duel -----------------------------------------------------------
-  const batter = batterSkill(context);
-  const bowler = bowlerSkill(context);
   const threat = deliveryThreat(context, error);
-  const bite = pressureBite(context);
-
-  const edge = Math.max(-cfg.edge.clamp, Math.min(cfg.edge.clamp, batter - bowler));
-  const intentIndex = Math.max(0, Math.min(4, context.approach.level - 1));
-
-  // Quality of contact drives everything downstream.
-  const contact = clamp01(
-    0.5 + (edge - threat * 0.55) * 0.6 + rng.spread() * 0.3 - bite * 0.18,
-  );
-
-  const settle = clamp01(context.strikerBallsFaced / cfg.newBatter.settleBalls);
-  const set = setLevel(context.strikerBallsFaced);
-  const phaseMod = cfg.phase[context.phase] ?? { boundary: 1, wicket: 1, dot: 1 };
-
-  // --- Dot-ball pressure ---------------------------------------------------
-  // A batter who has not scored for an over starts looking for a release
-  // shot, and that is usually when the wicket comes.
-  const dots = Math.max(0, context.consecutiveDots - cfg.dotPressure.from);
-  const dotWicket = 1 + Math.min(cfg.dotPressure.maxWicket, dots * cfg.dotPressure.wicketPerDot);
-
-  // --- Milestone nerves ----------------------------------------------------
-  const nearMilestone = cfg.batting.milestone.marks.some((mark) => {
-    const gap = mark - context.strikerRuns;
-    return gap > 0 && gap <= cfg.batting.milestone.window;
-  });
-  const milestone = nearMilestone ? cfg.batting.milestone.wicketBump : 1;
-
-  // --- Momentum ------------------------------------------------------------
-  // Wickets come in clusters: a new batter walking in while the last two went
-  // cheaply is in far more trouble than the same batter in a calm innings.
-  const cluster = Math.max(0, context.recentWickets - 1);
-  const collapse = 1 + cluster * cfg.momentum.collapseWicket;
-  // The other side of it: a pair who have been in for twenty overs have worn
-  // the bowling down, and the captain is running out of ideas.
-  const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
-
-  // --- Wicket -------------------------------------------------------------
+  const f = duelFactors(context);
+  const { edge, bite, settle, set, phaseMod, cluster, partnership } = f;
+  const intentIndex = levelIndex;
   const defaultIntentIndex = Math.max(0, Math.min(4, rates.defaultIntent - 1));
 
-  let pWicket =
-    rates.wicket *
-    (0.55 + 0.9 * threat) *
-    (cfg.intent.wicket[intentIndex] / cfg.intent.wicket[defaultIntentIndex]) *
-    (1 - edge * cfg.edge.wicket) *
-    phaseMod.wicket *
-    (1 + bite * cfg.pressure.wicketAtMax) *
-    (1 + (1 - settle) * cfg.newBatter.wicketPenalty) *
-    (1 - set * (1 - cfg.setBatter.wicket)) *
-    collapse *
-    dotWicket *
-    milestone *
-    (1 - partnership * cfg.momentum.settledPartnershipWicket) *
-    (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2) *
-    (context.rotate ? cfg.rotate.wicket : 1);
-  pWicket = clamp01(
-    Math.max(
-      rates.wicket * cfg.limits.wicketFloor,
-      Math.min(rates.wicket * cfg.limits.wicketCeiling, pWicket),
-    ),
+  // Quality of contact drives everything downstream. Attacking brings more
+  // false shots; defending, fewer.
+  const aggressionContact =
+    cfg.aggression.contact[intentIndex] - cfg.aggression.contact[defaultIntentIndex];
+  const contact = clamp01(
+    0.5 + (edge - threat * 0.55) * 0.6 + rng.spread() * 0.3 - bite * 0.18 + aggressionContact,
   );
+
+  // --- Wicket -------------------------------------------------------------
+  let pWicket = wicketChance(context, threat, f);
 
   // --- Boundaries ---------------------------------------------------------
   const power = batterPower(context.striker);
@@ -288,11 +367,18 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   const softBall = context.conditions.ball.hardness < 55 ? cfg.ball.softBallBoundary : 1;
   const easeBoundary = 1 + (context.conditions.pitch.battingEase / 100 - 0.5) * cfg.pitch.battingEaseBoundary * 2;
 
-  const intentBoundary = cfg.intent.boundary[intentIndex] / cfg.intent.boundary[defaultIntentIndex];
+  // A powerful batter gets more out of going for it.
+  const rawIntentBoundary = cfg.intent.boundary[intentIndex] / cfg.intent.boundary[defaultIntentIndex];
+  const intentBoundary =
+    rawIntentBoundary > 1
+      ? 1 + (rawIntentBoundary - 1) * (1 + cfg.aggression.powerReward * (power - 0.5) * 2)
+      : rawIntentBoundary;
 
+  const bowlingIndex = Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1));
   const capped =
     Math.min(cfg.limits.boundaryCeiling, intentBoundary * boundaryBase * easeBoundary) *
-    (context.rotate ? cfg.rotate.boundary : 1);
+    (context.rotate ? cfg.rotate.boundary : 1) *
+    cfg.bowlingAggression.boundary[bowlingIndex];
 
   let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76));
   // Ground size matters: a short square boundary turns a mis-hit pull into
@@ -756,7 +842,8 @@ function resolvePlacedShot(
       (1 - input.edge * cfg.edge.dot) *
       (1 + straightAt * cfg.fielding.ringSaveChance * 0.6) *
       (1.2 - contact * 0.4) *
-      (context.rotate ? cfg.rotate.dot : 1),
+      (context.rotate ? cfg.rotate.dot : 1) *
+      cfg.bowlingAggression.dot[Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1))],
   );
 
   const runFactor = cfg.intent.running[intentIndex] * (0.7 + running * 0.6);

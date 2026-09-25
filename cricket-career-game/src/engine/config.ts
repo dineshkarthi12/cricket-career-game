@@ -143,13 +143,13 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   T20: {
     overs: 20,
     wicket: 0.05349,
-    four: 0.18637,
-    six: 0.06436,
+    four: 0.2150,
+    six: 0.0750,
     dotWeight: 0.4476,
     twoWeight: 0.19,
     threeWeight: 0.022,
     maxOversPerBowler: 4,
-    defaultIntent: 4,
+    defaultIntent: 3,
   },
   ODI: {
     overs: 50,
@@ -175,25 +175,25 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   MULTI_DAY: {
     overs: null,
-    wicket: 0.01836,
+    wicket: 0.0227,
     four: 0.05364,
     six: 0.00260,
-    dotWeight: 2.5140,
+    dotWeight: 2.4200,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
-    defaultIntent: 2,
+    defaultIntent: 3,
   },
   TEST: {
     overs: null,
-    wicket: 0.01762,
+    wicket: 0.0214,
     four: 0.0523,
     six: 0.0025,
     dotWeight: 2.5894,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
-    defaultIntent: 2,
+    defaultIntent: 3,
   },
 } as const;
 
@@ -209,10 +209,15 @@ export const MATCH = {
   },
 
   /** Multipliers applied by batting intent, 1 (block) to 5 (all out). */
+  /**
+   * Batting aggression, levels 1-5 (Very Defensive to Very Aggressive).
+   * Multipliers are taken relative to the format's default level, so the base
+   * rates above always describe a batter playing their normal game.
+   */
   intent: {
-    wicket: [0.42, 0.64, 1.0, 1.55, 2.35],
-    boundary: [0.16, 0.5, 1.0, 1.72, 2.55],
-    dot: [1.5, 1.22, 1.0, 0.83, 0.7],
+    wicket: [0.3, 0.62, 1.0, 1.62, 2.8],
+    boundary: [0.08, 0.48, 1.0, 1.8, 2.9],
+    dot: [2.0, 1.25, 1.0, 0.82, 0.62],
     /** Chance the batter attempts a risky second/third run. */
     running: [0.6, 0.82, 1.0, 1.18, 1.32],
   },
@@ -509,6 +514,62 @@ export const MATCH = {
     boundary: 0.45,
     dot: 0.72,
     wicket: 0.8,
+  },
+
+  /**
+   * What aggression does beyond the rates above.
+   */
+  aggression: {
+    /**
+     * Quality of contact by level, relative to the default: attacking means
+     * more false shots - edges, miscues, plays and misses.
+     */
+    contact: [0.07, 0.035, 0, -0.05, -0.11],
+    /** Chance a batter shoulders arms to a ball outside off, by level. */
+    leaveOutsideOff: [0.7, 0.2, 0, 0, 0],
+    /**
+     * The extra risk of attacking is not fixed. It grows for a batter who is
+     * not yet in, on a hard pitch, against a better bowler, and for a batter
+     * without the temperament for it; raw power makes it safer.
+     */
+    risk: { unsettled: 0.6, pitch: 0.5, bowler: 0.45, temperament: 0.35, power: 0.25 },
+    /** A powerful batter gets more boundaries out of attacking. */
+    powerReward: 0.3,
+    /** Share of Very Aggressive shots that go in the air. */
+    bigShotLoft: 0.7,
+    /** Contact below this is a false shot, for the stats. */
+    falseShotContact: 30,
+  },
+
+  /**
+   * Bowling aggression, levels 1-5 (containing to all-out attack). Level 3 is
+   * a bowler's normal game, and every multiplier is 1 there.
+   */
+  bowlingAggression: {
+    wicket: [0.55, 0.78, 1, 1.25, 1.6],
+    boundary: [0.58, 0.78, 1, 1.35, 1.9],
+    dot: [1.4, 1.17, 1, 0.85, 0.68],
+    wide: [0.6, 0.8, 1, 1.2, 1.55],
+    /** How often a variation is tried. */
+    variation: [0.25, 0.55, 1, 1.6, 2.3],
+    /** Length choice: tight lengths to contain, full and short to attack. */
+    length: {
+      YORKER: [0.3, 0.6, 1, 1.4, 1.8],
+      FULL: [0.6, 0.8, 1, 1.25, 1.5],
+      GOOD: [1.35, 1.15, 1, 0.9, 0.8],
+      SHORT_OF_GOOD: [1.3, 1.12, 1, 0.9, 0.8],
+      SHORT: [0.4, 0.7, 1, 1.4, 1.9],
+      FULL_TOSS: [0.6, 0.8, 1, 1.2, 1.5],
+    } as Record<string, number[]>,
+    /** Line choice: a wide channel to contain, the stumps to attack. */
+    line: {
+      WIDE_OFF: [1.6, 1.25, 1, 0.8, 0.6],
+      OUTSIDE_OFF: [1.5, 1.2, 1, 0.9, 0.8],
+      OFF_STUMP: [1, 1, 1, 1.1, 1.2],
+      MIDDLE: [0.6, 0.8, 1, 1.25, 1.5],
+      LEG_STUMP: [0.5, 0.75, 1, 1.2, 1.4],
+      DOWN_LEG: [0.6, 0.8, 1, 1.1, 1.2],
+    } as Record<string, number[]>,
   },
 
   /** Run-outs are rolled while the batters are running, not off the bat. */
