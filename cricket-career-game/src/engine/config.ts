@@ -478,6 +478,52 @@ export const MATCH = {
     misfieldChance: 0.035,
   },
 
+  /**
+    * Fielding restrictions. `outside` is how many fielders may stand outside
+    * the circle up to and including `untilOver`; the last entry applies for
+    * the rest of the innings.
+    */
+  fieldRestrictions: {
+    T20: [
+      { untilOver: 6, outside: 2 },
+      { untilOver: null, outside: 5 },
+    ],
+    ODI: [
+      { untilOver: 10, outside: 2 },
+      { untilOver: 40, outside: 4 },
+      { untilOver: null, outside: 5 },
+    ],
+    ONE_DAY: [
+      { untilOver: 10, outside: 2 },
+      { untilOver: 40, outside: 4 },
+      { untilOver: null, outside: 5 },
+    ],
+    /** No restrictions in the longer game, beyond the leg-side fielder limit. */
+    MULTI_DAY: [{ untilOver: null, outside: 9 }],
+    TEST: [{ untilOver: null, outside: 9 }],
+  } as Record<string, { untilOver: number | null; outside: number }[]>,
+
+  /** Match-ups. The ball that leaves the bat is the one that gets the wicket. */
+  matchup: {
+    /** Spin turning away from the bat, e.g. left-arm orthodox to a right-hander. */
+    turningAway: 0.12,
+    /** Spin turning into the pads is easier to play. */
+    turningIn: -0.07,
+    /** A left-arm seamer angling across a right-hander. */
+    angleAcross: 0.08,
+    /** How much a batter's own pace/spin preference is worth. */
+    preference: 0.1,
+  },
+
+  /** A captain will throw the ball to a part-timer when the game is safe. */
+  partTimer: {
+    /** Only when the batting side is this far from threatening. */
+    safeRunRatePressure: 0.35,
+    /** ...and not in the last quarter of an innings. */
+    beforeShare: 0.7,
+    chance: 0.18,
+  },
+
   /** Bowler workload and spells. */
   bowling: {
     /** Overs in a spell before a pace bowler starts to tire. */

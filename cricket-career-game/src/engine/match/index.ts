@@ -19,8 +19,22 @@ export {
   dewLevel,
   phaseFor,
 } from './conditions';
-export { chooseField, placeField, nearestFielder, catchChance, FIELD_POSITIONS } from './field';
-export { chooseApproach, chooseBowler, choosePlan, runRatePressure, type Situation } from './ai';
+export {
+  chooseField,
+  placeField,
+  nearestFielder,
+  catchChance,
+  fieldersAllowedOutside,
+  FIELD_POSITIONS,
+} from './field';
+export {
+  chooseApproach,
+  chooseBowler,
+  choosePlan,
+  runRatePressure,
+  isPartTimer,
+  type Situation,
+} from './ai';
 export { resourcesRemaining, revisedTarget, hasResult } from './dls';
 export {
   batterSkill,
@@ -28,6 +42,8 @@ export {
   bowlerKindOf,
   computePressure,
   conditionMultiplier,
+  matchupBonus,
+  pacePreference,
   normalise,
 } from './skill';
 export type {

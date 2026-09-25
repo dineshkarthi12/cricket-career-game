@@ -201,6 +201,19 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
     const ballAgeOvers = conditions.ball.ageInBalls / 6;
     const phase = phaseFor(overNumber, setup.oversAvailable, ballAgeOvers);
 
+    const oversShare =
+      setup.oversAvailable === null ? 0.5 : Math.min(1, overNumber / setup.oversAvailable);
+    const chaseHeat =
+      setup.target === null
+        ? 0
+        : Math.max(
+            0,
+            Math.min(
+              1,
+              ((setup.target - runs) / Math.max(1, maxBalls - legalBalls)) * 6 - 4,
+            ) / 8,
+          );
+
     const bowler = chooseBowler({
       bowlers,
       oversBowledBy,
@@ -210,6 +223,8 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
       format: setup.format,
       phase,
       ballAgeOvers,
+      runRatePressure: chaseHeat,
+      share: oversShare,
       rng,
     });
     const kind = bowlerKindOf(bowler);
@@ -287,7 +302,10 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
         runRatePressure: runRatePressure(situation),
         unlimitedOvers: setup.oversAvailable === null,
       });
-      const field = placeField(fieldName, setup.bowling, bowler.id, rng);
+      const field = placeField(fieldName, setup.bowling, bowler.id, rng, {
+        format: setup.format,
+        over: overNumber,
+      });
 
       const pressure = computePressure({
         runsRequired,

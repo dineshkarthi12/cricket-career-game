@@ -85,13 +85,47 @@ export function chooseField(input: {
 }
 
 /** Put eleven players on the park: keeper, bowler and nine in the field. */
+/** How many fielders may be outside the circle right now. */
+export function fieldersAllowedOutside(format: string, over: number): number {
+  const rules = MATCH.fieldRestrictions[format] ?? MATCH.fieldRestrictions.ODI;
+  for (const rule of rules) {
+    if (rule.untilOver === null || over < rule.untilOver) return rule.outside;
+  }
+  return rules[rules.length - 1].outside;
+}
+
+/** Positions inside the circle, used when a preset has to be pulled in. */
+const INNER_REPLACEMENTS = [
+  'midOff',
+  'midOn',
+  'cover',
+  'midWicket',
+  'point',
+  'squareLeg',
+  'extraCover',
+  'backwardPoint',
+  'shortFineLeg',
+];
+
 export function placeField(
   presetName: string,
   fieldingSide: SimPlayer[],
   bowlerId: string,
   rng: Rng,
+  restriction?: { format: string; over: number },
 ): FieldSetting {
-  const preset = FIELD_PRESETS[presetName] ?? FIELD_PRESETS.STANDARD;
+  let preset = FIELD_PRESETS[presetName] ?? FIELD_PRESETS.STANDARD;
+
+  // Powerplay: only so many may be out, so the rest come into the ring.
+  if (restriction) {
+    const allowed = fieldersAllowedOutside(restriction.format, restriction.over);
+    const outside = preset.filter((key) => FIELD_POSITIONS[key]?.ring === 'OUTER');
+    if (outside.length > allowed) {
+      const toPull = new Set(outside.slice(allowed));
+      const spare = INNER_REPLACEMENTS.filter((key) => !preset.includes(key));
+      preset = preset.map((key) => (toPull.has(key) ? (spare.shift() ?? 'midOn') : key));
+    }
+  }
 
   // The best gloves in the side keep wicket; everyone else is available.
   const keeper =

@@ -34,6 +34,47 @@ export function conditionMultiplier(condition: Condition): number {
   return Math.max(0.35, 1 + form + confidence + fatigue + fitness);
 }
 
+/**
+ * Which way the ball is going for this batter, and what that is worth.
+ *
+ * The ball that leaves the bat is the one that takes the edge, so a
+ * left-arm orthodox spinner turning away from a right-hander, or a leg
+ * spinner turning away from a left-hander, is the dangerous match-up. Spin
+ * coming into the pads is much easier to play.
+ */
+export function matchupBonus(bowler: SimPlayer, striker: SimPlayer): number {
+  const cfg = MATCH.matchup;
+  const rightHanded = striker.battingStyle === 'RIGHT_HAND_BAT';
+
+  switch (bowler.bowlingStyle) {
+    // Turns away from a right-hander, into a left-hander.
+    case 'LEFT_ARM_ORTHODOX':
+    case 'LEG_SPIN':
+      return rightHanded ? cfg.turningAway : cfg.turningIn;
+    // Turns into a right-hander, away from a left-hander.
+    case 'OFF_SPIN':
+    case 'LEFT_ARM_WRIST_SPIN':
+      return rightHanded ? cfg.turningIn : cfg.turningAway;
+    // Angling across the right-hander from over the wicket.
+    case 'LEFT_ARM_FAST':
+    case 'LEFT_ARM_FAST_MEDIUM':
+    case 'LEFT_ARM_MEDIUM':
+      return rightHanded ? cfg.angleAcross : 0;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Some batters simply play pace better than spin, or the other way round.
+ * Returns how much this particular batter is helped or hurt, -1 to 1.
+ */
+export function pacePreference(striker: SimPlayer, kind: BowlerKind): number {
+  const b = striker.attributes.batting;
+  const gap = (kind === 'PACE' ? b.vsPace - b.vsSpin : b.vsSpin - b.vsPace) / 40;
+  return Math.max(-1, Math.min(1, gap));
+}
+
 /** Pace or spin, from the bowling style. */
 export function bowlerKindOf(player: SimPlayer): BowlerKind {
   switch (player.bowlingStyle) {

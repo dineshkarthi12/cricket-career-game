@@ -127,6 +127,14 @@ export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng
 }
 
 /** Which bowler comes on next, respecting spells, rest and over limits. */
+/** A part-timer is someone who bowls, but is not really a bowler. */
+export function isPartTimer(player: SimPlayer): boolean {
+  if (player.bowlingStyle === 'NONE') return false;
+  if (player.role === 'PACE_BOWLER' || player.role === 'SPIN_BOWLER') return false;
+  if (player.role === 'BOWLING_ALLROUNDER') return false;
+  return true;
+}
+
 export function chooseBowler(input: {
   bowlers: SimPlayer[];
   oversBowledBy: Record<string, number>;
@@ -136,6 +144,10 @@ export function chooseBowler(input: {
   format: MatchFormat;
   phase: MatchPhase;
   ballAgeOvers: number;
+  /** 0-1 how much trouble the bowling side is in. */
+  runRatePressure: number;
+  /** How far through the innings, 0-1. */
+  share: number;
   rng: Rng;
 }): SimPlayer {
   const rates = MATCH_FORMATS[input.format] ?? MATCH_FORMATS.ODI;
@@ -150,6 +162,19 @@ export function chooseBowler(input: {
   const pool = eligible.length > 0 ? eligible : input.bowlers.filter((b) => b.id !== input.lastBowlerId);
   if (pool.length === 0) return input.bowlers[0];
 
+  // With the game under control and plenty of overs left, a captain will
+  // happily give a part-timer a go and save his front-liners for later.
+  const cfg = MATCH.partTimer;
+  const safe =
+    input.runRatePressure < cfg.safeRunRatePressure &&
+    input.share < cfg.beforeShare &&
+    // Never with a new ball in hand.
+    input.ballAgeOvers >= 10;
+  if (safe && input.rng.chance(cfg.chance)) {
+    const partTimers = pool.filter(isPartTimer);
+    if (partTimers.length > 0) return input.rng.pick(partTimers);
+  }
+
   const scored = pool.map((bowler) => {
     const w = bowler.attributes.bowling;
     const isPace = !['OFF_SPIN', 'LEG_SPIN', 'LEFT_ARM_ORTHODOX', 'LEFT_ARM_WRIST_SPIN'].includes(
@@ -157,9 +182,26 @@ export function chooseBowler(input: {
     );
     let score = normalise(w.accuracy * 0.4 + w.control * 0.3 + (isPace ? w.pace : w.spin) * 0.3) * 100;
 
-    // Right bowler for the moment.
-    if (input.ballAgeOvers < 8) score += isPace ? normalise(w.newBall) * 45 : -25;
+    // Right bowler for the moment. A spinner with the new ball is a rarity,
+    // so the penalty is multiplicative rather than a flat subtraction - a
+    // small deduction still left spin opening a quarter of the time.
+    if (input.ballAgeOvers < 8) {
+      if (isPace) score += normalise(w.newBall) * 45;
+      else score *= 0.06;
+    }
+    // Save the best for the end: a specialist death bowler is held back until
+    // the overs where he is worth the most.
     if (input.phase === 'DEATH') score += isPace ? normalise(w.deathBowling) * 50 : -10;
+    // ...but never at the cost of opening the bowling with a spinner: the
+    // hold-back only applies once the new ball has gone soft.
+    else if (
+      isPace &&
+      normalise(w.deathBowling) > 0.7 &&
+      input.ballAgeOvers >= 10 &&
+      input.share < 0.6
+    ) {
+      score -= 22;
+    }
     if (input.phase === 'MIDDLE' || input.phase === 'OLD_BALL') score += isPace ? 0 : 18;
 
     // Tired bowlers and long spells get a rest.

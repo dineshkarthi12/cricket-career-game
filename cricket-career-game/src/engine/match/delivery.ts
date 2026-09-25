@@ -8,7 +8,17 @@
 import { MATCH, MATCH_FORMATS } from '../config';
 import { bounceOnOffer, seamOnOffer, swingOnOffer, turnOnOffer } from './conditions';
 import { catchChance, nearestFielder } from './field';
-import { batterPower, batterSkill, bowlerSkill, clamp01, normalise, pressureBite, setLevel } from './skill';
+import {
+  batterPower,
+  batterSkill,
+  bowlerSkill,
+  clamp01,
+  matchupBonus,
+  normalise,
+  pacePreference,
+  pressureBite,
+  setLevel,
+} from './skill';
 import { describeBall } from './commentary';
 import type { Rng } from './rng';
 import type { DeliveryContext, DeliveryOutcome } from './types';
@@ -75,10 +85,16 @@ function deliveryThreat(context: DeliveryContext, error: number): number {
 
   const variationBonus = plan.variation ? normalise(w.variation) * 0.14 : 0;
 
+  // The match-up: which way the ball is going for this batter, and whether
+  // they would rather be facing pace or spin.
+  const matchup =
+    matchupBonus(context.bowler, context.striker) -
+    pacePreference(context.striker, bowlerKind) * MATCH.matchup.preference;
+
   // Soft saturation rather than a hard clamp. A hard clamp let a seaming pitch
   // peg threat at 1, after which extra swing from cloud cover did nothing at
   // all; this keeps every extra degree of movement worth something.
-  const raw = (movement + carry + hardToBat * 0.35 + variationBonus) * execution;
+  const raw = Math.max(0, (movement + carry + hardToBat * 0.35 + variationBonus + matchup) * execution);
   return raw / (1 + raw);
 }
 
