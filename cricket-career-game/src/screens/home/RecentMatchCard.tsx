@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Badge, Card, Crest } from '@/components';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { ballsToOvers } from '@/lib/format';
+import { resultHeadline } from '@/lib/matchText';
 import { recentMatch } from '@/lib/selectors';
 import type { GameState, Innings } from '@/types';
 
@@ -76,7 +77,9 @@ export function RecentMatchCard({ state }: { state: GameState }) {
 
       {match.result ? (
         <p className="mt-2 text-center">
-          <Badge tone={won ? 'green' : 'red'}>{match.result.summary}</Badge>
+          <Badge tone={won ? 'green' : match.result.type === 'WIN' ? 'red' : 'blue'}>
+            {resultHeadline(match, (id) => state.teams[id]?.shortName ?? id)}
+          </Badge>
         </p>
       ) : null}
 

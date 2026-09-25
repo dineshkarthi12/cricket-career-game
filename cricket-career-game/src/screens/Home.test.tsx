@@ -89,7 +89,7 @@ describe('Home dashboard', () => {
     renderHome();
     expect(screen.getByRole('heading', { name: 'Inbox / News (3)' })).toBeInTheDocument();
     expect(screen.getByText('TNCA')).toBeInTheDocument();
-    expect(screen.getByText('Won by 34 runs')).toBeInTheDocument();
+    expect(screen.getByText('TN U-16 won by 34 runs')).toBeInTheDocument();
     expect(screen.getByText('312/8')).toBeInTheDocument();
     const trophies = screen.getByRole('heading', { name: 'Trophies & Milestones' }).closest('section')!;
     expect(within(trophies).getByText('District Champion')).toBeInTheDocument();

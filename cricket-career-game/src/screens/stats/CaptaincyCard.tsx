@@ -13,7 +13,16 @@ export function CaptaincyCard({ state }: { state: GameState }) {
   return (
     <Card>
       <div className="flex items-center justify-between gap-2">
-        <CardHeader title="Captaincy" subtitle={current ? `Captain of ${current.name}` : 'Not currently captain'} />
+        <CardHeader
+          title="Captaincy"
+          subtitle={
+            current
+              ? `Captain of ${current.name}`
+              : import.meta.env.DEV && state.settings.devCaptainMode
+                ? 'Dev captain mode is on - not a real appointment'
+                : 'Not currently captain'
+          }
+        />
         <span className="grid size-10 place-items-center rounded-full bg-brand-gold/20 text-brand-gold">
           <Crown className="size-5" aria-hidden />
         </span>

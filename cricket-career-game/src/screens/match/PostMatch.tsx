@@ -24,6 +24,7 @@ import { Badge, Card, CardHeader, ProgressBar, Tabs } from '@/components';
 import { winPercent } from '@/engine/career/captaincy';
 import type { PressConference } from '@/engine/career/press';
 import { ballsToOvers } from '@/lib/format';
+import { resultHeadline } from '@/lib/matchText';
 import type { AfterMatch } from '@/store/matchStore';
 import type { CaptaincyState, Player, Venue } from '@/types';
 import { Manhattan, WagonWheelPanel, Worm, chartInnings } from './panels/MatchCharts';
@@ -80,7 +81,7 @@ export function PostMatch({
               {match.stage} · {teamNameOf(match.homeTeamId)} v {teamNameOf(match.awayTeamId)}
             </p>
             <h1 className="mt-1 text-[24px] leading-tight font-bold text-ink">
-              {match.result?.summary ?? 'No result'}
+              {resultHeadline(match, teamNameOf)}
             </h1>
             <p className="mt-1.5">
               <Badge tone={won ? 'green' : lost ? 'red' : 'blue'}>

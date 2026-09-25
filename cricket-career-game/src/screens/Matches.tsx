@@ -8,6 +8,7 @@ import { ArrowLeft, CalendarDays, Play, Trophy, Zap } from 'lucide-react';
 import { Badge, Card, CardHeader, Crest, Tabs } from '@/components';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { ballsToOvers, formatLongDate } from '@/lib/format';
+import { resultHeadline } from '@/lib/matchText';
 import { useGameStore } from '@/store/gameStore';
 import { useMatchStore } from '@/store/matchStore';
 import { Manhattan, WagonWheelPanel, Worm, chartInnings } from './match/panels/MatchCharts';
@@ -199,7 +200,7 @@ function ResultRow({ state, match }: { state: GameState; match: Match }) {
           </p>
         ) : null}
         <Badge tone={won ? 'green' : lost ? 'red' : 'blue'}>
-          {match.result?.summary ?? 'No result'}
+          {resultHeadline(match, (id) => state.teams[id]?.shortName ?? id)}
         </Badge>
       </Link>
     </li>
@@ -247,7 +248,7 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
           <span>{venue?.name}</span>
         </p>
         <p className="mt-2 text-[13.5px] font-semibold text-ink">
-          {match.result?.summary ?? 'No result'}
+          {resultHeadline(match, teamNameOf)}
           {match.result?.manOfTheMatchId ? (
             <span className="ml-2 font-normal text-ink-muted">
               · Player of the match:{' '}
