@@ -147,6 +147,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     if (snap.userBowling) {
       if (decisions.nextBowlerId) overrides.bowlerId = decisions.nextBowlerId;
       if (Object.keys(decisions.plan).length > 0) overrides.plan = decisions.plan;
+      if (decisions.roundTheWicket) overrides.aroundTheWicket = true;
       if (decisions.field) overrides.field = decisions.field;
       else if (decisions.fieldPreset) overrides.fieldPreset = decisions.fieldPreset;
     }

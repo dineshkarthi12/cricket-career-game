@@ -145,6 +145,11 @@ export interface DeliveryContext {
   reviewsLeft: { batting: number; bowling: number };
   /** Direction the batter is trying to hit in, in degrees, or null. */
   shotPreference?: number | null;
+  /**
+   * Bowling from round the wicket instead of over it. It angles the ball across
+   * the batter: more chance of trapping them in front, less of finding the edge.
+   */
+  aroundTheWicket?: boolean;
 }
 
 /** The result of one delivery, before it is written into the innings. */

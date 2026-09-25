@@ -282,3 +282,33 @@ describe('formats', () => {
     }, 60_000);
   }
 });
+
+describe('bowling round the wicket', () => {
+  it('traps more batters in front and finds fewer edges behind', () => {
+    // The two runs diverge from the first ball, so this compares the shape of
+    // the dismissals over a large sample rather than ball for ball.
+    function shares(aroundTheWicket: boolean) {
+      let lbw = 0;
+      let behind = 0;
+      let wickets = 0;
+      for (let seed = 1; seed <= 90; seed += 1) {
+        const live = createLiveMatch(setup({ seed, format: 'T20' }));
+        live.doToss();
+        for (const ball of live.toEndOfInnings(aroundTheWicket ? { aroundTheWicket } : {})) {
+          if (!ball.wicket) continue;
+          wickets += 1;
+          if (ball.wicket.type === 'LBW') lbw += 1;
+          if (ball.wicket.type === 'CAUGHT_BEHIND') behind += 1;
+        }
+      }
+      return { lbw: lbw / wickets, behind: behind / wickets, wickets };
+    }
+
+    const round = shares(true);
+    const over = shares(false);
+
+    expect(round.wickets).toBeGreaterThan(300);
+    expect(round.lbw).toBeGreaterThan(over.lbw);
+    expect(round.behind).toBeLessThan(over.behind);
+  }, 120_000);
+});

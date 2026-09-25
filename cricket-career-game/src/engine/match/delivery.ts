@@ -39,8 +39,10 @@ function executionError(context: DeliveryContext, rng: Rng): number {
   // A wet ball is hard to grip, so the bowler's execution suffers.
   const dew = context.dew * MATCH.weather.dewGripLoss;
   const skill = clamp01(cfg.baseAccuracy * (0.5 + accuracy) - fatigue - leftRight - dew);
+  // Coming round the wicket means a wider position on the crease to hit from.
+  const angle = context.aroundTheWicket ? MATCH.aroundTheWicket.executionPenalty : 1;
   // Even the best bowler misses; even the worst lands one on the spot.
-  return clamp01(Math.abs(rng.spread()) * (1.25 - skill));
+  return clamp01(Math.abs(rng.spread()) * (1.25 - skill) * angle);
 }
 
 /** Wides and no-balls, which come out of the same wayward-bowling roll. */
@@ -52,7 +54,9 @@ function rollIllegal(
   const cfg = MATCH.execution;
   const scale = 1 + error * cfg.inaccuracyExtraScale;
   // Bowlers go wider at the death, and a wide line is a wide in limited overs.
-  const wideScale = context.phase === 'DEATH' ? 1.9 : 1;
+  const wideScale =
+    (context.phase === 'DEATH' ? 1.9 : 1) *
+    (context.aroundTheWicket ? MATCH.aroundTheWicket.wideRate : 1);
   if (rng.chance(cfg.wideChance * scale * wideScale)) return { type: 'WIDE', runs: 1 };
   if (rng.chance(cfg.noBallChance * scale)) return { type: 'NO_BALL', runs: 1 };
   return null;
@@ -374,6 +378,13 @@ function resolveWicket(
   if (context.approach.level >= 4) {
     weights.CAUGHT *= 1.5;
     weights.LBW *= 0.75;
+  }
+  if (context.aroundTheWicket) {
+    const cfg = MATCH.aroundTheWicket;
+    weights.LBW *= cfg.lbw;
+    weights.BOWLED *= cfg.bowled;
+    weights.CAUGHT_BEHIND *= cfg.caughtBehind;
+    weights.CAUGHT *= cfg.caught;
   }
 
   const type = rng.weighted<DismissalType>(

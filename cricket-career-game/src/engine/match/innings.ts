@@ -94,6 +94,8 @@ export interface BallOverrides {
   field?: FieldSetting;
   /** Preferred direction to hit in, in degrees. */
   shotPreference?: number | null;
+  /** Bowl from round the wicket rather than over it. */
+  aroundTheWicket?: boolean;
 }
 
 /** The whole mutable state of an innings in progress. */
@@ -529,6 +531,7 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
       },
       day: state.day,
       shotPreference: overrides?.shotPreference ?? null,
+      aroundTheWicket: overrides?.aroundTheWicket ?? false,
     },
     rng,
   );

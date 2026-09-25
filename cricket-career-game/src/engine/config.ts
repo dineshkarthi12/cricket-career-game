@@ -458,6 +458,22 @@ export const MATCH = {
     CAUGHT_AND_BOWLED: 3,
   } as Record<string, number>,
 
+  /**
+   * Bowling round the wicket. The angle across the batter brings the pads into
+   * play and takes the ball away from the slips, and the extra width off the
+   * crease costs a little accuracy.
+   */
+  aroundTheWicket: {
+    lbw: 1.45,
+    bowled: 0.85,
+    caughtBehind: 0.6,
+    caught: 0.95,
+    /** Multiplier on the bowler's execution error. */
+    executionPenalty: 1.08,
+    /** Multiplier on the wide rate. */
+    wideRate: 1.15,
+  },
+
   /** Run-outs are rolled while the batters are running, not off the bat. */
   runOut: {
     /** Chance per completed run that a run-out is even in play. */
