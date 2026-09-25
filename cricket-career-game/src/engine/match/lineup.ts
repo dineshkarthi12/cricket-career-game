@@ -5,6 +5,7 @@
  * engine wants `SimPlayer`. Everything in here is pure: it reads game state and
  * returns engine input, and never writes to the store.
  */
+import { KNOCKOUT_STAGES } from '../career/afterMatch';
 import { emptyCareerRecord } from '../records';
 import { createRng, deriveSeed } from './rng';
 import { generateSquad } from './squad';
@@ -292,7 +293,7 @@ export function buildMatch(
     userTeamId,
     userPlayerId: userSelected ? state.player.id : null,
     userIsCaptain: options.userIsCaptain ?? state.teams[userTeamId]?.captainId === state.player.id,
-    knockout: fixture.stage === 'FINAL' || fixture.stage === 'SEMI_FINAL',
+    knockout: fixture.stage !== null && KNOCKOUT_STAGES.includes(fixture.stage),
     underLights: Boolean(venue?.floodlights) && isLimitedOvers(format) && format !== 'MULTI_DAY',
     seed: deriveSeed(state.seed, saltOf(fixture.id)),
     bowlerTrust: options.bowlerTrust,

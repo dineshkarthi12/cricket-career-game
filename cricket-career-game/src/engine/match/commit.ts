@@ -5,6 +5,19 @@
  * calls it inside `update()`, so a played match autosaves like anything else.
  */
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
+import {
+  applyCaptaincy,
+  marginOf,
+  maybeAppointCaptain,
+  relationshipsAfter,
+  resultFor,
+  selectorFeedback,
+  teamMoraleAfter,
+  type CaptaincyOutcome,
+  type TacticalLog,
+} from '../career/afterMatch';
+import { pressConferenceFor, type PressConference } from '../career/press';
+import type { MatchSelection } from '../career/selection';
 import { applyAftermath } from './aftermath';
 import { createRng, deriveSeed } from './rng';
 import { newId } from '../id';
@@ -138,6 +151,30 @@ function resultLine(match: Match, userTeamId: Id): string {
 export interface CommitOptions {
   /** True when the user was in the XI. */
   userPlayed: boolean;
+  /** How the selectors saw it, for their note to the player. */
+  selection?: { status: MatchSelection; reasons: string[] } | null;
+  /** The player's team-mates in the XI, for relationships. */
+  teammateIds?: Id[];
+  /** Present when the player captained this match. */
+  captain?: {
+    log: TacticalLog;
+    xiChanges: { accepted: { inId: Id; outId: Id }[]; overruled: { inId: Id; outId: Id }[] } | null;
+  } | null;
+}
+
+export interface CommitResult {
+  state: GameState;
+  /** Set when the player captained. */
+  captaincy: CaptaincyOutcome | null;
+  /** Set after a big match: questions for the post-match screen. */
+  press: PressConference | null;
+  teamMorale: { before: number; after: number } | null;
+  /** How the player's standing moved. */
+  standing: {
+    reputation: [number, number];
+    selectorTrust: [number, number];
+    mediaReputation: [number, number];
+  };
 }
 
 /**
@@ -149,6 +186,99 @@ export function commitMatch(
   match: Match,
   options: CommitOptions = { userPlayed: true },
 ): GameState {
+  return commitMatchDetailed(state, match, options).state;
+}
+
+/**
+ * Everything `commitMatch` does, plus the career consequences beyond the
+ * scorecard - morale, relationships, the selectors' note, the captaincy and
+ * the press - returned alongside so the post-match screen can show them.
+ */
+export function commitMatchDetailed(
+  state: GameState,
+  match: Match,
+  options: CommitOptions = { userPlayed: true },
+): CommitResult {
+  const base = commitScorecard(state, match, options);
+  const userTeamId = match.userIsHome ? match.homeTeamId : match.awayTeamId;
+  const opponentId = match.userIsHome ? match.awayTeamId : match.homeTeamId;
+  const result = resultFor(match, userTeamId);
+  const date = base.season.currentDate;
+  let next = base;
+
+  // The dressing rooms.
+  const margin = marginOf(match);
+  const before = next.teams[userTeamId]?.morale ?? 60;
+  const teams = { ...next.teams };
+  if (teams[userTeamId]) {
+    teams[userTeamId] = { ...teams[userTeamId], morale: teamMoraleAfter(teams[userTeamId], result, margin) };
+  }
+  if (teams[opponentId]) {
+    const theirs: typeof result =
+      result === 'WIN' ? 'LOSS' : result === 'LOSS' ? 'WIN' : result;
+    teams[opponentId] = { ...teams[opponentId], morale: teamMoraleAfter(teams[opponentId], theirs, margin) };
+  }
+  next = { ...next, teams };
+
+  // Team-mates.
+  if (options.userPlayed || options.captain) {
+    next = {
+      ...next,
+      career: {
+        ...next.career,
+        relationships: relationshipsAfter(
+          next.career.relationships,
+          (options.teammateIds ?? []).filter((id) => id !== state.player.id),
+          result,
+          options.captain?.xiChanges ?? null,
+        ),
+      },
+    };
+  }
+
+  // The captaincy.
+  let captaincy: CaptaincyOutcome | null = null;
+  if (options.captain) {
+    captaincy = applyCaptaincy(next, match, userTeamId, options.captain.log, date);
+    next = captaincy.state;
+  } else if (options.userPlayed) {
+    next = maybeAppointCaptain(next, match, date);
+  }
+
+  // The selectors' note.
+  if (options.selection) {
+    next = {
+      ...next,
+      inbox: [
+        selectorFeedback(
+          next,
+          match,
+          options.selection.status,
+          options.selection.reasons,
+          options.userPlayed ? (match.userPerformance?.rating ?? null) : null,
+          date,
+        ),
+        ...next.inbox,
+      ],
+    };
+  }
+
+  const stored = next.matches[match.id] ?? match;
+  return {
+    state: next,
+    captaincy,
+    press: options.userPlayed ? pressConferenceFor(next, stored) : null,
+    teamMorale: next.teams[userTeamId] ? { before, after: next.teams[userTeamId].morale } : null,
+    standing: {
+      reputation: [state.player.condition.reputation, next.player.condition.reputation],
+      selectorTrust: [state.player.condition.selectorTrust, next.player.condition.selectorTrust],
+      mediaReputation: [state.career.mediaReputation, next.career.mediaReputation],
+    },
+  };
+}
+
+/** The scorecard, the fixture, records, condition, XP and the match report. */
+function commitScorecard(state: GameState, match: Match, options: CommitOptions): GameState {
   const userTeamId = match.userIsHome ? match.homeTeamId : match.awayTeamId;
   const performance = options.userPlayed ? match.userPerformance : null;
 
