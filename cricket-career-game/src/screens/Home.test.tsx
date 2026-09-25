@@ -39,7 +39,7 @@ describe('Home dashboard', () => {
     expect(screen.getByText('High')).toBeInTheDocument();
   });
 
-  it('shows the next match with both buttons held back until the match engine lands', () => {
+  it('shows the next match with both play buttons live', () => {
     renderHome();
     expect(screen.getByRole('heading', { name: 'Next Match' })).toBeInTheDocument();
     expect(screen.getByText('Thu, 15 Oct 2026')).toBeInTheDocument();
@@ -47,9 +47,8 @@ describe('Home dashboard', () => {
 
     const play = screen.getByRole('button', { name: /Play Match/ });
     const sim = screen.getByRole('button', { name: /Quick Sim/ });
-    expect(play).toBeDisabled();
-    expect(sim).toBeDisabled();
-    expect(screen.getAllByRole('tooltip')[0]).toHaveTextContent('Coming in match engine phase');
+    expect(play).toBeEnabled();
+    expect(sim).toBeEnabled();
   });
 
   it('draws the 20-stage journey with a crowned retirement node', () => {

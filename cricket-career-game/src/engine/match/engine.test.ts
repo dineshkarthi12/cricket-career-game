@@ -506,3 +506,20 @@ describe('squads', () => {
     }
   });
 });
+
+describe('field placement', () => {
+  it('puts nine different players in the field, none of them the keeper or bowler', () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const side = generateXi('field', 60, createRng(seed));
+      const bowler = side[9];
+      for (const preset of ['ATTACKING_NEW_BALL', 'ATTACKING_SPIN', 'STANDARD', 'DEATH']) {
+        const field = placeField(preset, side, bowler.id, createRng(seed + 1000));
+        const ids = field.fielders.map((f) => f.playerId);
+        expect(ids).toHaveLength(9);
+        expect(new Set(ids).size).toBe(9);
+        expect(ids).not.toContain(bowler.id);
+        expect(ids).not.toContain(field.keeperId);
+      }
+    }
+  });
+});

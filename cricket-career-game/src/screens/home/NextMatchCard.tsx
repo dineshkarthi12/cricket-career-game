@@ -1,13 +1,16 @@
-import { MapPin, Play, Trophy } from 'lucide-react';
-import { Card, Crest, Tooltip } from '@/components';
+import { MapPin, Play, Trophy, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Card, Crest } from '@/components';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { formatLongDate } from '@/lib/format';
+import { useMatchStore } from '@/store/matchStore';
 import type { GameState, Fixture } from '@/types';
-
-const COMING_SOON = 'Coming in match engine phase';
 
 /** Sits over the right-hand end of the hero banner on desktop. */
 export function NextMatchCard({ state, fixture }: { state: GameState; fixture: Fixture | null }) {
+  const navigate = useNavigate();
+  const quickSim = useMatchStore((s) => s.quickSim);
+
   if (!fixture) {
     return (
       <Card className="w-full">
@@ -60,25 +63,25 @@ export function NextMatchCard({ state, fixture }: { state: GameState; fixture: F
       ) : null}
 
       <div className="mt-3 grid grid-cols-[1.35fr_1fr] gap-2">
-        <Tooltip text={COMING_SOON} className="w-full">
-          <button
-            type="button"
-            disabled
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-blue px-3 py-2.5 text-[13.5px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Play className="size-4 fill-white" />
-            Play Match
-          </button>
-        </Tooltip>
-        <Tooltip text={COMING_SOON} className="w-full">
-          <button
-            type="button"
-            disabled
-            className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-[13.5px] font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Quick Sim
-          </button>
-        </Tooltip>
+        <button
+          type="button"
+          onClick={() => navigate(`/match/${fixture.id}`)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-blue px-3 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-brand-blue/90"
+        >
+          <Play className="size-4 fill-white" aria-hidden />
+          Play Match
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const match = quickSim(state, fixture);
+            if (match) navigate(`/matches/${match.id}`);
+          }}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2.5 text-[13.5px] font-semibold text-ink transition-colors hover:bg-page"
+        >
+          <Zap className="size-3.5" aria-hidden />
+          Quick Sim
+        </button>
       </div>
     </Card>
   );

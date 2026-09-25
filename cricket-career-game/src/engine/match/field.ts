@@ -144,9 +144,29 @@ export function placeField(
     (a, b) => b.attributes.fielding.catching - a.attributes.fielding.catching,
   );
 
-  const fielders: PlacedFielder[] = preset.slice(0, available.length).map((key, index) => {
+  // Hand out positions so nobody is placed twice: the close catchers first,
+  // from the safest hands down, then everyone else in turn.
+  const keys = preset.slice(0, available.length);
+  const assigned = new Map<number, SimPlayer>();
+  const used = new Set<string>();
+  keys.forEach((key, index) => {
+    if ((FIELD_POSITIONS[key] ?? FIELD_POSITIONS.point).ring !== 'CLOSE') return;
+    const player = byCatching.find((p) => !used.has(p.id));
+    if (!player) return;
+    used.add(player.id);
+    assigned.set(index, player);
+  });
+  keys.forEach((_, index) => {
+    if (assigned.has(index)) return;
+    const player = available.find((p) => !used.has(p.id));
+    if (!player) return;
+    used.add(player.id);
+    assigned.set(index, player);
+  });
+
+  const fielders: PlacedFielder[] = keys.map((key, index) => {
     const spec = FIELD_POSITIONS[key] ?? FIELD_POSITIONS.point;
-    const player = spec.ring === 'CLOSE' ? byCatching[index] : available[index];
+    const player = assigned.get(index)!;
     const f = player.attributes.fielding;
     return {
       playerId: player.id,

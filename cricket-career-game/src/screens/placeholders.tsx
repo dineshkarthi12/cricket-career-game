@@ -47,20 +47,6 @@ export const TrainingScreen = () => (
   />
 );
 
-export const MatchesScreen = () => (
-  <Placeholder
-    route="/matches"
-    phase="Phase 3"
-    description="Fixtures, results and full scorecards, with the live match and Quick Sim controls."
-    contents={[
-      'Fixture list and results',
-      'Ball-by-ball commentary log',
-      'Full innings scorecards',
-      'Match reports',
-    ]}
-  />
-);
-
 export const SelectionScreen = () => (
   <Placeholder
     route="/selection"

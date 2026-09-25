@@ -90,7 +90,7 @@ export function RecentMatchCard({ state }: { state: GameState }) {
       ) : null}
 
       <Link
-        to={`/matches`}
+        to={`/matches/${match.id}`}
         className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-brand-blue-soft px-4 py-2 text-[13.5px] font-semibold text-brand-blue transition-colors hover:bg-brand-blue/15"
       >
         View Scorecard
