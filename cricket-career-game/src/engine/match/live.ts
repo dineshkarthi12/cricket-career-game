@@ -68,6 +68,8 @@ export interface LiveMatchSetup {
   month?: number;
   /** Display names by team id, for alerts. Falls back to the id. */
   teamNames?: Record<string, string>;
+  /** How much the captains trust each bowler. See `InningsSetup.bowlerTrust`. */
+  bowlerTrust?: Record<string, number>;
 }
 
 /** A read-only view of the match, for the screen to render. */
@@ -272,6 +274,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         knockout: setup.knockout ?? false,
         day: 1,
         underLights,
+        bowlerTrust: setup.bowlerTrust,
       };
     }
     return {
@@ -291,6 +294,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       day,
       declareAt: p.declareAt,
       underLights: false,
+      bowlerTrust: setup.bowlerTrust,
     };
   }
 

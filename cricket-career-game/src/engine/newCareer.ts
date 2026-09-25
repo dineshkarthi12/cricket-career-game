@@ -378,7 +378,7 @@ export function createNewCareer(options: NewCareerOptions): GameState {
     season: emptySeason(seasonYear, startDate, startStageId),
     seasonHistory: [],
     teams: { [team.id]: team },
-    venues: Object.fromEntries(VENUES.map((v: Venue) => [v.id, v])),
+    venues: Object.fromEntries(VENUES.map((v: Venue) => [v.id, structuredClone(v)])),
     fixtures: {},
     matches: {},
     inbox: [

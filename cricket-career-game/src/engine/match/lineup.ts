@@ -196,7 +196,19 @@ function fallbackFormat(team: Team | undefined): MatchFormat {
 export function buildMatch(
   state: GameState,
   fixture: Fixture,
-  options: { userXiIds?: Id[]; userSelected?: boolean } = {},
+  options: {
+    userXiIds?: Id[];
+    userSelected?: boolean;
+    /**
+     * The user's side in batting order, exactly as it should bat - from the
+     * coach, or from the player when they captain.
+     */
+    userOrder?: Id[];
+    /** How readily each bowler is given the ball; see `InningsSetup.bowlerTrust`. */
+    bowlerTrust?: Record<Id, number>;
+    /** True when the player captains the side, so relationships matter. */
+    userIsCaptain?: boolean;
+  } = {},
 ): MatchBuild | null {
   const homeTeamId = fixture.homeTeamId;
   const awayTeamId = fixture.awayTeamId;
@@ -206,13 +218,43 @@ export function buildMatch(
   const oppositionTeamId = userTeamId === homeTeamId ? awayTeamId : homeTeamId;
   const userSelected = options.userSelected ?? true;
 
+  /**
+   * Match-day morale: each player's own, pulled towards the dressing room's.
+   * When the player captains, how each team-mate feels about them counts too.
+   */
+  const withMorale = (player: SimPlayer, teamId: Id): SimPlayer => {
+    const team = state.teams[teamId];
+    if (!team || player.isUser) return player;
+    const relationship =
+      options.userIsCaptain && teamId === userTeamId
+        ? (state.career.relationships[player.id] ?? 0) * 0.1
+        : 0;
+    const morale = Math.max(
+      0,
+      Math.min(100, player.condition.morale * 0.6 + (team.morale ?? 60) * 0.4 + relationship),
+    );
+    return { ...player, condition: { ...player.condition, morale: Math.round(morale) } };
+  };
+
   const buildSide = (teamId: Id): SimPlayer[] => {
     const squad = squadFor(state, teamId);
     const isUserSide = teamId === userTeamId;
     let pool = squad;
-    if (isUserSide && userSelected) {
+    if (isUserSide) {
       pool = [simFromUser(state.player, teamId, 4), ...squad];
     }
+
+    // An explicit order is used exactly as given.
+    if (isUserSide && options.userOrder?.length === 11) {
+      const byId = new Map(pool.map((p) => [p.id, p]));
+      const ordered = options.userOrder
+        .map((id) => byId.get(id))
+        .filter((p): p is SimPlayer => Boolean(p));
+      if (ordered.length === 11) {
+        return ordered.map((p, i) => withMorale({ ...p, battingPosition: i + 1 }, teamId));
+      }
+    }
+    if (isUserSide && !userSelected) pool = squad;
     const wanted =
       isUserSide && options.userXiIds?.length === 11
         ? options.userXiIds
@@ -224,7 +266,7 @@ export function buildMatch(
       if (xi.length >= 11) break;
       if (!xi.some((p) => p.id === player.id)) xi.push(player);
     }
-    return battingOrderOf(xi.slice(0, 11));
+    return battingOrderOf(xi.slice(0, 11)).map((p) => withMorale(p, teamId));
   };
 
   const homeXi = buildSide(homeTeamId);
@@ -249,10 +291,11 @@ export function buildMatch(
     awayXi,
     userTeamId,
     userPlayerId: userSelected ? state.player.id : null,
-    userIsCaptain: state.teams[userTeamId]?.captainId === state.player.id,
+    userIsCaptain: options.userIsCaptain ?? state.teams[userTeamId]?.captainId === state.player.id,
     knockout: fixture.stage === 'FINAL' || fixture.stage === 'SEMI_FINAL',
     underLights: Boolean(venue?.floodlights) && isLimitedOvers(format) && format !== 'MULTI_DAY',
     seed: deriveSeed(state.seed, saltOf(fixture.id)),
+    bowlerTrust: options.bowlerTrust,
     teamNames: {
       [homeTeamId]: state.teams[homeTeamId]?.shortName ?? homeTeamId,
       [awayTeamId]: state.teams[awayTeamId]?.shortName ?? awayTeamId,

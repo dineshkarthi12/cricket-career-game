@@ -76,3 +76,17 @@ describe('demo career', () => {
     expect(() => JSON.parse(JSON.stringify(state))).not.toThrow();
   });
 });
+
+describe('each demo career is its own copy', () => {
+  it('shares no teams, fixtures or venues with another', () => {
+    const a = createDemoCareer();
+    const b = createDemoCareer();
+    const teamId = Object.keys(a.teams)[0];
+    a.teams[teamId].morale = 1;
+    a.fixtures[Object.keys(a.fixtures)[0]].played = true;
+    a.venues[Object.keys(a.venues)[0]].capacity = 1;
+    expect(b.teams[teamId].morale).not.toBe(1);
+    expect(b.fixtures[Object.keys(b.fixtures)[0]].played).toBe(false);
+    expect(b.venues[Object.keys(b.venues)[0]].capacity).not.toBe(1);
+  });
+});

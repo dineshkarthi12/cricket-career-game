@@ -110,3 +110,36 @@ describe('building a match from a fixture', () => {
     expect(done.match.userPerformance).not.toBeNull();
   }, 60_000);
 });
+
+describe('match-day morale', () => {
+  it('pulls every player towards the dressing room’s mood', () => {
+    const happy = createDemoCareer();
+    happy.teams[fixture.homeTeamId!].morale = 95;
+    const gloomy = createDemoCareer();
+    gloomy.teams[fixture.homeTeamId!].morale = 10;
+    const avg = (s: typeof happy) => {
+      const xi = buildMatch(s, s.fixtures[fixture.id])!.setup.homeXi.filter((p) => !p.isUser);
+      return xi.reduce((sum, p) => sum + p.condition.morale, 0) / xi.length;
+    };
+    expect(avg(happy)).toBeGreaterThan(avg(gloomy) + 20);
+  });
+
+  it('counts how team-mates feel about the player only when they captain', () => {
+    const s = createDemoCareer();
+    const mate = buildMatch(s, s.fixtures[fixture.id])!.setup.homeXi.find((p) => !p.isUser)!;
+    s.career.relationships[mate.id] = -100;
+    const asCaptain = buildMatch(s, s.fixtures[fixture.id], { userIsCaptain: true })!;
+    const notCaptain = buildMatch(s, s.fixtures[fixture.id], { userIsCaptain: false })!;
+    const moraleIn = (b: typeof asCaptain) => b.setup.homeXi.find((p) => p.id === mate.id)!.condition.morale;
+    expect(moraleIn(asCaptain)).toBeLessThan(moraleIn(notCaptain));
+  });
+
+  it('bats the side in exactly the order it is given', () => {
+    const s = createDemoCareer();
+    const first = buildMatch(s, s.fixtures[fixture.id])!.setup.homeXi.map((p) => p.id);
+    const reversed = [...first].reverse();
+    const built = buildMatch(s, s.fixtures[fixture.id], { userOrder: reversed })!;
+    expect(built.setup.homeXi.map((p) => p.id)).toEqual(reversed);
+    expect(built.setup.homeXi.map((p) => p.battingPosition)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  });
+});

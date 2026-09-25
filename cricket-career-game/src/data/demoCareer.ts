@@ -559,9 +559,11 @@ export function createDemoCareer(): GameState {
       complete: false,
     },
     seasonHistory: [],
-    teams: Object.fromEntries(TEAMS.map((t) => [t.id, t])),
-    venues: Object.fromEntries(VENUES.map((v: Venue) => [v.id, v])),
-    fixtures: Object.fromEntries(FIXTURES.map((f) => [f.id, f])),
+    // Copies: each career owns its teams, venues and fixtures, so changing one
+    // save can never reach into another through shared module data.
+    teams: Object.fromEntries(TEAMS.map((t) => [t.id, structuredClone(t)])),
+    venues: Object.fromEntries(VENUES.map((v: Venue) => [v.id, structuredClone(v)])),
+    fixtures: Object.fromEntries(FIXTURES.map((f) => [f.id, structuredClone(f)])),
     matches: { [RECENT_MATCH.id]: RECENT_MATCH },
     inbox: [
       {
