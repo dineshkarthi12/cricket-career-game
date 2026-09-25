@@ -49,7 +49,7 @@ export const FIELD_POSITIONS: Record<string, PositionSpec> = {
 };
 
 /** Named field settings the AI captain picks between. */
-const FIELD_PRESETS: Record<string, string[]> = {
+export const FIELD_PRESETS: Record<string, string[]> = {
   ATTACKING_NEW_BALL: ['slip', 'secondSlip', 'gully', 'point', 'cover', 'midOff', 'midOn', 'midWicket', 'shortFineLeg'],
   ATTACKING_SPIN: ['slip', 'sillyPoint', 'shortLeg', 'point', 'cover', 'midOff', 'midOn', 'midWicket', 'squareLeg'],
   STANDARD: ['slip', 'point', 'cover', 'extraCover', 'midOff', 'midOn', 'midWicket', 'squareLeg', 'thirdMan'],
@@ -58,6 +58,9 @@ const FIELD_PRESETS: Record<string, string[]> = {
   DEATH: ['midOff', 'midOn', 'longOff', 'longOn', 'deepMidWicket', 'deepSquareLeg', 'deepPoint', 'thirdMan', 'fineLeg'],
   POWERPLAY: ['slip', 'point', 'cover', 'midOff', 'midOn', 'midWicket', 'squareLeg', 'thirdMan', 'fineLeg'],
 };
+
+/** Preset names, in order, for the field editor to offer. */
+export const FIELD_PRESET_NAMES = Object.keys(FIELD_PRESETS);
 
 /**
  * Choose a field. Limited-overs powerplays keep catchers in; the death spreads
@@ -141,9 +144,29 @@ export function placeField(
     (a, b) => b.attributes.fielding.catching - a.attributes.fielding.catching,
   );
 
-  const fielders: PlacedFielder[] = preset.slice(0, available.length).map((key, index) => {
+  // Hand out positions so nobody is placed twice: the close catchers first,
+  // from the safest hands down, then everyone else in turn.
+  const keys = preset.slice(0, available.length);
+  const assigned = new Map<number, SimPlayer>();
+  const used = new Set<string>();
+  keys.forEach((key, index) => {
+    if ((FIELD_POSITIONS[key] ?? FIELD_POSITIONS.point).ring !== 'CLOSE') return;
+    const player = byCatching.find((p) => !used.has(p.id));
+    if (!player) return;
+    used.add(player.id);
+    assigned.set(index, player);
+  });
+  keys.forEach((_, index) => {
+    if (assigned.has(index)) return;
+    const player = available.find((p) => !used.has(p.id));
+    if (!player) return;
+    used.add(player.id);
+    assigned.set(index, player);
+  });
+
+  const fielders: PlacedFielder[] = keys.map((key, index) => {
     const spec = FIELD_POSITIONS[key] ?? FIELD_POSITIONS.point;
-    const player = spec.ring === 'CLOSE' ? byCatching[index] : available[index];
+    const player = assigned.get(index)!;
     const f = player.attributes.fielding;
     return {
       playerId: player.id,

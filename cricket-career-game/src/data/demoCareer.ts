@@ -1,3 +1,5 @@
+import { emptyCaptaincy } from '@/engine/career/captaincy';
+import { DEFAULT_AGGRESSION } from '@/types';
 import { CAREER_STAGES } from './stages';
 import { createTrophyCabinet } from './trophies';
 import { VENUES } from './venues';
@@ -155,6 +157,7 @@ function team(
     captainId: null,
     needs: ['TOP_ORDER_BATTER'],
     isUserTeam,
+    morale: isUserTeam ? 64 : 58,
   };
 }
 
@@ -413,7 +416,8 @@ export function createDemoCareer(): GameState {
   const record = emptyCareerRecord();
   const u16Record = { ...emptyFormatRecord('MULTI_DAY'), batting };
   record.byFormat.MULTI_DAY = u16Record;
-  record.byCompetition['vijay-merchant'] = u16Record;
+  // A separate copy: the two records are added to independently after a match.
+  record.byCompetition['vijay-merchant'] = structuredClone(u16Record);
   record.manOfTheMatch = 2;
 
   return {
@@ -524,6 +528,10 @@ export function createDemoCareer(): GameState {
       matchesOnBench: 0,
       lastAppearance: '2026-10-04',
       comebacks: 0,
+      captaincy: emptyCaptaincy(),
+      relationships: {},
+      mediaReputation: 30,
+      aggression: { ...DEFAULT_AGGRESSION },
     },
     season: {
       year: SEASON_YEAR,
@@ -553,9 +561,11 @@ export function createDemoCareer(): GameState {
       complete: false,
     },
     seasonHistory: [],
-    teams: Object.fromEntries(TEAMS.map((t) => [t.id, t])),
-    venues: Object.fromEntries(VENUES.map((v: Venue) => [v.id, v])),
-    fixtures: Object.fromEntries(FIXTURES.map((f) => [f.id, f])),
+    // Copies: each career owns its teams, venues and fixtures, so changing one
+    // save can never reach into another through shared module data.
+    teams: Object.fromEntries(TEAMS.map((t) => [t.id, structuredClone(t)])),
+    venues: Object.fromEntries(VENUES.map((v: Venue) => [v.id, structuredClone(v)])),
+    fixtures: Object.fromEntries(FIXTURES.map((f) => [f.id, structuredClone(f)])),
     matches: { [RECENT_MATCH.id]: RECENT_MATCH },
     inbox: [
       {
@@ -657,6 +667,7 @@ export function createDemoCareer(): GameState {
       difficulty: 'REALISTIC',
       soundEnabled: true,
       reduceMotion: false,
+      devCaptainMode: false,
     },
   };
 }

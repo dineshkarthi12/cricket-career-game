@@ -269,7 +269,10 @@ resume.
   (`UNSUPPORTED_VERSION`).
 - **Migrations** — `SAVE_VERSION` in `src/types/save.ts`; add a step to
   `MIGRATIONS` in `src/save/migrate.ts` whenever `GameState` changes. Old
-  careers must keep loading.
+  careers must keep loading. v2 (Phase 3): shot geometry, selector trust.
+  v3 (Phase 4): captaincy, relationships, media reputation, team morale, the
+  dev captain toggle. v4: the player's 1-5 batting and bowling aggression
+  (`career.aggression`, default 3/3).
 - **Errors** — `STORAGE_UNAVAILABLE`, `QUOTA_EXCEEDED`, `NOT_FOUND`, `CORRUPT`,
   `WRONG_APP`, `UNSUPPORTED_VERSION`, `UNKNOWN`. Nothing throws.
 
@@ -303,8 +306,8 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 | Screen | Route | Contents |
 |---|---|---|
 | **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import, player creation — **built in Phase 2** |
-| **Live Match** | `/match/:id` | 2D top-down ground, fielders as dots, ball-path lines, ball-by-ball commentary, intent controls, Quick Sim |
-| **Scorecard** | `/match/:id/scorecard` | Full innings scorecards, fall of wickets, bowling figures, match report |
+| **Live Match** | `/match/:fixtureId` | Selection and role, toss, 2D ground with the player's controls (and captain's, when appointed), innings break, post-match with career effects and press — **built in Phase 4** |
+| **Scorecard** | `/matches/:matchId` | Full innings scorecards, fall of wickets, bowling figures, charts, commentary — **built in Phase 4** |
 | **Squad / Team** | `/team/:id` | Squad list, XI, rivals, team needs |
 | **Player Profile** | `/player/:id` | Attributes, radar, condition, full record |
 | **Tournament** | `/tournament/:id` | Standings, fixtures, knockout bracket |
@@ -414,6 +417,84 @@ bands the tests enforce are recorded in `PROGRESS.md`.
 
 ---
 
+## 8c. Live match and the career model (built in Phase 4)
+
+**Who controls what.** Career mode is the default: the player controls only
+their own cricketer. `BallOverrides.battingFor` / `bowlingFor` confine their
+intent, shot direction, leave, rotate, line, length, variation and angle to
+their own batter on strike and their own overs. Team controls - the toss,
+XI and order, instructions to batters, the bowler each over, the field,
+reviews, declarations and the follow-on - unlock only through
+`isCaptainOf()` (a real appointment, or the dev-only toggle in a development
+build), and each can be delegated to the AI vice-captain
+(`CaptaincyState.delegate`).
+
+**Questions.** `DecisionHooks` on a catch, a run-out and a review default to
+the engine's own roll. When the question is the player's, the live controller
+throws `DecisionNeeded`; `resumeBall` replays the delivery from the saved
+random state with their answer. Catch and run-out success =
+`timedChance(fielder's chance, timing)`. Bulk sims never ask.
+
+**Parity.** `createLiveMatch` follows `simulateMatch` call for call; with no
+decisions from the player the two produce identical matches (tested).
+
+**Selection** (`engine/career/selection.ts`): §6 score + `(selectorTrust -
+50) × 0.12` - fatigue, per-fixture whim, hard gates, balanced XI. Status per
+match: `PLAYING_XI`, `TWELFTH_MAN`, `BENCH`, `NOT_SELECTED`. The coach moves an
+in-form batter up to two places (down on a lean run); `bowlerTrust` weights
+how often the AI captain picks the player. A captain's XI is reviewed change
+by change; acceptance rises with captaincy rating, reputation and merit.
+
+**After the match** (`engine/career/afterMatch.ts`, `press.ts`): team morale
+for both sides; relationships; the selectors' note; for a captain, the record,
+rating (`CAPTAINCY` constants: result 55%, tactics 25%, morale 20%), tactics
+score from their actual calls, stress and its cost to form, sacking after five
+straight defeats or a rating at 24 or below, and a recommendation after a
+strong record; appointment when the case is made; press conference after big
+matches (knockouts, a hundred or five-for, a thrashing as captain).
+
+**Aggression 1-5.** Batting: 1 Very Defensive, 2 Defensive, 3 Balanced,
+4 Aggressive, 5 Very Aggressive; bowling: 1 contain to 5 all-out attack.
+The player sets theirs (`career.aggression`); it holds until they change it
+and is sent with every ball (`BallOverrides.intentLevel` /
+`bowlingAggression`, confined by `battingFor` / `bowlingFor`). One-ball
+intents override it for one ball. A captain can set a level per batter and
+per bowler (`batterLevels`, `bowlerLevels`); anyone without one is the AI.
+- Multipliers are relative to the format's `defaultIntent`, which is 3 for
+  every format. The AI's read starts at `defaultIntent +
+  MATCH.batting.aiIntentStart` so its situational drops leave it averaging
+  about 3: `MATCH.intent` (wicket, boundary, dot, running), plus
+  `MATCH.aggression` - contact (false shots), leaving outside off, the share
+  of aerial shots at 5, and the risk scale.
+- Risk scale for attacking (`aggressionRiskScale`, clamped 0.4-2.5): 1 +
+  0.6 × unsettled + 0.5 × pitch difficulty + 0.2 × (bowler - batter) +
+  0.3 × poor temperament - 0.12 × power. It multiplies only the extra
+  wicket risk above the normal game. Power also adds boundaries when
+  attacking (`powerReward`).
+- Bowling (`MATCH.bowlingAggression`): wicket, boundary, dot and wide
+  multipliers, and length / line / variation weights in `choosePlan`; all 1
+  at level 3, so the AI's normal plan is unchanged.
+- Risk label: `estimateRisk(state, batterId, level)` builds the next ball's
+  context with a neutral plan and no random numbers and returns the wicket
+  chance and ratio to the format's base rate; Low below 0.6, Medium below
+  1.2, High below 2.1, else Very High (`MATCH.aggression.riskLabels`).
+- Stats: `Ball.intent` records the batting level and `Ball.bowlingAggression`
+  the bowling level when it is not 3; `src/lib/aggressionStats.ts` builds the
+  post-match per-level tables.
+
+**Engine additions**: leave (`MATCH.leave`), rotate (`MATCH.rotate`),
+captain's instructions and a bowler to target, fielding-side lbw reviews
+(`MATCH.umpiring.appeal*`), round the wicket (`MATCH.aroundTheWicket`), quotas
+enforced for a forced bowler.
+
+**Geometry and rendering.** Metres throughout (`src/lib/ground.ts`); angle 0
+up the screen, 90 screen-right for a right-hander; the circle is 27.43 m round
+both sets of stumps. Field rules in `src/lib/fieldRules.ts`; an illegal field
+never reaches the engine. Ground, fielders and ball are separate memoised SVG
+layers; motion is SVG `animateMotion`.
+
+---
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
@@ -421,8 +502,8 @@ bands the tests enforce are recorded in `PROGRESS.md`.
 | 1 | Project setup, spec, data models, save system, placeholder Home | ✅ Done |
 | 2 | Design-system components + full Home dashboard | ✅ Done |
 | 3 | Match engine (ball-by-ball, commentary, scorecards) | ✅ Done |
-| 4 | 2D ground view and live match screen | Next |
-| 5 | Selection, training and progression engines | Planned |
+| 4 | 2D ground view and live match screen | ✅ Done |
+| 5 | Selection, training and progression engines | Next |
 | 6 | Season, calendar and tournament flow | Planned |
 | 7 | IPL scouting and auction | Planned |
 | 8 | Stats, awards, community, settings, polish | Planned |

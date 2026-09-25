@@ -5,13 +5,14 @@ import { installAutosaveGuards, useGameStore } from '@/store/gameStore';
 import Home from './screens/Home';
 import SlotPicker from './screens/SlotPicker';
 import NewCareer from './screens/NewCareer';
+import MatchScreen from './screens/match/MatchScreen';
+import MatchesScreen from './screens/Matches';
 import {
   AuctionScreen,
   AwardsScreen,
   CalendarScreen,
   CareerPathScreen,
   CommunityScreen,
-  MatchesScreen,
   SelectionScreen,
   SettingsScreen,
   StatsScreen,
@@ -42,6 +43,8 @@ export default function App() {
               <Route path="/calendar" element={<CalendarScreen />} />
               <Route path="/training" element={<TrainingScreen />} />
               <Route path="/matches" element={<MatchesScreen />} />
+              <Route path="/matches/:matchId" element={<MatchesScreen />} />
+              <Route path="/match/:fixtureId" element={<MatchScreen />} />
               <Route path="/selection" element={<SelectionScreen />} />
               <Route path="/auction" element={<AuctionScreen />} />
               <Route path="/stats" element={<StatsScreen />} />

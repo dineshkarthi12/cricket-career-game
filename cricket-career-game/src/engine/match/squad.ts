@@ -135,6 +135,51 @@ function freshCondition(rng: Rng, strength: number): Condition {
   };
 }
 
+/**
+ * Cover for a full squad: a spare opener, a spare middle-order batter, a
+ * reserve keeper and two extra bowlers, so the XI is a real choice.
+ */
+const SQUAD_COVER: { role: PlayerRole; position: number }[] = [
+  { role: 'OPENING_BATTER', position: 2 },
+  { role: 'BATTER', position: 4 },
+  { role: 'WICKET_KEEPER_BATTER', position: 6 },
+  { role: 'PACE_BOWLER', position: 9 },
+  { role: 'SPIN_BOWLER', position: 8 },
+  { role: 'BATTING_ALLROUNDER', position: 7 },
+];
+
+function buildPlayer(
+  teamId: string,
+  strength: number,
+  rng: Rng,
+  slot: { role: PlayerRole; position: number },
+): SimPlayer {
+  const attributes = buildAttributes(rng, slot.role, strength);
+  const name = `${rng.pick(FIRST_NAMES)} ${rng.pick(LAST_NAMES)}`;
+  return {
+    id: newId('sim'),
+    name,
+    teamId,
+    role: slot.role,
+    battingStyle: rng.chance(0.25) ? 'LEFT_HAND_BAT' : 'RIGHT_HAND_BAT',
+    bowlingStyle: bowlingStyleFor(rng, slot.role),
+    attributes,
+    condition: freshCondition(rng, strength),
+    battingPosition: slot.position,
+    isUser: false,
+  } satisfies SimPlayer;
+}
+
+/**
+ * A squad the selectors pick from: a balanced XI plus cover. Reserves are a
+ * little weaker than the first choice, so the default XI is the sensible one.
+ */
+export function generateSquad(teamId: string, strength: number, rng: Rng): SimPlayer[] {
+  const first = XI_SHAPE.map((slot) => buildPlayer(teamId, strength, rng, slot));
+  const cover = SQUAD_COVER.map((slot) => buildPlayer(teamId, strength - 7, rng, slot));
+  return [...first, ...cover];
+}
+
 /** Generate a playing XI for a team at a given strength. */
 export function generateXi(teamId: string, strength: number, rng: Rng): SimPlayer[] {
   return XI_SHAPE.map((slot) => {

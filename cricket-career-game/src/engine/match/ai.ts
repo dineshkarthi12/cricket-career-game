@@ -55,7 +55,7 @@ function accelerationPoint(wicketsLost: number): number | null {
 export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng): BatterApproach {
   const rates = MATCH_FORMATS[situation.format] ?? MATCH_FORMATS.ODI;
   const cfg = MATCH.batting;
-  let level = rates.defaultIntent;
+  let level = rates.defaultIntent + cfg.aiIntentStart;
 
   // A new batter plays himself in whatever the format.
   if (situation.strikerBallsFaced < 8) level -= 1;
@@ -148,6 +148,8 @@ export function chooseBowler(input: {
   runRatePressure: number;
   /** How far through the innings, 0-1. */
   share: number;
+  /** The captain's trust in each bowler, as a multiplier. 1 when unset. */
+  trust?: Record<string, number>;
   rng: Rng;
 }): SimPlayer {
   const rates = MATCH_FORMATS[input.format] ?? MATCH_FORMATS.ODI;
@@ -220,7 +222,9 @@ export function chooseBowler(input: {
       score -= (used / limit) * 30;
     }
 
-    return { item: bowler, weight: Math.max(1, score) };
+    // A captain gives the ball to the bowlers he believes in.
+    const trust = input.trust?.[bowler.id] ?? 1;
+    return { item: bowler, weight: Math.max(1, score * trust) };
   });
 
   return input.rng.weighted(scored);
@@ -233,47 +237,55 @@ export function choosePlan(input: {
   phase: MatchPhase;
   batterIntentLevel: number;
   batterBallsFaced: number;
+  /** Bowling aggression 1-5; 3 (the default) leaves the plan untouched. */
+  aggression?: number;
   rng: Rng;
 }): BowlerPlan {
   const { bowler, kind, phase, rng } = input;
   const w = bowler.attributes.bowling;
+  // Defensive bowling lives in the channel outside off; all-out attack goes
+  // for the stumps, the yorker, the bouncer and the variations.
+  const ag = MATCH.bowlingAggression;
+  const index = Math.max(0, Math.min(4, Math.round(input.aggression ?? 3) - 1));
+  const byLength = (item: DeliveryLength, weight: number) => ({ item, weight: weight * ag.length[item][index] });
+  const byLine = (item: DeliveryLine, weight: number) => ({ item, weight: weight * ag.line[item][index] });
 
   // Length.
   const lengthWeights: { item: DeliveryLength; weight: number }[] =
     kind === 'PACE'
       ? [
-          { item: 'YORKER', weight: phase === 'DEATH' ? 26 + normalise(w.deathBowling) * 30 : 4 },
-          { item: 'FULL', weight: phase === 'DEATH' ? 16 : 18 },
-          { item: 'GOOD', weight: 40 },
-          { item: 'SHORT_OF_GOOD', weight: 24 },
-          { item: 'SHORT', weight: input.batterIntentLevel >= 4 ? 16 : 9 },
-          { item: 'FULL_TOSS', weight: 2 },
+          byLength('YORKER', phase === 'DEATH' ? 26 + normalise(w.deathBowling) * 30 : 4),
+          byLength('FULL', phase === 'DEATH' ? 16 : 18),
+          byLength('GOOD', 40),
+          byLength('SHORT_OF_GOOD', 24),
+          byLength('SHORT', input.batterIntentLevel >= 4 ? 16 : 9),
+          byLength('FULL_TOSS', 2),
         ]
       : [
-          { item: 'FULL', weight: 22 },
-          { item: 'GOOD', weight: 48 },
-          { item: 'SHORT_OF_GOOD', weight: 20 },
-          { item: 'SHORT', weight: 5 },
-          { item: 'FULL_TOSS', weight: 3 },
-          { item: 'YORKER', weight: 2 },
+          byLength('FULL', 22),
+          byLength('GOOD', 48),
+          byLength('SHORT_OF_GOOD', 20),
+          byLength('SHORT', 5),
+          byLength('FULL_TOSS', 3),
+          byLength('YORKER', 2),
         ];
   const length = rng.weighted(lengthWeights);
 
   // Line. A new batter sees a lot of balls in the corridor.
   const settling = input.batterBallsFaced < 10;
   const line = rng.weighted<DeliveryLine>([
-    { item: 'WIDE_OFF', weight: phase === 'DEATH' ? 10 : 4 },
-    { item: 'OUTSIDE_OFF', weight: settling ? 34 : 26 },
-    { item: 'OFF_STUMP', weight: 30 },
-    { item: 'MIDDLE', weight: 20 },
-    { item: 'LEG_STUMP', weight: 10 },
-    { item: 'DOWN_LEG', weight: 4 },
+    byLine('WIDE_OFF', phase === 'DEATH' ? 10 : 4),
+    byLine('OUTSIDE_OFF', settling ? 34 : 26),
+    byLine('OFF_STUMP', 30),
+    byLine('MIDDLE', 20),
+    byLine('LEG_STUMP', 10),
+    byLine('DOWN_LEG', 4),
   ]);
 
   // Variation, if they have one worth using.
   const variationSkill = normalise(w.variation);
   let variation: string | null = null;
-  if (rng.chance(0.1 + variationSkill * 0.3)) {
+  if (rng.chance(Math.min(0.95, (0.1 + variationSkill * 0.3) * ag.variation[index]))) {
     variation =
       kind === 'PACE'
         ? rng.pick(['slower ball', 'cutter', 'bouncer', 'wide yorker', 'knuckle ball'])

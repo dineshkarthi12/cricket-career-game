@@ -389,11 +389,163 @@ a release shot; wickets cluster; and a rising required rate forces the pace.
 
 ---
 
-## ▶️ Next — Phase 4: 2D ground view and live match screen
+## ✅ Phase 4 — 2D match screen, career model (complete)
 
-1. Top-down 2D ground with fielders as dots, drawn from `FieldSetting`.
-2. Ball-path lines from each delivery's `shotAngle` and `shotDistance`.
-3. Live match screen: commentary feed, intent controls, over-by-over scorecard.
-4. Wire "Play Match" and "Quick Sim" on the Home dashboard to the engine and
-   drop the "Coming in match engine phase" tooltip.
-5. Build the Matches screen and the scorecard over their placeholders.
+This is a career game: **the player controls only their own cricketer**.
+Team controls unlock only when the player is appointed captain, and each can be
+handed to the AI vice-captain. A development-only toggle turns captain mode on
+early for testing.
+
+**One code path for watching and simulating**
+- `stepBall` plays one delivery; `simulateInnings` and the live controller
+  (`createLiveMatch`) both run on it. The live controller follows
+  `simulateMatch` call for call (rain and DLS, super overs, time loss,
+  declarations, follow-on). A parity test plays 180 matches both ways and
+  checks they are identical, plus a super over, a follow-on and a
+  rain-revised chase - so live play and Quick Sim are exactly the matches the
+  balance suite measures.
+- A delivery can **pause for the player**: decision hooks on catches, run-outs
+  and reviews default to the engine's own roll; the live controller throws
+  `DecisionNeeded` when the question is the player's, and `resumeBall`
+  replays it from the same random numbers once they answer.
+
+**Career mode (default)**
+- Selection (`engine/career/selection.ts`): the GAME_SPEC §6 score with
+  selector trust blended in picks a balanced XI. The player is Playing XI,
+  12th man, bench or not selected, with the selectors' reasons. The coach
+  promotes an in-form batter up to two places and demotes one on a lean run;
+  bowling trust decides how readily the AI captain gives them overs.
+- Batting: the player's own 1-5 aggression (see below), five one-ball
+  intents that override it for that ball only (leave, defend, rotate,
+  attack, big shot), a direction to aim for, and sims to the end of the over
+  or until out at their level. Leave and rotate are engine behaviours
+  (`MATCH.leave`, `MATCH.rotate`). All of it applies only while the player's
+  own batter is on strike (`battingFor`).
+- Bowling: only when the AI captain throws them the ball; their 1-5 bowling
+  aggression, line, length, variation and over/round the wicket for their
+  own overs (`bowlingFor`).
+- Fielding: a catch or run-out coming to the player opens a timing tap.
+  Success is the fielder's own chance moved by timing
+  (`MATCH.fielding.timingWeight`); the sweet spot widens with skill.
+- Reviews of the player's own dismissal are theirs.
+- Everyone else is AI-controlled; while the player is not involved the match
+  plays on at watching speed, and stops the moment they are.
+- Sim controls: next ball / over / wicket, until I'm in, end of innings, full
+  auto, sim the rest, animation speed.
+
+**Captain mode (only when appointed, or the dev toggle)**
+- Toss with a reading of the conditions (`lib/tossHint.ts`).
+- XI and batting order go to the selectors, who accept or overrule each
+  change on its merits and the captain's standing.
+- Instructions to the batters (attack, rotate, protect the wicket) and a
+  bowler to target - they adjust each batter's own read.
+- The bowler for every over, within quotas (enforced in the engine), with the
+  vice-captain's suggestion.
+- Field editor: drag, snap to named positions, presets (new ball, spin,
+  defensive, T20 death...), validation against powerplay and leg-side rules.
+- Reviews for both sides - the fielding side can now review a not-out lbw, a
+  new engine event - plus declarations and the follow-on.
+- Delegation of any of these to the vice-captain, remembered between matches.
+
+**Off the field**
+- Team morale (both dressing rooms) moves with results and feeds match-day
+  morale; team-mates' relationships with the player move with results and,
+  as captain, with who they pick and drop.
+- Captaincy rating from results, a tactics score built from the captain's
+  actual calls, and team morale; stress that costs the player some of their
+  own form, softened by temperament and leadership; five defeats in a row or
+  a collapsed rating costs the job; a strong record puts them in line for a
+  bigger one. The selectors can appoint the player captain when leadership,
+  reputation, trust and form make the case.
+- Press conference after big matches, with answers that move team morale,
+  media reputation and the player's own morale.
+- Selectors' note after every match, including when not selected.
+- Captaincy record (matches, won, lost, drawn, tied, win %, by team) on Stats.
+
+**Ground view**
+- Metre-based SVG drawn from each venue's boundaries; memoised layers so a
+  ball redraws only the ball layer; SVG `animateMotion` for the delivery,
+  the shot, the fielder running to cut it off and the throw back in.
+- The player in gold wherever they are; keeper and bowler drawn differently;
+  names on hover or tap; over/round the wicket; the pitching point;
+  highlights for 4, 6, wicket, dropped catch and run-out; floodlit, overcast
+  and rain looks; wagon wheel overlay, pitch map and beehive.
+
+**Screens**: pre-match (selection, role, opposition, conditions, captain's XI),
+toss, in-play (desktop: ground left, panels pinned right; phone: ground on
+top, tabbed panels, thumb-reach sim bar), innings break, post-match (every
+scorecard, the player's card, player of the match, condition, reputation,
+selector trust, media, dressing room, captaincy, press conference), Matches
+list and scorecards. Home's Play Match and Quick Sim run this flow.
+
+**Aggression, 1-5 (set by the player, like a management sim)**
+- Batting: 1 Very Defensive, 2 Defensive, 3 Balanced, 4 Aggressive,
+  5 Very Aggressive. A five-step bar, blue to red, with - and +, tap a step,
+  or keys 1-5 on a keyboard (ignored while typing). The level is the
+  player's: saved in `career.aggression`, never changed for them, used for
+  every ball including quick sims and "sim the rest". A one-ball intent
+  overrides it for that ball only.
+- Bowling: 1 (tight lines, contain) to 5 (all-out attack) for their own
+  overs; changes length, line and variation choice (`choosePlan`), and
+  trades runs for wickets.
+- Captain mode: a bar for each batter at the crease and for every bowler,
+  with Auto (the AI reads the game). The player's own bar is the same one.
+- Engine (`MATCH.intent`, `MATCH.aggression`, `MATCH.bowlingAggression`):
+  each level moves scoring rate, boundary %, dismissal % and false shots a
+  long way. A top-six batter held at one level for a whole ODI innings:
+  strike rate 28 / 62 / 89 / 114 / 127, out every 115 / 76 / 49 / 28 / 17
+  balls. Level 1 leaves more outside off, level 5 goes aerial most balls. The extra risk
+  of attacking is scaled by how set the batter is, the pitch, the bowler
+  against the batter, temperament and power (`aggressionRiskScale`).
+- Risk label next to the bar (Low / Medium / High / Very High) from
+  `estimateRisk`: the chance of getting out to an ordinary ball in the
+  conditions as they stand, against the format's base rate. No random
+  numbers, so it never changes the match.
+- Level 3 is every format's normal game (it was 4 in T20 and 2 in
+  first-class), and the AI batter's read now starts a level higher
+  (`MATCH.batting.aiIntentStart`) because playing in, anchoring, the tail and
+  milestones pull it down - so the AI averages about 3 and "Balanced" is what
+  a typical batter plays. Holding 3 all innings scores at about the AI's rate
+  (ODI SR 89 v 102, T20 149 v 153).
+- Post-match: balls, runs, strike rate and dismissal at each batting level,
+  and overs, runs and wickets at each bowling level.
+
+**Save**: `SAVE_VERSION` 3 adds captaincy, relationships, media reputation,
+team morale and the dev toggle; v4 adds the player's aggression levels.
+Migrations bring older saves forward.
+
+**Bugs fixed on the way**
+- `placeField` could place one player twice and leave another off the field.
+- A bowler's figures went stale when an innings ended mid-over.
+- Demo and new careers shared module-level team, fixture and venue objects,
+  and the demo aliased its format and competition records (a match counted
+  twice). Each career now owns copies; `commitMatch` clones defensively.
+- A forced bowler could exceed the format's quota.
+
+**Balance (1000 matches per format)** - retuned after the aggression
+levels: with the AI now centred on level 3, which plays more shots than its
+old mix, base wicket and boundary rates came down in every format (T20
+wicket 0.0535 to 0.042, ODI 0.0271 to 0.0225, multi-day 0.0184 to 0.0164)
+and first-class dot weight went up.
+
+| | T20 | ODI | Multi-day |
+|---|---|---|---|
+| 1st innings | 164.6 (RR 8.49) | 270.3 (RR 5.66) | 284.1 in 97.7 ov |
+| Spread p10 / med / p90 | 85 / 169 / 240 | 156 / 276 / 375 | 131 / 279 / 446 |
+| Top-six avg / SR | 26.3 / 151.9 | 37.4 / 101.3 | 31.5 / 60.5 |
+| LBW share of dismissals | 10.2% | 10.9% | 13.4% |
+| Results | 0.4% ties | 0.3% ties | 37.7% draws |
+
+First-class career averages against mixed opposition: 39.0 / 44.2.
+
+**Tests - 371 passing across 32 files.**
+
+**Known limits**
+- A match in progress lives in memory: leaving the screen resumes it, a page
+  reload restarts the fixture.
+- "In line for a bigger captaincy" is recorded and announced; the move itself
+  comes with Phase 5's progression.
+
+---
+
+## ▶️ Next — Phase 5: selection, training and progression engines

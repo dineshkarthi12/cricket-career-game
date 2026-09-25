@@ -142,21 +142,21 @@ export interface FormatRates {
 export const MATCH_FORMATS: Record<string, FormatRates> = {
   T20: {
     overs: 20,
-    wicket: 0.05349,
-    four: 0.18637,
-    six: 0.06436,
-    dotWeight: 0.4476,
+    wicket: 0.0420,
+    four: 0.1560,
+    six: 0.0540,
+    dotWeight: 0.5000,
     twoWeight: 0.19,
     threeWeight: 0.022,
     maxOversPerBowler: 4,
-    defaultIntent: 4,
+    defaultIntent: 3,
   },
   ODI: {
     overs: 50,
-    wicket: 0.02711,
-    four: 0.09639,
-    six: 0.01647,
-    dotWeight: 1.0442,
+    wicket: 0.0225,
+    four: 0.0700,
+    six: 0.0120,
+    dotWeight: 1.1500,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -164,10 +164,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ONE_DAY: {
     overs: 50,
-    wicket: 0.02779,
-    four: 0.09253,
-    six: 0.01433,
-    dotWeight: 1.1069,
+    wicket: 0.0231,
+    four: 0.0672,
+    six: 0.0105,
+    dotWeight: 1.2200,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -175,25 +175,25 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   MULTI_DAY: {
     overs: null,
-    wicket: 0.01893,
-    four: 0.05364,
+    wicket: 0.0164,
+    four: 0.0400,
     six: 0.00260,
-    dotWeight: 2.5140,
+    dotWeight: 3.4500,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
-    defaultIntent: 2,
+    defaultIntent: 3,
   },
   TEST: {
     overs: null,
-    wicket: 0.01817,
-    four: 0.0523,
+    wicket: 0.0157,
+    four: 0.0392,
     six: 0.0025,
-    dotWeight: 2.5894,
+    dotWeight: 3.6000,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
-    defaultIntent: 2,
+    defaultIntent: 3,
   },
 } as const;
 
@@ -209,10 +209,15 @@ export const MATCH = {
   },
 
   /** Multipliers applied by batting intent, 1 (block) to 5 (all out). */
+  /**
+   * Batting aggression, levels 1-5 (Very Defensive to Very Aggressive).
+   * Multipliers are taken relative to the format's default level, so the base
+   * rates above always describe a batter playing their normal game.
+   */
   intent: {
-    wicket: [0.42, 0.64, 1.0, 1.55, 2.35],
-    boundary: [0.16, 0.5, 1.0, 1.72, 2.55],
-    dot: [1.5, 1.22, 1.0, 0.83, 0.7],
+    wicket: [0.3, 0.62, 1.0, 1.62, 2.8],
+    boundary: [0.08, 0.48, 1.0, 1.8, 2.9],
+    dot: [2.0, 1.25, 1.0, 0.82, 0.62],
     /** Chance the batter attempts a risky second/third run. */
     running: [0.6, 0.82, 1.0, 1.18, 1.32],
   },
@@ -399,6 +404,13 @@ export const MATCH = {
     anchorPositions: [1, 2, 3] as number[],
     finisherPositions: [5, 6, 7] as number[],
     anchorIntentDrop: 1,
+    /**
+     * Where an AI batter's read of the game starts, above the format's normal
+     * level. Playing yourself in, anchoring, the tail and milestones all pull
+     * it down, so starting one higher leaves the average batter at 3 -
+     * "Balanced" means what a typical batter plays.
+     */
+    aiIntentStart: 1,
     finisherIntentBump: 1,
     /** A nightwatchman goes in when this few overs are left in the day. */
     nightwatchmanOversLeft: 8,
@@ -420,6 +432,12 @@ export const MATCH = {
     maxWicket: 0.45,
     maxIntent: 1.2,
   },
+
+  /**
+    * How much a batter can steer the ball when they have picked a side of the
+    * ground. Good players place it; a mishit goes where it goes.
+    */
+  shotPreference: { pull: 0.55, skillWeight: 0.5 },
 
   /** A batter who is properly in is a different proposition. */
   setBatter: {
@@ -452,6 +470,120 @@ export const MATCH = {
     CAUGHT_AND_BOWLED: 3,
   } as Record<string, number>,
 
+  /**
+   * Bowling round the wicket. The angle across the batter brings the pads into
+   * play and takes the ball away from the slips, and the extra width off the
+   * crease costs a little accuracy.
+   */
+  aroundTheWicket: {
+    lbw: 1.45,
+    bowled: 0.85,
+    caughtBehind: 0.6,
+    caught: 0.95,
+    /** Multiplier on the bowler's execution error. */
+    executionPenalty: 1.08,
+    /** Multiplier on the wide rate. */
+    wideRate: 1.15,
+  },
+
+  /**
+   * Leaving the ball. No shot means no edge and no runs off the bat, but a
+   * ball on the stumps that is left can hit them or the pad.
+   */
+  leave: {
+    /** Wicket rate relative to the format's base, by line. */
+    lineRisk: {
+      WIDE_OFF: 0,
+      OUTSIDE_OFF: 0.04,
+      OFF_STUMP: 1.9,
+      MIDDLE: 2.8,
+      LEG_STUMP: 1.4,
+      DOWN_LEG: 0,
+    } as Record<string, number>,
+    /** A short ball goes over the top; a full one is the dangerous leave. */
+    lengthRisk: {
+      FULL_TOSS: 0.6,
+      YORKER: 1.6,
+      FULL: 1.4,
+      GOOD: 1.0,
+      SHORT_OF_GOOD: 0.45,
+      SHORT: 0.1,
+    } as Record<string, number>,
+    /** Share of those wickets that are lbw rather than bowled. */
+    lbwShare: 0.45,
+  },
+
+  /**
+   * Rotating the strike: working it into the gaps. Fewer boundaries, fewer
+   * dots and a lower wicket risk than a normal intent.
+   */
+  rotate: {
+    boundary: 0.45,
+    dot: 0.72,
+    wicket: 0.8,
+  },
+
+  /**
+   * What aggression does beyond the rates above.
+   */
+  aggression: {
+    /**
+     * Quality of contact by level, relative to the default: attacking means
+     * more false shots - edges, miscues, plays and misses.
+     */
+    contact: [0.07, 0.035, 0, -0.05, -0.11],
+    /** Chance a batter shoulders arms to a ball outside off, by level. */
+    leaveOutsideOff: [0.7, 0.2, 0, 0, 0],
+    /**
+     * The extra risk of attacking is not fixed. It grows for a batter who is
+     * not yet in, on a hard pitch, against a better bowler, and for a batter
+     * without the temperament for it; raw power makes it safer.
+     */
+    risk: { unsettled: 0.6, pitch: 0.5, bowler: 0.2, temperament: 0.3, power: 0.12 },
+    /** A powerful batter gets more boundaries out of attacking. */
+    powerReward: 0.12,
+    /** Share of Very Aggressive shots that go in the air. */
+    bigShotLoft: 0.7,
+    /** Contact below this is a false shot, for the stats. */
+    falseShotContact: 30,
+    /**
+     * Risk labels by the chance of getting out to an ordinary ball, as a
+     * multiple of the format's base wicket rate.
+     */
+    riskLabels: { medium: 0.6, high: 1.2, veryHigh: 2.1 },
+  },
+
+  /**
+   * Bowling aggression, levels 1-5 (containing to all-out attack). Level 3 is
+   * a bowler's normal game, and every multiplier is 1 there.
+   */
+  bowlingAggression: {
+    wicket: [0.55, 0.78, 1, 1.25, 1.6],
+    boundary: [0.58, 0.78, 1, 1.35, 1.9],
+    dot: [1.4, 1.17, 1, 0.85, 0.68],
+    wide: [0.6, 0.8, 1, 1.2, 1.55],
+    /** How often a variation is tried. */
+    variation: [0.25, 0.55, 1, 1.6, 2.3],
+    /** Length choice: tight lengths to contain, full and short to attack. */
+    length: {
+      YORKER: [0.3, 0.6, 1, 1.4, 1.8],
+      FULL: [0.6, 0.8, 1, 1.25, 1.5],
+      GOOD: [1.35, 1.15, 1, 0.9, 0.8],
+      SHORT_OF_GOOD: [1.3, 1.12, 1, 0.9, 0.8],
+      SHORT: [0.4, 0.7, 1, 1.4, 1.9],
+      FULL_TOSS: [0.6, 0.8, 1, 1.2, 1.5],
+    } as Record<string, number[]>,
+    /** Line choice: a wide channel to contain, the stumps to attack. */
+    line: {
+      WIDE_OFF: [1.6, 1.25, 1, 0.8, 0.6],
+      OUTSIDE_OFF: [1.5, 1.2, 1, 0.9, 0.8],
+      OFF_STUMP: [1, 1, 1, 1.1, 1.2],
+      MIDDLE: [0.6, 0.8, 1, 1.25, 1.5],
+      LEG_STUMP: [0.5, 0.75, 1, 1.2, 1.4],
+      DOWN_LEG: [0.6, 0.8, 1, 1.1, 1.2],
+    } as Record<string, number[]>,
+  },
+
   /** Run-outs are rolled while the batters are running, not off the bat. */
   runOut: {
     /** Chance per completed run that a run-out is even in play. */
@@ -465,6 +597,11 @@ export const MATCH = {
 
   /** Fielding: catches, saved runs and misfields. */
   fielding: {
+    /**
+     * How far the player's timing on a catch or run-out moves the odds: a
+     * perfect tap adds half of this, a dreadful one takes half away.
+     */
+    timingWeight: 0.9,
     /** Catch chance for an average fielder with the ball straight at them. */
     baseCatch: 0.82,
     /** Chance lost per metre the fielder has to move. */
@@ -664,6 +801,15 @@ export const MATCH = {
     reviewJudgement: 0.55,
     /** Chance a side burns a review on a decision that was right. */
     speculativeReviewChance: 0.28,
+    /**
+     * The fielding side's reviews. A beaten batter in front on a straight ball
+     * brings a big appeal; now and then the not-out is wrong.
+     */
+    appealContact: 0.3,
+    appealChance: 0.2,
+    missedLbwShare: 0.08,
+    /** The fielding side sees more of it than the batter, so judges it better. */
+    bowlingReviewJudgement: 0.75,
   },
 
   /** A free hit follows a no-ball in limited-overs cricket. */

@@ -21,6 +21,8 @@ export interface Rng {
   spread(): number;
   /** The generator's current internal state, so a match can be resumed. */
   state(): number;
+  /** Put the generator back to a state from `state()`. */
+  restore(state: number): void;
 }
 
 /**
@@ -63,6 +65,9 @@ export function createRng(seed: number): Rng {
     // Mean of three uniforms is a decent cheap approximation of a bell curve.
     spread: () => (next() + next() + next()) / 1.5 - 1,
     state: () => s,
+    restore: (state) => {
+      s = state >>> 0;
+    },
   };
   return rng;
 }

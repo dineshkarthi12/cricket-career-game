@@ -39,8 +39,10 @@ function executionError(context: DeliveryContext, rng: Rng): number {
   // A wet ball is hard to grip, so the bowler's execution suffers.
   const dew = context.dew * MATCH.weather.dewGripLoss;
   const skill = clamp01(cfg.baseAccuracy * (0.5 + accuracy) - fatigue - leftRight - dew);
+  // Coming round the wicket means a wider position on the crease to hit from.
+  const angle = context.aroundTheWicket ? MATCH.aroundTheWicket.executionPenalty : 1;
   // Even the best bowler misses; even the worst lands one on the spot.
-  return clamp01(Math.abs(rng.spread()) * (1.25 - skill));
+  return clamp01(Math.abs(rng.spread()) * (1.25 - skill) * angle);
 }
 
 /** Wides and no-balls, which come out of the same wayward-bowling roll. */
@@ -52,7 +54,10 @@ function rollIllegal(
   const cfg = MATCH.execution;
   const scale = 1 + error * cfg.inaccuracyExtraScale;
   // Bowlers go wider at the death, and a wide line is a wide in limited overs.
-  const wideScale = context.phase === 'DEATH' ? 1.9 : 1;
+  const wideScale =
+    (context.phase === 'DEATH' ? 1.9 : 1) *
+    (context.aroundTheWicket ? MATCH.aroundTheWicket.wideRate : 1) *
+    MATCH.bowlingAggression.wide[Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1))];
   if (rng.chance(cfg.wideChance * scale * wideScale)) return { type: 'WIDE', runs: 1 };
   if (rng.chance(cfg.noBallChance * scale)) return { type: 'NO_BALL', runs: 1 };
   return null;
@@ -107,6 +112,10 @@ function chooseShot(context: DeliveryContext, contact: number, rng: Rng): ShotTy
 
   if (!attacking && contact < 0.4) return rng.chance(0.75) ? 'DEFEND' : 'LEAVE';
   if (approach.level === 1) return rng.chance(0.9) ? 'BLOCK' : 'DEFEND';
+  // Very Aggressive: a big shot almost every ball.
+  if (approach.level === 5 && rng.chance(MATCH.aggression.bigShotLoft)) {
+    return context.bowlerKind === 'SPIN' && rng.chance(0.3) ? 'SWEEP' : 'LOFT';
+  }
 
   const onSide = plan.line === 'LEG_STUMP' || plan.line === 'DOWN_LEG' || plan.line === 'MIDDLE';
 
@@ -132,6 +141,27 @@ function chooseShot(context: DeliveryContext, contact: number, rng: Rng): ShotTy
   }
 }
 
+/**
+ * Bend the natural angle for a shot towards where the batter was trying to
+ * hit. A well-timed shot from a good player goes close to the chosen side; a
+ * mishit still goes wherever the edge takes it.
+ */
+function steer(
+  natural: number,
+  preference: number | null | undefined,
+  contact: number,
+  technique: number,
+): number {
+  if (preference === null || preference === undefined) return natural;
+  const cfg = MATCH.shotPreference;
+  const control = clamp01(contact) * (1 - cfg.skillWeight + cfg.skillWeight * normalise(technique));
+  const pull = cfg.pull * control;
+  // Interpolate the short way round the circle.
+  let delta = ((preference - natural + 540) % 360) - 180;
+  delta *= pull;
+  return (natural + delta + 360) % 360;
+}
+
 /** Where a given shot tends to go, in degrees. */
 const SHOT_ANGLES: Record<ShotType, { angle: number; spread: number }> = {
   DEFEND: { angle: 20, spread: 55 },
@@ -147,6 +177,116 @@ const SHOT_ANGLES: Record<ShotType, { angle: number; spread: number }> = {
   LOFT: { angle: 350, spread: 60 },
   RAMP: { angle: 175, spread: 25 },
 };
+
+/** Everything about the duel that does not need a random number. */
+export interface DuelFactors {
+  batter: number;
+  bowler: number;
+  bite: number;
+  edge: number;
+  settle: number;
+  set: number;
+  phaseMod: { boundary: number; wicket: number; dot: number };
+  dotWicket: number;
+  milestone: number;
+  cluster: number;
+  collapse: number;
+  partnership: number;
+}
+
+export function duelFactors(context: DeliveryContext): DuelFactors {
+  const cfg = MATCH;
+  const batter = batterSkill(context);
+  const bowler = bowlerSkill(context);
+  const bite = pressureBite(context);
+  const edge = Math.max(-cfg.edge.clamp, Math.min(cfg.edge.clamp, batter - bowler));
+  const settle = clamp01(context.strikerBallsFaced / cfg.newBatter.settleBalls);
+  const set = setLevel(context.strikerBallsFaced);
+  const phaseMod = cfg.phase[context.phase] ?? { boundary: 1, wicket: 1, dot: 1 };
+
+  // A batter who has not scored for an over starts looking for a release
+  // shot, and that is usually when the wicket comes.
+  const dots = Math.max(0, context.consecutiveDots - cfg.dotPressure.from);
+  const dotWicket = 1 + Math.min(cfg.dotPressure.maxWicket, dots * cfg.dotPressure.wicketPerDot);
+
+  // Milestone nerves.
+  const nearMilestone = cfg.batting.milestone.marks.some((mark) => {
+    const gap = mark - context.strikerRuns;
+    return gap > 0 && gap <= cfg.batting.milestone.window;
+  });
+  const milestone = nearMilestone ? cfg.batting.milestone.wicketBump : 1;
+
+  // Wickets come in clusters: a new batter walking in while the last two went
+  // cheaply is in far more trouble than the same batter in a calm innings.
+  const cluster = Math.max(0, context.recentWickets - 1);
+  const collapse = 1 + cluster * cfg.momentum.collapseWicket;
+  // A pair who have been in for twenty overs have worn the bowling down.
+  const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
+
+  return { batter, bowler, bite, edge, settle, set, phaseMod, dotWicket, milestone, cluster, collapse, partnership };
+}
+
+/**
+ * How much of the extra risk of attacking this batter carries right now. The
+ * same shot is far riskier for a batter who is not in, on a hard pitch,
+ * against a better bowler, or without the temperament for it; raw power makes
+ * clearing the rope easier. 1 is an average situation.
+ */
+export function aggressionRiskScale(context: DeliveryContext, f: DuelFactors): number {
+  const r = MATCH.aggression.risk;
+  const temperament = normalise(context.striker.attributes.mental.temperament);
+  const power = batterPower(context.striker);
+  const ease = context.conditions.pitch.battingEase / 100;
+  const scale =
+    1 +
+    r.unsettled * (1 - f.settle) +
+    r.pitch * (0.5 - ease) * 2 +
+    r.bowler * (f.bowler - f.batter) +
+    r.temperament * (0.5 - temperament) * 2 -
+    r.power * (power - 0.5) * 2;
+  return Math.max(0.4, Math.min(2.5, scale));
+}
+
+/** Chance this delivery takes a wicket, before free hits and the roll. */
+export function wicketChance(context: DeliveryContext, threat: number, f: DuelFactors): number {
+  const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
+  const cfg = MATCH;
+  const index = Math.max(0, Math.min(4, context.approach.level - 1));
+  const defaultIndex = Math.max(0, Math.min(4, rates.defaultIntent - 1));
+  const bowlingIndex = Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1));
+
+  // Attacking multiplies the risk; how much depends on the situation.
+  const raw = cfg.intent.wicket[index] / cfg.intent.wicket[defaultIndex];
+  const intentWicket = raw > 1 ? 1 + (raw - 1) * aggressionRiskScale(context, f) : raw;
+
+  const p =
+    rates.wicket *
+    (0.55 + 0.9 * threat) *
+    intentWicket *
+    (1 - f.edge * cfg.edge.wicket) *
+    f.phaseMod.wicket *
+    (1 + f.bite * cfg.pressure.wicketAtMax) *
+    (1 + (1 - f.settle) * cfg.newBatter.wicketPenalty) *
+    (1 - f.set * (1 - cfg.setBatter.wicket)) *
+    f.collapse *
+    f.dotWicket *
+    f.milestone *
+    (1 - f.partnership * cfg.momentum.settledPartnershipWicket) *
+    (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2) *
+    (context.rotate ? cfg.rotate.wicket : 1) *
+    cfg.bowlingAggression.wicket[bowlingIndex];
+  return clamp01(
+    Math.max(rates.wicket * cfg.limits.wicketFloor, Math.min(rates.wicket * cfg.limits.wicketCeiling, p)),
+  );
+}
+
+/**
+ * The chance of a wicket on an ordinary delivery, for the risk label next to
+ * an aggression bar. No random numbers: it uses a typical execution error.
+ */
+export function estimateWicketChance(context: DeliveryContext): number {
+  return wicketChance(context, deliveryThreat(context, 0.25), duelFactors(context));
+}
 
 /** Resolve one legal or illegal delivery into everything the scorecard needs. */
 export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOutcome {
@@ -183,69 +323,37 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     };
   }
 
+  // --- No shot offered ----------------------------------------------------
+  // The batter chose to leave it, or - batting defensively - lets one go
+  // outside off stump of their own accord.
+  const levelIndex = Math.max(0, Math.min(4, context.approach.level - 1));
+  const outsideOff = context.plan.line === 'WIDE_OFF' || context.plan.line === 'OUTSIDE_OFF';
+  // Relative to the format's normal game, so an ordinary Test batter does not
+  // leave any more than before.
+  const formatLeave = cfg.aggression.leaveOutsideOff[Math.max(0, Math.min(4, rates.defaultIntent - 1))];
+  const autoLeave =
+    !context.leave && outsideOff ? Math.max(0, cfg.aggression.leaveOutsideOff[levelIndex] - formatLeave) : 0;
+  if (context.leave || (autoLeave > 0 && rng.chance(autoLeave))) {
+    return resolveLeave(context, deliveryThreat(context, error), speed, rng);
+  }
+
   // --- The duel -----------------------------------------------------------
-  const batter = batterSkill(context);
-  const bowler = bowlerSkill(context);
   const threat = deliveryThreat(context, error);
-  const bite = pressureBite(context);
-
-  const edge = Math.max(-cfg.edge.clamp, Math.min(cfg.edge.clamp, batter - bowler));
-  const intentIndex = Math.max(0, Math.min(4, context.approach.level - 1));
-
-  // Quality of contact drives everything downstream.
-  const contact = clamp01(
-    0.5 + (edge - threat * 0.55) * 0.6 + rng.spread() * 0.3 - bite * 0.18,
-  );
-
-  const settle = clamp01(context.strikerBallsFaced / cfg.newBatter.settleBalls);
-  const set = setLevel(context.strikerBallsFaced);
-  const phaseMod = cfg.phase[context.phase] ?? { boundary: 1, wicket: 1, dot: 1 };
-
-  // --- Dot-ball pressure ---------------------------------------------------
-  // A batter who has not scored for an over starts looking for a release
-  // shot, and that is usually when the wicket comes.
-  const dots = Math.max(0, context.consecutiveDots - cfg.dotPressure.from);
-  const dotWicket = 1 + Math.min(cfg.dotPressure.maxWicket, dots * cfg.dotPressure.wicketPerDot);
-
-  // --- Milestone nerves ----------------------------------------------------
-  const nearMilestone = cfg.batting.milestone.marks.some((mark) => {
-    const gap = mark - context.strikerRuns;
-    return gap > 0 && gap <= cfg.batting.milestone.window;
-  });
-  const milestone = nearMilestone ? cfg.batting.milestone.wicketBump : 1;
-
-  // --- Momentum ------------------------------------------------------------
-  // Wickets come in clusters: a new batter walking in while the last two went
-  // cheaply is in far more trouble than the same batter in a calm innings.
-  const cluster = Math.max(0, context.recentWickets - 1);
-  const collapse = 1 + cluster * cfg.momentum.collapseWicket;
-  // The other side of it: a pair who have been in for twenty overs have worn
-  // the bowling down, and the captain is running out of ideas.
-  const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
-
-  // --- Wicket -------------------------------------------------------------
+  const f = duelFactors(context);
+  const { edge, bite, settle, set, phaseMod, cluster, partnership } = f;
+  const intentIndex = levelIndex;
   const defaultIntentIndex = Math.max(0, Math.min(4, rates.defaultIntent - 1));
 
-  let pWicket =
-    rates.wicket *
-    (0.55 + 0.9 * threat) *
-    (cfg.intent.wicket[intentIndex] / cfg.intent.wicket[defaultIntentIndex]) *
-    (1 - edge * cfg.edge.wicket) *
-    phaseMod.wicket *
-    (1 + bite * cfg.pressure.wicketAtMax) *
-    (1 + (1 - settle) * cfg.newBatter.wicketPenalty) *
-    (1 - set * (1 - cfg.setBatter.wicket)) *
-    collapse *
-    dotWicket *
-    milestone *
-    (1 - partnership * cfg.momentum.settledPartnershipWicket) *
-    (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2);
-  pWicket = clamp01(
-    Math.max(
-      rates.wicket * cfg.limits.wicketFloor,
-      Math.min(rates.wicket * cfg.limits.wicketCeiling, pWicket),
-    ),
+  // Quality of contact drives everything downstream. Attacking brings more
+  // false shots; defending, fewer.
+  const aggressionContact =
+    cfg.aggression.contact[intentIndex] - cfg.aggression.contact[defaultIntentIndex];
+  const contact = clamp01(
+    0.5 + (edge - threat * 0.55) * 0.6 + rng.spread() * 0.3 - bite * 0.18 + aggressionContact,
   );
+
+  // --- Wicket -------------------------------------------------------------
+  let pWicket = wicketChance(context, threat, f);
 
   // --- Boundaries ---------------------------------------------------------
   const power = batterPower(context.striker);
@@ -259,9 +367,18 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   const softBall = context.conditions.ball.hardness < 55 ? cfg.ball.softBallBoundary : 1;
   const easeBoundary = 1 + (context.conditions.pitch.battingEase / 100 - 0.5) * cfg.pitch.battingEaseBoundary * 2;
 
-  const intentBoundary = cfg.intent.boundary[intentIndex] / cfg.intent.boundary[defaultIntentIndex];
+  // A powerful batter gets more out of going for it.
+  const rawIntentBoundary = cfg.intent.boundary[intentIndex] / cfg.intent.boundary[defaultIntentIndex];
+  const intentBoundary =
+    rawIntentBoundary > 1
+      ? 1 + (rawIntentBoundary - 1) * (1 + cfg.aggression.powerReward * (power - 0.5) * 2)
+      : rawIntentBoundary;
 
-  const capped = Math.min(cfg.limits.boundaryCeiling, intentBoundary * boundaryBase * easeBoundary);
+  const bowlingIndex = Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1));
+  const capped =
+    Math.min(cfg.limits.boundaryCeiling, intentBoundary * boundaryBase * easeBoundary) *
+    (context.rotate ? cfg.rotate.boundary : 1) *
+    cfg.bowlingAggression.boundary[bowlingIndex];
 
   let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76));
   // Ground size matters: a short square boundary turns a mis-hit pull into
@@ -312,6 +429,62 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   );
 }
 
+/** The batter leaves it. Safe outside off; on the stumps, it is a gamble. */
+function resolveLeave(
+  context: DeliveryContext,
+  threat: number,
+  speed: number,
+  rng: Rng,
+): DeliveryOutcome {
+  const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
+  const cfg = MATCH.leave;
+  const risk = (cfg.lineRisk[context.plan.line] ?? 0) * (cfg.lengthRisk[context.plan.length] ?? 1);
+  const pOut = context.freeHit ? 0 : clamp01(rates.wicket * risk * (0.55 + 0.9 * threat));
+  const { striker, bowler } = context;
+
+  const base = {
+    extras: null,
+    isLegalDelivery: true,
+    isBoundaryFour: false,
+    isBoundarySix: false,
+    shot: 'LEAVE' as const,
+    contactQuality: 0,
+    shotAngle: null,
+    shotDistance: null,
+    speed,
+    strikeRotated: false,
+    review: null,
+    dropped: null,
+    retired: null,
+  };
+
+  if (rng.chance(pOut)) {
+    const lbw = rng.chance(cfg.lbwShare);
+    return {
+      ...base,
+      runsOffBat: 0,
+      wicket: { type: lbw ? 'LBW' : 'BOWLED', bowlerId: bowler.id, fielderId: null },
+      dismissedPlayerId: striker.id,
+      fielderName: null,
+      commentary: lbw
+        ? `${striker.name} shoulders arms and it raps the pad in front. Plumb - out lbw.`
+        : `${striker.name} leaves it... and hears the death rattle. Bowled, leaving!`,
+    };
+  }
+
+  return {
+    ...base,
+    runsOffBat: 0,
+    wicket: null,
+    dismissedPlayerId: null,
+    fielderName: context.field.keeperName,
+    commentary:
+      context.plan.line === 'OFF_STUMP' || context.plan.line === 'MIDDLE'
+        ? `${striker.name} leaves it, and it goes perilously close to the off stump.`
+        : `${striker.name} leaves it alone outside off. Good judgement.`,
+  };
+}
+
 /** A wicket: work out how, and who takes the catch. */
 function resolveWicket(
   context: DeliveryContext,
@@ -354,6 +527,13 @@ function resolveWicket(
     weights.CAUGHT *= 1.5;
     weights.LBW *= 0.75;
   }
+  if (context.aroundTheWicket) {
+    const cfg = MATCH.aroundTheWicket;
+    weights.LBW *= cfg.lbw;
+    weights.BOWLED *= cfg.bowled;
+    weights.CAUGHT_BEHIND *= cfg.caughtBehind;
+    weights.CAUGHT *= cfg.caught;
+  }
 
   const type = rng.weighted<DismissalType>(
     (Object.keys(weights) as DismissalType[]).map((item) => ({ item, weight: weights[item] })),
@@ -362,7 +542,12 @@ function resolveWicket(
   // Where the ball went, so the ground view can draw the chance.
   const shot = chooseShot(context, input.contact, rng);
   const spec = SHOT_ANGLES[shot];
-  const angle = (spec.angle + rng.spread() * spec.spread + 360) % 360;
+  const angle = steer(
+    (spec.angle + rng.spread() * spec.spread + 360) % 360,
+    context.shotPreference,
+    input.contact,
+    context.striker.attributes.batting.technique,
+  );
   const distance = Math.max(4, 12 + input.contact * 34 + rng.spread() * 8);
 
   let fielderName: string | null = null;
@@ -394,7 +579,14 @@ function resolveWicket(
         MATCH.fielding.regulationCatch +
           normalise(nearest.fielder.catching) * MATCH.fielding.regulationCatchSkill,
       );
-      if (!rng.chance(held)) {
+      const roll = () => rng.chance(held);
+      const caught = context.hooks?.fieldingChance
+        ? context.hooks.fieldingChance(
+            { kind: 'CATCH', fielderId: nearest.fielder.playerId, probability: held, onTheRope: false },
+            roll,
+          )
+        : roll();
+      if (!caught) {
         // Put down. The batter carries on, and they usually run one.
         const runs = rng.chance(0.55) ? 1 : 0;
         return {
@@ -433,9 +625,29 @@ function resolveWicket(
 
     if (hasReview) {
       // A side that reviews well spots the wrong ones and leaves the rest.
-      const shouldReview = wrong
-        ? rng.chance(cfg.reviewJudgement + 0.35)
-        : rng.chance(cfg.speculativeReviewChance);
+      const aiReview = () =>
+        wrong ? rng.chance(cfg.reviewJudgement + 0.35) : rng.chance(cfg.speculativeReviewChance);
+      // What the batter felt: a hint for whoever is deciding, never a certainty.
+      const feel: 'CONFIDENT' | 'UNSURE' | 'PLUMB' = wrong
+        ? input.threat < 0.55
+          ? 'CONFIDENT'
+          : 'UNSURE'
+        : input.threat > 0.6
+          ? 'PLUMB'
+          : 'UNSURE';
+      const shouldReview = context.hooks?.review
+        ? context.hooks.review(
+            {
+              kind: 'REVIEW',
+              side: 'BATTING',
+              batterId: striker.id,
+              bowlerId: context.bowler.id,
+              dismissal: type,
+              feel,
+            },
+            aiReview,
+          )
+        : aiReview();
 
       if (shouldReview) {
         if (wrong) {
@@ -505,18 +717,32 @@ function resolveBoundary(
 ): DeliveryOutcome {
   const shot = chooseShot(context, input.contact, rng);
   const spec = SHOT_ANGLES[shot];
-  const angle = (spec.angle + rng.spread() * spec.spread + 360) % 360;
+  const angle = steer(
+    (spec.angle + rng.spread() * spec.spread + 360) % 360,
+    context.shotPreference,
+    input.contact,
+    context.striker.attributes.batting.technique,
+  );
   const distance = input.six ? rng.range(68, 92) : rng.range(58, 72);
 
   // A six hit flat to a boundary rider is sometimes a catch instead.
   if (input.six) {
     const nearest = nearestFielder(context.field, angle, distance);
-    if (
+    const reachable =
       nearest &&
       nearest.fielder.ring === 'OUTER' &&
-      nearest.travel < MATCH.fielding.boundaryCatchReach &&
-      rng.chance(catchChance(nearest.fielder, nearest.travel, 0.55))
-    ) {
+      nearest.travel < MATCH.fielding.boundaryCatchReach;
+    const probability = reachable ? catchChance(nearest.fielder, nearest.travel, 0.55) : 0;
+    const roll = () => rng.chance(probability);
+    const caught =
+      reachable &&
+      (context.hooks?.fieldingChance
+        ? context.hooks.fieldingChance(
+            { kind: 'CATCH', fielderId: nearest.fielder.playerId, probability, onTheRope: true },
+            roll,
+          )
+        : roll());
+    if (nearest && caught) {
       return {
         runsOffBat: 0,
         extras: null,
@@ -588,7 +814,12 @@ function resolvePlacedShot(
 
   const shot = chooseShot(context, contact, rng);
   const spec = SHOT_ANGLES[shot];
-  const angle = (spec.angle + rng.spread() * spec.spread + 360) % 360;
+  const angle = steer(
+    (spec.angle + rng.spread() * spec.spread + 360) % 360,
+    context.shotPreference,
+    contact,
+    context.striker.attributes.batting.technique,
+  );
   const distance = Math.max(2, 6 + contact * 46 + rng.spread() * 10);
 
   const nearest = nearestFielder(context.field, angle, distance);
@@ -610,7 +841,9 @@ function resolvePlacedShot(
       (input.cluster > 0 ? cfg.momentum.collapseDot : 1) *
       (1 - input.edge * cfg.edge.dot) *
       (1 + straightAt * cfg.fielding.ringSaveChance * 0.6) *
-      (1.2 - contact * 0.4),
+      (1.2 - contact * 0.4) *
+      (context.rotate ? cfg.rotate.dot : 1) *
+      cfg.bowlingAggression.dot[Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1))],
   );
 
   const runFactor = cfg.intent.running[intentIndex] * (0.7 + running * 0.6);
@@ -631,6 +864,12 @@ function resolvePlacedShot(
     { item: 2, weight: evenTwo },
     { item: 3, weight: threeWeight },
   ]);
+
+  // Beaten in front on a straight one: a big appeal, turned down.
+  if (runs === 0 && contact < MATCH.umpiring.appealContact) {
+    const appeal = rollAppeal(context, { contact, speed: input.speed, shot, angle, distance }, rng);
+    if (appeal) return appeal;
+  }
 
   // Beaten outside off? Sometimes it runs away for byes or off the pad.
   if (runs === 0 && contact < 0.28) {
@@ -717,6 +956,92 @@ function resolvePlacedShot(
   };
 }
 
+/**
+ * A big lbw shout given not out. Most are right; a few are not, and a fielding
+ * side with a review left can go upstairs. Returns null when play simply goes
+ * on as a dot ball.
+ */
+function rollAppeal(
+  context: DeliveryContext,
+  input: { contact: number; speed: number; shot: ShotType; angle: number; distance: number },
+  rng: Rng,
+): DeliveryOutcome | null {
+  const cfg = MATCH.umpiring;
+  const straight =
+    context.plan.line === 'OFF_STUMP' ||
+    context.plan.line === 'MIDDLE' ||
+    context.plan.line === 'LEG_STUMP';
+  const pitchedUp =
+    context.plan.length === 'FULL' || context.plan.length === 'GOOD' || context.plan.length === 'YORKER';
+  if (!straight || !pitchedUp || context.freeHit) return null;
+  if (context.reviewsLeft.bowling <= 0) return null;
+  if (!rng.chance(cfg.appealChance)) return null;
+
+  // Was it actually hitting?
+  const wrong = rng.chance(cfg.missedLbwShare);
+  const aiReview = () =>
+    wrong ? rng.chance(cfg.bowlingReviewJudgement) : rng.chance(cfg.speculativeReviewChance * 0.5);
+  const feel: 'PLUMB' | 'UNSURE' = input.contact < (wrong ? 0.22 : 0.08) ? 'PLUMB' : 'UNSURE';
+  const shouldReview = context.hooks?.review
+    ? context.hooks.review(
+        {
+          kind: 'REVIEW',
+          side: 'BOWLING',
+          batterId: context.striker.id,
+          bowlerId: context.bowler.id,
+          dismissal: 'LBW',
+          feel,
+        },
+        aiReview,
+      )
+    : aiReview();
+  if (!shouldReview) return null;
+
+  const base = {
+    extras: null,
+    isLegalDelivery: true,
+    isBoundaryFour: false,
+    isBoundarySix: false,
+    shot: input.shot,
+    contactQuality: Math.round(input.contact * 100),
+    shotAngle: null,
+    shotDistance: null,
+    fielderName: null,
+    speed: input.speed,
+    strikeRotated: false,
+    dropped: null,
+    retired: null,
+    runsOffBat: 0,
+  };
+  const { striker, bowler } = context;
+
+  if (!wrong) {
+    return {
+      ...base,
+      wicket: null,
+      dismissedPlayerId: null,
+      review: { by: 'BOWLING', outcome: 'UPHELD' },
+      commentary: `Big shout for lbw against ${striker.name}, turned down. They review - and it is missing. Review lost.`,
+    };
+  }
+  if (rng.chance(cfg.umpiresCallShare)) {
+    return {
+      ...base,
+      wicket: null,
+      dismissedPlayerId: null,
+      review: { by: 'BOWLING', outcome: 'UMPIRES_CALL' },
+      commentary: `Appeal against ${striker.name}, not out. Reviewed: umpire's call. The not-out stands, review retained.`,
+    };
+  }
+  return {
+    ...base,
+    wicket: { type: 'LBW', bowlerId: bowler.id, fielderId: null },
+    dismissedPlayerId: striker.id,
+    review: { by: 'BOWLING', outcome: 'OVERTURNED' },
+    commentary: `Given not out, but ${bowler.name} was sure. Reviewed - three reds. ${striker.name} is out lbw, overturned!`,
+  };
+}
+
 /** A sharp single, a direct hit, and someone is walking off. */
 function rollRunOut(
   context: DeliveryContext,
@@ -739,7 +1064,19 @@ function rollRunOut(
 
   const converted =
     cfg.conversion * (0.5 + fieldingSharpness * cfg.fieldingWeight * 2) * (1.3 - batterRunning * cfg.runningWeight);
-  if (!rng.chance(clamp01(converted))) return null;
+  const roll = () => rng.chance(clamp01(converted));
+  const hit = context.hooks?.fieldingChance
+    ? context.hooks.fieldingChance(
+        {
+          kind: 'RUN_OUT',
+          fielderId: fielder.playerId,
+          probability: clamp01(converted),
+          batterId: context.striker.id,
+        },
+        roll,
+      )
+    : roll();
+  if (!hit) return null;
 
   // The batter who was going for the extra run is usually the one who goes.
   const directHit = rng.chance(MATCH.fielding.directHitChance * (0.5 + fieldingSharpness));

@@ -8,11 +8,47 @@ export {
   type MatchSetup,
   type MatchSimulation,
 } from './simulate';
-export { simulateInnings, oversFor, bowlersOf, type InningsSetup, type InningsResult, type Partnership } from './innings';
+export {
+  simulateInnings,
+  createInningsState,
+  stepBall,
+  resumeBall,
+  DecisionNeeded,
+  finishInnings,
+  strikerOf,
+  nonStrikerOf,
+  oversFor,
+  bowlersOf,
+  type InningsSetup,
+  type InningsResult,
+  type InningsState,
+  type BallOverrides,
+  type PendingBall,
+  type Partnership,
+} from './innings';
+export {
+  createLiveMatch,
+  type LiveMatch,
+  type LiveMatchSetup,
+  type LiveSnapshot,
+  type LiveAlert,
+  type LivePhase,
+} from './live';
 export { resolveDelivery } from './delivery';
 export { describeBall } from './commentary';
 export { applyAftermath, formBandFor, moraleBandFor, type AftermathInput, type AftermathResult } from './aftermath';
-export { generateXi, toRivalPlayers } from './squad';
+export { generateXi, generateSquad, toRivalPlayers } from './squad';
+export {
+  buildMatch,
+  squadFor,
+  defaultXiIds,
+  battingOrderOf,
+  xiWarnings,
+  simFromRival,
+  simFromUser,
+  rivalFromSim,
+  type MatchBuild,
+} from './lineup';
 export {
   createPitch,
   createWeather,
@@ -33,6 +69,8 @@ export {
   catchChance,
   fieldersAllowedOutside,
   FIELD_POSITIONS,
+  FIELD_PRESETS,
+  FIELD_PRESET_NAMES,
 } from './field';
 export {
   chooseApproach,
@@ -62,5 +100,9 @@ export type {
   DeliveryOutcome,
   FieldSetting,
   PlacedFielder,
+  DecisionHooks,
+  DecisionQuestion,
+  FieldingQuestion,
+  ReviewQuestion,
 } from './types';
 export { INTENT_LEVELS, INTENT_BY_LEVEL } from './types';

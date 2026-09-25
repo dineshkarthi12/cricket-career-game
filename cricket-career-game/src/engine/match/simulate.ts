@@ -199,7 +199,8 @@ interface PlayOutcome {
 }
 
 /** Rain: how many overs this match loses, if any. */
-function rollOversLost(rng: Rng, rainRisk: number, totalOvers: number): number {
+/** Overs a limited-overs match loses to rain at one point in the day. */
+export function rollOversLost(rng: Rng, rainRisk: number, totalOvers: number): number {
   const cfg = MATCH.rain;
   const chance = cfg.interruptionScale * rainRisk * totalOvers;
   if (!rng.chance(Math.min(0.6, chance))) return 0;
@@ -635,7 +636,11 @@ function impactOf(match: Match, playerId: string): number {
   return score;
 }
 
-function pickManOfTheMatch(match: Match, players: SimPlayer[], result: MatchResult): string | null {
+export function pickManOfTheMatch(
+  match: Match,
+  players: SimPlayer[],
+  result: MatchResult,
+): string | null {
   let bestId: string | null = null;
   let bestScore = -Infinity;
   for (const player of players) {
