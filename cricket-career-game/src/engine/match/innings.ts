@@ -4,7 +4,7 @@
  */
 import { MATCH, MATCH_FORMATS } from '../config';
 import { newId } from '../id';
-import { ageBall, deterioratePitch, phaseFor } from './conditions';
+import { ageBall, deterioratePitch, dewLevel, phaseFor } from './conditions';
 import { chooseApproach, chooseBowler, choosePlan, runRatePressure, type Situation } from './ai';
 import { chooseField, placeField } from './field';
 import { resolveDelivery } from './delivery';
@@ -240,6 +240,9 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
       }
     }
 
+    // Dew settles as the evening goes on, so it builds through the innings.
+    const currentDew = dewLevel(setup.venue, conditions.weather, setup.underLights, overNumber);
+
     const runsAtOverStart = runs;
     let ballsThisOver = 0;
     let wicketsThisOver = 0;
@@ -343,6 +346,11 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
           ballsRemaining,
           wicketsInHand: batting.length - 1 - wickets,
           battingAtHome: setup.battingAtHome,
+          dew: currentDew,
+          boundaries: {
+            straight: setup.venue.straightBoundary,
+            square: setup.venue.squareBoundary,
+          },
           day,
         },
         rng,

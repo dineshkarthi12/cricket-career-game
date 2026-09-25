@@ -1,6 +1,13 @@
 /** Public surface of the match engine. Pure TypeScript - no React anywhere. */
 export { createRng, deriveSeed, type Rng } from './rng';
-export { simulateMatch, isLimitedOvers, buildPerformance, type MatchSetup, type MatchSimulation } from './simulate';
+export {
+  simulateMatch,
+  isLimitedOvers,
+  buildPerformance,
+  decideToss,
+  type MatchSetup,
+  type MatchSimulation,
+} from './simulate';
 export { simulateInnings, oversFor, bowlersOf, type InningsSetup, type InningsResult, type Partnership } from './innings';
 export { resolveDelivery } from './delivery';
 export { describeBall } from './commentary';

@@ -15,8 +15,10 @@ import type {
   Match,
   MatchFormat,
   MatchResult,
+  Pitch,
   PlayerMatchPerformance,
   Venue,
+  Weather,
 } from '@/types';
 
 export interface MatchSetup {
@@ -42,6 +44,13 @@ export interface MatchSetup {
   seed: number;
   /** Month, 1-12, used to weight the weather. */
   month?: number;
+  /**
+   * What the user chose at the toss, when they are captain and won it.
+   * Left unset, the AI captain decides.
+   */
+  userTossDecision?: 'BAT' | 'BOWL';
+  /** True when the user is captain, so their choice is the one that counts. */
+  userIsCaptain?: boolean;
 }
 
 export interface MatchSimulation {
@@ -53,6 +62,37 @@ export interface MatchSimulation {
 }
 
 const LIMITED_OVERS: MatchFormat[] = ['T20', 'ODI', 'ONE_DAY'];
+
+/**
+ * What a captain does at the toss. Bat on a flat one; bowl on a green seamer
+ * under cloud; chase when dew is coming, because a wet ball at night is far
+ * harder to bowl with than to bat against. In the longer game batting first
+ * is worth more, because the fourth-innings pitch is the worst one.
+ */
+export function decideToss(input: {
+  pitch: Pitch;
+  weather: Weather;
+  underLights: boolean;
+  format: MatchFormat;
+  venue: Venue;
+  rng: Rng;
+}): 'BAT' | 'BOWL' {
+  const cfg = MATCH.toss;
+  const { pitch, weather, venue } = input;
+
+  // Positive favours batting first, negative favours bowling.
+  let score = ((pitch.battingEase - 50) / 50) * cfg.battingEaseWeight;
+  score -= ((pitch.seamMovement - 50) / 50) * cfg.seamWeight;
+  score -= (weather.cloudCover / 100) * cfg.cloudWeight;
+
+  // Dew expected under lights: everyone wants to chase.
+  if (input.underLights) score -= (venue.dewFactor / 100) * (weather.humidity / 100) * cfg.dewWeight;
+
+  if (!isLimitedOvers(input.format)) score += cfg.multiDayBatFirst;
+
+  score += input.rng.spread() * cfg.noise;
+  return score >= 0 ? 'BAT' : 'BOWL';
+}
 
 export function isLimitedOvers(format: MatchFormat): boolean {
   return LIMITED_OVERS.includes(format);
@@ -67,10 +107,15 @@ export function simulateMatch(setup: MatchSetup): MatchSimulation {
   const weather = createWeather(rng, setup.month ?? new Date(setup.date).getMonth() + 1);
   const underLights = setup.underLights ?? false;
 
-  // Toss. The captain reads the surface: bat on a flat one, bowl on a green one.
+  // Toss.
   const tossWinnerTeamId = rng.chance(0.5) ? setup.homeTeamId : setup.awayTeamId;
-  const wantsToBat = pitch.battingEase > 55 ? rng.chance(0.78) : rng.chance(0.38);
-  const tossDecision: 'BAT' | 'BOWL' = wantsToBat ? 'BAT' : 'BOWL';
+  const userTeamId = setup.userIsHome ? setup.homeTeamId : setup.awayTeamId;
+  const userCalls =
+    setup.userIsCaptain && setup.userTossDecision && tossWinnerTeamId === userTeamId;
+
+  const tossDecision: 'BAT' | 'BOWL' = userCalls
+    ? setup.userTossDecision!
+    : decideToss({ pitch, weather, underLights, format: setup.format, venue: setup.venue, rng });
 
   const battingFirstTeamId =
     tossDecision === 'BAT'

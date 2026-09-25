@@ -133,6 +133,10 @@ export interface DeliveryContext {
   wicketsInHand: number;
   /** Batting side is playing at home. */
   battingAtHome: boolean;
+  /** 0-1 dew on the ball, which builds through a night innings. */
+  dew: number;
+  /** Straight and square boundary distances at this ground, in metres. */
+  boundaries: { straight: number; square: number };
   /** Day of a multi-day match, 1-based. 1 for limited overs. */
   day: number;
 }

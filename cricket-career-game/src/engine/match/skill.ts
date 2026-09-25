@@ -105,7 +105,8 @@ export function batterSkill(context: DeliveryContext): number {
     b.footwork * 0.1 +
     b.concentration * 0.06;
 
-  const raw = normalise(core) * conditionMultiplier(striker.condition);
+  const home = context.battingAtHome ? 1 + MATCH.homeAdvantage.skill : 1;
+  const raw = normalise(core) * conditionMultiplier(striker.condition) * home;
 
   // A batter who has only just walked in is not yet the player they will be.
   const settle = clamp01(context.strikerBallsFaced / MATCH.newBatter.settleBalls);

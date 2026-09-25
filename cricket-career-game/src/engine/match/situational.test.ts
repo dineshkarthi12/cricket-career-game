@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { chooseApproach, chooseBowler, isPartTimer, type Situation } from './ai';
 import { fieldersAllowedOutside, placeField } from './field';
 import { matchupBonus, pacePreference, bowlerKindOf } from './skill';
+import { dewLevel } from './conditions';
 import { createRng } from './rng';
 import { generateXi } from './squad';
-import { simulateMatch } from './simulate';
+import { decideToss, simulateMatch } from './simulate';
 import { VENUES_BY_ID } from '@/data/venues';
 import type { SimPlayer as Sim } from './types';
 
@@ -251,5 +252,148 @@ describe('bowling changes', () => {
     };
 
     expect(pick(0.95, 'DEATH')).toBeGreaterThan(pick(0.4, 'MIDDLE'));
+  });
+});
+
+describe('toss and conditions', () => {
+  const baseWeather = {
+    type: 'SUNNY' as const,
+    temperature: 30,
+    humidity: 50,
+    cloudCover: 10,
+    wind: 10,
+    rainRisk: 0,
+    rainDelay: false,
+  };
+  const basePitch = {
+    type: 'SPORTING' as const,
+    seamMovement: 50,
+    swing: 50,
+    turn: 50,
+    bounce: 55,
+    pace: 55,
+    battingEase: 55,
+    deterioration: 0,
+  };
+
+  /** The toss has a little noise in it, so decide over many rolls. */
+  const batShare = (input: Parameters<typeof decideToss>[0], n = 400) => {
+    let bat = 0;
+    for (let i = 0; i < n; i += 1) {
+      if (decideToss({ ...input, rng: createRng(i + 1) }) === 'BAT') bat += 1;
+    }
+    return bat / n;
+  };
+
+  it('bats first on a flat pitch', () => {
+    const flat = batShare({
+      pitch: { ...basePitch, battingEase: 88, seamMovement: 20 },
+      weather: baseWeather,
+      underLights: false,
+      format: 'ODI',
+      venue,
+      rng: createRng(1),
+    });
+    expect(flat).toBeGreaterThan(0.8);
+  });
+
+  it('bowls first on a green seamer under cloud', () => {
+    const green = batShare({
+      pitch: { ...basePitch, battingEase: 32, seamMovement: 85 },
+      weather: { ...baseWeather, type: 'OVERCAST', cloudCover: 92, humidity: 80 },
+      underLights: false,
+      format: 'ODI',
+      venue,
+      rng: createRng(1),
+    });
+    expect(green).toBeLessThan(0.2);
+  });
+
+  it('prefers to chase when dew is expected under lights', () => {
+    const dry = batShare({
+      pitch: basePitch,
+      weather: { ...baseWeather, humidity: 30 },
+      underLights: false,
+      format: 'T20',
+      venue,
+      rng: createRng(1),
+    });
+    const dewy = batShare({
+      pitch: basePitch,
+      weather: { ...baseWeather, humidity: 95 },
+      underLights: true,
+      format: 'T20',
+      venue: { ...venue, dewFactor: 90 },
+      rng: createRng(1),
+    });
+    expect(dewy).toBeLessThan(dry);
+  });
+
+  it('values batting first more in the longer game', () => {
+    const odi = batShare({
+      pitch: basePitch,
+      weather: baseWeather,
+      underLights: false,
+      format: 'ODI',
+      venue,
+      rng: createRng(1),
+    });
+    const firstClass = batShare({
+      pitch: basePitch,
+      weather: baseWeather,
+      underLights: false,
+      format: 'MULTI_DAY',
+      venue,
+      rng: createRng(1),
+    });
+    expect(firstClass).toBeGreaterThan(odi);
+  });
+
+  it('lets the player call it when they are captain and win the toss', () => {
+    // Try both sides of the toss so one of them is the user's.
+    const decisions = new Set<string>();
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const { match } = simulateMatch({
+        fixtureId: 'fx', tournamentId: 't', seasonYear: 2026, format: 'T20', stage: 'League',
+        date: '2026-11-15', venue, homeTeamId: 'home', awayTeamId: 'away',
+        homeXi: generateXi('home', 66, createRng(seed)),
+        awayXi: generateXi('away', 64, createRng(seed + 99)),
+        userIsHome: true, userIsCaptain: true, userTossDecision: 'BOWL',
+        seed: seed * 13, month: 11,
+      });
+      if (match.tossWinnerTeamId === 'home') decisions.add(match.tossDecision!);
+    }
+    // Whenever the user's side won the toss, their choice was the one taken.
+    expect([...decisions]).toEqual(['BOWL']);
+  });
+
+  it('dew builds through a night innings and hurts the bowling side', () => {
+    const night = dewLevel({ ...venue, dewFactor: 90 }, { ...baseWeather, humidity: 95 }, true, 30);
+    const early = dewLevel({ ...venue, dewFactor: 90 }, { ...baseWeather, humidity: 95 }, true, 2);
+    const day = dewLevel({ ...venue, dewFactor: 90 }, { ...baseWeather, humidity: 95 }, false, 30);
+    expect(night).toBeGreaterThan(early);
+    expect(day).toBe(0);
+  });
+
+  it('a small ground produces more sixes than a big one', () => {
+    const sixesAt = (straight: number, square: number) => {
+      let sixes = 0;
+      for (let seed = 1; seed <= 26; seed += 1) {
+        const { match } = simulateMatch({
+          fixtureId: 'fx', tournamentId: 't', seasonYear: 2026, format: 'T20', stage: 'League',
+          date: '2026-11-15',
+          venue: { ...venue, straightBoundary: straight, squareBoundary: square },
+          homeTeamId: 'home', awayTeamId: 'away',
+          homeXi: generateXi('home', 66, createRng(seed)),
+          awayXi: generateXi('away', 64, createRng(seed + 7)),
+          userIsHome: true, seed: seed * 29, month: 11,
+        });
+        for (const innings of match.innings) {
+          for (const bat of innings.batting) sixes += bat.sixes;
+        }
+      }
+      return sixes;
+    };
+    expect(sixesAt(58, 55)).toBeGreaterThan(sixesAt(82, 78));
   });
 });

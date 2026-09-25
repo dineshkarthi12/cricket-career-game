@@ -36,7 +36,9 @@ function executionError(context: DeliveryContext, rng: Rng): number {
     context.striker.battingStyle !== context.nonStriker.battingStyle
       ? MATCH.batting.leftRightDisruption
       : 0;
-  const skill = clamp01(cfg.baseAccuracy * (0.5 + accuracy) - fatigue - leftRight);
+  // A wet ball is hard to grip, so the bowler's execution suffers.
+  const dew = context.dew * MATCH.weather.dewGripLoss;
+  const skill = clamp01(cfg.baseAccuracy * (0.5 + accuracy) - fatigue - leftRight - dew);
   // Even the best bowler misses; even the worst lands one on the spot.
   return clamp01(Math.abs(rng.spread()) * (1.25 - skill));
 }
@@ -66,7 +68,7 @@ function deliveryThreat(context: DeliveryContext, error: number): number {
 
   const swing = swingOnOffer(pitch, weather, ball);
   const seam = seamOnOffer(pitch, ball);
-  const turn = turnOnOffer(pitch, context.conditions.underLights ? MATCH.weather.dewGripLoss : 0);
+  const turn = turnOnOffer(pitch, context.dew);
   const bounce = bounceOnOffer(pitch, ball);
 
   const w = context.bowler.attributes.bowling;
@@ -259,7 +261,14 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   const capped = Math.min(cfg.limits.boundaryCeiling, intentBoundary * boundaryBase * easeBoundary);
 
   let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76));
-  let pSix = clamp01(rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1));
+  // Ground size matters: a short square boundary turns a mis-hit pull into
+  // six, a long straight one keeps the same shot in the ground.
+  const meanBoundary = (context.boundaries.straight + context.boundaries.square) / 2;
+  const groundSize = clamp01(1 + (68 - meanBoundary) / 40);
+
+  let pSix = clamp01(
+    rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1) * (0.6 + groundSize * 0.8),
+  );
 
   // Nothing can be more likely than the total probability space allows.
   const total = pWicket + pFour + pSix;

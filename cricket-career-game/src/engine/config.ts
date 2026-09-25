@@ -503,6 +503,27 @@ export const MATCH = {
     TEST: [{ untilOver: null, outside: 9 }],
   } as Record<string, { untilOver: number | null; outside: number }[]>,
 
+  /** What a captain weighs up at the toss. */
+  toss: {
+    /** A flat pitch is a reason to bat. */
+    battingEaseWeight: 1.3,
+    /** Grass and cloud are reasons to bowl. */
+    seamWeight: 0.8,
+    cloudWeight: 0.7,
+    /** Dew under lights makes chasing a lot easier. */
+    dewWeight: 1.5,
+    /** In the longer game, batting first is worth more. */
+    multiDayBatFirst: 0.5,
+    /** Captains are not machines. */
+    noise: 0.5,
+  },
+
+  /** Playing at home is worth something beyond a friendly crowd. */
+  homeAdvantage: {
+    /** Added to the home side's effective skill - they know the ground. */
+    skill: 0.03,
+  },
+
   /** Match-ups. The ball that leaves the bat is the one that gets the wicket. */
   matchup: {
     /** Spin turning away from the bat, e.g. left-arm orthodox to a right-hander. */
