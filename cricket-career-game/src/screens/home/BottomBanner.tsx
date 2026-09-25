@@ -25,7 +25,7 @@ export function BottomBanner() {
             REAL PLAYERS. REAL JOURNEYS.
           </p>
           <Link
-            to="/career"
+            to="/calendar"
             className="rounded-lg bg-brand-gold px-5 py-2.5 text-[13px] font-bold tracking-[0.04em] text-brand-navy transition-colors hover:bg-[#ffd633]"
           >
             Continue Career

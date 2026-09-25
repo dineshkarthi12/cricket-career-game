@@ -1,6 +1,7 @@
 import { CAREER_STAGES, CAREER_STAGES_BY_ID } from '@/data/stages';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { battingAverage, strikeRate } from '@/engine/records';
+import { estimatedCeilings } from '@/engine/development/coach';
 import { daysBetween } from './format';
 import type { StepItem } from '@/components';
 import type {
@@ -201,9 +202,13 @@ export function statsForTab(state: GameState, tab: StatsTabDefinition): TabStats
   };
 }
 
-/** The six batting axes drawn on the Skill Development radar. */
+/**
+ * The six batting axes drawn on the Skill Development radar. "Potential" is
+ * the coaches' estimate, never the hidden truth.
+ */
 export function radarAxes(state: GameState) {
-  const { attributes, potential } = state.player;
+  const { attributes } = state.player;
+  const potential = estimatedCeilings(state.player.potential, attributes, state.player.development);
   return [
     { axis: 'Technique', current: attributes.batting.technique, potential: potential.batting.technique },
     { axis: 'Timing', current: attributes.batting.timing, potential: potential.batting.timing },
@@ -225,4 +230,9 @@ export function featuredTrophies(state: GameState, limit = 4): Trophy[] {
     .filter((trophy) => !trophy.unlocked)
     .sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || b.progress - a.progress);
   return [...unlocked, ...locked].slice(0, limit);
+}
+
+/** The coaches' estimate of the player's potential overall (shown on the radar legend). */
+export function coachEstimate(state: GameState): number {
+  return Math.max(state.player.overall, state.player.development.coachEstimate);
 }

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { MobileTabBar } from './MobileTabBar';
+import { ContinueBar } from './ContinueBar';
 import { useGameStore } from '@/store/gameStore';
 import { playerTitle, unreadCount } from '@/lib/selectors';
 
@@ -35,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             xpToNextLevel={player?.xpToNextLevel ?? 100}
             notifications={state ? unreadCount(state) : 0}
           />
+          <ContinueBar />
           <main>{children}</main>
         </div>
       </div>

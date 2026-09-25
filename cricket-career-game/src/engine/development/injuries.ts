@@ -177,3 +177,27 @@ export function rehabWeek(rehab: RehabState, rng: Rng): RehabWeekResult {
     rushed: false,
   };
 }
+
+/** Earliest share of the rehab after which the player may insist on coming back. */
+export const EARLY_RETURN_SHARE = 0.5;
+
+export function canReturnEarly(rehab: RehabState | null): boolean {
+  return Boolean(rehab) && rehab!.weeksDone >= Math.ceil(rehab!.weeksNeeded * EARLY_RETURN_SHARE);
+}
+
+/**
+ * Come back before the physio is happy. The injury is cleared, but match
+ * sharpness is lower and for a while the chance of it going again is much
+ * higher (`rushedRecently`).
+ */
+export function returnEarly(development: DevelopmentState, injury: Injury, date: string): DevelopmentState {
+  const weeksOut = Math.max(1, Math.round(daysBetweenDates(injury.startedOn, date) / 7));
+  return {
+    ...development,
+    rehab: null,
+    matchFitness: Math.min(development.matchFitness, returnMatchFitness(weeksOut) - 8),
+    injuryHistory: development.injuryHistory.map((entry) =>
+      entry.id === injury.id ? { ...entry, returnedOn: date, weeksOut, rushed: true } : entry,
+    ),
+  };
+}

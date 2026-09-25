@@ -4,6 +4,7 @@ import { AppShell } from '@/layout/AppShell';
 import { installAutosaveGuards, useGameStore } from '@/store/gameStore';
 import Home from './screens/Home';
 import SlotPicker from './screens/SlotPicker';
+import StartScreen from './screens/StartScreen';
 import NewCareer from './screens/NewCareer';
 import MatchScreen from './screens/match/MatchScreen';
 import MatchesScreen from './screens/Matches';
@@ -30,6 +31,7 @@ export default function App() {
   return (
     <Routes>
       {/* Entry screens: no shell, because there is nothing to navigate yet. */}
+      <Route path="/start" element={<StartScreen />} />
       <Route path="/slots" element={<SlotPicker />} />
       <Route path="/new" element={<NewCareer />} />
 

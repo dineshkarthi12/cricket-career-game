@@ -10,6 +10,7 @@ export * from './xp';
 export * from './form';
 export * from './dates';
 export * from './labels';
+export * from './planning';
 export * from './plans';
 export * from './player';
 export * from './week';

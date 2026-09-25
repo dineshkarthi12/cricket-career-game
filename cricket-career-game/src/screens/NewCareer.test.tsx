@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import NewCareer from './NewCareer';
+import NewCareer, { dateOfBirthFor } from './NewCareer';
 import { useGameStore } from '@/store/gameStore';
 import { createDemoCareer } from '@/data/demoCareer';
+import { ageOn } from '@/engine/newCareer';
 import { listSlots, saveToSlot } from '@/save';
 
-function renderForm(entry = '/new') {
+function renderWizard(entry = '/new') {
   useGameStore.getState().refreshSlots();
   return render(
     <MemoryRouter initialEntries={[entry]}>
@@ -20,122 +21,101 @@ function renderForm(entry = '/new') {
 
 const type = (label: RegExp | string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-describe('NewCareer', () => {
+describe('NewCareer wizard', () => {
   beforeEach(() => {
     localStorage.clear();
-    useGameStore.setState({
-      state: null,
-      booted: false,
-      slot: null,
-      slots: [null, null, null],
-      lastError: null,
-    });
+    useGameStore.setState({ state: null, booted: false, slot: null, slots: [null, null, null], lastError: null });
   });
 
-  it('creates a career and opens the dashboard', () => {
-    renderForm();
-
+  it('walks through the four steps and opens the dashboard', () => {
+    renderWizard();
     type('First name', 'Arun');
     type('Last name', 'Rao');
-    type('Date of birth', '2015-03-10');
+    type('Age', '11');
     type('Hometown', 'Madurai');
-    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'PACE_BOWLER' } });
-    fireEvent.change(screen.getByLabelText('Bowling style'), {
-      target: { value: 'RIGHT_ARM_FAST' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
+    next();
 
+    fireEvent.click(screen.getByRole('radio', { name: /Bowler/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Left-handed/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Finisher/ }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Leg Spin' }));
+    next();
+
+    // Two traits are picked by default; add a third.
+    fireEvent.click(screen.getByRole('button', { name: /Fitness freak/ }));
+    next();
+
+    expect(screen.getByText('Starting OVR')).toBeInTheDocument();
+    expect(screen.queryByText(/hidden/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
 
     const { state } = useGameStore.getState();
     expect(state?.player.firstName).toBe('Arun');
-    expect(state?.player.lastName).toBe('Rao');
     expect(state?.player.hometown).toBe('Madurai');
-    expect(state?.player.role).toBe('PACE_BOWLER');
-    expect(state?.player.bowlingStyle).toBe('RIGHT_ARM_FAST');
-  });
-
-  it('starts every career at stage one with nothing won', () => {
-    renderForm();
-    type('First name', 'Meera');
-    type('Date of birth', '2015-03-10');
-    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
-
-    const { state } = useGameStore.getState();
+    expect(state?.player.state).toBe('Tamil Nadu');
+    expect(state?.player.age).toBe(11);
+    expect(state?.player.role).toBe('SPIN_BOWLER');
+    expect(state?.player.battingStyle).toBe('LEFT_HAND_BAT');
+    expect(state?.player.bowlingStyle).toBe('LEG_SPIN');
+    expect(state?.player.development.battingApproach).toBe('FINISHER');
+    expect(state?.player.development.traits).toContain('FITNESS_FREAK');
     expect(state?.career.currentStageId).toBe('BEGINNER');
-    expect(state?.career.stages.BEGINNER.status).toBe('CURRENT');
-    expect(state?.career.stages.STATE_U16.status).toBe('LOCKED');
-    expect(state?.player.record.byFormat.T20.batting.runs).toBe(0);
-    expect(state?.trophies.every((trophy) => !trophy.unlocked)).toBe(true);
-    expect(state?.player.level).toBe(1);
+    expect(state?.player.record.byFormat.ODI.batting.runs).toBe(0);
+    // The season is on the calendar from day one.
+    expect(Object.values(state!.fixtures).some((f) => f.kind === 'MATCH')).toBe(true);
   });
 
-  it('will not submit without a first name', () => {
-    renderForm();
-    type('Date of birth', '2015-03-10');
-    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
-
+  it('will not move on without a name', () => {
+    renderWizard();
+    next();
     expect(screen.getByText('Your player needs a first name.')).toBeInTheDocument();
-    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
-    expect(useGameStore.getState().state).toBeNull();
+    expect(screen.getByLabelText('First name')).toBeInTheDocument();
   });
 
-  it('rejects an age outside the 8-16 window a career can start in', () => {
-    renderForm();
+  it('offers hometowns with Tamil Nadu districts first and other states after', () => {
+    renderWizard();
+    const select = screen.getByLabelText('Hometown') as HTMLSelectElement;
+    const groups = Array.from(select.querySelectorAll('optgroup')).map((g) => g.label);
+    expect(groups[0]).toBe('Tamil Nadu');
+    expect(groups).toContain('Karnataka');
+    expect(select.querySelector('optgroup')?.querySelectorAll('option').length).toBeGreaterThan(30);
+  });
+
+  it('keeps ages to 8-12', () => {
+    renderWizard();
+    const ages = Array.from((screen.getByLabelText('Age') as HTMLSelectElement).options).map((o) => o.value);
+    expect(ages).toEqual(['8', '9', '10', '11', '12']);
+  });
+
+  it('does not let a bowler choose "does not bowl"', () => {
+    renderWizard();
+    type('First name', 'Kavin');
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Bowler/ }));
+    expect(screen.getByRole('radio', { name: "Doesn't bowl" })).toBeDisabled();
+  });
+
+  it('honours the slot in the URL and warns on overwrite', () => {
+    saveToSlot(2, createDemoCareer());
+    useGameStore.setState({ slots: listSlots() });
+    renderWizard('/new?slot=2');
     type('First name', 'Arun');
-    type('Date of birth', '1996-01-01');
-    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
-
-    expect(screen.getByText(/A career starts between 8 and 16 years old/)).toBeInTheDocument();
-    expect(useGameStore.getState().state).toBeNull();
+    next();
+    next();
+    next();
+    expect(screen.getByText(/Starting here overwrites it/)).toBeInTheDocument();
   });
 
-  it('rejects a shirt number outside 1-99', () => {
-    renderForm();
-    type('First name', 'Arun');
-    type('Date of birth', '2015-03-10');
-    type('Shirt number', '250');
-    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
-
-    expect(screen.getByText('Pick a number from 1 to 99.')).toBeInTheDocument();
-    expect(useGameStore.getState().state).toBeNull();
-  });
-
-  it('writes into the slot named in the URL', () => {
-    renderForm('/new?slot=3');
-    type('First name', 'Arun');
-    type('Date of birth', '2015-03-10');
-    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
-
-    expect(useGameStore.getState().slot).toBe(3);
-    expect(listSlots()[2]?.playerName).toBe('Arun');
-    expect(listSlots()[0]).toBeNull();
-  });
-
-  it('defaults to the first empty slot when the URL names none', () => {
-    saveToSlot(1, createDemoCareer());
-    renderForm();
-
-    type('First name', 'Arun');
-    type('Date of birth', '2015-03-10');
-    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
-
-    expect(useGameStore.getState().slot).toBe(2);
-    expect(listSlots()[0]?.playerName).toBe('Dinesh');
-    expect(listSlots()[1]?.playerName).toBe('Arun');
-  });
-
-  it('warns before overwriting a slot that already holds a career', () => {
-    saveToSlot(1, createDemoCareer());
-    renderForm('/new?slot=1');
-
-    expect(screen.getByText(/Slot 1 holds Dinesh's career/)).toBeInTheDocument();
-  });
-
-  it('reports the age the chosen date of birth gives on day one', () => {
-    renderForm();
-    type('Date of birth', '2015-03-10');
-    expect(screen.getByText(/Age 11 on Mon, 1 Jun 2026/)).toBeInTheDocument();
+  it('works out a date of birth that gives the chosen age on day one', () => {
+    for (const [age, month, day] of [
+      [8, 1, 5],
+      [10, 6, 1],
+      [12, 11, 30],
+    ]) {
+      expect(ageOn(dateOfBirthFor(age, month, day), '2026-06-01')).toBe(age);
+    }
   });
 });

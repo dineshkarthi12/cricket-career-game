@@ -18,13 +18,20 @@ function reset() {
 describe('store bootstrap', () => {
   beforeEach(reset);
 
-  it('seeds the demo career into slot 1 when nothing has ever been saved', () => {
+  it('loads nothing on a browser that has never played - the start screen takes over', () => {
     useGameStore.getState().bootstrap();
+    const { state, slot, booted } = useGameStore.getState();
+    expect(booted).toBe(true);
+    expect(state).toBeNull();
+    expect(slot).toBeNull();
+  });
+
+  it('can still load the demo career on request', () => {
+    useGameStore.getState().loadDemoCareer(1);
     const { state, slot } = useGameStore.getState();
     expect(slot).toBe(1);
     expect(state?.player.firstName).toBe('Dinesh');
     expect(state?.career.currentStageId).toBe('STATE_U16');
-    // It is a real save, so a reload resumes it rather than re-seeding.
     expect(useGameStore.getState().slots[0]?.playerName).toBe('Dinesh');
   });
 
@@ -63,6 +70,8 @@ describe('store bootstrap', () => {
   });
 
   it('does nothing when a career is already loaded', () => {
+    useGameStore.getState().loadDemoCareer(1);
+    useGameStore.setState({ booted: false });
     useGameStore.getState().bootstrap();
     const first = useGameStore.getState().state;
     useGameStore.getState().bootstrap();

@@ -14,8 +14,25 @@ import {
   setActiveSlot,
 } from '@/save';
 import { downloadSave } from '@/save/file';
+import { advanceWeek as advanceCareerWeek, type AdvanceResult } from '@/engine/calendar';
+import {
+  canReturnEarly,
+  changeRehabPlan,
+  returnEarly,
+  withLifestyle,
+  withSessions,
+  withStudyFocus,
+} from '@/engine/development';
 import { SAVE_SLOT_IDS } from '@/types';
-import type { GameState, SaveError, SaveMeta, SaveSlotId } from '@/types';
+import type {
+  GameState,
+  Lifestyle,
+  RehabPlan,
+  SaveError,
+  SaveMeta,
+  SaveSlotId,
+  TrainingSession,
+} from '@/types';
 
 interface GameStore {
   /** The career currently loaded, or `null` on the slot-picker screen. */
@@ -33,8 +50,9 @@ interface GameStore {
 
   refreshSlots: () => void;
   /**
-   * Resume the last career, or seed the demo career into slot 1 when this
-   * browser has never played. Safe to call more than once.
+   * Resume the last career (or the first saved one). A browser that has
+   * never played gets no career, and the start screen. Safe to call more
+   * than once.
    */
   bootstrap: () => void;
   startNewCareer: (slot: SaveSlotId, options: NewCareerOptions) => boolean;
@@ -53,6 +71,17 @@ interface GameStore {
    * Every gameplay mutation should go through here.
    */
   update: (mutate: (state: GameState) => GameState) => void;
+  /**
+   * The Continue button: advance up to a week. Returns what happened, or
+   * null with no career loaded.
+   */
+  advanceWeek: () => AdvanceResult | null;
+  setSessions: (sessions: TrainingSession[]) => void;
+  setLifestyle: (lifestyle: Partial<Lifestyle>) => void;
+  setStudyFocus: (focus: number) => void;
+  setRehabPlan: (plan: RehabPlan) => void;
+  /** Come back from injury before the physio is happy. */
+  returnEarly: () => boolean;
   closeCareer: () => void;
   clearError: () => void;
 }
@@ -81,8 +110,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const slots = listSlots();
     const firstUsed = SAVE_SLOT_IDS.find((slot) => slots[slot - 1]);
     if (firstUsed) get().loadCareer(firstUsed);
-    else get().loadDemoCareer(1);
-    set({ booted: true });
+    set({ booted: true, slots });
   },
 
   loadDemoCareer: (slot = 1) => {
@@ -223,6 +251,56 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const next = mutate(state);
     set({ state: next });
     if (slot !== null) scheduleAutosave(slot, next);
+  },
+
+  advanceWeek: () => {
+    const { state } = get();
+    if (!state) return null;
+    const result = advanceCareerWeek(state);
+    get().update(() => result.state);
+    return result;
+  },
+
+  setSessions: (sessions) =>
+    get().update((state) => ({ ...state, trainingPlan: withSessions(state.trainingPlan, sessions) })),
+
+  setLifestyle: (lifestyle) =>
+    get().update((state) => ({ ...state, trainingPlan: withLifestyle(state.trainingPlan, lifestyle) })),
+
+  setStudyFocus: (focus) =>
+    get().update((state) => ({ ...state, trainingPlan: withStudyFocus(state.trainingPlan, focus) })),
+
+  setRehabPlan: (plan) =>
+    get().update((state) => {
+      const { development, condition } = state.player;
+      if (!development.rehab || !condition.injury) return state;
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          development: { ...development, rehab: changeRehabPlan(development.rehab, condition.injury, plan) },
+        },
+      };
+    }),
+
+  returnEarly: () => {
+    const { state } = get();
+    if (!state) return false;
+    const { development, condition } = state.player;
+    if (!condition.injury || !canReturnEarly(development.rehab)) return false;
+    get().update((s) => ({
+      ...s,
+      player: {
+        ...s.player,
+        condition: { ...s.player.condition, injury: null },
+        development: returnEarly(s.player.development, condition.injury!, s.season.currentDate),
+      },
+      career: {
+        ...s.career,
+        selectionStatus: s.career.selectionStatus === 'INJURED_OUT' ? 'SQUAD' : s.career.selectionStatus,
+      },
+    }));
+    return true;
   },
 
   closeCareer: () => {

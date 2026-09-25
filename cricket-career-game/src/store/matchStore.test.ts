@@ -13,7 +13,7 @@ function reset() {
   localStorage.clear();
   useGameStore.setState({ state: null, booted: false, slot: null, slots: [null, null, null], lastError: null });
   __resetMatchStore();
-  useGameStore.getState().bootstrap();
+  useGameStore.getState().loadDemoCareer(1);
 }
 
 function open() {
