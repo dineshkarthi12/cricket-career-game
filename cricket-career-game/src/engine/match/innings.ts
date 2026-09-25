@@ -98,6 +98,8 @@ export interface BallOverrides {
 
 /** The whole mutable state of an innings in progress. */
 export interface InningsState {
+  /** Stable id, so the scorecard on screen and the stored one match. */
+  id: string;
   setup: InningsSetup;
   batting: SimPlayer[];
   bowlers: SimPlayer[];
@@ -219,6 +221,7 @@ export function createInningsState(setup: InningsSetup): InningsState {
   if (batting.length < 2) throw new Error('An innings needs at least two batters');
 
   return {
+    id: newId('inn'),
     setup,
     batting,
     bowlers: bowlersOf(setup.bowling),
@@ -695,32 +698,32 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
 }
 
 /** Wrap a finished (or abandoned) innings up into its result. */
-export function finishInnings(state: InningsState): InningsResult {
+/**
+ * The innings as a scorecard, at whatever point it has reached. Used both for
+ * the finished article and for the live screen, so the scorecard on screen
+ * during play is the same shape as the one stored afterwards.
+ */
+export function inningsView(state: InningsState): Innings {
   const { setup } = state;
 
-  // An innings that ended mid-over leaves the bowler's figures unfinalised,
-  // so every line is recomputed here rather than only at an over boundary.
+  // A bowler's figures are only written at over boundaries, so an innings read
+  // mid-over needs every line recomputed.
   for (const line of state.bowlingLines.values()) {
     line.overs = Math.floor(line.balls / 6) + (line.balls % 6) / 10;
     line.economy = line.balls > 0 ? (line.runsConceded / line.balls) * 6 : 0;
-  }
-
-  if (state.partnershipBalls > 0 || state.partnershipRuns > 0) {
-    state.partnerships.push({
-      runs: state.partnershipRuns,
-      balls: state.partnershipBalls,
-      batterIds: [strikerOf(state).id, nonStrikerOf(state).id],
-      wicketNumber: state.wickets + 1,
-    });
   }
 
   const extrasTotal = Object.values(state.extras).reduce((sum, n) => sum + n, 0);
   const batted = state.batting.filter(
     (p) => (state.battingLines.get(p.id)?.balls ?? 0) > 0 || state.battingLines.get(p.id)?.out,
   );
+  const atCrease = [strikerOf(state).id, nonStrikerOf(state).id];
+  const shown = state.batting.filter(
+    (p) => batted.some((b) => b.id === p.id) || atCrease.includes(p.id),
+  );
 
-  const innings: Innings = {
-    id: newId('inn'),
+  return {
+    id: state.id,
     number: setup.number,
     battingTeamId: setup.battingTeamId,
     bowlingTeamId: setup.bowlingTeamId,
@@ -730,17 +733,30 @@ export function finishInnings(state: InningsState): InningsResult {
     overs: Math.floor(state.legalBalls / 6) + (state.legalBalls % 6) / 10,
     extras: state.extras,
     extrasTotal,
-    batting: batted.map((p) => state.battingLines.get(p.id)!),
+    batting: shown.map((p) => state.battingLines.get(p.id)!),
     bowling: [...state.bowlingLines.values()],
     fallOfWickets: state.fallOfWickets,
     deliveries: state.deliveries,
     declared: state.ending === 'DECLARED',
     followOn: false,
     allOut: state.ending === 'ALL_OUT',
-    complete: true,
+    complete: state.complete,
     target: setup.target,
     dlsTarget: null,
   };
+}
+
+export function finishInnings(state: InningsState): InningsResult {
+  if (state.partnershipBalls > 0 || state.partnershipRuns > 0) {
+    state.partnerships.push({
+      runs: state.partnershipRuns,
+      balls: state.partnershipBalls,
+      batterIds: [strikerOf(state).id, nonStrikerOf(state).id],
+      wicketNumber: state.wickets + 1,
+    });
+  }
+
+  const innings: Innings = { ...inningsView(state), complete: true };
 
   return {
     innings,

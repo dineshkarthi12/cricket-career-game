@@ -15,6 +15,7 @@ import { hasResult } from './dls';
 import {
   createInningsState,
   finishInnings,
+  inningsView,
   nonStrikerOf,
   stepBall,
   strikerOf,
@@ -69,6 +70,8 @@ export interface LiveSnapshot {
   completed: Innings[];
   /** The innings in progress, if any. */
   current: {
+    /** The same shape the finished innings is stored in, for the scorecard. */
+    innings: Innings;
     number: number;
     battingTeamId: string;
     bowlingTeamId: string;
@@ -517,6 +520,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       completed,
       current: s
         ? {
+            innings: inningsView(s),
             number: s.setup.number,
             battingTeamId: s.setup.battingTeamId,
             bowlingTeamId: s.setup.bowlingTeamId,
