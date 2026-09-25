@@ -139,6 +139,10 @@ export interface DeliveryContext {
   boundaries: { straight: number; square: number };
   /** Day of a multi-day match, 1-based. 1 for limited overs. */
   day: number;
+  /** This ball is a free hit, so only a run-out can end it. */
+  freeHit: boolean;
+  /** Reviews the batting and bowling sides have left. */
+  reviewsLeft: { batting: number; bowling: number };
 }
 
 /** The result of one delivery, before it is written into the innings. */
@@ -159,5 +163,14 @@ export interface DeliveryOutcome {
   speed: number;
   /** True when the batters crossed an odd number of times. */
   strikeRotated: boolean;
+  /** Set when the decision went to a review. */
+  review: {
+    by: 'BATTING' | 'BOWLING';
+    outcome: 'OVERTURNED' | 'UPHELD' | 'UMPIRES_CALL';
+  } | null;
+  /** A catch that went down. */
+  dropped: { fielderName: string } | null;
+  /** The batter had to go off. */
+  retired: { playerId: Id; concussion: boolean } | null;
   commentary: string;
 }

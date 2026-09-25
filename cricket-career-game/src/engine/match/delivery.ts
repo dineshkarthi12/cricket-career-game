@@ -176,6 +176,9 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
       fielderName: null,
       speed,
       strikeRotated: false,
+      review: null,
+      dropped: null,
+      retired: null,
       commentary: describeBall({ context, kind: illegal.type === 'WIDE' ? 'WIDE' : 'NO_BALL' }),
     };
   }
@@ -279,6 +282,14 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     pSix *= scale;
   }
 
+  // On a free hit only a run-out can end the innings, and the batter knows
+  // it, so the boundary chance goes up.
+  if (context.freeHit) {
+    pWicket = 0;
+    pFour *= MATCH.freeHit.boundaryBonus;
+    pSix *= MATCH.freeHit.boundaryBonus;
+  }
+
   const roll = rng.next();
 
   if (roll < pWicket) {
@@ -373,6 +384,94 @@ function resolveWicket(
           ? context.bowler.id
           : null;
 
+  // --- Did the catch actually stick? --------------------------------------
+  // The ball has gone to hand, so this is a regulation chance rather than
+  // one the fielder has to chase; skill decides whether it is held.
+  if (type === 'CAUGHT') {
+    const nearest = nearestFielder(field, angle, distance);
+    if (nearest) {
+      const held = clamp01(
+        MATCH.fielding.regulationCatch +
+          normalise(nearest.fielder.catching) * MATCH.fielding.regulationCatchSkill,
+      );
+      if (!rng.chance(held)) {
+        // Put down. The batter carries on, and they usually run one.
+        const runs = rng.chance(0.55) ? 1 : 0;
+        return {
+          runsOffBat: runs,
+          extras: null,
+          isLegalDelivery: true,
+          isBoundaryFour: false,
+          isBoundarySix: false,
+          wicket: null,
+          dismissedPlayerId: null,
+          shot,
+          contactQuality: Math.round(input.contact * 100),
+          shotAngle: angle,
+          shotDistance: distance,
+          fielderName: nearest.fielder.name,
+          speed: input.speed,
+          strikeRotated: runs % 2 === 1,
+          review: null,
+          dropped: { fielderName: nearest.fielder.name },
+          retired: null,
+          commentary: `Chance! ${nearest.fielder.name} puts down ${striker.name} off ${context.bowler.name}.`,
+        };
+      }
+    }
+  }
+
+  // --- The umpire, and the review system ----------------------------------
+  // Only lbw and caught behind are close enough to be worth reviewing.
+  const reviewable = type === 'LBW' || type === 'CAUGHT_BEHIND';
+  let review: DeliveryOutcome['review'] = null;
+
+  if (reviewable) {
+    const cfg = MATCH.umpiring;
+    const wrong = rng.chance(cfg.wrongDecisionChance);
+    const hasReview = context.reviewsLeft.batting > 0;
+
+    if (hasReview) {
+      // A side that reviews well spots the wrong ones and leaves the rest.
+      const shouldReview = wrong
+        ? rng.chance(cfg.reviewJudgement + 0.35)
+        : rng.chance(cfg.speculativeReviewChance);
+
+      if (shouldReview) {
+        if (wrong) {
+          const umpiresCall = rng.chance(cfg.umpiresCallShare);
+          if (umpiresCall) {
+            review = { by: 'BATTING', outcome: 'UMPIRES_CALL' };
+          } else {
+            // Overturned: the batter survives.
+            return {
+              runsOffBat: 0,
+              extras: null,
+              isLegalDelivery: true,
+              isBoundaryFour: false,
+              isBoundarySix: false,
+              wicket: null,
+              dismissedPlayerId: null,
+              shot,
+              contactQuality: Math.round(input.contact * 100),
+              shotAngle: angle,
+              shotDistance: distance,
+              fielderName: null,
+              speed: input.speed,
+              strikeRotated: false,
+              review: { by: 'BATTING', outcome: 'OVERTURNED' },
+              dropped: null,
+              retired: null,
+              commentary: `${striker.name} reviews... and the replay saves him. Not out, the decision is overturned.`,
+            };
+          }
+        } else {
+          review = { by: 'BATTING', outcome: 'UPHELD' };
+        }
+      }
+    }
+  }
+
   return {
     runsOffBat: 0,
     extras: null,
@@ -388,7 +487,13 @@ function resolveWicket(
     fielderName,
     speed: input.speed,
     strikeRotated: false,
-    commentary: describeBall({ context, kind: 'WICKET', dismissal: type, fielderName, shot }),
+    review,
+    dropped: null,
+    retired: null,
+    commentary:
+      review?.outcome === 'UMPIRES_CALL'
+        ? `${striker.name} reviews, and it is umpire's call. The decision stands - out.`
+        : describeBall({ context, kind: 'WICKET', dismissal: type, fielderName, shot }),
   };
 }
 
@@ -427,6 +532,9 @@ function resolveBoundary(
         fielderName: nearest.fielder.name,
         speed: input.speed,
         strikeRotated: false,
+        review: null,
+        dropped: null,
+        retired: null,
         commentary: describeBall({
           context,
           kind: 'WICKET',
@@ -454,6 +562,9 @@ function resolveBoundary(
     fielderName: null,
     speed: input.speed,
     strikeRotated: false,
+    review: null,
+    dropped: null,
+    retired: null,
     commentary: describeBall({ context, kind: input.six ? 'SIX' : 'FOUR', shot }),
   };
 }
@@ -541,6 +652,9 @@ function resolvePlacedShot(
         fielderName: context.field.keeperName,
         speed: input.speed,
         strikeRotated: byes % 2 === 1,
+        review: null,
+        dropped: null,
+        retired: null,
         commentary: describeBall({ context, kind: 'BYE', runs: byes }),
       };
     }
@@ -561,6 +675,9 @@ function resolvePlacedShot(
         fielderName: null,
         speed: input.speed,
         strikeRotated: legByes % 2 === 1,
+        review: null,
+        dropped: null,
+        retired: null,
         commentary: describeBall({ context, kind: 'LEG_BYE', runs: legByes }),
       };
     }
@@ -572,8 +689,12 @@ function resolvePlacedShot(
     if (runOut) return runOut;
   }
 
+  // A fumble in the field lets one more through.
+  const misfield = fielder && runs > 0 && rng.chance(MATCH.fielding.misfieldChance);
+  const finalRuns = misfield ? runs + 1 : runs;
+
   return {
-    runsOffBat: runs,
+    runsOffBat: finalRuns,
     extras: null,
     isLegalDelivery: true,
     isBoundaryFour: false,
@@ -586,8 +707,13 @@ function resolvePlacedShot(
     shotDistance: distance,
     fielderName: fielder?.name ?? null,
     speed: input.speed,
-    strikeRotated: runs % 2 === 1,
-    commentary: describeBall({ context, kind: 'RUNS', runs, shot, fielderName: fielder?.name ?? null }),
+    strikeRotated: finalRuns % 2 === 1,
+    review: null,
+    dropped: null,
+    retired: null,
+    commentary: misfield
+      ? `${fielder?.name} fumbles it, and they come back for an extra run.`
+      : describeBall({ context, kind: 'RUNS', runs, shot, fielderName: fielder?.name ?? null }),
   };
 }
 
@@ -616,7 +742,9 @@ function rollRunOut(
   if (!rng.chance(clamp01(converted))) return null;
 
   // The batter who was going for the extra run is usually the one who goes.
+  const directHit = rng.chance(MATCH.fielding.directHitChance * (0.5 + fieldingSharpness));
   const strikerOut = rng.chance(0.55);
+  void directHit;
   const dismissed = strikerOut ? context.striker : context.nonStriker;
   const completed = Math.max(0, runs - 1);
 
@@ -635,6 +763,9 @@ function rollRunOut(
     fielderName: fielder.name,
     speed: 0,
     strikeRotated: completed % 2 === 1,
+    review: null,
+    dropped: null,
+    retired: null,
     commentary: describeBall({
       context,
       kind: 'WICKET',

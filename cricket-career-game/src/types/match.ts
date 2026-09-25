@@ -96,6 +96,12 @@ export interface Ball {
   shotDistance: number | null;
   /** Fielder who ended the ball, by name, when one did. */
   fielderName: string | null;
+  /** Set when the decision went upstairs. Optional: older saves have none. */
+  review?: { by: 'BATTING' | 'BOWLING'; outcome: 'OVERTURNED' | 'UPHELD' | 'UMPIRES_CALL' } | null;
+  /** Set when a catch went down. */
+  dropped?: { fielderName: string } | null;
+  /** True when this delivery was a free hit. */
+  freeHit?: boolean;
   /** Ball-by-ball text commentary line. */
   commentary: string;
   /** Snapshot of the conditions for this delivery. */

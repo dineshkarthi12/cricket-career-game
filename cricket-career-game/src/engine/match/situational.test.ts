@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MATCH } from '../config';
 import { chooseApproach, chooseBowler, isPartTimer, type Situation } from './ai';
 import { fieldersAllowedOutside, placeField } from './field';
 import { matchupBonus, pacePreference, bowlerKindOf } from './skill';
@@ -395,5 +396,120 @@ describe('toss and conditions', () => {
       return sixes;
     };
     expect(sixesAt(58, 55)).toBeGreaterThan(sixesAt(82, 78));
+  });
+});
+
+describe('umpiring and incidents', () => {
+  /** One long innings gives plenty of deliveries to look through. */
+  function deliveriesFrom(format: 'T20' | 'ODI' | 'MULTI_DAY', seeds: number) {
+    const balls = [];
+    for (let seed = 1; seed <= seeds; seed += 1) {
+      const { match } = simulateMatch({
+        fixtureId: 'fx', tournamentId: 't', seasonYear: 2026, format, stage: 'League',
+        date: '2026-11-15', venue, homeTeamId: 'home', awayTeamId: 'away',
+        homeXi: generateXi('home', 66, createRng(seed)),
+        awayXi: generateXi('away', 64, createRng(seed + 31)),
+        userIsHome: true, seed: seed * 17, month: 11,
+      });
+      for (const innings of match.innings) balls.push(...innings.deliveries);
+    }
+    return balls;
+  }
+
+  const t20Balls = deliveriesFrom('T20', 40);
+  const fcBalls = deliveriesFrom('MULTI_DAY', 12);
+
+  it('catches go down sometimes, and the batter carries on', () => {
+    const drops = fcBalls.filter((b) => b.dropped);
+    expect(drops.length).toBeGreaterThan(0);
+    for (const ball of drops) {
+      expect(ball.wicket).toBeNull();
+      expect(ball.dropped!.fielderName).toBeTruthy();
+      expect(ball.commentary).toMatch(/puts down|Chance/i);
+    }
+  });
+
+  it('holds most chances that go to hand', () => {
+    const caught = fcBalls.filter((b) => b.wicket?.type === 'CAUGHT').length;
+    const dropped = fcBalls.filter((b) => b.dropped).length;
+    // Roughly one chance in ten goes down.
+    expect(dropped / (caught + dropped)).toBeLessThan(0.25);
+    expect(dropped / (caught + dropped)).toBeGreaterThan(0.02);
+  });
+
+  it('sends close decisions upstairs, and sometimes they are overturned', () => {
+    const reviews = fcBalls.filter((b) => b.review);
+    expect(reviews.length).toBeGreaterThan(0);
+
+    const outcomes = new Set(reviews.map((b) => b.review!.outcome));
+    expect(outcomes.size).toBeGreaterThan(1);
+
+    for (const ball of reviews) {
+      // Only lbw and caught behind are close enough to be worth reviewing.
+      if (ball.review!.outcome === 'OVERTURNED') {
+        expect(ball.wicket).toBeNull();
+        expect(ball.commentary).toMatch(/overturned/i);
+      } else {
+        expect(ball.wicket).not.toBeNull();
+        expect(['LBW', 'CAUGHT_BEHIND']).toContain(ball.wicket!.type);
+      }
+    }
+  });
+
+  it("umpire's call leaves the decision standing", () => {
+    const calls = fcBalls.filter((b) => b.review?.outcome === 'UMPIRES_CALL');
+    for (const ball of calls) {
+      expect(ball.wicket).not.toBeNull();
+      expect(ball.commentary).toMatch(/umpire's call/i);
+    }
+  });
+
+  it('never spends more reviews than a side has', () => {
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const { match } = simulateMatch({
+        fixtureId: 'fx', tournamentId: 't', seasonYear: 2026, format: 'MULTI_DAY', stage: 'League',
+        date: '2026-11-15', venue, homeTeamId: 'home', awayTeamId: 'away',
+        homeXi: generateXi('home', 66, createRng(seed)),
+        awayXi: generateXi('away', 64, createRng(seed + 5)),
+        userIsHome: true, seed: seed * 23, month: 11,
+      });
+      for (const innings of match.innings) {
+        const spent = innings.deliveries.filter(
+          (b) => b.review && b.review.outcome !== 'OVERTURNED',
+        ).length;
+        expect(spent).toBeLessThanOrEqual(MATCH.umpiring.reviewsPerInnings);
+      }
+    }
+  });
+
+  it('a no-ball buys a free hit, on which only a run-out can get you', () => {
+    const freeHits = t20Balls.filter((b) => b.freeHit && b.isLegalDelivery);
+    expect(freeHits.length).toBeGreaterThan(0);
+    for (const ball of freeHits) {
+      if (ball.wicket) expect(ball.wicket.type).toBe('RUN_OUT');
+    }
+  });
+
+  it('fumbles in the field let an extra run through', () => {
+    const misfields = fcBalls.filter((b) => b.commentary.includes('fumbles'));
+    expect(misfields.length).toBeGreaterThan(0);
+    for (const ball of misfields) expect(ball.runsOffBat).toBeGreaterThan(0);
+  });
+
+  it('a batter can be forced to retire hurt', () => {
+    let retired = 0;
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const { match } = simulateMatch({
+        fixtureId: 'fx', tournamentId: 't', seasonYear: 2026, format: 'MULTI_DAY', stage: 'League',
+        date: '2026-11-15', venue, homeTeamId: 'home', awayTeamId: 'away',
+        homeXi: generateXi('home', 66, createRng(seed)),
+        awayXi: generateXi('away', 64, createRng(seed + 3)),
+        userIsHome: true, seed: seed * 37, month: 11,
+      });
+      for (const innings of match.innings) {
+        retired += innings.batting.filter((b) => b.dismissalText.startsWith('retired hurt')).length;
+      }
+    }
+    expect(retired).toBeGreaterThan(0);
   });
 });

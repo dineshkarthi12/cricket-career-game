@@ -183,6 +183,15 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
   const dotStreak: Record<string, number> = {};
   /** One nightwatchman per innings is plenty. */
   let nightwatchmanUsed = false;
+  /** The next ball is a free hit, after a no-ball in limited overs. */
+  let freeHit = false;
+  /** Reviews each side has left. */
+  const reviewsLeft = {
+    batting: MATCH.umpiring.reviewsPerInnings,
+    bowling: MATCH.umpiring.reviewsPerInnings,
+  };
+  /** Batters who had to go off, so they are not sent back out. */
+  const retiredHurt: string[] = [];
 
   const maxBalls = setup.oversAvailable === null ? Infinity : setup.oversAvailable * 6;
   const crowdFactor = Math.min(1, setup.venue.capacity / 60000);
@@ -346,6 +355,8 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
           ballsRemaining,
           wicketsInHand: batting.length - 1 - wickets,
           battingAtHome: setup.battingAtHome,
+          freeHit,
+          reviewsLeft: { ...reviewsLeft },
           dew: currentDew,
           boundaries: {
             straight: setup.venue.straightBoundary,
@@ -391,10 +402,43 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
         shotAngle: outcome.shotAngle,
         shotDistance: outcome.shotDistance,
         fielderName: outcome.fielderName,
+        review: outcome.review,
+        dropped: outcome.dropped,
+        freeHit,
         commentary: outcome.commentary,
         phase,
       };
       deliveries.push(ball);
+
+      // A blow on the hand or the helmet can take a batter off. A head knock
+      // means a concussion substitute and he takes no further part.
+      if (
+        !outcome.wicket &&
+        outcome.isLegalDelivery &&
+        rng.chance(MATCH.inMatchInjury.batterPerBall) &&
+        nextBatterIndex < batting.length
+      ) {
+        const concussion = rng.chance(MATCH.inMatchInjury.concussionShare);
+        const hurt = striker();
+        retiredHurt.push(hurt.id);
+        const line = battingLines.get(hurt.id)!;
+        line.dismissalText = concussion ? 'retired hurt (concussion)' : 'retired hurt';
+        strikerIndex = nextBatterIndex;
+        nextBatterIndex += 1;
+      }
+
+      // A no-ball in limited-overs cricket buys the batter a free hit.
+      freeHit =
+        setup.oversAvailable !== null && outcome.extras?.type === 'NO_BALL'
+          ? true
+          : outcome.isLegalDelivery
+            ? false
+            : freeHit;
+
+      // A failed review costs the side one of theirs.
+      if (outcome.review && outcome.review.outcome !== 'OVERTURNED') {
+        reviewsLeft.batting = Math.max(0, reviewsLeft.batting - 1);
+      }
 
       // Runs.
       const extraRuns = outcome.extras?.runs ?? 0;
@@ -560,6 +604,7 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
     });
   }
 
+  void retiredHurt;
   const extrasTotal = Object.values(extras).reduce((sum, n) => sum + n, 0);
   const batted = batting.filter((p) => (battingLines.get(p.id)?.balls ?? 0) > 0 || battingLines.get(p.id)?.out);
 

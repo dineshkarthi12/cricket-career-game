@@ -272,7 +272,7 @@ describe('match formats', () => {
 
   it('plays a super over when a knockout is tied', () => {
     let sawSuperOver = false;
-    for (let seed = 1; seed <= 400 && !sawSuperOver; seed += 1) {
+    for (let seed = 1; seed <= 1500 && !sawSuperOver; seed += 1) {
       const { match } = simulateMatch(setup({ seed, format: 'T20', knockout: true }));
       if (match.innings.length > 2) {
         sawSuperOver = true;

@@ -142,10 +142,10 @@ export interface FormatRates {
 export const MATCH_FORMATS: Record<string, FormatRates> = {
   T20: {
     overs: 20,
-    wicket: 0.05162,
-    four: 0.17788,
-    six: 0.08893,
-    dotWeight: 0.4323,
+    wicket: 0.05349,
+    four: 0.18637,
+    six: 0.06436,
+    dotWeight: 0.4476,
     twoWeight: 0.19,
     threeWeight: 0.022,
     maxOversPerBowler: 4,
@@ -153,10 +153,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ODI: {
     overs: 50,
-    wicket: 0.02663,
-    four: 0.09659,
-    six: 0.02296,
-    dotWeight: 0.9643,
+    wicket: 0.02711,
+    four: 0.09639,
+    six: 0.01647,
+    dotWeight: 1.0442,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -164,10 +164,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ONE_DAY: {
     overs: 50,
-    wicket: 0.0273,
-    four: 0.09273,
-    six: 0.01998,
-    dotWeight: 1.0222,
+    wicket: 0.02779,
+    four: 0.09253,
+    six: 0.01433,
+    dotWeight: 1.1069,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -175,10 +175,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   MULTI_DAY: {
     overs: null,
-    wicket: 0.01794,
-    four: 0.05530,
-    six: 0.00355,
-    dotWeight: 2.3257,
+    wicket: 0.01893,
+    four: 0.05364,
+    six: 0.00260,
+    dotWeight: 2.5140,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -186,10 +186,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   TEST: {
     overs: null,
-    wicket: 0.01722,
-    four: 0.05392,
-    six: 0.00341,
-    dotWeight: 2.3955,
+    wicket: 0.01817,
+    four: 0.0523,
+    six: 0.0025,
+    dotWeight: 2.5894,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -475,7 +475,18 @@ export const MATCH = {
     boundaryCatchReach: 9,
     /** Runs saved when a shot goes straight to a ring fielder. */
     ringSaveChance: 0.72,
+    /**
+     * A chance that has gone to hand is held this often by an average fielder,
+     * rising with catching skill. Real drop rates are about one in ten; using
+     * the travel-based chance here put down a third of them, which wrecked the
+     * dismissal mix.
+     */
+    regulationCatch: 0.87,
+    regulationCatchSkill: 0.1,
+    /** A fumble lets one extra run through. */
     misfieldChance: 0.035,
+    /** Direct hits are rare, and come down to the arm. */
+    directHitChance: 0.22,
   },
 
   /**
@@ -604,6 +615,16 @@ export const MATCH = {
     resourceExponent: 0.72,
   },
 
+  /** Something can go wrong in the middle, not just afterwards. */
+  inMatchInjury: {
+    /** Per-over chance a bowler breaks down, scaled by fatigue. */
+    bowlerPerOver: 0.0006,
+    /** Per-ball chance a batter is hit and has to retire. */
+    batterPerBall: 0.00012,
+    /** Of those, how many are a blow to the head needing a concussion sub. */
+    concussionShare: 0.2,
+  },
+
   /** Post-match effects on the player. */
   aftermath: {
     /** Rating 0-10 built from runs, wickets, catches and the result. */
@@ -626,6 +647,29 @@ export const MATCH = {
     reputationMotm: 2.5,
     /** Selector trust, 0-100, moves with the rating. */
     selectorTrustInertia: 0.3,
+  },
+
+  /**
+    * Umpiring. Umpires are very good but not perfect, and the review system
+    * exists to catch the ones they get wrong.
+    */
+  umpiring: {
+    /** Reviews each side gets per innings. */
+    reviewsPerInnings: 2 as number,
+    /** Chance an lbw or caught-behind decision is simply wrong. */
+    wrongDecisionChance: 0.055,
+    /** Of the marginal ones, how many come back as umpire's call. */
+    umpiresCallShare: 0.32,
+    /** How good a side is at judging whether to review, 0-1. */
+    reviewJudgement: 0.55,
+    /** Chance a side burns a review on a decision that was right. */
+    speculativeReviewChance: 0.28,
+  },
+
+  /** A free hit follows a no-ball in limited-overs cricket. */
+  freeHit: {
+    /** Only the bowled/lbw/caught dismissals are off; a run-out still counts. */
+    boundaryBonus: 1.35,
   },
 
   /** Super over. */
