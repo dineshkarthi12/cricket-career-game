@@ -329,6 +329,7 @@ export default function MatchScreen() {
           awayTeam={away}
           teamNameOf={teamNameOf}
           playerById={store.playerById}
+          riskFor={store.riskFor}
           userId={state.player.id}
           userName={userName}
           captain={store.captain}

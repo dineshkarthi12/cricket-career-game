@@ -1,4 +1,4 @@
-import { SAVE_VERSION } from '@/types';
+import { DEFAULT_AGGRESSION, SAVE_VERSION } from '@/types';
 import type { Attributes, BowlingAttributes, GameState, SaveResult } from '@/types';
 import { emptyCaptaincy } from '@/engine/career/captaincy';
 import { fail, ok } from './storage';
@@ -66,7 +66,24 @@ const MIGRATIONS: Record<number, (state: GameState) => GameState> = {
     ),
     settings: { ...state.settings, devCaptainMode: false },
   }),
+  /** v4: the player's own 1-5 batting and bowling aggression. */
+  3: (state) => ({
+    ...state,
+    version: 4,
+    career: {
+      ...state.career,
+      aggression: {
+        batting: level(state.career.aggression?.batting),
+        bowling: level(state.career.aggression?.bowling),
+      },
+    },
+  }),
 };
+
+function level(value: unknown): number {
+  const n = numberOr(value, DEFAULT_AGGRESSION.batting);
+  return Math.max(1, Math.min(5, Math.round(n)));
+}
 
 /** `flight` joined the bowling attributes in v2; derive it from what is there. */
 function withFlight(attributes: Attributes): Attributes {

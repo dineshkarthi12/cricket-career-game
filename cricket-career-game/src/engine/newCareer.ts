@@ -1,4 +1,5 @@
 import { emptyCaptaincy } from './career/captaincy';
+import { DEFAULT_AGGRESSION } from '@/types';
 import { CAREER_STAGES, getStage } from '@/data/stages';
 import { createTrophyCabinet } from '@/data/trophies';
 import { VENUES, VENUES_BY_ID } from '@/data/venues';
@@ -374,6 +375,7 @@ export function createNewCareer(options: NewCareerOptions): GameState {
       captaincy: emptyCaptaincy(),
       relationships: {},
       mediaReputation: 30,
+      aggression: { ...DEFAULT_AGGRESSION },
     },
     season: emptySeason(seasonYear, startDate, startStageId),
     seasonHistory: [],

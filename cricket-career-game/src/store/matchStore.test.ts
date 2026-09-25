@@ -82,7 +82,7 @@ describe('match store: career mode', () => {
     open();
     useMatchStore.getState().toToss();
     useMatchStore.getState().toss();
-    useMatchStore.getState().setPlayer({ intent: 5 });
+    useMatchStore.getState().setPlayer({ batting: 5 });
     const me = useGameStore.getState().state!.player.id;
     let guard = 0;
     while (useMatchStore.getState().stage === 'PLAYING' && guard < 800) {
@@ -98,6 +98,56 @@ describe('match store: career mode', () => {
     if (mine.length > 0) expect(mine.every((b) => b.intent === 'ALL_OUT')).toBe(true);
     expect(others.some((b) => b.intent !== 'ALL_OUT')).toBe(true);
   }, 60_000);
+
+  it('keeps the player’s aggression levels from match to match', () => {
+    open();
+    expect(useMatchStore.getState().player.batting).toBe(3);
+    useMatchStore.getState().setPlayer({ batting: 5, bowling: 1 });
+    expect(useGameStore.getState().state!.career.aggression).toEqual({ batting: 5, bowling: 1 });
+    useMatchStore.getState().close();
+    open();
+    expect(useMatchStore.getState().player).toMatchObject({ batting: 5, bowling: 1 });
+    // Out of range is clamped, never stored.
+    useMatchStore.getState().setPlayer({ batting: 9 });
+    expect(useGameStore.getState().state!.career.aggression.batting).toBe(5);
+  });
+
+  it('lets a one-ball choice override the level for that ball only', () => {
+    open();
+    useMatchStore.getState().toToss();
+    useMatchStore.getState().toss();
+    useMatchStore.getState().setPlayer({ batting: 2 });
+    const me = useGameStore.getState().state!.player.id;
+    const mine: { intent: string; chosen: boolean }[] = [];
+    let guard = 0;
+    while (useMatchStore.getState().stage === 'PLAYING' && guard < 1500 && mine.length < 6) {
+      guard += 1;
+      const snap = useMatchStore.getState().snap!;
+      if (snap.question) {
+        useMatchStore.getState().answer({ timing: 0.5, review: false });
+        continue;
+      }
+      const onStrike = snap.involvement.onStrike;
+      // Every other ball on strike is a big shot; the rest are at the level.
+      const big = onStrike && mine.length % 2 === 0;
+      useMatchStore.getState().playBall(big ? 'BIG_SHOT' : undefined);
+      const ball = useMatchStore.getState().lastBall;
+      if (onStrike && ball?.strikerId === me && ball.isLegalDelivery) mine.push({ intent: ball.intent, chosen: big });
+    }
+    if (mine.length === 0) return; // The player never faced a ball this time.
+    for (const ball of mine) expect(ball.intent).toBe(ball.chosen ? 'ALL_OUT' : 'DEFENSIVE');
+  }, 60_000);
+
+  it('rates the risk of the player’s level while they are at the crease', () => {
+    open();
+    useMatchStore.getState().toToss();
+    useMatchStore.getState().toss('BAT');
+    const me = useGameStore.getState().state!.player.id;
+    const low = useMatchStore.getState().riskFor(me, 1);
+    const high = useMatchStore.getState().riskFor(me, 5);
+    expect(low?.label).toBeTruthy();
+    expect(high!.chance).toBeGreaterThan(low!.chance);
+  });
 
   it('writes a finished match back into the career exactly once', () => {
     open();
@@ -176,6 +226,25 @@ describe('match store: captain mode', () => {
     const state = useGameStore.getState().state!;
     expect(state.career.captaincy.record.matches).toBe(1);
     expect(useMatchStore.getState().after?.result.captaincy).not.toBeNull();
+  }, 60_000);
+
+  it('lets a captain set the aggression of another batter', () => {
+    makeCaptain();
+    open();
+    useMatchStore.getState().toToss();
+    useMatchStore.getState().toss('BAT');
+    const me = useGameStore.getState().state!.player.id;
+    const snap = useMatchStore.getState().snap!;
+    const other = [snap.current!.strikerId, snap.current!.nonStrikerId].find((id) => id !== me)!;
+    useMatchStore.getState().setCaptain({ batterLevels: { [other]: 1 } });
+    for (let i = 0; i < 30 && useMatchStore.getState().stage === 'PLAYING'; i += 1) {
+      if (useMatchStore.getState().snap!.question) useMatchStore.getState().answer({ timing: 0.5, review: false });
+      else useMatchStore.getState().playBall();
+    }
+    const current = useMatchStore.getState().snap!.current;
+    const faced = (current?.deliveries ?? []).filter((b) => b.strikerId === other);
+    expect(faced.length).toBeGreaterThan(0);
+    expect(faced.every((b) => b.intent === 'BLOCK')).toBe(true);
   }, 60_000);
 
   it('remembers what the captain hands to the vice-captain', () => {

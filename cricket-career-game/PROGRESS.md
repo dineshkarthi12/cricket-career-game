@@ -415,13 +415,15 @@ early for testing.
   12th man, bench or not selected, with the selectors' reasons. The coach
   promotes an in-form batter up to two places and demotes one on a lean run;
   bowling trust decides how readily the AI captain gives them overs.
-- Batting: five per-ball intents (leave, defend, rotate, attack, big shot),
-  a direction to aim for, or an aggression level to sim to the end of the
-  over or until out. Leave and rotate are new engine behaviours
+- Batting: the player's own 1-5 aggression (see below), five one-ball
+  intents that override it for that ball only (leave, defend, rotate,
+  attack, big shot), a direction to aim for, and sims to the end of the over
+  or until out at their level. Leave and rotate are engine behaviours
   (`MATCH.leave`, `MATCH.rotate`). All of it applies only while the player's
   own batter is on strike (`battingFor`).
-- Bowling: only when the AI captain throws them the ball; line, length,
-  variation and over/round the wicket for their own overs (`bowlingFor`).
+- Bowling: only when the AI captain throws them the ball; their 1-5 bowling
+  aggression, line, length, variation and over/round the wicket for their
+  own overs (`bowlingFor`).
 - Fielding: a catch or run-out coming to the player opens a timing tap.
   Success is the fielder's own chance moved by timing
   (`MATCH.fielding.timingWeight`); the sweet spot widens with skill.
@@ -476,8 +478,41 @@ scorecard, the player's card, player of the match, condition, reputation,
 selector trust, media, dressing room, captaincy, press conference), Matches
 list and scorecards. Home's Play Match and Quick Sim run this flow.
 
+**Aggression, 1-5 (set by the player, like a management sim)**
+- Batting: 1 Very Defensive, 2 Defensive, 3 Balanced, 4 Aggressive,
+  5 Very Aggressive. A five-step bar, blue to red, with - and +, tap a step,
+  or keys 1-5 on a keyboard (ignored while typing). The level is the
+  player's: saved in `career.aggression`, never changed for them, used for
+  every ball including quick sims and "sim the rest". A one-ball intent
+  overrides it for that ball only.
+- Bowling: 1 (tight lines, contain) to 5 (all-out attack) for their own
+  overs; changes length, line and variation choice (`choosePlan`), and
+  trades runs for wickets.
+- Captain mode: a bar for each batter at the crease and for every bowler,
+  with Auto (the AI reads the game). The player's own bar is the same one.
+- Engine (`MATCH.intent`, `MATCH.aggression`, `MATCH.bowlingAggression`):
+  each level moves scoring rate, boundary %, dismissal % and false shots a
+  long way. A top-six batter held at one level for a whole ODI innings:
+  strike rate 28 / 62 / 89 / 114 / 127, out every 115 / 76 / 49 / 28 / 17
+  balls. Level 1 leaves more outside off, level 5 goes aerial most balls. The extra risk
+  of attacking is scaled by how set the batter is, the pitch, the bowler
+  against the batter, temperament and power (`aggressionRiskScale`).
+- Risk label next to the bar (Low / Medium / High / Very High) from
+  `estimateRisk`: the chance of getting out to an ordinary ball in the
+  conditions as they stand, against the format's base rate. No random
+  numbers, so it never changes the match.
+- Level 3 is every format's normal game (it was 4 in T20 and 2 in
+  first-class), and the AI batter's read now starts a level higher
+  (`MATCH.batting.aiIntentStart`) because playing in, anchoring, the tail and
+  milestones pull it down - so the AI averages about 3 and "Balanced" is what
+  a typical batter plays. Holding 3 all innings scores at about the AI's rate
+  (ODI SR 89 v 102, T20 149 v 153).
+- Post-match: balls, runs, strike rate and dismissal at each batting level,
+  and overs, runs and wickets at each bowling level.
+
 **Save**: `SAVE_VERSION` 3 adds captaincy, relationships, media reputation,
-team morale and the dev toggle, with a migration for older saves.
+team morale and the dev toggle; v4 adds the player's aggression levels.
+Migrations bring older saves forward.
 
 **Bugs fixed on the way**
 - `placeField` could place one player twice and leave another off the field.
@@ -487,20 +522,23 @@ team morale and the dev toggle, with a migration for older saves.
   twice). Each career now owns copies; `commitMatch` clones defensively.
 - A forced bowler could exceed the format's quota.
 
-**Balance (1000 matches per format)** - the fielding-side reviews add a few
-wickets, so the multi-day and Test base wicket rates came down 3%.
+**Balance (1000 matches per format)** - retuned after the aggression
+levels: with the AI now centred on level 3, which plays more shots than its
+old mix, base wicket and boundary rates came down in every format (T20
+wicket 0.0535 to 0.042, ODI 0.0271 to 0.0225, multi-day 0.0184 to 0.0164)
+and first-class dot weight went up.
 
 | | T20 | ODI | Multi-day |
 |---|---|---|---|
-| 1st innings | 164.1 (RR 8.44) | 279.5 (RR 5.80) | 313.6 in 99.5 ov |
-| Spread p10 / med / p90 | 104 / 165 / 224 | 184 / 280 / 370 | 148 / 320 / 460 |
-| Top-six avg / SR | 27.3 / 143.4 | 40.6 / 97.8 | 36.5 / 56.3 |
-| LBW share of dismissals | 10.0% | 12.1% | 14.4% |
-| Results | 0.4% ties | 0.6% ties | 40.7% draws |
+| 1st innings | 164.6 (RR 8.49) | 270.3 (RR 5.66) | 284.1 in 97.7 ov |
+| Spread p10 / med / p90 | 85 / 169 / 240 | 156 / 276 / 375 | 131 / 279 / 446 |
+| Top-six avg / SR | 26.3 / 151.9 | 37.4 / 101.3 | 31.5 / 60.5 |
+| LBW share of dismissals | 10.2% | 10.9% | 13.4% |
+| Results | 0.4% ties | 0.3% ties | 37.7% draws |
 
-First-class career averages against mixed opposition: 40.4 / 44.0.
+First-class career averages against mixed opposition: 39.0 / 44.2.
 
-**Tests - 347 passing across 29 files.**
+**Tests - 371 passing across 32 files.**
 
 **Known limits**
 - A match in progress lives in memory: leaving the screen resumes it, a page

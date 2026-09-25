@@ -23,10 +23,12 @@ import { Link } from 'react-router-dom';
 import { Badge, Card, CardHeader, ProgressBar, Tabs } from '@/components';
 import { winPercent } from '@/engine/career/captaincy';
 import type { PressConference } from '@/engine/career/press';
+import { battingByLevel, bowlingByLevel } from '@/lib/aggressionStats';
 import { ballsToOvers } from '@/lib/format';
 import { resultHeadline } from '@/lib/matchText';
 import type { AfterMatch } from '@/store/matchStore';
 import type { CaptaincyState, Player, Venue } from '@/types';
+import { BATTING_LEVELS, BOWLING_LEVELS } from './controls/AggressionBar';
 import { Manhattan, WagonWheelPanel, Worm, chartInnings } from './panels/MatchCharts';
 import { Scorecard } from './panels/Scorecard';
 
@@ -166,6 +168,7 @@ export function PostMatch({
               Player of the match.
             </p>
           ) : null}
+          <AggressionTables match={match} playerId={player.id} />
         </Card>
       ) : (
         <Card>
@@ -459,5 +462,73 @@ function PressCard({
         </button>
       </div>
     </Card>
+  );
+}
+
+/** Balls, runs and dismissals at each batting level; the same for bowling. */
+function AggressionTables({ match, playerId }: { match: AfterMatch['match']; playerId: string }) {
+  const batting = battingByLevel(match, playerId).filter((r) => r.balls > 0 || r.dismissals.length > 0);
+  const bowling = bowlingByLevel(match, playerId).filter((r) => r.balls > 0);
+  if (batting.length === 0 && bowling.length === 0) return null;
+  const cell = 'px-2 py-1.5 text-right tabular-nums';
+  return (
+    <div className="mt-4 grid gap-4 border-t border-line pt-4 lg:grid-cols-2">
+      {batting.length > 0 ? (
+        <div className="overflow-x-auto">
+          <h4 className="text-[12px] font-semibold tracking-wide text-ink-soft uppercase">Batting by aggression</h4>
+          <table className="mt-1.5 w-full text-[12.5px]">
+            <thead className="text-[11px] text-ink-soft">
+              <tr>
+                <th className="px-2 py-1 text-left font-semibold">Level</th>
+                <th className="px-2 py-1 text-right font-semibold">Balls</th>
+                <th className="px-2 py-1 text-right font-semibold">Runs</th>
+                <th className="px-2 py-1 text-right font-semibold">SR</th>
+                <th className="px-2 py-1 text-left font-semibold">Out</th>
+              </tr>
+            </thead>
+            <tbody>
+              {batting.map((row) => (
+                <tr key={row.level} className="border-t border-line">
+                  <td className="px-2 py-1.5 font-semibold text-ink">
+                    {row.level} · {BATTING_LEVELS[row.level - 1].name}
+                  </td>
+                  <td className={cell}>{row.balls}</td>
+                  <td className={cell}>{row.runs}</td>
+                  <td className={cell}>{row.balls > 0 ? ((row.runs / row.balls) * 100).toFixed(0) : '-'}</td>
+                  <td className="px-2 py-1.5 text-ink-muted">{row.dismissals.join('; ') || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      {bowling.length > 0 ? (
+        <div className="overflow-x-auto">
+          <h4 className="text-[12px] font-semibold tracking-wide text-ink-soft uppercase">Bowling by aggression</h4>
+          <table className="mt-1.5 w-full text-[12.5px]">
+            <thead className="text-[11px] text-ink-soft">
+              <tr>
+                <th className="px-2 py-1 text-left font-semibold">Level</th>
+                <th className="px-2 py-1 text-right font-semibold">Overs</th>
+                <th className="px-2 py-1 text-right font-semibold">Runs</th>
+                <th className="px-2 py-1 text-right font-semibold">Wkts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bowling.map((row) => (
+                <tr key={row.level} className="border-t border-line">
+                  <td className="px-2 py-1.5 font-semibold text-ink">
+                    {row.level} · {BOWLING_LEVELS[row.level - 1].name}
+                  </td>
+                  <td className={cell}>{ballsToOvers(row.balls)}</td>
+                  <td className={cell}>{row.runs}</td>
+                  <td className={cell}>{row.wickets}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
   );
 }

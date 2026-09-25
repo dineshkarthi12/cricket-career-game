@@ -11,6 +11,7 @@ function asV2(): GameState {
   delete state.career.relationships;
   delete state.career.mediaReputation;
   delete state.settings.devCaptainMode;
+  delete state.career.aggression;
   for (const team of Object.values(state.teams) as Record<string, unknown>[]) delete team.morale;
   return state as unknown as GameState;
 }
@@ -41,5 +42,17 @@ describe('save migration to v3', () => {
     if (!result.ok) throw new Error('migration failed');
     expect(result.value.player).toEqual(before.player);
     expect(result.value.fixtures).toEqual(before.fixtures);
+  });
+});
+
+describe('save migration to v4', () => {
+  it('gives an older career the balanced 3 for batting and bowling', () => {
+    const state = structuredClone(createDemoCareer()) as unknown as Record<string, any>;
+    state.version = 3;
+    delete state.career.aggression;
+    const result = migrate(state as unknown as GameState);
+    if (!result.ok) throw new Error('migration failed');
+    expect(result.value.version).toBe(4);
+    expect(result.value.career.aggression).toEqual({ batting: 3, bowling: 3 });
   });
 });

@@ -20,6 +20,7 @@ import {
   bowlerChoiceInput,
   createInningsState,
   DecisionNeeded,
+  estimateRisk,
   finishInnings,
   inningsView,
   resumeBall,
@@ -30,6 +31,7 @@ import {
   type InningsSetup,
   type InningsState,
   type Partnership,
+  type RiskEstimate,
 } from './innings';
 import { createRng, deriveSeed, type Rng } from './rng';
 import {
@@ -227,8 +229,11 @@ export interface LiveMatch {
   suggestBowler(): SimPlayer | null;
   /** Play the rest of the innings out. */
   toEndOfInnings(overrides?: BallOverrides): Ball[];
-  /** Play the whole match out. */
-  toEnd(): void;
+  /**
+   * Play the whole match out. Overrides - the player's own aggression, say -
+   * apply to every ball, exactly as they would one ball at a time.
+   */
+  toEnd(overrides?: BallOverrides): void;
   /** Move on after an innings break. */
   startNextInnings(): void;
   /**
@@ -244,6 +249,11 @@ export interface LiveMatch {
   availableBowlers(): SimPlayer[];
   /** Look a player up by id. */
   playerById(id: string): SimPlayer | undefined;
+  /**
+   * How risky a level of batting aggression is for this batter right now.
+   * Draws nothing from the match. Null when no innings is in play.
+   */
+  riskFor(batterId: string, level: number): RiskEstimate | null;
 }
 
 export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
@@ -1173,7 +1183,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       return chooseBowler({ ...bowlerChoiceInput(state), rng: advice });
     },
 
-    toEnd() {
+    toEnd(overrides) {
       if (phase === 'TOSS') this.doToss();
       let guard = 0;
       while (phase !== 'COMPLETE' && guard < 20) {
@@ -1184,7 +1194,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
           followOnEnforced = rng.chance(0.65);
           afterFollowOnDecision();
         } else if (phase === 'INNINGS_BREAK') this.startNextInnings();
-        else this.toEndOfInnings();
+        else this.toEndOfInnings(overrides);
         guard += 1;
       }
     },
@@ -1227,5 +1237,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     },
 
     playerById: (id) => allPlayers.find((p) => p.id === id),
+
+    riskFor: (batterId, level) => (state && phase === 'IN_PLAY' ? estimateRisk(state, batterId, level) : null),
   };
 }

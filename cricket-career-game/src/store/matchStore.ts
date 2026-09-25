@@ -24,10 +24,11 @@ import {
 import { commitMatchDetailed, type CommitResult } from '@/engine/match/commit';
 import { buildMatch, type MatchBuild } from '@/engine/match/lineup';
 import { createLiveMatch, type LiveMatch, type LiveSnapshot } from '@/engine/match/live';
-import type { BallOverrides } from '@/engine/match/innings';
+import type { BallOverrides, RiskEstimate } from '@/engine/match/innings';
 import type { BowlerPlan, FieldSetting, SimPlayer } from '@/engine/match/types';
 import { fieldProblems } from '@/lib/fieldRules';
 import { useGameStore } from './gameStore';
+import { DEFAULT_AGGRESSION } from '@/types';
 import type { Ball, CaptainDelegation, Condition, Fixture, GameState, Id, Match } from '@/types';
 
 /** How long one ball takes to play out, by speed setting. */
@@ -57,7 +58,7 @@ export const BALL_INTENTS: { id: BallIntent; label: string; help: string }[] = [
 function intentOverrides(intent: BallIntent): BallOverrides {
   switch (intent) {
     case 'LEAVE':
-      return { leave: true };
+      return { leave: true, intentLevel: 1 };
     case 'DEFEND':
       return { intentLevel: 1 };
     case 'ROTATE':
@@ -71,8 +72,13 @@ function intentOverrides(intent: BallIntent): BallOverrides {
 
 /** Decisions that are always the player's own. */
 export interface PlayerDecisions {
-  /** Aggression for sims, 1-5, or null to let the player's batter read the game. */
-  intent: number | null;
+  /**
+   * The player's batting aggression, 1 (very defensive) to 5 (very
+   * aggressive). Theirs alone: it never changes unless they change it.
+   */
+  batting: number;
+  /** The player's bowling aggression, 1 (contain) to 5 (all-out attack). */
+  bowling: number;
   /** Preferred direction to hit in, degrees, or null. */
   shotPreference: number | null;
   /** The player's own bowling: line, length, variation. */
@@ -87,6 +93,10 @@ export interface CaptainDecisions {
   nextBowlerId: Id | null;
   fieldPreset: string | null;
   field: FieldSetting | null;
+  /** Aggression the captain has set for particular batters; the rest read the game. */
+  batterLevels: Record<Id, number>;
+  /** Aggression the captain has set for particular bowlers; the rest bowl their normal game. */
+  bowlerLevels: Record<Id, number>;
 }
 
 /** Everything the post-match screen needs to show what the match did. */
@@ -154,11 +164,14 @@ interface MatchStore {
   availableBowlers: () => SimPlayer[];
   suggestedBowler: () => SimPlayer | null;
   playerById: (id: Id) => SimPlayer | undefined;
+  /** How risky a batting level is for this batter right now. */
+  riskFor: (batterId: Id, level: number) => RiskEstimate | null;
   close: () => void;
 }
 
 const DEFAULT_PLAYER: PlayerDecisions = {
-  intent: null,
+  batting: DEFAULT_AGGRESSION.batting,
+  bowling: DEFAULT_AGGRESSION.bowling,
   shotPreference: null,
   plan: {},
   roundTheWicket: false,
@@ -170,7 +183,17 @@ const DEFAULT_CAPTAIN: CaptainDecisions = {
   nextBowlerId: null,
   fieldPreset: null,
   field: null,
+  batterLevels: {},
+  bowlerLevels: {},
 };
+
+const clampLevel = (level: number) => Math.max(1, Math.min(5, Math.round(level)));
+
+/** The player's saved levels, from the career. */
+function savedPlayer(state: GameState | null): PlayerDecisions {
+  const saved = state?.career.aggression ?? DEFAULT_AGGRESSION;
+  return { ...DEFAULT_PLAYER, batting: clampLevel(saved.batting), bowling: clampLevel(saved.bowling) };
+}
 
 /** Lives outside the store: mutable, and nothing renders from it directly. */
 let live: LiveMatch | null = null;
@@ -225,7 +248,10 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       shotPreference: player.shotPreference,
       plan: Object.keys(player.plan).length > 0 ? player.plan : undefined,
       aroundTheWicket: player.roundTheWicket,
-      ...(player.intent !== null ? { intentLevel: player.intent } : {}),
+      // Always sent: the player's level holds until they change it. A per-ball
+      // choice overrides it for that one ball.
+      intentLevel: player.batting,
+      bowlingAggression: player.bowling,
       ...perBall,
     };
     if (!snap?.current) return overrides;
@@ -233,8 +259,10 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     if (snap.userBatting && calls('instructions')) {
       overrides.instruction = captainDecisions.instruction;
       overrides.targetBowlerId = captainDecisions.targetBowlerId;
+      overrides.batterLevels = captainDecisions.batterLevels;
     }
     if (snap.userBowling) {
+      if (calls('bowling')) overrides.bowlerLevels = captainDecisions.bowlerLevels;
       if (calls('bowling') && captainDecisions.nextBowlerId) {
         overrides.bowlerId = captainDecisions.nextBowlerId;
       }
@@ -376,7 +404,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         xiReview: null,
         build,
         snap: live?.snapshot() ?? null,
-        player: DEFAULT_PLAYER,
+        player: savedPlayer(state),
         captainDecisions: DEFAULT_CAPTAIN,
         autoPlay: false,
         lastBall: null,
@@ -480,7 +508,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       if (!live) return;
       // Anything still waiting on the player is settled on average timing.
       if (live.snapshot().question) live.answer({ timing: 0.5, review: false });
-      live.toEnd();
+      live.toEnd(overridesNow());
       sync(null);
     },
 
@@ -536,9 +564,16 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         bowlerTrust: { [me]: selection.bowlingTrust },
       });
       if (!build) return null;
-      // Simmed: the vice-captain makes every call.
+      // Simmed: the vice-captain makes every call; the player bats and bowls
+      // at their own saved levels.
       const match = createLiveMatch(build.setup);
-      match.toEnd();
+      const levels = savedPlayer(state);
+      match.toEnd({
+        battingFor: me,
+        bowlingFor: me,
+        intentLevel: levels.batting,
+        bowlingAggression: levels.bowling,
+      });
       const done = match.finished();
       if (!done) return null;
       const result = commitMatchDetailed(state, done.match, {
@@ -551,7 +586,19 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       return result.state.matches[done.match.id] ?? done.match;
     },
 
-    setPlayer: (patch) => set((s) => ({ player: { ...s.player, ...patch } })),
+    setPlayer: (patch) => {
+      const next = { ...get().player, ...patch };
+      next.batting = clampLevel(next.batting);
+      next.bowling = clampLevel(next.bowling);
+      set({ player: next });
+      // The levels are the player's and last from match to match.
+      if (patch.batting !== undefined || patch.bowling !== undefined) {
+        useGameStore.getState().update((state) => ({
+          ...state,
+          career: { ...state.career, aggression: { batting: next.batting, bowling: next.bowling } },
+        }));
+      }
+    },
     setCaptain: (patch) => set((s) => ({ captainDecisions: { ...s.captainDecisions, ...patch } })),
     setDelegate: (patch) => {
       const delegate = { ...(get().delegate ?? useGameStore.getState().state!.career.captaincy.delegate), ...patch };
@@ -569,6 +616,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     availableBowlers: () => live?.availableBowlers() ?? [],
     suggestedBowler: () => live?.suggestBowler() ?? null,
     playerById: (id) => live?.playerById(id),
+    riskFor: (batterId, level) => live?.riskFor(batterId, level) ?? null,
 
     close: () => {
       live = null;

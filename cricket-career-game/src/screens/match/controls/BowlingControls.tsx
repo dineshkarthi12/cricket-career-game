@@ -8,6 +8,7 @@ import { ProgressBar } from '@/components';
 import { MATCH } from '@/engine/config';
 import type { BowlerPlan, SimPlayer } from '@/engine/match/types';
 import type { BowlerInningsLine, DeliveryLength, DeliveryLine } from '@/types';
+import { AggressionBar } from './AggressionBar';
 
 const LENGTHS: { value: DeliveryLength; label: string }[] = [
   { value: 'YORKER', label: 'Yorker' },
@@ -39,6 +40,8 @@ function variationsFor(bowler: SimPlayer | undefined): string[] {
 export const BowlingControls = memo(function BowlingControls({
   bowler,
   bowlerLine,
+  level,
+  onLevel,
   plan,
   roundTheWicket,
   oversLeft,
@@ -50,6 +53,9 @@ export const BowlingControls = memo(function BowlingControls({
 }: {
   bowler: SimPlayer | undefined;
   bowlerLine: BowlerInningsLine | undefined;
+  /** The player's bowling aggression, 1-5. */
+  level: number;
+  onLevel: (level: number) => void;
   plan: Partial<BowlerPlan>;
   roundTheWicket: boolean;
   oversLeft: number | null;
@@ -104,8 +110,18 @@ export const BowlingControls = memo(function BowlingControls({
         </div>
       ) : null}
 
+      <AggressionBar
+        label="Your bowling aggression"
+        kind="bowling"
+        level={level}
+        hotkeys
+        onChange={(next) => next !== null && onLevel(next)}
+      />
+
       <fieldset className="border-t border-line pt-3">
-        <legend className="text-[12.5px] font-semibold text-ink">Length</legend>
+        <legend className="text-[12.5px] font-semibold text-ink">
+          Length <span className="font-normal text-ink-soft">- or leave it to your aggression</span>
+        </legend>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <Pill active={!plan.length} onClick={() => onPlan({ length: undefined })}>
             Bowler's choice

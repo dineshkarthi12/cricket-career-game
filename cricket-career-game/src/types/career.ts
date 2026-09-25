@@ -213,4 +213,16 @@ export interface CareerState {
   relationships: Record<Id, number>;
   /** 0-100 standing with the press, separate from reputation with selectors. */
   mediaReputation: number;
+  /**
+   * The player's own aggression, 1 (very defensive) to 5 (very aggressive).
+   * Set by the player and kept until they change it.
+   */
+  aggression: AggressionLevels;
 }
+
+export interface AggressionLevels {
+  batting: number;
+  bowling: number;
+}
+
+export const DEFAULT_AGGRESSION: AggressionLevels = { batting: 3, bowling: 3 };

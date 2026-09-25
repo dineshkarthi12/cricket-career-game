@@ -55,7 +55,7 @@ function accelerationPoint(wicketsLost: number): number | null {
 export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng): BatterApproach {
   const rates = MATCH_FORMATS[situation.format] ?? MATCH_FORMATS.ODI;
   const cfg = MATCH.batting;
-  let level = rates.defaultIntent;
+  let level = rates.defaultIntent + cfg.aiIntentStart;
 
   // A new batter plays himself in whatever the format.
   if (situation.strikerBallsFaced < 8) level -= 1;

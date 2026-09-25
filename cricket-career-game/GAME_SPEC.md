@@ -271,7 +271,8 @@ resume.
   `MIGRATIONS` in `src/save/migrate.ts` whenever `GameState` changes. Old
   careers must keep loading. v2 (Phase 3): shot geometry, selector trust.
   v3 (Phase 4): captaincy, relationships, media reputation, team morale, the
-  dev captain toggle.
+  dev captain toggle. v4: the player's 1-5 batting and bowling aggression
+  (`career.aggression`, default 3/3).
 - **Errors** — `STORAGE_UNAVAILABLE`, `QUOTA_EXCEEDED`, `NOT_FOUND`, `CORRUPT`,
   `WRONG_APP`, `UNSUPPORTED_VERSION`, `UNKNOWN`. Nothing throws.
 
@@ -451,6 +452,35 @@ score from their actual calls, stress and its cost to form, sacking after five
 straight defeats or a rating at 24 or below, and a recommendation after a
 strong record; appointment when the case is made; press conference after big
 matches (knockouts, a hundred or five-for, a thrashing as captain).
+
+**Aggression 1-5.** Batting: 1 Very Defensive, 2 Defensive, 3 Balanced,
+4 Aggressive, 5 Very Aggressive; bowling: 1 contain to 5 all-out attack.
+The player sets theirs (`career.aggression`); it holds until they change it
+and is sent with every ball (`BallOverrides.intentLevel` /
+`bowlingAggression`, confined by `battingFor` / `bowlingFor`). One-ball
+intents override it for one ball. A captain can set a level per batter and
+per bowler (`batterLevels`, `bowlerLevels`); anyone without one is the AI.
+- Multipliers are relative to the format's `defaultIntent`, which is 3 for
+  every format. The AI's read starts at `defaultIntent +
+  MATCH.batting.aiIntentStart` so its situational drops leave it averaging
+  about 3: `MATCH.intent` (wicket, boundary, dot, running), plus
+  `MATCH.aggression` - contact (false shots), leaving outside off, the share
+  of aerial shots at 5, and the risk scale.
+- Risk scale for attacking (`aggressionRiskScale`, clamped 0.4-2.5): 1 +
+  0.6 × unsettled + 0.5 × pitch difficulty + 0.2 × (bowler - batter) +
+  0.3 × poor temperament - 0.12 × power. It multiplies only the extra
+  wicket risk above the normal game. Power also adds boundaries when
+  attacking (`powerReward`).
+- Bowling (`MATCH.bowlingAggression`): wicket, boundary, dot and wide
+  multipliers, and length / line / variation weights in `choosePlan`; all 1
+  at level 3, so the AI's normal plan is unchanged.
+- Risk label: `estimateRisk(state, batterId, level)` builds the next ball's
+  context with a neutral plan and no random numbers and returns the wicket
+  chance and ratio to the format's base rate; Low below 0.6, Medium below
+  1.2, High below 2.1, else Very High (`MATCH.aggression.riskLabels`).
+- Stats: `Ball.intent` records the batting level and `Ball.bowlingAggression`
+  the bowling level when it is not 3; `src/lib/aggressionStats.ts` builds the
+  post-match per-level tables.
 
 **Engine additions**: leave (`MATCH.leave`), rotate (`MATCH.rotate`),
 captain's instructions and a bowler to target, fielding-side lbw reviews

@@ -1,13 +1,13 @@
 /**
- * The player's own batting: what to try with the next ball, where to aim, or
- * an aggression level to sim on with. It reaches the engine only while the
- * player's own batter is on strike.
+ * The player's own batting: their aggression level (theirs until they change
+ * it), a one-ball override, and where to aim. It reaches the engine only
+ * while the player's own batter is on strike.
  */
 import { memo } from 'react';
-import { FastForward, Target } from 'lucide-react';
+import { FastForward, Play, Target } from 'lucide-react';
+import type { RiskEstimate } from '@/engine/match/innings';
 import { BALL_INTENTS, type BallIntent } from '@/store/matchStore';
-
-const INTENT_LABELS = ['Block', 'Defend', 'Normal', 'Attack', 'All out'];
+import { AggressionBar } from './AggressionBar';
 
 /** Directions the batter can favour, in engine degrees. */
 export const DIRECTIONS = [
@@ -30,20 +30,23 @@ const INTENT_TONE: Record<BallIntent, string> = {
 };
 
 export const BattingControls = memo(function BattingControls({
-  intent,
+  level,
+  risk,
   shotPreference,
   onPlay,
-  onIntent,
+  onLevel,
   onShotPreference,
   onSimOver,
   onSimUntilOut,
   disabled = false,
 }: {
-  intent: number | null;
+  /** The player's batting aggression, 1-5. */
+  level: number;
+  risk: RiskEstimate | null;
   shotPreference: number | null;
-  /** Play the next ball with this intent. */
-  onPlay: (intent: BallIntent) => void;
-  onIntent: (level: number | null) => void;
+  /** Play the next ball at the set level, or with a one-ball intent. */
+  onPlay: (intent?: BallIntent) => void;
+  onLevel: (level: number) => void;
   onShotPreference: (angle: number | null) => void;
   onSimOver: () => void;
   onSimUntilOut: () => void;
@@ -51,8 +54,29 @@ export const BattingControls = memo(function BattingControls({
 }) {
   return (
     <div className="flex flex-col gap-4">
+      <AggressionBar
+        label="Your batting aggression"
+        kind="batting"
+        level={level}
+        risk={risk}
+        hotkeys
+        onChange={(next) => next !== null && onLevel(next)}
+      />
+
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onPlay()}
+        className="flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-brand-blue/90 disabled:opacity-50"
+      >
+        <Play className="size-4" aria-hidden />
+        Play the ball
+      </button>
+
       <div>
-        <p className="text-[12.5px] font-semibold text-ink">Next ball</p>
+        <p className="text-[12.5px] font-semibold text-ink">
+          Just this ball <span className="font-normal text-ink-soft">- your level stays as set</span>
+        </p>
         <div className="mt-2 grid grid-cols-5 gap-1.5">
           {BALL_INTENTS.map((option) => (
             <button
@@ -97,31 +121,8 @@ export const BattingControls = memo(function BattingControls({
       </div>
 
       <div className="border-t border-line pt-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <label htmlFor="intent" className="text-[12.5px] font-semibold text-ink">
-            Or sim on at
-          </label>
-          <span className="text-[12.5px] font-semibold text-brand-blue">
-            {intent === null ? 'Reading the game' : INTENT_LABELS[intent - 1]}
-          </span>
-        </div>
-        <input
-          id="intent"
-          type="range"
-          min={1}
-          max={5}
-          step={1}
-          value={intent ?? 3}
-          disabled={disabled}
-          onChange={(event) => onIntent(Number(event.target.value))}
-          className={`mt-2 w-full accent-brand-blue ${intent === null ? 'opacity-50' : ''}`}
-        />
-        <div className="mt-0.5 flex justify-between text-[10px] text-ink-soft">
-          {INTENT_LABELS.map((label) => (
-            <span key={label}>{label}</span>
-          ))}
-        </div>
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <p className="text-[12.5px] font-semibold text-ink">Sim on at your level</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           <button
             type="button"
             disabled={disabled}
@@ -140,16 +141,6 @@ export const BattingControls = memo(function BattingControls({
             <FastForward className="size-3.5" aria-hidden />
             Until I’m out
           </button>
-          {intent !== null ? (
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onIntent(null)}
-              className="rounded-lg px-3 py-2 text-[12px] font-semibold text-brand-blue hover:underline"
-            >
-              Let me read the game
-            </button>
-          ) : null}
         </div>
       </div>
     </div>

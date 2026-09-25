@@ -6,10 +6,12 @@
 import { memo, useState } from 'react';
 import { Crown, Flag, Lightbulb, UserCog } from 'lucide-react';
 import { Badge, Tabs } from '@/components';
+import type { RiskEstimate } from '@/engine/match/innings';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { SimPlayer } from '@/engine/match/types';
-import type { CaptainDecisions } from '@/store/matchStore';
+import type { CaptainDecisions, PlayerDecisions } from '@/store/matchStore';
 import type { CaptainDelegation, Venue } from '@/types';
+import { AggressionBar } from './AggressionBar';
 import { FieldEditor } from './FieldEditor';
 
 const INSTRUCTIONS: { id: CaptainDecisions['instruction']; label: string; help: string }[] = [
@@ -38,6 +40,11 @@ export const CaptainPanel = memo(function CaptainPanel({
   opposingBowlers,
   suggestion,
   maxOvers,
+  userId,
+  player,
+  onPlayer,
+  playerById,
+  riskFor,
   onDecisions,
   onDelegate,
   onDeclare,
@@ -51,12 +58,79 @@ export const CaptainPanel = memo(function CaptainPanel({
   opposingBowlers: { id: string; name: string }[];
   suggestion: SimPlayer | null;
   maxOvers: number | null;
+  userId: string;
+  /** The player's own levels: their bar here is the same one as in "You". */
+  player: PlayerDecisions;
+  onPlayer: (patch: Partial<PlayerDecisions>) => void;
+  playerById: (id: string) => SimPlayer | undefined;
+  riskFor: (batterId: string, level: number) => RiskEstimate | null;
   onDecisions: (patch: Partial<CaptainDecisions>) => void;
   onDelegate: (patch: Partial<CaptainDelegation>) => void;
   onDeclare: () => void;
 }) {
   const cur = snap.current;
   const [tab, setTab] = useState(snap.userBowling ? 'bowling' : 'batting');
+
+  /** A batter's bar: the player's own level for themselves, the captain's call for the rest. */
+  const batterBar = (id: string, end: string) => {
+    const mine = id === userId;
+    const level = mine ? player.batting : (decisions.batterLevels[id] ?? null);
+    const name = playerById(id)?.name ?? 'Batter';
+    return (
+      <AggressionBar
+        key={id}
+        compact
+        allowAuto={!mine}
+        label={`${name}${mine ? ' (you)' : ''} · ${end}`}
+        kind="batting"
+        level={level}
+        risk={level !== null ? riskFor(id, level) : null}
+        onChange={(next) => {
+          if (mine) {
+            if (next !== null) onPlayer({ batting: next });
+            return;
+          }
+          const batterLevels = { ...decisions.batterLevels };
+          if (next === null) delete batterLevels[id];
+          else batterLevels[id] = next;
+          onDecisions({ batterLevels });
+        }}
+      />
+    );
+  };
+
+  /** A bowler's bar, the same way round. */
+  const bowlerBar = (bowler: SimPlayer) => {
+    const mine = bowler.id === userId;
+    const level = mine ? player.bowling : (decisions.bowlerLevels[bowler.id] ?? null);
+    return (
+      <AggressionBar
+        key={bowler.id}
+        compact
+        allowAuto={!mine}
+        label={`${bowler.name}${mine ? ' (you)' : ''}`}
+        kind="bowling"
+        level={level}
+        onChange={(next) => {
+          if (mine) {
+            if (next !== null) onPlayer({ bowling: next });
+            return;
+          }
+          const bowlerLevels = { ...decisions.bowlerLevels };
+          if (next === null) delete bowlerLevels[bowler.id];
+          else bowlerLevels[bowler.id] = next;
+          onDecisions({ bowlerLevels });
+        }}
+      />
+    );
+  };
+
+  // The man with the ball first, then everyone else who can bowl.
+  const current = cur?.bowlerId ? playerById(cur.bowlerId) : undefined;
+  const bowlersForBars = [
+    ...(current ? [current] : []),
+    ...available.filter((b) => b.id !== current?.id),
+  ];
   const tabs = [
     { id: 'batting', label: 'Batting' },
     { id: 'bowling', label: 'Bowling' },
@@ -83,6 +157,15 @@ export const CaptainPanel = memo(function CaptainPanel({
           <div className="flex flex-col gap-3">
             {!snap.userBatting ? (
               <p className="text-[12px] text-ink-muted">These apply when your side bats.</p>
+            ) : cur ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-[12.5px] font-semibold text-ink">Aggression at the crease</p>
+                {batterBar(cur.strikerId, 'striker')}
+                {batterBar(cur.nonStrikerId, 'non-striker')}
+                <p className="text-[11px] text-ink-soft">
+                  A level you set stays until you change it. Auto: the batter reads the game.
+                </p>
+              </div>
             ) : null}
             <fieldset>
               <legend className="text-[12.5px] font-semibold text-ink">Instructions to the batters</legend>
@@ -190,6 +273,11 @@ export const CaptainPanel = memo(function CaptainPanel({
                 : 'Nobody chosen: the vice-captain will pick.'}{' '}
               Bowlers at their quota are not offered.
             </p>
+            <div className="mt-1 flex flex-col gap-2 border-t border-line pt-3">
+              <p className="text-[12.5px] font-semibold text-ink">Bowling aggression</p>
+              {bowlersForBars.map(bowlerBar)}
+              <p className="text-[11px] text-ink-soft">Auto: the bowler’s normal game.</p>
+            </div>
           </div>
         ) : (
           <p className="text-[12.5px] text-ink-muted">Bowling changes are made while your side is in the field.</p>

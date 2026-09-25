@@ -9,6 +9,7 @@
  */
 import { useMemo, useState } from 'react';
 import { Card, CardHeader, Tabs } from '@/components';
+import type { RiskEstimate } from '@/engine/match/innings';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { FieldSetting, SimPlayer } from '@/engine/match/types';
 import { groundBox, insideCircle } from '@/lib/ground';
@@ -44,6 +45,7 @@ export interface InPlayProps {
   awayTeam: string;
   teamNameOf: (id: string) => string;
   playerById: (id: string) => SimPlayer | undefined;
+  riskFor: (batterId: string, level: number) => RiskEstimate | null;
   userId: string;
   userName: string;
   captain: boolean;
@@ -91,6 +93,10 @@ export function InPlay(props: InPlayProps) {
   const leftArmBowler = Boolean(bowler?.bowlingStyle.startsWith('LEFT_ARM'));
   const me = playerById(props.userId);
   const busy = snap.question !== null;
+  const myRisk =
+    snap.involvement.atCrease || snap.involvement.onStrike
+      ? props.riskFor(props.userId, props.player.batting)
+      : null;
 
   const battingTeam = props.teamNameOf(cur.battingTeamId);
   const bowlingTeam = props.teamNameOf(cur.bowlingTeamId);
@@ -182,6 +188,7 @@ export function InPlay(props: InPlayProps) {
       me={me}
       name={props.userName}
       decisions={props.player}
+      risk={myRisk}
       busy={busy || props.autoPlay}
       autoWatch={props.autoWatch}
       onPlay={props.onPlay}
@@ -202,6 +209,11 @@ export function InPlay(props: InPlayProps) {
       opposingBowlers={opposingBowlers}
       suggestion={props.suggestedBowler}
       maxOvers={cur.maxOversPerBowler}
+      userId={props.userId}
+      player={props.player}
+      onPlayer={props.onPlayer}
+      playerById={playerById}
+      riskFor={props.riskFor}
       onDecisions={props.onCaptain}
       onDelegate={props.onDelegate}
       onDeclare={props.onDeclare}

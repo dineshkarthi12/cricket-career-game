@@ -7,9 +7,11 @@
 import { memo } from 'react';
 import { Eye, UserRound } from 'lucide-react';
 import { Avatar } from '@/components';
+import type { RiskEstimate } from '@/engine/match/innings';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { SimPlayer } from '@/engine/match/types';
 import type { BallIntent, PlayerDecisions } from '@/store/matchStore';
+import { AggressionBar } from './AggressionBar';
 import { BattingControls } from './BattingControls';
 import { BowlingControls } from './BowlingControls';
 
@@ -18,6 +20,8 @@ export interface YouPanelProps {
   me: SimPlayer | undefined;
   name: string;
   decisions: PlayerDecisions;
+  /** Risk at the player's batting level, while they are at the crease. */
+  risk: RiskEstimate | null;
   busy: boolean;
   autoWatch: boolean;
   onPlay: (intent?: BallIntent) => void;
@@ -80,10 +84,11 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
 
       {i.onStrike ? (
         <BattingControls
-          intent={decisions.intent}
+          level={decisions.batting}
+          risk={props.risk}
           shotPreference={decisions.shotPreference}
           onPlay={props.onPlay}
-          onIntent={(intent) => props.onDecisions({ intent })}
+          onLevel={(batting) => props.onDecisions({ batting })}
           onShotPreference={(shotPreference) => props.onDecisions({ shotPreference })}
           onSimOver={props.onSimOver}
           onSimUntilOut={props.onSimUntilOut}
@@ -93,6 +98,8 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
         <BowlingControls
           bowler={me}
           bowlerLine={bowlerLine}
+          level={decisions.bowling}
+          onLevel={(bowling) => props.onDecisions({ bowling })}
           plan={decisions.plan}
           roundTheWicket={decisions.roundTheWicket}
           oversLeft={maxOvers !== null ? Math.max(0, maxOvers - bowled) : null}
@@ -111,6 +118,25 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
                 ? 'Your controls appear the moment you are on strike.'
                 : 'Your controls appear if the captain throws you the ball - and a catch or run-out coming your way is yours to take.'}
           </p>
+          {i.playing ? (
+            <div className="mt-3 flex flex-col gap-2.5">
+              <AggressionBar
+                compact
+                label={i.atCrease ? 'Batting aggression (at the other end)' : 'Batting aggression'}
+                kind="batting"
+                level={decisions.batting}
+                risk={props.risk}
+                onChange={(batting) => batting !== null && props.onDecisions({ batting })}
+              />
+              <AggressionBar
+                compact
+                label="Bowling aggression"
+                kind="bowling"
+                level={decisions.bowling}
+                onChange={(bowling) => bowling !== null && props.onDecisions({ bowling })}
+              />
+            </div>
+          ) : null}
           <label className="mt-2.5 flex items-center gap-2 text-[12.5px] font-semibold text-ink">
             <input
               type="checkbox"

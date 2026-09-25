@@ -12,7 +12,7 @@ import { newId } from '../id';
 import { ageBall, deterioratePitch, dewLevel, phaseFor } from './conditions';
 import { chooseApproach, chooseBowler, choosePlan, runRatePressure, type Situation } from './ai';
 import { chooseField, placeField } from './field';
-import { resolveDelivery } from './delivery';
+import { estimateWicketChance, resolveDelivery } from './delivery';
 import { bowlerKindOf, computePressure } from './skill';
 import { INTENT_BY_LEVEL } from './types';
 import type { Rng } from './rng';
@@ -699,6 +699,97 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     overNumber,
     phase,
   });
+}
+
+/** How dangerous a level of batting aggression is right now. */
+export type RiskLabel = 'Low' | 'Medium' | 'High' | 'Very High';
+
+export interface RiskEstimate {
+  /** Chance of losing the wicket on an ordinary ball. */
+  chance: number;
+  /** That chance against the format's base rate: 1 is a normal ball. */
+  ratio: number;
+  label: RiskLabel;
+}
+
+export function riskLabel(ratio: number): RiskLabel {
+  const t = MATCH.aggression.riskLabels;
+  if (ratio < t.medium) return 'Low';
+  if (ratio < t.high) return 'Medium';
+  if (ratio < t.veryHigh) return 'High';
+  return 'Very High';
+}
+
+/**
+ * The chance a batter gets out to an ordinary ball at a given aggression, in
+ * the conditions and situation as they stand. No random numbers are used, so
+ * it can be asked any time without changing the match.
+ */
+export function estimateRisk(
+  state: InningsState,
+  batterId: string,
+  level: number,
+  bowlingAggression = 3,
+): RiskEstimate | null {
+  const { setup } = state;
+  const striker = state.batting.find((p) => p.id === batterId);
+  if (!striker) return null;
+  const bowler =
+    state.bowlers.find((b) => b.id === (state.currentBowlerId ?? state.lastBowlerId)) ?? state.bowlers[0];
+  if (!bowler) return null;
+  const partner = state.batting.find((p) => p.id !== batterId && strikerOf(state).id !== p.id) ?? striker;
+  const overNumber = Math.floor(state.legalBalls / 6);
+  const phase = phaseFor(overNumber, setup.oversAvailable, state.conditions.ball.ageInBalls / 6);
+  const runsRequired = setup.target === null ? null : Math.max(0, setup.target - state.runs);
+  const ballsRemaining =
+    setup.oversAvailable === null ? null : Math.max(0, state.maxBalls - state.legalBalls);
+  const currentRunRate = state.legalBalls > 0 ? (state.runs / state.legalBalls) * 6 : 0;
+  const lvl = Math.max(1, Math.min(5, Math.round(level)));
+
+  const context: DeliveryContext = {
+    format: setup.format,
+    phase,
+    conditions: state.conditions,
+    striker,
+    nonStriker: partner,
+    bowler,
+    bowlerKind: bowlerKindOf(bowler),
+    plan: { length: 'GOOD', line: 'OFF_STUMP', variation: null, speed: 0 },
+    approach: { level: lvl, intent: INTENT_BY_LEVEL[lvl - 1] },
+    field: state.field ?? { name: 'NONE', fielders: [], keeperId: '', keeperName: '', keeperSkill: 50 },
+    strikerBallsFaced: state.ballsFaced[striker.id] ?? 0,
+    recentWickets: state.wicketBalls.filter((b) => state.legalBalls - b <= MATCH.momentum.window).length,
+    consecutiveDots: state.dotStreak[striker.id] ?? 0,
+    strikerRuns: state.battingLines.get(striker.id)?.runs ?? 0,
+    farmingStrike: false,
+    partnershipBalls: state.partnershipBalls,
+    spellOvers: state.spellOvers[bowler.id] ?? 1,
+    oversBowled: overNumber,
+    ballInOver: state.ballsThisOver + 1,
+    pressure: computePressure({
+      runsRequired,
+      ballsRemaining,
+      wicketsLost: state.wickets,
+      currentRunRate,
+      knockout: setup.knockout,
+      crowdFactor: state.crowdFactor,
+      battingAtHome: setup.battingAtHome,
+    }),
+    runsRequired,
+    ballsRemaining,
+    wicketsInHand: state.batting.length - 1 - state.wickets,
+    battingAtHome: setup.battingAtHome,
+    dew: state.currentDew,
+    boundaries: { straight: setup.venue.straightBoundary, square: setup.venue.squareBoundary },
+    day: state.day,
+    freeHit: false,
+    reviewsLeft: { ...state.reviewsLeft },
+    bowlingAggression,
+  };
+  const base = (MATCH_FORMATS[setup.format] ?? MATCH_FORMATS.ODI).wicket;
+  const chance = estimateWicketChance(context);
+  const ratio = chance / base;
+  return { chance, ratio, label: riskLabel(ratio) };
 }
 
 /**

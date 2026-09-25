@@ -142,10 +142,10 @@ export interface FormatRates {
 export const MATCH_FORMATS: Record<string, FormatRates> = {
   T20: {
     overs: 20,
-    wicket: 0.05349,
-    four: 0.2150,
-    six: 0.0750,
-    dotWeight: 0.4476,
+    wicket: 0.0420,
+    four: 0.1560,
+    six: 0.0540,
+    dotWeight: 0.5000,
     twoWeight: 0.19,
     threeWeight: 0.022,
     maxOversPerBowler: 4,
@@ -153,10 +153,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ODI: {
     overs: 50,
-    wicket: 0.02711,
-    four: 0.09639,
-    six: 0.01647,
-    dotWeight: 1.0442,
+    wicket: 0.0225,
+    four: 0.0700,
+    six: 0.0120,
+    dotWeight: 1.1500,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -164,10 +164,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ONE_DAY: {
     overs: 50,
-    wicket: 0.02779,
-    four: 0.09253,
-    six: 0.01433,
-    dotWeight: 1.1069,
+    wicket: 0.0231,
+    four: 0.0672,
+    six: 0.0105,
+    dotWeight: 1.2200,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -175,10 +175,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   MULTI_DAY: {
     overs: null,
-    wicket: 0.0227,
-    four: 0.05364,
+    wicket: 0.0164,
+    four: 0.0400,
     six: 0.00260,
-    dotWeight: 2.4200,
+    dotWeight: 3.4500,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -186,10 +186,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   TEST: {
     overs: null,
-    wicket: 0.0214,
-    four: 0.0523,
+    wicket: 0.0157,
+    four: 0.0392,
     six: 0.0025,
-    dotWeight: 2.5894,
+    dotWeight: 3.6000,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -404,6 +404,13 @@ export const MATCH = {
     anchorPositions: [1, 2, 3] as number[],
     finisherPositions: [5, 6, 7] as number[],
     anchorIntentDrop: 1,
+    /**
+     * Where an AI batter's read of the game starts, above the format's normal
+     * level. Playing yourself in, anchoring, the tail and milestones all pull
+     * it down, so starting one higher leaves the average batter at 3 -
+     * "Balanced" means what a typical batter plays.
+     */
+    aiIntentStart: 1,
     finisherIntentBump: 1,
     /** A nightwatchman goes in when this few overs are left in the day. */
     nightwatchmanOversLeft: 8,
@@ -532,13 +539,18 @@ export const MATCH = {
      * not yet in, on a hard pitch, against a better bowler, and for a batter
      * without the temperament for it; raw power makes it safer.
      */
-    risk: { unsettled: 0.6, pitch: 0.5, bowler: 0.45, temperament: 0.35, power: 0.25 },
+    risk: { unsettled: 0.6, pitch: 0.5, bowler: 0.2, temperament: 0.3, power: 0.12 },
     /** A powerful batter gets more boundaries out of attacking. */
-    powerReward: 0.3,
+    powerReward: 0.12,
     /** Share of Very Aggressive shots that go in the air. */
     bigShotLoft: 0.7,
     /** Contact below this is a false shot, for the stats. */
     falseShotContact: 30,
+    /**
+     * Risk labels by the chance of getting out to an ordinary ball, as a
+     * multiple of the format's base wicket rate.
+     */
+    riskLabels: { medium: 0.6, high: 1.2, veryHigh: 2.1 },
   },
 
   /**
