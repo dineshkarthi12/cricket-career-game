@@ -179,6 +179,10 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
   let partnershipBalls = 0;
   /** Ball index of each wicket, so recent ones can be counted. */
   const wicketBalls: number[] = [];
+  /** Consecutive dots faced, per batter. */
+  const dotStreak: Record<string, number> = {};
+  /** One nightwatchman per innings is plenty. */
+  let nightwatchmanUsed = false;
 
   const maxBalls = setup.oversAvailable === null ? Infinity : setup.oversAvailable * 6;
   const crowdFactor = Math.min(1, setup.venue.capacity / 60000);
@@ -240,6 +244,13 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
       const runsRequired = setup.target === null ? null : Math.max(0, setup.target - runs);
       const ballsRemaining = setup.oversAvailable === null ? null : Math.max(0, maxBalls - legalBalls);
 
+      const partnerIsTail = nonStriker().battingPosition >= MATCH.batting.tailFromWicket + 2;
+      // With the tail in, a set batter tries to keep the strike for himself.
+      const farmingStrike =
+        partnerIsTail &&
+        striker().battingPosition < MATCH.batting.tailFromWicket + 2 &&
+        (ballsFaced[striker().id] ?? 0) > MATCH.newBatter.settleBalls;
+
       const situation: Situation = {
         format: setup.format,
         phase,
@@ -250,6 +261,10 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
         ballsRemaining,
         currentRunRate,
         strikerBallsFaced: ballsFaced[striker().id] ?? 0,
+        strikerRuns: battingLines.get(striker().id)?.runs ?? 0,
+        strikerPosition: striker().battingPosition,
+        partnerIsTail,
+        consecutiveDots: dotStreak[striker().id] ?? 0,
         inningsNumber: setup.number,
         savingTheGame: setup.oversAvailable === null && setup.number === 4 && setup.target === null,
       };
@@ -297,10 +312,14 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
           approach,
           field,
           strikerBallsFaced: situation.strikerBallsFaced,
+          consecutiveDots: situation.consecutiveDots,
+          strikerRuns: situation.strikerRuns,
+          farmingStrike,
           recentWickets: wicketBalls.filter((b) => legalBalls - b <= MATCH.momentum.window).length,
           partnershipBalls,
           spellOvers: spellOvers[bowler.id] ?? 1,
           oversBowled: overNumber,
+          ballInOver: ballsThisOver + 1,
           pressure,
           runsRequired,
           ballsRemaining,
@@ -368,6 +387,8 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
       bowlLine.runsConceded += chargedToBowler;
 
       if (outcome.isLegalDelivery) {
+        const scored = outcome.runsOffBat + (outcome.extras?.runs ?? 0);
+        dotStreak[striker().id] = scored === 0 ? (dotStreak[striker().id] ?? 0) + 1 : 0;
         legalBalls += 1;
         ballsThisOver += 1;
         bowlLine.balls += 1;
@@ -409,10 +430,40 @@ export function simulateInnings(setup: InningsSetup, rng: Rng): InningsResult {
         partnershipRuns = 0;
         partnershipBalls = 0;
 
-        // The new batter replaces whoever actually got out.
+        // The new batter replaces whoever actually got out. Late in the day
+        // of a multi-day match a captain may send a nightwatchman instead of
+        // exposing a front-line batter for a handful of overs.
         if (nextBatterIndex < batting.length) {
-          if (outcome.dismissedPlayerId === striker().id) strikerIndex = nextBatterIndex;
-          else nonStrikerIndex = nextBatterIndex;
+          let incoming = nextBatterIndex;
+
+          if (setup.oversAvailable === null && !nightwatchmanUsed) {
+            const oversLeftToday =
+              MATCH.multiDay.oversPerDay - (Math.floor(legalBalls / 6) % MATCH.multiDay.oversPerDay);
+            const worthShielding = batting[nextBatterIndex].battingPosition <= 6;
+            if (
+              oversLeftToday <= MATCH.batting.nightwatchmanOversLeft &&
+              worthShielding &&
+              rng.chance(MATCH.batting.nightwatchmanChance)
+            ) {
+              // Send the best of whoever is left further down the order.
+              const candidate = batting.findIndex(
+                (p, i) => i > nextBatterIndex && p.bowlingStyle !== 'NONE',
+              );
+              if (candidate > -1) {
+                incoming = candidate;
+                nightwatchmanUsed = true;
+                // The batter who was next keeps his place for the morning.
+                [batting[nextBatterIndex], batting[candidate]] = [
+                  batting[candidate],
+                  batting[nextBatterIndex],
+                ];
+                incoming = nextBatterIndex;
+              }
+            }
+          }
+
+          if (outcome.dismissedPlayerId === striker().id) strikerIndex = incoming;
+          else nonStrikerIndex = incoming;
           nextBatterIndex += 1;
         }
 

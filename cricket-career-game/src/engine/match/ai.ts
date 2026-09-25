@@ -22,6 +22,14 @@ export interface Situation {
   currentRunRate: number;
   /** Balls this batter has faced. */
   strikerBallsFaced: number;
+  /** Runs this batter has made, for milestone nerves. */
+  strikerRuns: number;
+  /** Where the striker bats, 1-11. */
+  strikerPosition: number;
+  /** True when the batter at the other end is a tailender. */
+  partnerIsTail: boolean;
+  /** Consecutive dot balls this batter has faced. */
+  consecutiveDots: number;
   /** Innings number, 1-4. */
   inningsNumber: number;
   /** For a multi-day match: is this side batting to save the game? */
@@ -29,8 +37,24 @@ export interface Situation {
 }
 
 /** How hard the batter should be trying, 1-5. */
+/**
+ * When a side with this many wickets down should start going, as a share of
+ * the innings. Three down and you can attack from three quarters of the way
+ * in; five down and you wait a little longer; seven down and you are batting
+ * to bat out the overs, not to score.
+ */
+function accelerationPoint(wicketsLost: number): number | null {
+  if (wicketsLost <= 2) return 0.7;
+  if (wicketsLost === 3) return 0.75;
+  if (wicketsLost === 4) return 0.78;
+  if (wicketsLost === 5) return 0.82;
+  if (wicketsLost === 6) return 0.88;
+  return null; // seven down: protect the tail and bat the overs out
+}
+
 export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng): BatterApproach {
   const rates = MATCH_FORMATS[situation.format] ?? MATCH_FORMATS.ODI;
+  const cfg = MATCH.batting;
   let level = rates.defaultIntent;
 
   // A new batter plays himself in whatever the format.
@@ -38,15 +62,20 @@ export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng
 
   const aggression = normalise(batter.attributes.mental.aggression);
   const awareness = normalise(batter.attributes.mental.matchAwareness);
+  const isTail = situation.strikerPosition >= 9;
 
   if (situation.totalOvers !== null) {
     const oversLeft = situation.totalOvers - situation.oversBowled;
     const share = situation.oversBowled / situation.totalOvers;
 
-    if (share >= MATCH.deathFraction) level += 1;
+    // Acceleration depends on what you have left in the shed, not just the
+    // clock: three down at fifteen overs of a T20 is a green light, seven
+    // down is not.
+    const goFrom = accelerationPoint(situation.wicketsLost);
+    if (goFrom !== null && share >= goFrom) level += share >= 0.9 ? 2 : 1;
+    if (goFrom === null) level -= 1;
+
     if (share < MATCH.powerplayFraction && situation.wicketsLost <= 1) level += 1;
-    // Losing wickets in a heap steadies everyone down.
-    if (situation.wicketsLost >= 6) level -= 1;
     if (situation.wicketsLost >= 8) level -= 1;
 
     if (situation.runsRequired !== null && situation.ballsRemaining !== null && situation.ballsRemaining > 0) {
@@ -61,6 +90,32 @@ export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng
     if (situation.savingTheGame) level -= 1;
     if (situation.inningsNumber >= 3 && situation.runsRequired !== null) level += 1;
     if (situation.strikerBallsFaced > 60) level += 1;
+  }
+
+  // Roles. Openers and number threes bat time; the middle order finishes.
+  if (cfg.anchorPositions.includes(situation.strikerPosition) && situation.strikerBallsFaced < 30) {
+    level -= cfg.anchorIntentDrop;
+  }
+  if (cfg.finisherPositions.includes(situation.strikerPosition) && situation.strikerBallsFaced > 12) {
+    level += cfg.finisherIntentBump;
+  }
+
+  // A tailender is not trying to play shots, unless there is nothing to lose.
+  if (isTail && situation.runsRequired === null) level -= cfg.tailIntentDrop;
+
+  // With the tail in, the recognised batter has to do the scoring.
+  if (!isTail && situation.partnerIsTail) level += 1;
+
+  // Nervous nineties: nobody wants to get out ten short of a hundred.
+  const toMilestone = cfg.milestone.marks
+    .map((mark) => mark - situation.strikerRuns)
+    .filter((gap) => gap > 0 && gap <= cfg.milestone.window);
+  if (toMilestone.length > 0) level -= cfg.milestone.intentDrop;
+
+  // Dots build up, and eventually the batter goes looking for a release shot.
+  const dots = Math.max(0, situation.consecutiveDots - MATCH.dotPressure.from);
+  if (dots > 0) {
+    level += Math.min(MATCH.dotPressure.maxIntent, dots * MATCH.dotPressure.intentPerDot);
   }
 
   // Personality, and a little noise so no two batters play the same way.

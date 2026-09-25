@@ -142,10 +142,10 @@ export interface FormatRates {
 export const MATCH_FORMATS: Record<string, FormatRates> = {
   T20: {
     overs: 20,
-    wicket: 0.04747,
-    four: 0.16018,
-    six: 0.07885,
-    dotWeight: 0.4657,
+    wicket: 0.05162,
+    four: 0.17788,
+    six: 0.08893,
+    dotWeight: 0.4323,
     twoWeight: 0.19,
     threeWeight: 0.022,
     maxOversPerBowler: 4,
@@ -153,10 +153,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ODI: {
     overs: 50,
-    wicket: 0.02595,
-    four: 0.09682,
-    six: 0.02246,
-    dotWeight: 0.9781,
+    wicket: 0.02663,
+    four: 0.09659,
+    six: 0.02296,
+    dotWeight: 0.9643,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -164,10 +164,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ONE_DAY: {
     overs: 50,
-    wicket: 0.0266,
-    four: 0.09295,
-    six: 0.01954,
-    dotWeight: 1.0368,
+    wicket: 0.0273,
+    four: 0.09273,
+    six: 0.01998,
+    dotWeight: 1.0222,
     twoWeight: 0.20,
     threeWeight: 0.018,
     maxOversPerBowler: 10,
@@ -175,10 +175,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   MULTI_DAY: {
     overs: null,
-    wicket: 0.01889,
-    four: 0.06880,
-    six: 0.00434,
-    dotWeight: 2.1939,
+    wicket: 0.01794,
+    four: 0.05530,
+    six: 0.00355,
+    dotWeight: 2.3257,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -186,10 +186,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   TEST: {
     overs: null,
-    wicket: 0.01813,
-    four: 0.06708,
-    six: 0.00417,
-    dotWeight: 2.2597,
+    wicket: 0.01722,
+    four: 0.05392,
+    six: 0.00341,
+    dotWeight: 2.3955,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -370,6 +370,55 @@ export const MATCH = {
     wicketCeiling: 3.4,
     /** Cap on the combined boundary multiplier. */
     boundaryCeiling: 2.5,
+  },
+
+  /** How batters read the situation in front of them. */
+  batting: {
+    /**
+     * Approaching a milestone, most batters tighten up. The nervous nineties
+     * are real: fewer risks, and the extra tension costs a little too.
+     */
+    milestone: {
+      window: 10,
+      marks: [50, 100, 150, 200] as number[],
+      intentDrop: 1,
+      wicketBump: 1.1,
+    },
+    /**
+     * A left-right pair makes a bowler reset their line every single, which
+     * costs them a little accuracy.
+     */
+    leftRightDisruption: 0.09,
+    /** Wicket at which the recognised batter starts shielding the tail. */
+    tailFromWicket: 7,
+    /** How hard a set batter tries to keep the strike with the tail in. */
+    farmStrikeStrength: 0.55,
+    /** A tailender blocks rather than plays shots. */
+    tailIntentDrop: 1,
+    /** Openers and number threes anchor; five to seven finish. */
+    anchorPositions: [1, 2, 3] as number[],
+    finisherPositions: [5, 6, 7] as number[],
+    anchorIntentDrop: 1,
+    finisherIntentBump: 1,
+    /** A nightwatchman goes in when this few overs are left in the day. */
+    nightwatchmanOversLeft: 8,
+    nightwatchmanChance: 0.55,
+  },
+
+  /**
+    * Dot balls build pressure. A batter who has not scored for an over starts
+    * looking for a release shot, and that is when the wicket comes.
+    */
+  dotPressure: {
+    /** Consecutive dots before pressure starts to tell. */
+    from: 4,
+    /** Extra wicket chance per dot beyond that. */
+    wicketPerDot: 0.07,
+    /** ...and how much harder the batter starts trying. */
+    intentPerDot: 0.22,
+    /** Capped so a quiet spell does not become a certainty. */
+    maxWicket: 0.45,
+    maxIntent: 1.2,
   },
 
   /** A batter who is properly in is a different proposition. */

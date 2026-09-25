@@ -111,12 +111,20 @@ export interface DeliveryContext {
   strikerBallsFaced: number;
   /** Wickets that have fallen in the last `momentum.window` balls. */
   recentWickets: number;
+  /** Consecutive dot balls the striker has faced. */
+  consecutiveDots: number;
+  /** Runs the striker has made, for milestone nerves. */
+  strikerRuns: number;
+  /** True when the striker is shielding a tailender at the other end. */
+  farmingStrike: boolean;
   /** Balls the current pair have been together. */
   partnershipBalls: number;
   /** Overs this bowler has sent down in the current spell. */
   spellOvers: number;
   /** Overs bowled in the innings so far. */
   oversBowled: number;
+  /** Which ball of the over this is, 1-6, for strike farming. */
+  ballInOver: number;
   /** 0-100 situational pressure on the batter. */
   pressure: number;
   /** Runs still needed, or null when batting first. */

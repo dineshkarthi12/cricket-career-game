@@ -21,7 +21,12 @@ function executionError(context: DeliveryContext, rng: Rng): number {
     context.bowler.attributes.bowling.accuracy * 0.6 + context.bowler.attributes.bowling.control * 0.4,
   );
   const fatigue = (context.bowler.condition.fatigue / 100) * cfg.fatiguePenalty;
-  const skill = clamp01(cfg.baseAccuracy * (0.5 + accuracy) - fatigue);
+  // Resetting the line for a left-right pair every single costs a bowler.
+  const leftRight =
+    context.striker.battingStyle !== context.nonStriker.battingStyle
+      ? MATCH.batting.leftRightDisruption
+      : 0;
+  const skill = clamp01(cfg.baseAccuracy * (0.5 + accuracy) - fatigue - leftRight);
   // Even the best bowler misses; even the worst lands one on the spot.
   return clamp01(Math.abs(rng.spread()) * (1.25 - skill));
 }
@@ -175,6 +180,19 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   const set = setLevel(context.strikerBallsFaced);
   const phaseMod = cfg.phase[context.phase] ?? { boundary: 1, wicket: 1, dot: 1 };
 
+  // --- Dot-ball pressure ---------------------------------------------------
+  // A batter who has not scored for an over starts looking for a release
+  // shot, and that is usually when the wicket comes.
+  const dots = Math.max(0, context.consecutiveDots - cfg.dotPressure.from);
+  const dotWicket = 1 + Math.min(cfg.dotPressure.maxWicket, dots * cfg.dotPressure.wicketPerDot);
+
+  // --- Milestone nerves ----------------------------------------------------
+  const nearMilestone = cfg.batting.milestone.marks.some((mark) => {
+    const gap = mark - context.strikerRuns;
+    return gap > 0 && gap <= cfg.batting.milestone.window;
+  });
+  const milestone = nearMilestone ? cfg.batting.milestone.wicketBump : 1;
+
   // --- Momentum ------------------------------------------------------------
   // Wickets come in clusters: a new batter walking in while the last two went
   // cheaply is in far more trouble than the same batter in a calm innings.
@@ -197,6 +215,8 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     (1 + (1 - settle) * cfg.newBatter.wicketPenalty) *
     (1 - set * (1 - cfg.setBatter.wicket)) *
     collapse *
+    dotWicket *
+    milestone *
     (1 - partnership * cfg.momentum.settledPartnershipWicket) *
     (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2);
   pWicket = clamp01(
@@ -461,10 +481,18 @@ function resolvePlacedShot(
   const twoWeight = rates.twoWeight * runFactor * (1 - straightAt * 0.7) * (0.6 + contact * 0.8);
   const threeWeight = rates.threeWeight * runFactor * (1 - straightAt * 0.85) * (0.5 + contact * 0.8);
 
+  // A set batter shielding the tail wants the strike back: he takes the single
+  // early in the over and turns one down late, so the tailender faces as few
+  // balls as possible.
+  const farm = context.farmingStrike ? MATCH.batting.farmStrikeStrength : 0;
+  const lateInOver = context.ballInOver >= 5;
+  const oddWeight = 1 * (farm > 0 ? (lateInOver ? 1 - farm : 1 + farm * 0.4) : 1);
+  const evenTwo = twoWeight * (farm > 0 && lateInOver ? 1 + farm : 1);
+
   const runs = rng.weighted<number>([
     { item: 0, weight: dotWeight },
-    { item: 1, weight: 1 },
-    { item: 2, weight: twoWeight },
+    { item: 1, weight: oddWeight },
+    { item: 2, weight: evenTwo },
     { item: 3, weight: threeWeight },
   ]);
 
