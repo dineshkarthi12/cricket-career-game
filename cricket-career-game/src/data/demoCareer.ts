@@ -413,7 +413,8 @@ export function createDemoCareer(): GameState {
   const record = emptyCareerRecord();
   const u16Record = { ...emptyFormatRecord('MULTI_DAY'), batting };
   record.byFormat.MULTI_DAY = u16Record;
-  record.byCompetition['vijay-merchant'] = u16Record;
+  // A separate copy: the two records are added to independently after a match.
+  record.byCompetition['vijay-merchant'] = structuredClone(u16Record);
   record.manOfTheMatch = 2;
 
   return {

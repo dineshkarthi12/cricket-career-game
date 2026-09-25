@@ -12,6 +12,7 @@ import { buildMatch, defaultXiIds, squadFor, type MatchBuild } from '@/engine/ma
 import { createLiveMatch, type LiveMatch, type LiveSnapshot } from '@/engine/match/live';
 import type { BallOverrides } from '@/engine/match/innings';
 import type { BowlerPlan, FieldSetting, SimPlayer } from '@/engine/match/types';
+import { fieldProblems } from '@/lib/fieldRules';
 import { useGameStore } from './gameStore';
 import type { Ball, Fixture, GameState, Id, Match } from '@/types';
 
@@ -26,8 +27,8 @@ export const BALL_SPEEDS = [
 export type MatchStage = 'SETUP' | 'PRE_MATCH' | 'PLAYING' | 'BREAK' | 'DONE';
 
 export interface MatchDecisions {
-  /** Batting aggression, 1-5. */
-  intent: number;
+  /** Batting aggression, 1-5, or null to let the batters read the game. */
+  intent: number | null;
   /** Preferred direction to hit in, in degrees, or null for no preference. */
   shotPreference: number | null;
   /** Parts of the bowler's plan the player has set. */
@@ -75,6 +76,10 @@ interface MatchStore {
   toNextWicket: () => void;
   toEndOfInnings: () => void;
   startNextInnings: () => void;
+  /** Close the user's innings (multi-day only). */
+  declare: () => void;
+  /** Answer the follow-on question. */
+  chooseFollowOn: (enforce: boolean) => void;
   /** Play the rest out without watching it. */
   simulateRest: () => void;
   /** Play the whole fixture out from the pre-match screen. */
@@ -89,7 +94,7 @@ interface MatchStore {
 }
 
 const DEFAULT_DECISIONS: MatchDecisions = {
-  intent: 3,
+  intent: null,
   shotPreference: null,
   plan: {},
   roundTheWicket: false,
@@ -131,7 +136,9 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     if (!done) return;
     const userPlayed = get().userSelected;
     useGameStore.getState().update((state) => commitMatch(state, done.match, { userPlayed }));
-    set({ committed: done.match });
+    // Read it back, so the post-match screen shows what was actually stored.
+    const stored = useGameStore.getState().state?.matches[done.match.id] ?? done.match;
+    set({ committed: stored });
   };
 
   /** The overrides that apply right now, given who is batting. */
@@ -141,14 +148,21 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     const overrides: BallOverrides = {};
 
     if (snap.userBatting) {
-      overrides.intentLevel = decisions.intent;
+      if (decisions.intent !== null) overrides.intentLevel = decisions.intent;
       overrides.shotPreference = decisions.shotPreference;
     }
     if (snap.userBowling) {
       if (decisions.nextBowlerId) overrides.bowlerId = decisions.nextBowlerId;
       if (Object.keys(decisions.plan).length > 0) overrides.plan = decisions.plan;
       if (decisions.roundTheWicket) overrides.aroundTheWicket = true;
-      if (decisions.field) overrides.field = decisions.field;
+      // An illegal field never reaches the engine; the umpire would not allow it.
+      const venue = get().build?.setup.venue;
+      const legal =
+        decisions.field && venue
+          ? fieldProblems(decisions.field, venue, snap.format, Math.floor(snap.current.balls / 6))
+              .length === 0
+          : false;
+      if (decisions.field && legal) overrides.field = decisions.field;
       else if (decisions.fieldPreset) overrides.fieldPreset = decisions.fieldPreset;
     }
     return overrides;
@@ -279,6 +293,15 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       sync(null);
     },
 
+    declare: () => {
+      if (live?.declare()) sync(null);
+    },
+
+    chooseFollowOn: (enforce) => {
+      live?.chooseFollowOn(enforce);
+      sync(null);
+    },
+
     simulateRest: () => {
       if (!live) return;
       live.toEnd();
@@ -296,7 +319,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       const done = match.finished();
       if (!done) return null;
       useGameStore.getState().update((s) => commitMatch(s, done.match, { userPlayed: true }));
-      return done.match;
+      return useGameStore.getState().state?.matches[done.match.id] ?? done.match;
     },
 
     setDecisions: (patch) => set((s) => ({ decisions: { ...s.decisions, ...patch } })),

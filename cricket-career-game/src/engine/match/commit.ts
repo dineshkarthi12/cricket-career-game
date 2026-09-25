@@ -126,13 +126,13 @@ function recomputeSummary(
 
 function resultLine(match: Match, userTeamId: Id): string {
   const result = match.result;
-  if (!result) return 'No result.';
+  if (!result) return 'no result';
   if (result.type === 'WIN') {
-    return result.winningTeamId === userTeamId
-      ? `We won — ${result.summary.toLowerCase()}.`
-      : `We lost — ${result.summary.toLowerCase()}.`;
+    // Summaries read "Won by 4 wickets"; put them from our side's point of view.
+    const margin = result.summary.replace(/^Won /, '');
+    return result.winningTeamId === userTeamId ? `we won ${margin}` : `we lost ${margin}`;
   }
-  return `${result.summary}.`;
+  return result.summary.toLowerCase();
 }
 
 export interface CommitOptions {
@@ -191,7 +191,10 @@ export function commitMatch(
       date: match.date,
       sender: 'TEAM',
       senderName: 'Team Manager',
-      subject: `${match.stage}: ${resultLine(match, userTeamId)}`,
+      subject: `${TOURNAMENTS_BY_ID[match.tournamentId]?.name ?? 'Match'}: ${resultLine(
+        match,
+        userTeamId,
+      )}`,
       body: performance
         ? `${performance.runs}${performance.notOut ? '*' : ''} off ${performance.ballsFaced}` +
           (performance.oversBowled > 0
@@ -234,8 +237,11 @@ export function commitMatch(
   const record = structuredClone(state.player.record);
   const format = match.format;
   record.byFormat[format] = record.byFormat[format] ?? emptyFormatRecord(format);
-  record.byCompetition[match.tournamentId] =
-    record.byCompetition[match.tournamentId] ?? emptyFormatRecord(format);
+  // Always its own object: a save where the format and competition records are
+  // the same object would otherwise count every match twice.
+  record.byCompetition[match.tournamentId] = structuredClone(
+    record.byCompetition[match.tournamentId] ?? emptyFormatRecord(format),
+  );
 
   const batted = performance.ballsFaced > 0 || !performance.notOut;
   accumulate(record.byFormat[format], performance, batted);
@@ -250,6 +256,15 @@ export function commitMatch(
     level += 1;
     toNext = Math.round(toNext * 1.12);
   }
+
+  // The stored scorecard carries the XP that was actually awarded.
+  next.matches = {
+    ...next.matches,
+    [match.id]: {
+      ...match,
+      userPerformance: { ...performance, xpEarned: aftermath.xpEarned },
+    },
+  };
 
   next.player = {
     ...state.player,

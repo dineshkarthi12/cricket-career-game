@@ -183,6 +183,20 @@ export function creaseLines(box: GroundBox): { x1: number; y1: number; x2: numbe
   return lines;
 }
 
+/**
+ * Is a fielder inside the fielding-restriction circle? The circle runs round
+ * both sets of stumps, so this measures to the nearest point on the line
+ * between them rather than to the striker - mid-on at 30 m from the bat is
+ * still well inside it.
+ */
+export function insideCircle(box: GroundBox, angle: number, distance: number): boolean {
+  const p = pointAt(box.striker, angle, distance);
+  const top = box.bowler.y + CREASE_TO_STUMPS;
+  const bottom = box.striker.y - CREASE_TO_STUMPS;
+  const y = Math.min(bottom, Math.max(top, p.y));
+  return Math.hypot(p.x - box.centre.x, p.y - y) <= CIRCLE_RADIUS;
+}
+
 /** Mirror an engine angle for a left-hander, so the drawing matches the bat. */
 export function drawAngle(angle: number, leftHanded: boolean): number {
   return leftHanded ? (360 - angle) % 360 : angle;

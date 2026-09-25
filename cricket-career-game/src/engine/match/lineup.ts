@@ -253,6 +253,10 @@ export function buildMatch(
     knockout: fixture.stage === 'FINAL' || fixture.stage === 'SEMI_FINAL',
     underLights: Boolean(venue?.floodlights) && isLimitedOvers(format) && format !== 'MULTI_DAY',
     seed: deriveSeed(state.seed, saltOf(fixture.id)),
+    teamNames: {
+      [homeTeamId]: state.teams[homeTeamId]?.shortName ?? homeTeamId,
+      [awayTeamId]: state.teams[awayTeamId]?.shortName ?? awayTeamId,
+    },
     month: Number(fixture.date.slice(5, 7)),
   };
 

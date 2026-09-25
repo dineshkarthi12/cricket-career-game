@@ -93,3 +93,13 @@ describe('ground geometry', () => {
     expect(regionOf(-45)).toBe('mid-wicket');
   });
 });
+
+describe('the fielding circle', () => {
+  it('counts mid-on as inside even at 30 m from the bat', async () => {
+    const { insideCircle } = await import('./ground');
+    expect(insideCircle(box, 340, 30)).toBe(true);
+    expect(insideCircle(box, 90, 25)).toBe(true);
+    expect(insideCircle(box, 90, 32)).toBe(false);
+    expect(insideCircle(box, 225, 60)).toBe(false);
+  });
+});

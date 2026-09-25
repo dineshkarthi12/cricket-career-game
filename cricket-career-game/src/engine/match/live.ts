@@ -11,7 +11,7 @@
 import { MATCH, MATCH_FORMATS } from '../config';
 import { newId } from '../id';
 import { createPitch, createWeather, newBall } from './conditions';
-import { hasResult } from './dls';
+import { hasResult, revisedTarget } from './dls';
 import {
   createInningsState,
   finishInnings,
@@ -25,7 +25,13 @@ import {
   type Partnership,
 } from './innings';
 import { createRng, deriveSeed, type Rng } from './rng';
-import { decideToss, isLimitedOvers, buildPerformance } from './simulate';
+import {
+  buildPerformance,
+  decideToss,
+  isLimitedOvers,
+  pickManOfTheMatch,
+  rollOversLost,
+} from './simulate';
 import type { SimPlayer } from './types';
 import type {
   Ball,
@@ -60,6 +66,8 @@ export interface LiveMatchSetup {
   underLights?: boolean;
   seed: number;
   month?: number;
+  /** Display names by team id, for alerts. Falls back to the id. */
+  teamNames?: Record<string, string>;
 }
 
 /** A read-only view of the match, for the screen to render. */
@@ -97,6 +105,12 @@ export interface LiveSnapshot {
     reviewsLeft: { batting: number; bowling: number };
     freeHit: boolean;
     day: number;
+    /** Overs each bowler has bowled in their current spell. */
+    spellOvers: Record<string, number>;
+    /** Overs each bowler has bowled in the innings. */
+    oversBowledBy: Record<string, number>;
+    /** The format's cap per bowler, or null when there is none. */
+    maxOversPerBowler: number | null;
   } | null;
   field: InningsState['field'];
   toss: { winnerTeamId: string; decision: 'BAT' | 'BOWL' } | null;
@@ -105,6 +119,10 @@ export interface LiveSnapshot {
   alerts: LiveAlert[];
   userBatting: boolean;
   userBowling: boolean;
+  /** The user's side can declare now. */
+  canDeclare: boolean;
+  /** The user's side has earned the follow-on and must say whether to enforce it. */
+  followOnChoice: { lead: number } | null;
 }
 
 export interface LiveAlert {
@@ -120,6 +138,12 @@ interface PendingInnings {
   target: number | null;
   declareAt: number | null;
   oversAvailable: number | null;
+  /** Rain-revised target, recorded on the innings. */
+  dlsTarget?: number | null;
+  /** Batting again straight away, 150 or more behind. */
+  followOn?: boolean;
+  /** A knockout tie's six-ball eliminator. */
+  superOver?: boolean;
 }
 
 export interface LiveMatch {
@@ -138,6 +162,13 @@ export interface LiveMatch {
   toEnd(): void;
   /** Move on after an innings break. */
   startNextInnings(): void;
+  /**
+   * Declare the innings closed. Only in a multi-day match, and only for the
+   * user's side while it is batting.
+   */
+  declare(): boolean;
+  /** Answer the follow-on question when the user's side has earned it. */
+  chooseFollowOn(enforce: boolean): void;
   /** The finished match, once the result is in. */
   finished(): { match: Match; partnerships: Partnership[] } | null;
   /** Bowlers available to the fielding side this over. */
@@ -182,21 +213,17 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   let result: MatchResult | null = null;
   let finishedMatch: { match: Match; partnerships: Partnership[] } | null = null;
 
-  // A multi-day match loses time the same way the batch simulator does.
+  // Everything below follows `simulateMatch` call for call, so a match played
+  // here with no decisions from the player is the same match the balance
+  // suite measures: same random numbers, drawn in the same order.
   const cfg = MATCH.multiDay;
-  let oversLost = cfg.days * cfg.slowOverRatePerDay;
-  if (!limited) {
-    for (let d = 1; d <= cfg.days; d += 1) {
-      const wet = weather.rainRisk / 100;
-      if (rng.chance(cfg.washoutChance + wet * 0.35)) oversLost += cfg.oversPerDay * rng.range(0.55, 1);
-      else if (rng.chance(cfg.sessionLossChance + wet * 0.5)) {
-        oversLost += cfg.oversPerSession * rng.range(0.5, 1.4);
-      }
-    }
-  }
-  const maxMatchBalls = limited
-    ? Infinity
-    : Math.max(cfg.oversPerDay * 6, Math.floor((cfg.days * cfg.oversPerDay - oversLost) * 6));
+  const fullOvers = rates.overs ?? 50;
+  let maxMatchBalls = Infinity;
+  /** Overs the first innings of a limited-overs match was given. */
+  let firstInningsOvers = fullOvers;
+  const vary = (base: number) => Math.round(base * (1 + rng.spread() * cfg.declareVariance));
+  /** The result of the innings that has just finished. */
+  let lastEnding = '';
 
   const xiOf = (teamId: string) => (teamId === setup.homeTeamId ? setup.homeXi : setup.awayXi);
   const other = (teamId: string) =>
@@ -207,12 +234,52 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   };
 
   function buildSetup(p: PendingInnings): InningsSetup {
+    const bowlingTeamId = other(p.battingTeamId);
+    if (p.superOver) {
+      return {
+        number: p.number,
+        battingTeamId: p.battingTeamId,
+        bowlingTeamId,
+        // Only the three best batters go out for a super over.
+        batting: [...xiOf(p.battingTeamId)]
+          .sort((a, b) => a.battingPosition - b.battingPosition)
+          .slice(0, 3),
+        bowling: xiOf(bowlingTeamId),
+        format: 'T20',
+        venue: setup.venue,
+        conditions: baseConditions,
+        oversAvailable: MATCH.superOver.balls / 6,
+        target: p.target,
+        battingAtHome: p.battingTeamId === setup.homeTeamId,
+        knockout: true,
+        day: 1,
+        underLights,
+      };
+    }
+    if (limited) {
+      return {
+        number: p.number,
+        battingTeamId: p.battingTeamId,
+        bowlingTeamId,
+        batting: xiOf(p.battingTeamId),
+        bowling: xiOf(bowlingTeamId),
+        format: setup.format,
+        venue: setup.venue,
+        conditions,
+        oversAvailable: p.oversAvailable,
+        target: p.target,
+        battingAtHome: p.battingTeamId === setup.homeTeamId,
+        knockout: setup.knockout ?? false,
+        day: 1,
+        underLights,
+      };
+    }
     return {
       number: p.number,
       battingTeamId: p.battingTeamId,
-      bowlingTeamId: other(p.battingTeamId),
+      bowlingTeamId,
       batting: xiOf(p.battingTeamId),
-      bowling: xiOf(other(p.battingTeamId)),
+      bowling: xiOf(bowlingTeamId),
       format: setup.format,
       venue: setup.venue,
       conditions,
@@ -223,182 +290,310 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       knockout: setup.knockout ?? false,
       day,
       declareAt: p.declareAt,
-      underLights,
+      underLights: false,
     };
   }
 
+  let current: PendingInnings | null = null;
+
   function openInnings(p: PendingInnings) {
-    inningsRng = createRng(deriveSeed(setup.seed, p.number));
+    inningsRng = createRng(deriveSeed(setup.seed, p.superOver ? 90 + p.number : p.number));
     state = createInningsState(buildSetup(p));
+    current = p;
     pending = null;
     phase = 'IN_PLAY';
-    addAlert('INNINGS', `Innings ${p.number}: ${p.battingTeamId} batting.`);
+    const name = setup.teamNames?.[p.battingTeamId] ?? p.battingTeamId;
+    addAlert(
+      'INNINGS',
+      p.superOver
+        ? `Super over: ${name} ${p.target !== null ? `need ${p.target}` : 'bat first'}.`
+        : p.followOn
+          ? `${name} follow on.`
+          : p.target !== null
+            ? `Innings ${p.number}: ${name} need ${p.target} to win.`
+            : `Innings ${p.number}: ${name} batting.`,
+    );
+  }
+
+  /** Multi-day overs left for the next innings. */
+  const oversLeft = () => Math.max(1, Math.floor((maxMatchBalls - ballsUsed) / 6));
+
+  function breakFor(p: PendingInnings) {
+    pending = p;
+    phase = 'INNINGS_BREAK';
   }
 
   /** Work out what comes next once an innings finishes. */
   function closeInnings() {
-    if (!state) return;
+    if (!state || !current) return;
     const finished = finishInnings(state);
-    completed.push(finished.innings);
+    let innings = finished.innings;
+    if (current.followOn) innings = { ...innings, followOn: true };
+    if (current.dlsTarget !== undefined) innings = { ...innings, dlsTarget: current.dlsTarget };
+    completed.push(innings);
     endings.push(finished.ending);
+    lastEnding = finished.ending;
     partnerships.push(...finished.partnerships);
-    conditions = finished.conditions;
-    day = finished.day;
-    ballsUsed += finished.innings.balls;
+    const wasSuperOver = Boolean(current.superOver);
     state = null;
+    current = null;
 
-    if (limited) {
-      if (completed.length === 1) {
-        pending = {
-          number: 2,
-          battingTeamId: other(battingFirstTeamId),
-          target: completed[0].runs + 1,
-          declareAt: null,
-          oversAvailable: rates.overs,
-        };
-        phase = 'INNINGS_BREAK';
-        return;
-      }
-      settleLimitedResult();
-      return;
-    }
+    if (wasSuperOver) return afterSuperOver();
+    // The pitch, ball and weather carry on into the next innings.
+    conditions = finished.conditions;
+    if (limited) return afterLimitedInnings();
 
-    // Multi-day sequencing, matching the batch simulator's rules.
-    if (ballsUsed >= maxMatchBalls) return settleMultiDay(true);
-
-    if (completed.length === 1) {
-      pending = {
-        number: 2,
-        battingTeamId: other(battingFirstTeamId),
-        target: null,
-        declareAt: null,
-        oversAvailable: Math.max(1, Math.floor((maxMatchBalls - ballsUsed) / 6)),
-      };
-      phase = 'INNINGS_BREAK';
-      return;
-    }
-
-    if (completed.length === 2) {
-      const lead = completed[0].runs - completed[1].runs;
-      const vary = (base: number) => Math.round(base * (1 + rng.spread() * cfg.declareVariance));
-      const timeLeft = (maxMatchBalls - ballsUsed) / maxMatchBalls;
-      const wantedLead = cfg.declarationLead * (timeLeft < 0.3 ? 1.35 : 1);
-      pending = {
-        number: 3,
-        battingTeamId: battingFirstTeamId,
-        target: null,
-        declareAt: vary(lead > 0 ? Math.max(0, wantedLead - lead) : wantedLead),
-        oversAvailable: Math.max(1, Math.floor((maxMatchBalls - ballsUsed) / 6)),
-      };
-      phase = 'INNINGS_BREAK';
-      return;
-    }
-
-    if (completed.length === 3) {
-      const lead = completed[0].runs - completed[1].runs;
-      pending = {
-        number: 4,
-        battingTeamId: other(battingFirstTeamId),
-        target: lead + completed[2].runs + 1,
-        declareAt: null,
-        oversAvailable: Math.max(1, Math.floor((maxMatchBalls - ballsUsed) / 6)),
-      };
-      phase = 'INNINGS_BREAK';
-      return;
-    }
-
-    settleMultiDay(false);
+    // Multi-day bookkeeping, exactly as the batch simulator keeps it.
+    ballsUsed += finished.innings.balls;
+    day = Math.min(cfg.days, 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
+    afterMultiDayInnings();
   }
 
-  function settleLimitedResult() {
+  function afterLimitedInnings() {
     const first = completed[0];
-    const second = completed[1];
-    const target = second.target ?? first.runs + 1;
-    const chasingTeamId = second.battingTeamId;
+    if (completed.length === 1) {
+      // More rain between innings shortens the chase and revises the target.
+      const oversLostAfter = rollOversLost(rng, weather.rainRisk, firstInningsOvers);
+      const secondOvers = Math.max(0, firstInningsOvers - oversLostAfter);
+      let target = first.runs + 1;
+      let dlsTarget: number | null = null;
+      if (secondOvers < firstInningsOvers && secondOvers > 0) {
+        dlsTarget = revisedTarget({
+          firstInningsRuns: first.runs,
+          firstInningsOvers,
+          firstInningsWicketsLost: first.wickets,
+          secondInningsOvers: secondOvers,
+          totalOvers: fullOvers,
+        });
+        target = dlsTarget;
+      }
+      if (!hasResult(secondOvers)) {
+        addAlert('INNINGS', 'Rain — not enough time left for a result.');
+        return settle({
+          type: 'NO_RESULT',
+          winningTeamId: null,
+          summary: 'No result - rain',
+          marginRuns: null,
+          marginWickets: null,
+          manOfTheMatchId: null,
+        });
+      }
+      if (dlsTarget !== null) {
+        addAlert('INNINGS', `Rain: the chase is cut to ${secondOvers} overs, target ${dlsTarget}.`);
+      }
+      return breakFor({
+        number: 2,
+        battingTeamId: other(battingFirstTeamId),
+        target,
+        declareAt: null,
+        oversAvailable: secondOvers,
+        dlsTarget,
+      });
+    }
 
-    if (!hasResult(Math.floor(second.balls / 6)) && second.balls < 30) {
-      result = {
-        type: 'NO_RESULT',
-        winningTeamId: null,
-        summary: 'No result - rain',
-        marginRuns: null,
-        marginWickets: null,
-        manOfTheMatchId: null,
-      };
-    } else if (second.runs >= target) {
+    const second = completed[1];
+    const target = second.dlsTarget ?? first.runs + 1;
+    const chased = second.runs >= target;
+    const tied =
+      second.runs === target - 1 && (second.allOut || lastEnding === 'OVERS_COMPLETE');
+
+    if (tied && (setup.knockout ?? false)) {
+      addAlert('INNINGS', 'Scores level in a knockout — to a super over.');
+      return breakFor({
+        number: 3,
+        battingTeamId: other(battingFirstTeamId),
+        target: null,
+        declareAt: null,
+        oversAvailable: MATCH.superOver.balls / 6,
+        superOver: true,
+      });
+    }
+
+    if (chased) {
       const left = 10 - second.wickets;
-      result = {
+      return settle({
         type: 'WIN',
-        winningTeamId: chasingTeamId,
+        winningTeamId: second.battingTeamId,
         summary: `Won by ${left} wicket${left === 1 ? '' : 's'}`,
         marginRuns: null,
         marginWickets: left,
         manOfTheMatchId: null,
-      };
-    } else if (second.runs === target - 1) {
-      result = {
+      });
+    }
+    if (tied) {
+      return settle({
         type: 'TIE',
         winningTeamId: null,
         summary: 'Match tied',
         marginRuns: null,
         marginWickets: null,
         manOfTheMatchId: null,
-      };
-    } else {
-      const margin = target - 1 - second.runs;
-      result = {
-        type: 'WIN',
-        winningTeamId: battingFirstTeamId,
-        summary: `Won by ${margin} run${margin === 1 ? '' : 's'}`,
-        marginRuns: margin,
-        marginWickets: null,
-        manOfTheMatchId: null,
-      };
+      });
     }
-    complete();
+    const margin = target - 1 - second.runs;
+    return settle({
+      type: 'WIN',
+      winningTeamId: battingFirstTeamId,
+      summary: `Won by ${margin} run${margin === 1 ? '' : 's'}`,
+      marginRuns: margin,
+      marginWickets: null,
+      manOfTheMatchId: null,
+    });
   }
 
-  function settleMultiDay(ranOutOfTime: boolean) {
-    if (completed.length < 4 || ranOutOfTime) {
-      const fourth = completed[3];
-      if (fourth && fourth.target !== null && fourth.runs >= fourth.target) {
-        const left = 10 - fourth.wickets;
-        result = {
-          type: 'WIN',
-          winningTeamId: fourth.battingTeamId,
-          summary: `Won by ${left} wicket${left === 1 ? '' : 's'}`,
-          marginRuns: null,
-          marginWickets: left,
-          manOfTheMatchId: null,
-        };
-      } else {
-        result = {
-          type: 'DRAW',
-          winningTeamId: null,
-          summary: 'Match drawn',
-          marginRuns: null,
-          marginWickets: null,
-          manOfTheMatchId: null,
-        };
-      }
-      return complete();
+  function afterSuperOver() {
+    const [a, b] = completed.slice(2);
+    if (!b) {
+      return breakFor({
+        number: 4,
+        battingTeamId: battingFirstTeamId,
+        target: a.runs + 1,
+        declareAt: null,
+        oversAvailable: MATCH.superOver.balls / 6,
+        superOver: true,
+      });
+    }
+    const winner =
+      b.runs > a.runs ? battingFirstTeamId : b.runs < a.runs ? other(battingFirstTeamId) : null;
+    settle({
+      type: winner ? 'WIN' : 'TIE',
+      winningTeamId: winner,
+      summary: winner ? 'Won in a super over' : 'Tied after a super over',
+      marginRuns: null,
+      marginWickets: null,
+      manOfTheMatchId: null,
+    });
+  }
+
+  const draw = (): MatchResult => ({
+    type: 'DRAW',
+    winningTeamId: null,
+    summary: 'Match drawn',
+    marginRuns: null,
+    marginWickets: null,
+    manOfTheMatchId: null,
+  });
+
+  /** Follow-on state, so the fourth innings knows who is chasing what. */
+  let followOnEnforced = false;
+  let firstInningsLead = 0;
+  /** Waiting on the user to say whether to enforce the follow-on. */
+  let awaitingFollowOn = false;
+
+  /** Set up the third innings once the follow-on question is settled. */
+  function afterFollowOnDecision() {
+    const bowlingFirstTeamId = other(battingFirstTeamId);
+    if (followOnEnforced) {
+      return breakFor({
+        number: 3,
+        battingTeamId: bowlingFirstTeamId,
+        target: null,
+        declareAt: null,
+        oversAvailable: oversLeft(),
+        followOn: true,
+      });
+    }
+    // A captain with little time left wants a safer target.
+    const timeLeft = (maxMatchBalls - ballsUsed) / maxMatchBalls;
+    const wantedLead = cfg.declarationLead * (timeLeft < 0.3 ? 1.35 : 1);
+    const declareAt = vary(
+      firstInningsLead > 0 ? Math.max(0, wantedLead - firstInningsLead) : wantedLead,
+    );
+    return breakFor({
+      number: 3,
+      battingTeamId: battingFirstTeamId,
+      target: null,
+      declareAt,
+      oversAvailable: oversLeft(),
+    });
+  }
+
+  function afterMultiDayInnings() {
+    const timeUp = ballsUsed >= maxMatchBalls;
+    const n = completed.length;
+    const bowlingFirstTeamId = other(battingFirstTeamId);
+
+    if (n === 1) {
+      if (timeUp) return settle(draw());
+      return breakFor({
+        number: 2,
+        battingTeamId: bowlingFirstTeamId,
+        target: null,
+        declareAt: null,
+        oversAvailable: oversLeft(),
+      });
     }
 
-    const fourth = completed[3];
-    const target = fourth.target ?? 0;
-    if (fourth.runs >= target) {
-      const left = 10 - fourth.wickets;
-      result = {
+    if (n === 2) {
+      if (timeUp) return settle(draw());
+      firstInningsLead = completed[0].runs - completed[1].runs;
+
+      // Follow-on: a big lead and plenty of match left.
+      const canEnforce =
+        firstInningsLead >= cfg.followOnLead && ballsUsed < maxMatchBalls * 0.6;
+
+      // When it is the user's side that has earned it, the call is theirs.
+      if (canEnforce && battingFirstTeamId === setup.userTeamId) {
+        awaitingFollowOn = true;
+        phase = 'INNINGS_BREAK';
+        pending = null;
+        addAlert('INNINGS', `A lead of ${firstInningsLead}: enforce the follow-on?`);
+        return;
+      }
+
+      followOnEnforced = canEnforce && rng.chance(0.65);
+      return afterFollowOnDecision();
+    }
+
+    if (n === 3) {
+      if (timeUp) return settle(draw());
+      const third = completed[2];
+      if (followOnEnforced) {
+        const deficit = firstInningsLead - third.runs;
+        if (deficit > 0) {
+          return settle({
+            type: 'WIN',
+            winningTeamId: battingFirstTeamId,
+            summary: `Won by an innings and ${deficit} run${deficit === 1 ? '' : 's'}`,
+            marginRuns: deficit,
+            marginWickets: null,
+            manOfTheMatchId: null,
+          });
+        }
+        return breakFor({
+          number: 4,
+          battingTeamId: battingFirstTeamId,
+          target: -deficit + 1,
+          declareAt: null,
+          oversAvailable: oversLeft(),
+        });
+      }
+      return breakFor({
+        number: 4,
+        battingTeamId: bowlingFirstTeamId,
+        target: firstInningsLead + third.runs + 1,
+        declareAt: null,
+        oversAvailable: oversLeft(),
+      });
+    }
+
+    // The fourth innings: a chase, which is won, lost, tied or drawn.
+    const chase = completed[3];
+    const target = chase.target ?? 0;
+    if (chase.runs >= target) {
+      const left = 10 - chase.wickets;
+      return settle({
         type: 'WIN',
-        winningTeamId: fourth.battingTeamId,
+        winningTeamId: chase.battingTeamId,
         summary: `Won by ${left} wicket${left === 1 ? '' : 's'}`,
         marginRuns: null,
         marginWickets: left,
         manOfTheMatchId: null,
-      };
-    } else if (fourth.allOut) {
-      const margin = target - 1 - fourth.runs;
-      result =
+      });
+    }
+    if (chase.allOut) {
+      const margin = target - 1 - chase.runs;
+      return settle(
         margin === 0
           ? {
               type: 'TIE',
@@ -410,22 +605,19 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
             }
           : {
               type: 'WIN',
-              winningTeamId: other(fourth.battingTeamId),
+              winningTeamId: other(chase.battingTeamId),
               summary: `Won by ${margin} run${margin === 1 ? '' : 's'}`,
               marginRuns: margin,
               marginWickets: null,
               manOfTheMatchId: null,
-            };
-    } else {
-      result = {
-        type: 'DRAW',
-        winningTeamId: null,
-        summary: 'Match drawn',
-        marginRuns: null,
-        marginWickets: null,
-        manOfTheMatchId: null,
-      };
+            },
+      );
     }
+    settle(draw());
+  }
+
+  function settle(outcome: MatchResult) {
+    result = outcome;
     complete();
   }
 
@@ -458,24 +650,10 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       userPerformance: null,
     };
 
-    // Player of the match, on impact, weighted towards the winning side.
-    let bestId: string | null = null;
-    let best = -Infinity;
-    for (const player of allPlayers) {
-      let score = 0;
-      for (const innings of completed) {
-        const bat = innings.batting.find((b) => b.playerId === player.id);
-        if (bat) score += bat.runs + bat.fours * 0.5 + bat.sixes;
-        const bowl = innings.bowling.find((b) => b.playerId === player.id);
-        if (bowl) score += bowl.wickets * 22 - bowl.economy * 2 + bowl.maidens * 3;
-      }
-      if (result?.winningTeamId && player.teamId === result.winningTeamId) score *= 1.3;
-      if (score > best) {
-        best = score;
-        bestId = player.id;
-      }
+    // Player of the match, by the same measure the batch simulator uses.
+    if (result) {
+      result = { ...result, manOfTheMatchId: pickManOfTheMatch(match, allPlayers, result) };
     }
-    if (result) result.manOfTheMatchId = bestId;
     match.result = result;
     if (setup.userPlayerId) match.userPerformance = buildPerformance(match, setup.userPlayerId, allPlayers);
 
@@ -549,6 +727,9 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
             reviewsLeft: s.reviewsLeft,
             freeHit: s.freeHit,
             day: s.day,
+            spellOvers: { ...s.spellOvers },
+            oversBowledBy: { ...s.oversBowledBy },
+            maxOversPerBowler: rates.maxOversPerBowler,
           }
         : null,
       field: s?.field ?? null,
@@ -557,6 +738,9 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       alerts,
       userBatting: userBattingTeam,
       userBowling: s ? s.setup.bowlingTeamId === setup.userTeamId : false,
+      canDeclare:
+        !limited && userBattingTeam && phase === 'IN_PLAY' && Boolean(current) && !current?.superOver,
+      followOnChoice: awaitingFollowOn ? { lead: firstInningsLead } : null,
     };
   }
 
@@ -575,17 +759,49 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       toss = { winnerTeamId: winner, decision };
       battingFirstTeamId = decision === 'BAT' ? winner : other(winner);
 
+      if (limited) {
+        // Rain can shorten the match before a ball is bowled.
+        const oversLostBefore = rollOversLost(rng, weather.rainRisk, fullOvers);
+        firstInningsOvers = Math.max(0, fullOvers - oversLostBefore);
+        if (oversLostBefore > 0) {
+          addAlert('INNINGS', `Rain delays the start: ${firstInningsOvers} overs a side.`);
+        }
+        openInnings({
+          number: 1,
+          battingTeamId: battingFirstTeamId,
+          target: null,
+          declareAt: null,
+          oversAvailable: firstInningsOvers,
+        });
+        return;
+      }
+
+      // A four-day match almost never gets four full days: slow over rates,
+      // bad light and the weather all take time away.
+      let oversLost = cfg.days * cfg.slowOverRatePerDay;
+      for (let d = 1; d <= cfg.days; d += 1) {
+        const wet = weather.rainRisk / 100;
+        if (rng.chance(cfg.washoutChance + wet * 0.35)) {
+          oversLost += cfg.oversPerDay * rng.range(0.55, 1);
+        } else if (rng.chance(cfg.sessionLossChance + wet * 0.5)) {
+          oversLost += cfg.oversPerSession * rng.range(0.5, 1.4);
+        }
+      }
+      maxMatchBalls = Math.max(
+        cfg.oversPerDay * 6,
+        Math.floor((cfg.days * cfg.oversPerDay - oversLost) * 6),
+      );
+
+      // The side batting first declares once it has enough, or has used too
+      // much of the match.
+      const declareRuns = vary(cfg.firstInningsDeclareRuns);
+      const declareOvers = vary(cfg.firstInningsDeclareOvers);
       openInnings({
         number: 1,
         battingTeamId: battingFirstTeamId,
         target: null,
-        declareAt: limited ? null : MATCH.multiDay.firstInningsDeclareRuns,
-        oversAvailable: limited
-          ? rates.overs
-          : Math.min(
-              Math.max(1, Math.floor(maxMatchBalls / 6)),
-              MATCH.multiDay.firstInningsDeclareOvers,
-            ),
+        declareAt: declareRuns,
+        oversAvailable: Math.min(oversLeft(), declareOvers),
       });
     },
 
@@ -635,7 +851,13 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       if (phase === 'TOSS') this.doToss();
       let guard = 0;
       while (phase !== 'COMPLETE' && guard < 20) {
-        if (phase === 'INNINGS_BREAK') this.startNextInnings();
+        if (awaitingFollowOn) {
+          // Nobody is there to ask: the AI captain decides, as it would in a
+          // simulated match.
+          awaitingFollowOn = false;
+          followOnEnforced = rng.chance(0.65);
+          afterFollowOnDecision();
+        } else if (phase === 'INNINGS_BREAK') this.startNextInnings();
         else this.toEndOfInnings();
         guard += 1;
       }
@@ -644,6 +866,24 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     startNextInnings() {
       if (phase !== 'INNINGS_BREAK' || !pending) return;
       openInnings(pending);
+    },
+
+    declare() {
+      if (limited || phase !== 'IN_PLAY' || !state || !current) return false;
+      if (state.setup.battingTeamId !== setup.userTeamId) return false;
+      state.ending = 'DECLARED';
+      state.complete = true;
+      const name = setup.teamNames?.[state.setup.battingTeamId] ?? state.setup.battingTeamId;
+      addAlert('INNINGS', `${name} declare on ${state.runs}/${state.wickets}.`);
+      closeInnings();
+      return true;
+    },
+
+    chooseFollowOn(enforce) {
+      if (!awaitingFollowOn) return;
+      awaitingFollowOn = false;
+      followOnEnforced = enforce;
+      afterFollowOnDecision();
     },
 
     finished: () => finishedMatch,

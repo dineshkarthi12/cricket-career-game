@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createLiveMatch, type LiveMatchSetup } from './live';
 import { createRng } from './rng';
 import { generateXi } from './squad';
+import { simulateMatch } from './simulate';
 import { VENUES_BY_ID } from '@/data/venues';
 import type { MatchFormat } from '@/types';
 
@@ -310,5 +311,148 @@ describe('bowling round the wicket', () => {
     expect(round.wickets).toBeGreaterThan(300);
     expect(round.lbw).toBeGreaterThan(over.lbw);
     expect(round.behind).toBeLessThan(over.behind);
+  }, 120_000);
+});
+
+describe('parity with the batch simulator', () => {
+  // With no decisions from the player, a match played live must be the very
+  // match `simulateMatch` produces - which is what the balance suite measures.
+  const formats: MatchFormat[] = ['T20', 'ODI', 'MULTI_DAY'];
+
+  for (const format of formats) {
+    it(`plays the same ${format} matches, seed for seed`, () => {
+      let draws = 0;
+      for (let seed = 1; seed <= 60; seed += 1) {
+        // Separate player objects: the engine tires the bowlers it is given.
+        const make = () => setup({ seed, format, knockout: seed % 3 === 0, userIsCaptain: false });
+        const batch = simulateMatch({ ...make(), userIsHome: true, userIsCaptain: false });
+        const live = createLiveMatch(make());
+        live.toEnd();
+
+        const liveMatch = live.finished()!.match;
+        expect(liveMatch.innings.map((i) => `${i.runs}/${i.wickets}/${i.balls}`)).toEqual(
+          batch.match.innings.map((i) => `${i.runs}/${i.wickets}/${i.balls}`),
+        );
+        expect(liveMatch.result?.summary).toBe(batch.match.result?.summary);
+        // Each copy of the squad has its own ids, so compare the player by name.
+        const nameIn = (m: typeof liveMatch, id: string | null | undefined) =>
+          m.innings.flatMap((i) => [...i.batting, ...i.bowling]).find((l) => l.playerId === id)?.name;
+        expect(nameIn(liveMatch, liveMatch.result?.manOfTheMatchId)).toBe(
+          nameIn(batch.match, batch.match.result?.manOfTheMatchId),
+        );
+        expect(liveMatch.tossWinnerTeamId).toBe(batch.match.tossWinnerTeamId);
+
+        if (liveMatch.result?.type === 'DRAW') draws += 1;
+      }
+      if (format === 'MULTI_DAY') expect(draws).toBeGreaterThan(0);
+    }, 120_000);
+  }
+
+  it('plays a super over when a knockout is tied', () => {
+    // Find a tied knockout in the batch simulator, then check the live one.
+    for (let seed = 1; seed <= 3000; seed += 1) {
+      const make = () => setup({ seed, format: 'T20', knockout: true, userIsCaptain: false });
+      const batch = simulateMatch({ ...make(), userIsHome: true, userIsCaptain: false });
+      if (batch.match.innings.length < 4) continue;
+      const live = createLiveMatch(make());
+      live.toEnd();
+      const match = live.finished()!.match;
+      expect(match.innings).toHaveLength(4);
+      expect(match.result?.summary).toBe(batch.match.result?.summary);
+      expect(match.result?.summary).toMatch(/super over/);
+      return;
+    }
+    throw new Error('no tied knockout found');
+  }, 120_000);
+
+  it('enforces the follow-on the way the batch simulator does', () => {
+    for (let seed = 1; seed <= 1500; seed += 1) {
+      const make = () => setup({ seed, format: 'MULTI_DAY', userIsCaptain: false });
+      const batch = simulateMatch({ ...make(), userIsHome: true, userIsCaptain: false });
+      if (!batch.match.innings.some((i) => i.followOn)) continue;
+      const live = createLiveMatch(make());
+      live.toEnd();
+      const match = live.finished()!.match;
+      expect(match.innings.some((i) => i.followOn)).toBe(true);
+      expect(match.result?.summary).toBe(batch.match.result?.summary);
+      return;
+    }
+    throw new Error('no follow-on found');
+  }, 120_000);
+
+  it('shortens a rain-hit chase and revises the target the same way', () => {
+    for (let seed = 1; seed <= 4000; seed += 1) {
+      const make = () => setup({ seed, format: 'ODI', userIsCaptain: false, month: 7 });
+      const batch = simulateMatch({ ...make(), userIsHome: true, userIsCaptain: false });
+      const revised = batch.match.innings[1]?.dlsTarget ?? null;
+      if (revised === null) continue;
+      const live = createLiveMatch(make());
+      live.toEnd();
+      const match = live.finished()!.match;
+      expect(match.innings[1].dlsTarget).toBe(revised);
+      expect(match.result?.summary).toBe(batch.match.result?.summary);
+      return;
+    }
+    throw new Error('no rain-revised chase found');
+  }, 120_000);
+});
+
+describe('captaincy in a multi-day match', () => {
+  it('lets the user declare while their side is batting, and not otherwise', () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const live = createLiveMatch(setup({ seed, format: 'MULTI_DAY' }));
+      live.doToss();
+      const snap = live.snapshot();
+      if (!snap.userBatting) {
+        expect(snap.canDeclare).toBe(false);
+        expect(live.declare()).toBe(false);
+        continue;
+      }
+      for (let i = 0; i < 30; i += 1) live.nextOver();
+      if (live.snapshot().phase !== 'IN_PLAY') continue;
+      const runs = live.snapshot().current!.runs;
+      expect(live.snapshot().canDeclare).toBe(true);
+      expect(live.declare()).toBe(true);
+      const after = live.snapshot();
+      expect(after.phase).toBe('INNINGS_BREAK');
+      expect(after.completed[0].declared).toBe(true);
+      expect(after.completed[0].runs).toBe(runs);
+      return;
+    }
+    throw new Error('no match where the user batted first');
+  }, 60_000);
+
+  it('never lets a limited-overs side declare', () => {
+    const live = createLiveMatch(setup({ format: 'ODI' }));
+    live.doToss();
+    expect(live.snapshot().canDeclare).toBe(false);
+    expect(live.declare()).toBe(false);
+  });
+
+  it('asks the user about the follow-on when their side has earned it', () => {
+    for (let seed = 1; seed <= 3000; seed += 1) {
+      const live = createLiveMatch(setup({ seed, format: 'MULTI_DAY' }));
+      live.doToss();
+      live.toEndOfInnings();
+      if (live.snapshot().phase !== 'INNINGS_BREAK') continue;
+      live.startNextInnings();
+      live.toEndOfInnings();
+      const choice = live.snapshot().followOnChoice;
+      if (!choice) continue;
+
+      expect(choice.lead).toBeGreaterThanOrEqual(150);
+      // Nothing moves until the question is answered.
+      live.startNextInnings();
+      expect(live.snapshot().phase).toBe('INNINGS_BREAK');
+
+      live.chooseFollowOn(true);
+      live.startNextInnings();
+      const third = live.snapshot().current!;
+      expect(third.number).toBe(3);
+      // Following on: the side that batted second goes straight back in.
+      expect(third.battingTeamId).toBe(live.snapshot().completed[1].battingTeamId);
+      return;
+    }
+    throw new Error('no follow-on for the user to decide');
   }, 120_000);
 });
