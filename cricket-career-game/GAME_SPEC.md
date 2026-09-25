@@ -384,6 +384,29 @@ degrees) and `shotDistance` (metres), plus the normalised `landingPoint` the
 mirrored for a left-hander: **0 straight down the ground, 90 square on the off
 side, 180 back past the keeper, 270 square leg.**
 
+### Situational behaviour
+
+Everything in this table changes the ball outcome; none of it is cosmetic.
+
+| Area | What the engine does |
+|---|---|
+| Acceleration | Reads wickets in hand against overs left. Two down: go from 70% of the innings; three down 75%; five down 82%; seven down protect the tail. Scales to any format length. |
+| Roles | Openers and number threes anchor, five to seven finish, tailenders block, a recognised batter with the tail in farms the strike. |
+| Milestones | Inside ten runs of 50/100/150/200 a batter takes fewer risks and carries more danger. |
+| Left-right pair | Costs the bowler accuracy, because the line resets every single. |
+| Nightwatchman | Can go in late on a day of a multi-day match, once per innings. |
+| Field restrictions | T20: 2 outside the circle for 6 overs, then 5. ODI: 2 / 4 / 5 across the three blocks. Enforced by pulling outfielders into the ring. |
+| Bowling changes | Spells, rest, per-format over limits, death bowlers held back, part-timers when the game is safe, seamers with the new ball. |
+| Match-ups | Spin turning away from the bat is the dangerous one; left-arm seam angles across a right-hander; each batter has a pace/spin preference. |
+| Toss | Batting ease vs grass and cloud, dew under lights, batting first worth more in the longer game. The user calls it when captain. |
+| Dew | Builds through a night innings: spinners lose grip, every bowler loses execution. |
+| Ground size | Straight and square boundaries feed the six chance. Home side gets a small skill bonus. |
+| DRS | Two reviews a side an innings; overturned, upheld or umpire's call. |
+| Free hit | Follows a no-ball in limited overs; only a run-out can end it. |
+| Fielding incidents | Dropped catches on catching skill, misfields worth an extra run, direct-hit run-outs on the arm. |
+| In-match injury | Retired hurt, including concussion. |
+| Pressure | Dot balls build; wickets cluster; a rising required rate forces the pace. |
+
 ### Balance targets
 
 `config.ts` was tuned against 1000 matches per format. Current output and the
