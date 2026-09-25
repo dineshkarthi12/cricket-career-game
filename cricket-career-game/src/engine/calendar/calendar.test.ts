@@ -215,3 +215,28 @@ describe('the weekly clock', () => {
     expect(Object.values(result.state.fixtures).some((f) => f.date >= '2027-06-01' && !f.played)).toBe(true);
   });
 });
+
+describe('the save stays small over a season', () => {
+  it('keeps ball-by-ball for the latest matches only, so a season fits in localStorage', async () => {
+    const { createDemoCareer } = await import('@/data/demoCareer');
+    const { isArchived } = await import('../match/archive');
+    let state = createDemoCareer();
+    let matches = 0;
+    for (let i = 0; i < 16; i += 1) {
+      const result = advanceWeek(state);
+      state = result.state;
+      if (result.stoppedFor) {
+        state = commitMatch(state, quickSimFixture(state, result.stoppedFor));
+        matches += 1;
+      }
+    }
+    expect(matches).toBeGreaterThanOrEqual(5);
+    const played = Object.values(state.matches).filter((m) => m.id !== 'match-andhra-u16' && m.innings.some((i) => i.balls > 0));
+    const full = played.filter((m) => !isArchived(m));
+    expect(full.length).toBeLessThanOrEqual(2);
+    // Archived matches keep their full scorecards.
+    for (const m of played) expect(m.innings.every((i) => i.batting.length > 0 || i.balls === 0)).toBe(true);
+    // Well inside the ~5 MB a browser gives one origin.
+    expect(JSON.stringify(state).length).toBeLessThan(3_500_000);
+  });
+});

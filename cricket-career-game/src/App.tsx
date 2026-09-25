@@ -8,16 +8,17 @@ import StartScreen from './screens/StartScreen';
 import NewCareer from './screens/NewCareer';
 import MatchScreen from './screens/match/MatchScreen';
 import MatchesScreen from './screens/Matches';
+import CalendarScreen from './screens/calendar/CalendarScreen';
+import TrainingScreen from './screens/training/TrainingScreen';
+import RehabScreen from './screens/training/RehabScreen';
 import {
   AuctionScreen,
   AwardsScreen,
-  CalendarScreen,
   CareerPathScreen,
   CommunityScreen,
   SelectionScreen,
   SettingsScreen,
   StatsScreen,
-  TrainingScreen,
 } from './screens/placeholders';
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="/career" element={<CareerPathScreen />} />
               <Route path="/calendar" element={<CalendarScreen />} />
               <Route path="/training" element={<TrainingScreen />} />
+              <Route path="/training/rehab" element={<RehabScreen />} />
               <Route path="/matches" element={<MatchesScreen />} />
               <Route path="/matches/:matchId" element={<MatchesScreen />} />
               <Route path="/match/:fixtureId" element={<MatchScreen />} />

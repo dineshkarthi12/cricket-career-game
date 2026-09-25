@@ -22,6 +22,7 @@ import {
   xpForLevel,
 } from '@/engine/development';
 import { createRng } from '@/engine/match/rng';
+import { compactMatches } from '@/engine/match/archive';
 import { regionOf } from '@/data/places';
 import { fail, ok } from './storage';
 
@@ -192,6 +193,7 @@ function migrateToV5(state: GameState): GameState {
   const upgraded: GameState = {
     ...state,
     version: 5,
+    matches: compactMatches(state.matches ?? {}),
     player: {
       ...player,
       development,

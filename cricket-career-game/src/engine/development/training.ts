@@ -156,6 +156,8 @@ export interface TrainingWeekResult {
   player: Player;
   report: WeeklyReport;
   injury: Injury | null;
+  /** The chance of an injury this week that was rolled against. */
+  injuryChance: number;
 }
 
 function lifestyleInjury(lifestyle: Lifestyle): number {
@@ -308,7 +310,7 @@ export function runTrainingWeek(input: TrainingWeekInput): TrainingWeekResult {
   // --- Fatigue, fitness, match fitness ------------------------------------
   const peakFatigue = Math.min(100, fatigue);
   const recovery =
-    TRAINING.weeklyRecovery * Math.max(0.5, fraction) +
+    (TRAINING.weeklyRecovery + peakFatigue * TRAINING.recoveryShare) * Math.max(0.5, fraction) +
     rests * TRAINING.restRecovery +
     lifestyleRecovery(plan.lifestyle) +
     traitSum(traits, 'recovery') +
@@ -330,6 +332,7 @@ export function runTrainingWeek(input: TrainingWeekInput): TrainingWeekResult {
 
   // --- Injury -------------------------------------------------------------
   let injury: Injury | null = null;
+  let injuryChance = 0;
   if (!before.condition.injury && energyUsed > 0) {
     const chance =
       weeklyInjuryChance({
@@ -340,6 +343,7 @@ export function runTrainingWeek(input: TrainingWeekInput): TrainingWeekResult {
         lifestyle: lifestyleInjury(plan.lifestyle),
         rushed: rushedRecently(dev, input.date),
       }) * Math.max(0.3, fraction);
+    injuryChance = chance;
     if (rng.chance(chance)) {
       const type = pickInjuryType({ role: before.role, context: 'TRAINING', age, paceLoad }, rng);
       injury = createInjury(type, input.date, rng, dev.injuryHistory.some((h) => h.type === type));
@@ -394,6 +398,7 @@ export function runTrainingWeek(input: TrainingWeekInput): TrainingWeekResult {
   return {
     player,
     injury,
+    injuryChance,
     report: { ...reportBase, id: `wk-${input.date}`, coachNote: coachNote(reportBase, development) },
   };
 }
@@ -438,4 +443,58 @@ function clamp(value: number, min: number, max: number): number {
 
 function round(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+export interface TrainingPreview {
+  budget: number;
+  used: number;
+  /** Session ids that fit in the week. */
+  running: string[];
+  /** Expected attribute movement, in (fractional) points. */
+  gains: { key: string; label: string; amount: number }[];
+  fatigueAfter: number;
+  fitnessAfter: number;
+  injuryChance: number;
+}
+
+/**
+ * What the planned week should do, without any luck: expected gains, fatigue
+ * and the injury risk. Runs the real week with injuries switched off.
+ */
+export function previewTrainingWeek(
+  player: Player,
+  plan: TrainingPlan,
+  date: string,
+  examWeek: boolean,
+  rng: Rng,
+): TrainingPreview {
+  const safe: Rng = { ...rng, chance: () => false };
+  const result = runTrainingWeek({ player, plan, date, examWeek, fraction: 1, rng: safe });
+  const gains = attributeRefs(player.attributes)
+    .map((ref) => {
+      const before = getAttr(player.attributes, ref.group, ref.key) + (player.development.progress[ref.id] ?? 0);
+      const after = getAttr(result.player.attributes, ref.group, ref.key) + (result.player.development.progress[ref.id] ?? 0);
+      return { key: ref.id, label: attributeLabel(ref.key), amount: Math.round((after - before) * 100) / 100 };
+    })
+    .filter((g) => Math.abs(g.amount) >= 0.01)
+    .sort((a, b) => b.amount - a.amount);
+  const age = ageInYears(player.dateOfBirth, date);
+  const budget = energyBudget({
+    age,
+    traits: player.development.traits,
+    fatigue: player.condition.fatigue,
+    examWeek,
+    studyFocus: plan.studyFocus,
+    lifestyle: plan.lifestyle,
+  });
+  const running = sessionsThatRun(plan.sessions, budget, player);
+  return {
+    budget,
+    used: planEnergy(running),
+    running: running.map((s) => s.id),
+    gains,
+    fatigueAfter: result.player.condition.fatigue,
+    fitnessAfter: result.player.condition.fitness,
+    injuryChance: result.injuryChance,
+  };
 }

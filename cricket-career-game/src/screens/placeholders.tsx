@@ -22,34 +22,6 @@ export const CareerPathScreen = () => (
   />
 );
 
-export const CalendarScreen = () => (
-  <Placeholder
-    route="/calendar"
-    phase="Phase 6"
-    description="The season calendar: fixtures, camps, trials and assessments, plus the advance-day control."
-    contents={[
-      'Month view of the season',
-      'Fixtures, camps and trials',
-      'Advance day / advance to next fixture',
-      'Rest and workload planning',
-    ]}
-  />
-);
-
-export const TrainingScreen = () => (
-  <Placeholder
-    route="/training"
-    phase="Phase 5"
-    description="Your weekly plan: which drills you run, how hard, and what it costs you in fatigue."
-    contents={[
-      'Weekly plan editor',
-      'Drill slots and intensity',
-      'Fatigue and injury-risk preview',
-      'Attribute growth towards potential',
-    ]}
-  />
-);
-
 export const SelectionScreen = () => (
   <Placeholder
     route="/selection"

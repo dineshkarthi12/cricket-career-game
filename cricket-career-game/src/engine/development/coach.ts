@@ -60,7 +60,7 @@ export function refineEstimate(
 export function coachHints(development: DevelopmentState, age: number): string[] {
   const hints: string[] = [];
   const e = development.coachEstimate;
-  if (e >= 88) hints.push('Special talent - could play for India');
+  if (e >= 88) hints.push(age < 14 ? 'Exceptional for the age group' : 'Special talent - could play for India');
   else if (e >= 82) hints.push('High ceiling');
   else if (e >= 75) hints.push('Solid first-class prospect');
   else if (e >= 68) hints.push('Good domestic cricketer in the making');
@@ -101,6 +101,10 @@ export function coachNote(report: Omit<WeeklyReport, 'coachNote' | 'id'>, develo
   const best = [...report.changes].sort((a, b) => b.delta - a.delta)[0];
   const [fatigueBefore, fatigueAfter] = report.fatigue;
   if (report.injury) return `Frustrating end to the week - the ${report.injury.toLowerCase()} means rehab first. Listen to the physio.`;
+  if (development.rehab) {
+    const { weeksDone, weeksNeeded } = development.rehab;
+    return `Rehab week ${Math.min(weeksNeeded, weeksDone + 1)} of ${weeksNeeded}. Mental work and rest only - patience now saves weeks later.`;
+  }
   if (report.examWeek) return 'Exam week, so a lighter load. Get the papers done - the nets will still be here.';
   if (fatigueAfter >= 75) return `You are running on empty (fatigue ${Math.round(fatigueAfter)}). Rest this week or you will break down.`;
   if (report.energyUsed === 0) return 'No work done this week. The body recovered, but nothing moved forward.';

@@ -19,6 +19,7 @@ import {
 import { pressConferenceFor, type PressConference } from '../career/press';
 import type { MatchSelection } from '../career/selection';
 import { applyAftermath } from './aftermath';
+import { compactMatches } from './archive';
 import { XP } from '../config';
 import { traitProduct } from '@/data/traits';
 import {
@@ -294,7 +295,7 @@ function commitScorecard(state: GameState, match: Match, options: CommitOptions)
 
   const next: GameState = {
     ...state,
-    matches: { ...state.matches, [match.id]: match },
+    matches: compactMatches({ ...state.matches, [match.id]: match }, match.id),
     activeMatchId: null,
   };
 

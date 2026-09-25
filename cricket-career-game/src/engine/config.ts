@@ -180,10 +180,14 @@ export const TRAINING = {
   /** Energy lost when carrying heavy fatigue. */
   tiredEnergyPenalty: 2,
   tiredFatigue: 65,
-  /** Fatigue recovered every week before anything else. */
-  weeklyRecovery: 22,
+  /**
+   * Fatigue recovered every week: a flat amount plus a share of the week's
+   * peak, so a sensible plan settles low and a hard one settles high.
+   */
+  weeklyRecovery: 14,
+  recoveryShare: 0.25,
   /** Extra recovery per rest session. */
-  restRecovery: 9,
+  restRecovery: 8,
   /** Gains fall off above this fatigue, to `tiredGainFloor` at 100. */
   fatigueGainThreshold: 55,
   tiredGainFloor: 0.45,
@@ -282,6 +286,11 @@ export const SAVE = {
   autosaveEveryDays: 1,
   /** Debounce for autosave writes, in ms. */
   autosaveDebounceMs: 800,
+  /**
+   * Matches that keep every ball in the save. Older ones keep the scorecard
+   * only - a multi-day match is over a megabyte of deliveries.
+   */
+  ballByBallMatches: 2,
 } as const;
 
 /* ------------------------------------------------------------------ *
