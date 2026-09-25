@@ -18,7 +18,10 @@ A realistic 2D cricket career simulation web game. The player starts as a young 
 ## Tech stack
 - React + Vite + TypeScript, Tailwind CSS, Zustand, React Router, recharts, lucide-react
 - Vitest for tests
-- Save data in localStorage (3 slots, autosave, export/import JSON), always wrapped in try/catch
+- Save data (3 slots, autosave, export/import JSON): careers in IndexedDB via `idb-keyval` (`src/save/blobStore.ts`, `slotCache.ts`), held in memory and written through; localStorage only for small slot headers, the active slot and settings. Old localStorage careers move to IndexedDB automatically on first load
+- Every storage access is wrapped: sync paths return a `SaveResult`, background IndexedDB writes report through `onSaveError`, and every failure shows a visible toast - never fail silently
+- Keep saves lean: only the user's last 2 matches keep ball-by-ball; older matches keep full scorecards; AI-vs-AI matches store results and scorecard lines only
+- Tests run on `fake-indexeddb` (`src/test/setup.ts` resets it before every test)
 
 ## Folder structure
 - `/src/engine` – pure TypeScript game logic (match sim, selection, training, career). NO React/UI imports here.

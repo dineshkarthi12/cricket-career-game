@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import SlotPicker from './SlotPicker';
 import { useGameStore } from '@/store/gameStore';
 import { createDemoCareer } from '@/data/demoCareer';
 import { createNewCareer } from '@/engine/newCareer';
-import { listSlots, saveToSlot } from '@/save';
+import { listSlots, resetSaveStorageForTests, saveToSlot } from '@/save';
 
 function renderPicker() {
   return render(
@@ -105,12 +105,10 @@ describe('SlotPicker', () => {
     saveToSlot(1, createDemoCareer());
     renderPicker();
 
-    // Storage goes away mid-session (private mode, quota, cleared site data).
-    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('storage gone');
-    });
+    // The career data goes away mid-session (cleared site data): the header
+    // is still there, the career behind it is not.
+    resetSaveStorageForTests();
     fireEvent.click(screen.getByRole('button', { name: /Continue career/ }));
-    getItem.mockRestore();
 
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();

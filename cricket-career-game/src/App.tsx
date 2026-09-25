@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/layout/AppShell';
+import { ToastHost } from '@/components/ToastHost';
 import { installAutosaveGuards, useGameStore } from '@/store/gameStore';
 import Home from './screens/Home';
 import SlotPicker from './screens/SlotPicker';
@@ -25,11 +26,13 @@ export default function App() {
   const bootstrap = useGameStore((s) => s.bootstrap);
 
   useEffect(() => {
-    bootstrap();
+    void bootstrap();
     return installAutosaveGuards();
   }, [bootstrap]);
 
   return (
+    <>
+    <ToastHost />
     <Routes>
       {/* Entry screens: no shell, because there is nothing to navigate yet. */}
       <Route path="/start" element={<StartScreen />} />
@@ -61,5 +64,6 @@ export default function App() {
         }
       />
     </Routes>
+    </>
   );
 }

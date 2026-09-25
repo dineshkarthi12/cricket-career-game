@@ -1,6 +1,7 @@
 import { Card, CardHeader } from '@/components';
 import { useGameStore } from '@/store/gameStore';
 import Placeholder from './Placeholder';
+import SettingsPage from './settings/SettingsScreen';
 import { CaptaincyCard } from './stats/CaptaincyCard';
 
 /**
@@ -96,21 +97,7 @@ export const CommunityScreen = () => (
 );
 
 export const SettingsScreen = () => (
-  <>
-    {import.meta.env.DEV ? <DevTools /> : null}
-    <Placeholder
-      route="/settings"
-      phase="Phase 8"
-      description="Save slots, difficulty, commentary detail and accessibility."
-      action={{ label: 'Manage save slots', to: '/slots' }}
-      contents={[
-        'Save slots: load, delete, export, import — built',
-        'Autosave and difficulty',
-        'Commentary detail',
-        'Reduced motion and accessibility',
-      ]}
-    />
-  </>
+  <SettingsPage devTools={import.meta.env.DEV ? <DevTools /> : null} />
 );
 
 /** The captaincy record, above the rest of the Stats placeholder. */
