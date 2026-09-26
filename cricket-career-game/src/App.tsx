@@ -1,28 +1,30 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/layout/AppShell';
 import { ToastHost } from '@/components/ToastHost';
+import { ScreenLoading } from '@/components/ScreenLoading';
 import { installAutosaveGuards, useGameStore } from '@/store/gameStore';
 import Home from './screens/Home';
 import SlotPicker from './screens/SlotPicker';
 import StartScreen from './screens/StartScreen';
-import NewCareer from './screens/NewCareer';
-import MatchScreen from './screens/match/MatchScreen';
-import MatchesScreen from './screens/Matches';
-import CalendarScreen from './screens/calendar/CalendarScreen';
-import TrainingScreen from './screens/training/TrainingScreen';
-import RehabScreen from './screens/training/RehabScreen';
-import CareerPathScreen from './screens/career/CareerPathScreen';
-import SelectionScreen from './screens/career/SelectionScreen';
-import SeasonReviewScreen from './screens/career/SeasonReviewScreen';
-import TournamentScreen from './screens/career/TournamentScreen';
-import TrialScreen from './screens/career/TrialScreen';
-import IplScreen from './screens/pro/IplScreen';
-import InternationalScreen from './screens/pro/InternationalScreen';
-import AwardsScreen from './screens/pro/AwardsScreen';
-import LegacyScreen from './screens/pro/LegacyScreen';
-import CommunityScreen from './screens/pro/CommunityScreen';
-import { SettingsScreen, StatsScreen } from './screens/placeholders';
+const NewCareer = lazy(() => import('./screens/NewCareer'));
+const MatchScreen = lazy(() => import('./screens/match/MatchScreen'));
+const MatchesScreen = lazy(() => import('./screens/Matches'));
+const CalendarScreen = lazy(() => import('./screens/calendar/CalendarScreen'));
+const TrainingScreen = lazy(() => import('./screens/training/TrainingScreen'));
+const RehabScreen = lazy(() => import('./screens/training/RehabScreen'));
+const CareerPathScreen = lazy(() => import('./screens/career/CareerPathScreen'));
+const SelectionScreen = lazy(() => import('./screens/career/SelectionScreen'));
+const SeasonReviewScreen = lazy(() => import('./screens/career/SeasonReviewScreen'));
+const TournamentScreen = lazy(() => import('./screens/career/TournamentScreen'));
+const TrialScreen = lazy(() => import('./screens/career/TrialScreen'));
+const IplScreen = lazy(() => import('./screens/pro/IplScreen'));
+const InternationalScreen = lazy(() => import('./screens/pro/InternationalScreen'));
+const AwardsScreen = lazy(() => import('./screens/pro/AwardsScreen'));
+const LegacyScreen = lazy(() => import('./screens/pro/LegacyScreen'));
+const CommunityScreen = lazy(() => import('./screens/pro/CommunityScreen'));
+const SettingsScreen = lazy(() => import('./screens/placeholders').then((m) => ({ default: m.SettingsScreen })));
+const StatsScreen = lazy(() => import('./screens/placeholders').then((m) => ({ default: m.StatsScreen })));
 
 export default function App() {
   const bootstrap = useGameStore((s) => s.bootstrap);
@@ -35,6 +37,7 @@ export default function App() {
   return (
     <>
     <ToastHost />
+    <Suspense fallback={<ScreenLoading />}>
     <Routes>
       {/* Entry screens: no shell, because there is nothing to navigate yet. */}
       <Route path="/start" element={<StartScreen />} />
@@ -45,6 +48,7 @@ export default function App() {
         path="*"
         element={
           <AppShell>
+            <Suspense fallback={<ScreenLoading />}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/career" element={<CareerPathScreen />} />
@@ -69,10 +73,12 @@ export default function App() {
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
           </AppShell>
         }
       />
     </Routes>
+    </Suspense>
     </>
   );
 }
