@@ -300,14 +300,14 @@ export const WORLD = {
  */
 export const QUICK_SIM = {
   /** How strongly the batting-vs-bowling ability gap moves a batter's average. */
-  skillK: { T20: 1.45, ODI: 1.9, MULTI_DAY: 2.1 },
+  skillK: { T20: 1.45, ODI: 1.9, MULTI_DAY: 3.0 },
   /** ...and their strike rate. */
   srK: 0.9,
   /**
    * A side's day: every batter's mean in an innings is scaled by
    * e^(spread x this), so upsets happen as often as in the full engine.
    */
-  dayVariance: { T20: 0.66, ODI: 0.5, MULTI_DAY: 0.45 },
+  dayVariance: { T20: 0.66, ODI: 0.5, MULTI_DAY: 0.3 },
   T20: {
     average: 26,
     strikeRate: 146,
@@ -325,22 +325,22 @@ export const QUICK_SIM = {
     sixShare: 0.1,
   },
   MULTI_DAY: {
-    average: 32,
-    strikeRate: 52,
-    position: [1, 1, 1, 1, 0.95, 0.9, 0.85, 0.65, 0.48, 0.35, 0.28],
+    average: 29,
+    strikeRate: 58,
+    position: [1, 1, 1, 1, 0.97, 0.94, 0.8, 0.6, 0.45, 0.34, 0.26],
     extras: 18,
     fourShare: 0.5,
     sixShare: 0.04,
     /** Overs a day, before time lost to weather and slow over rates. */
-    oversPerDay: 62,
+    oversPerDay: 48,
     /** First innings declared on this many. */
     declareFirst: 520,
     /** Second innings declared once this far ahead. */
-    declareLead: 180,
+    declareLead: 150,
     /** Target the side batting third tries to set. */
-    fourthInningsTarget: 330,
+    fourthInningsTarget: 290,
     /** Overs the side batting third leaves to bowl the opposition out. */
-    leaveForFourth: 70,
+    leaveForFourth: 80,
   },
 } as const;
 
@@ -968,7 +968,7 @@ export const MATCH = {
   /** Multi-day structure. */
   multiDay: {
     days: 4,
-    oversPerDay: 62,
+    oversPerDay: 90,
     sessionsPerDay: 3,
     oversPerSession: 30,
     /** First-innings lead that lets the captain enforce the follow-on. */
