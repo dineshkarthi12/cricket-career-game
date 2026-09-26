@@ -87,7 +87,7 @@ export function userTeamOf(state: GameState, fixture: Fixture): Team | null {
 
 /** The whole squad the selectors choose from, with the player in it. */
 export function candidatesFor(state: GameState, team: Team): SimPlayer[] {
-  return [simFromUser(state.player, team.id, 4), ...squadFor(state, team.id)];
+  return [simFromUser(state.player, team.id, 4, { difficulty: state.settings?.difficulty }), ...squadFor(state, team.id)];
 }
 
 /** GAME_SPEC.md section 6, with selector trust blended in. */

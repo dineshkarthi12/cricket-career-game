@@ -129,6 +129,12 @@ const MIGRATIONS: Record<number, (state: GameState) => GameState> = {
     // New trophies join the cabinet, locked.
     trophies: [...(state.trophies ?? []), ...createTrophyCabinet().filter((t) => !(state.trophies ?? []).some((x) => x.id === t.id))],
   }),
+  /** v8 (Phase 8): difficulty is Easy / Realistic / Hard. */
+  7: (state) => {
+    const old = (state.settings as { difficulty?: string } | undefined)?.difficulty;
+    const difficulty = old === 'CASUAL' || old === 'EASY' ? 'EASY' : old === 'BRUTAL' || old === 'HARD' ? 'HARD' : 'REALISTIC';
+    return { ...state, version: 8, settings: { ...state.settings, difficulty } };
+  },
 };
 
 /** Pre-Phase-5 training foci, mapped to the drill that does the same job. */

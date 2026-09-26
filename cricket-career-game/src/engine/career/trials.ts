@@ -182,7 +182,7 @@ export function runPracticeMatch(state: GameState, plan: TrialPlan, nets: NetsRe
   const team = trialTeam(state, plan);
   const pool: SimPlayer[] = team ? squadFor(state, team.id) : [];
   // A good nets session carries into the middle.
-  const user = simFromUser(state.player, 'probables-a', 4);
+  const user = simFromUser(state.player, 'probables-a', 4, { difficulty: state.settings?.difficulty });
   const boosted: SimPlayer = { ...user, condition: { ...user.condition, confidence: Math.max(0, Math.min(100, user.condition.confidence + (nets.score - 5.5) * 3)) } };
   const others = [...pool].sort((a, b) => computeOverall(b.attributes, b.role) - computeOverall(a.attributes, a.role));
   const a: SimPlayer[] = [];

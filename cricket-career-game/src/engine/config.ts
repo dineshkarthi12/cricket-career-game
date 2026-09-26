@@ -1373,6 +1373,18 @@ export const LEADERSHIP = {
 } as const;
 
 /** The legacy rating. See `engine/pro/legacy.ts`. */
+/**
+ * Difficulty, chosen per career. `selectionBonus` is added to the player's
+ * score in every squad decision (the scale of `SQUAD_SELECTION.incumbentBonus`);
+ * `attributeShift` moves the player's batting and bowling skills in every
+ * match the engine plays, ball by ball or fast.
+ */
+export const DIFFICULTY = {
+  EASY: { label: 'Easy', description: 'Kinder selectors and a little help at the crease and with the ball.', selectionBonus: 4, attributeShift: 4 },
+  REALISTIC: { label: 'Realistic', description: 'The game as designed: every step earned.', selectionBonus: 0, attributeShift: 0 },
+  HARD: { label: 'Hard', description: 'Selectors want more, and every match is a little harder.', selectionBonus: -4, attributeShift: -4 },
+} as const;
+
 export const LEGACY = {
   /**
    * Output: points per 1000 international runs and per 50 wickets, by format.

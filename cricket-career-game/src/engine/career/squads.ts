@@ -7,7 +7,7 @@
  * cut-offs and injuries are hard gates. A good player can still be stuck
  * behind a better one.
  */
-import { SQUAD_SELECTION } from '../config';
+import { DIFFICULTY, SQUAD_SELECTION } from '../config';
 import { computeOverall, formatOverall } from '../ratings';
 import { eligibleForStage, levelOfCompetition } from './eligibility';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
@@ -422,7 +422,7 @@ export function decideSquad(
   const national = levelOfCompetition(tournamentId) >= 10;
   const ranked = rankGroup(state, team, [tournamentId]);
   const userIndex = ranked.findIndex((r) => r.candidate.isUser);
-  const bonus = (options.incumbent ? SQUAD_SELECTION.incumbentBonus : 0) + (options.trialBonus ?? 0) * SQUAD_SELECTION.trialWeight;
+  const bonus = (options.incumbent ? SQUAD_SELECTION.incumbentBonus : 0) + (options.trialBonus ?? 0) * SQUAD_SELECTION.trialWeight + DIFFICULTY[state.settings?.difficulty ?? 'REALISTIC'].selectionBonus;
   const userScore = ranked[userIndex].score + bonus;
   const rivals = ranked.filter((r) => !r.candidate.isUser);
   const ahead = rivals.filter((r) => r.score > userScore);

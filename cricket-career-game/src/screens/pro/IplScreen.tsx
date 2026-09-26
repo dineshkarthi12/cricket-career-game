@@ -10,6 +10,7 @@ import { roleGroup, ROLE_GROUP_LABEL } from '@/engine/career/squads';
 import { IPL_STATUS_LABEL, formatLakh, franchiseName, marketValue } from '@/lib/pro';
 import { formatLongDate } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { ANIMATION_FACTOR, useAppSettings, useReducedMotion } from '@/store/appSettings';
 import { useGameStore } from '@/store/gameStore';
 import type { AuctionLot, AuctionSummary, GameState } from '@/types';
 
@@ -210,7 +211,9 @@ function AuctionView({ state, summary }: { state: GameState; summary: AuctionSum
 }
 
 /** The user's lot, bid by bid - replayed like the auction on television. */
-function LiveLot({ lot, reduceMotion }: { lot: AuctionLot; reduceMotion: boolean }) {
+function LiveLot({ lot, reduceMotion: careerReduce }: { lot: AuctionLot; reduceMotion: boolean }) {
+  const reduceMotion = useReducedMotion(careerReduce);
+  const factor = ANIMATION_FACTOR[useAppSettings((s) => s.animationSpeed)];
   const [shown, setShown] = useState(reduceMotion ? lot.bids.length : 0);
   const [run, setRun] = useState(!reduceMotion);
   useEffect(() => {
@@ -219,9 +222,9 @@ function LiveLot({ lot, reduceMotion }: { lot: AuctionLot; reduceMotion: boolean
       setRun(false);
       return;
     }
-    const t = setTimeout(() => setShown((n) => n + 1), 450);
+    const t = setTimeout(() => setShown((n) => n + 1), 450 * factor);
     return () => clearTimeout(t);
-  }, [run, shown, lot.bids.length]);
+  }, [run, shown, lot.bids.length, factor]);
   const current = lot.bids[shown - 1];
   const done = shown >= lot.bids.length;
   const bidders = useMemo(() => [...new Set(lot.bids.map((b) => b.franchiseId))], [lot.bids]);

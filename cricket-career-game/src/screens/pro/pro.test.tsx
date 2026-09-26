@@ -10,7 +10,7 @@ import InternationalScreen from './InternationalScreen';
 import AwardsScreen from './AwardsScreen';
 import LegacyScreen from './LegacyScreen';
 import CommunityScreen from './CommunityScreen';
-import type { GameState } from '@/types';
+import { SAVE_VERSION, type GameState } from '@/types';
 
 function pro(): GameState {
   let state = createNewCareer({ firstName: 'Ravi', lastName: 'Kumar', dateOfBirth: '1998-03-10', startStageId: 'RANJI_TROPHY', seed: 11, startDate: '2026-06-01', creationRole: 'BATTER' });
@@ -91,8 +91,18 @@ describe('save migration v7', () => {
     const result = migrate(old);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.version).toBe(7);
+    expect(result.value.version).toBe(SAVE_VERSION);
     expect(result.value.pro.scouting.reputation).toBe(0);
     expect(result.value.trophies.some((t) => t.id === 'trophy-world-no1')).toBe(true);
+  });
+});
+
+describe('save migration v8', () => {
+  it('maps the old difficulty names to Easy / Realistic / Hard', () => {
+    const state = pro();
+    for (const [old, now] of [['CASUAL', 'EASY'], ['REALISTIC', 'REALISTIC'], ['BRUTAL', 'HARD']] as const) {
+      const result = migrate({ ...state, version: 7, settings: { ...state.settings, difficulty: old } } as unknown as GameState);
+      expect(result.ok && result.value.settings.difficulty).toBe(now);
+    }
   });
 });

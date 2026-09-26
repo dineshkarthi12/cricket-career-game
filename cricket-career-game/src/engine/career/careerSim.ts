@@ -61,12 +61,12 @@ export interface SimulatedCareerRun {
 const ROLES: CreationRole[] = ['BATTER', 'BOWLER', 'ALLROUNDER', 'WICKETKEEPER'];
 
 /** Play one week, attending trials and matches as the clock stops for them. */
-export function playOn(state: GameState): GameState {
+export function playOn(state: GameState, options: { decide?: boolean } = {}): GameState {
   const result = advanceWeek(state);
   let next = result.state;
   if (result.trial) next = autoTrial(next, result.trial.id);
   else if (result.stoppedFor) next = autoPlayFixture(next, result.stoppedFor);
-  return autoDecisions(next);
+  return options.decide === false ? next : autoDecisions(next);
 }
 
 /**

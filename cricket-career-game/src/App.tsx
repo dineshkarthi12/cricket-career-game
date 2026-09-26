@@ -4,6 +4,7 @@ import { AppShell } from '@/layout/AppShell';
 import { ToastHost } from '@/components/ToastHost';
 import { ScreenLoading } from '@/components/ScreenLoading';
 import { installAutosaveGuards, useGameStore } from '@/store/gameStore';
+import { useAppSettings } from '@/store/appSettings';
 import Home from './screens/Home';
 import SlotPicker from './screens/SlotPicker';
 import StartScreen from './screens/StartScreen';
@@ -28,6 +29,12 @@ const StatsScreen = lazy(() => import('./screens/placeholders').then((m) => ({ d
 
 export default function App() {
   const bootstrap = useGameStore((s) => s.bootstrap);
+  const careerReduce = useGameStore((s) => s.state?.settings.reduceMotion ?? false);
+  const deviceReduce = useAppSettings((s) => s.reduceMotion);
+
+  useEffect(() => {
+    document.documentElement.dataset.reduceMotion = String(careerReduce || deviceReduce);
+  }, [careerReduce, deviceReduce]);
 
   useEffect(() => {
     void bootstrap();

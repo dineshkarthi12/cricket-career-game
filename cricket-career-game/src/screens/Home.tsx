@@ -1,3 +1,4 @@
+import { TutorialTip } from '@/components';
 import { Navigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { nextMatchFixture } from '@/lib/selectors';
@@ -29,6 +30,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-3 pb-4">
+      <TutorialTip id="dashboard" />
       {/* Hero, with the Next Match card lapping over its right-hand end. */}
       <div className="relative">
         <HeroBanner state={state} />

@@ -96,12 +96,14 @@ function SlotCard({
   const deleteCareer = useGameStore((s) => s.deleteCareer);
   const exportSlot = useGameStore((s) => s.exportSlot);
   const importCareer = useGameStore((s) => s.importCareer);
+  const pushToast = useGameStore((s) => s.pushToast);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const onPickFile = async (file: File | undefined) => {
     if (!file) return;
     const read = await readSaveFile(file);
     if (read.ok) importCareer(read.value, slot);
+    else pushToast({ tone: 'error', message: read.error.message });
     if (fileInput.current) fileInput.current.value = '';
   };
 

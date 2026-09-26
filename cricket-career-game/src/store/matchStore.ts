@@ -28,6 +28,7 @@ import type { BallOverrides, RiskEstimate } from '@/engine/match/innings';
 import type { BowlerPlan, FieldSetting, SimPlayer } from '@/engine/match/types';
 import { fieldProblems } from '@/lib/fieldRules';
 import { useGameStore } from './gameStore';
+import { useAppSettings } from './appSettings';
 import { DEFAULT_AGGRESSION } from '@/types';
 import type { Ball, CaptainDelegation, Condition, Fixture, GameState, Id, Match } from '@/types';
 
@@ -373,7 +374,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     snap: null,
     player: DEFAULT_PLAYER,
     captainDecisions: DEFAULT_CAPTAIN,
-    speed: 1,
+    speed: useAppSettings.getState().defaultSimSpeed,
     autoPlay: false,
     autoWatch: true,
     lastBall: null,
@@ -666,7 +667,7 @@ export function __resetMatchStore(): void {
     snap: null,
     player: DEFAULT_PLAYER,
     captainDecisions: DEFAULT_CAPTAIN,
-    speed: 1,
+    speed: useAppSettings.getState().defaultSimSpeed,
     autoPlay: false,
     autoWatch: true,
     lastBall: null,

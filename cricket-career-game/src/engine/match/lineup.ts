@@ -8,7 +8,7 @@
 import { KNOCKOUT_STAGES } from '../career/afterMatch';
 import { emptySeasonLine } from '../world/players';
 import { computeOverall, formatOverall } from '../ratings';
-import { IPL_RULES } from '../config';
+import { DIFFICULTY, IPL_RULES } from '../config';
 import { traitSum } from '@/data/traits';
 import { climateOfVenue } from '@/data/places';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
@@ -18,7 +18,7 @@ import { generateSquad } from './squad';
 import { isLimitedOvers } from './simulate';
 import type { LiveMatchSetup } from './live';
 import type { SimPlayer } from './types';
-import type { Fixture, GameState, Id, MatchFormat, Player, RivalPlayer, Team } from '@/types';
+import type { Attributes, Difficulty, Fixture, GameState, Id, MatchFormat, Player, RivalPlayer, Team } from '@/types';
 
 /** Batting order a role usually occupies, used when nothing better is known. */
 const POSITION_BY_ROLE: Record<string, number> = {
@@ -57,11 +57,19 @@ export function simFromRival(rival: RivalPlayer, battingPosition: number): SimPl
   };
 }
 
+/** The difficulty's help (or handicap) on the player's batting and bowling skills. */
+export function withDifficulty(attributes: Attributes, difficulty: Difficulty): Attributes {
+  const shift = DIFFICULTY[difficulty]?.attributeShift ?? 0;
+  if (shift === 0) return attributes;
+  const move = <T extends object>(group: T): T => Object.fromEntries(Object.entries(group).map(([k, v]) => [k, typeof v === 'number' ? clampRating(v + shift) : v])) as T;
+  return { ...attributes, batting: move(attributes.batting), bowling: move(attributes.bowling) };
+}
+
 export function simFromUser(
   player: Player,
   teamId: Id,
   battingPosition: number,
-  occasion: { bigMatch?: boolean } = {},
+  occasion: { bigMatch?: boolean; difficulty?: Difficulty } = {},
 ): SimPlayer {
   const dev = player.development;
   // Back from a lay-off, the player is not yet match-sharp.
@@ -70,7 +78,7 @@ export function simFromUser(
   const traits = dev?.traits ?? [];
   const temperamentShift =
     traitSum(traits, 'nervousStart') * 0.5 + (occasion.bigMatch ? traitSum(traits, 'bigMatch') : 0);
-  const attributes =
+  const tempered =
     temperamentShift === 0
       ? player.attributes
       : {
@@ -80,6 +88,7 @@ export function simFromUser(
             temperament: clampRating(player.attributes.mental.temperament + temperamentShift),
           },
         };
+  const attributes = withDifficulty(tempered, occasion.difficulty ?? 'REALISTIC');
   return {
     id: player.id,
     name: `${player.firstName} ${player.lastName}`,
@@ -309,7 +318,7 @@ export function buildMatch(
     const isUserSide = teamId === userTeamId;
     let pool = squad;
     if (isUserSide) {
-      pool = [simFromUser(state.player, teamId, 4, { bigMatch: bigOccasion }), ...squad];
+      pool = [simFromUser(state.player, teamId, 4, { bigMatch: bigOccasion, difficulty: state.settings?.difficulty }), ...squad];
     }
 
     // An explicit order is used exactly as given.

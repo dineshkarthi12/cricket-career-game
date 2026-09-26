@@ -18,6 +18,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-page">
+      <a href="#main" className="skip-link">Skip to content</a>
       {/* Tablet rail */}
       <div className="hidden md:block lg:hidden">
         <Sidebar compact />
@@ -39,7 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           />
           <AppBanner />
           <ContinueBar />
-          <main>{children}</main>
+          <main id="main" tabIndex={-1} className="outline-none">{children}</main>
         </div>
       </div>
 

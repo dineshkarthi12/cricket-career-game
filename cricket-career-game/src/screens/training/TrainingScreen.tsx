@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { HeartPulse, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts';
-import { Badge, Card, CardHeader, ProgressBar, StatTile } from '@/components';
+import { Badge, Card, CardHeader, ProgressBar, StatTile, TutorialTip } from '@/components';
 import { DRILLS, DRILLS_BY_ID } from '@/data/drills';
 import { TRAITS_BY_ID } from '@/data/traits';
 import { TRAINING } from '@/engine/config';
@@ -76,6 +76,7 @@ function Training({ state }: { state: GameState }) {
           {player.condition.injury ? <Badge tone="red">Injured - rehab only</Badge> : null}
         </div>
       </div>
+      <TutorialTip id="training" />
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-3">

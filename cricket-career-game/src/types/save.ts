@@ -21,7 +21,7 @@ export const SAVE_SLOT_IDS: readonly SaveSlotId[] = [1, 2, 3] as const;
  * Bumped whenever the shape of `GameState` changes. `migrate` in
  * `src/save/migrate.ts` upgrades older saves to the current version.
  */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /** The complete, serialisable state of one career. */
 export interface GameState {
@@ -50,11 +50,13 @@ export interface GameState {
   settings: GameSettings;
 }
 
+export type Difficulty = 'EASY' | 'REALISTIC' | 'HARD';
+
 export interface GameSettings {
   commentaryDetail: 'BRIEF' | 'NORMAL' | 'DETAILED';
   autosave: boolean;
-  /** Difficulty scales opponent strength and selection competition. */
-  difficulty: 'CASUAL' | 'REALISTIC' | 'BRUTAL';
+  /** How strict the selectors are and how the match engine treats the player. See DIFFICULTY in engine/config.ts. */
+  difficulty: Difficulty;
   soundEnabled: boolean;
   reduceMotion: boolean;
   /**
