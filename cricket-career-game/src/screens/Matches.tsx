@@ -17,6 +17,9 @@ import { CommentaryFeed } from './match/panels/CommentaryFeed';
 import { Scorecard } from './match/panels/Scorecard';
 import type { Fixture, GameState, Match } from '@/types';
 
+/** Results shown at a time: a full career has hundreds. */
+const PAGE = 30;
+
 export default function MatchesScreen() {
   const state = useGameStore((s) => s.state);
   const { matchId } = useParams<{ matchId: string }>();
@@ -53,10 +56,12 @@ function MatchList({ state }: { state: GameState }) {
   const upcoming = useMemo(
     () =>
       Object.values(state.fixtures)
-        .filter((fixture) => !fixture.played && fixture.kind === 'MATCH')
+        // The player's own fixtures only: other teams' games are not theirs to play.
+        .filter((fixture) => !fixture.played && fixture.kind === 'MATCH' && fixture.involvesUser && !state.pro?.retirement.complete)
         .sort((a, b) => a.date.localeCompare(b.date)),
-    [state.fixtures],
+    [state.fixtures, state.pro?.retirement.complete],
   );
+  const [shown, setShown] = useState(PAGE);
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -97,11 +102,20 @@ function MatchList({ state }: { state: GameState }) {
           <p className="mt-2.5 text-[13px] text-ink-muted">No matches played yet.</p>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
-            {played.map((match) => (
+            {played.slice(0, shown).map((match) => (
               <ResultRow key={match.id} state={state} match={match} />
             ))}
           </ul>
         )}
+        {played.length > shown ? (
+          <button
+            type="button"
+            onClick={() => setShown((n) => n + PAGE)}
+            className="mt-3 w-full rounded-xl border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-page"
+          >
+            Show {Math.min(PAGE, played.length - shown)} more of {played.length - shown}
+          </button>
+        ) : null}
       </Card>
     </div>
   );

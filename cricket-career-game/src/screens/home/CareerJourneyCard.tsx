@@ -28,8 +28,8 @@ export function CareerJourneyCard({ state }: { state: GameState }) {
       />
       <Stepper steps={careerSteps(state)} endLabel="Retirement" />
       {places.length || progress ? (
-        <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3 md:flex-row md:items-center md:gap-4">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3">
+          <div className="flex max-w-full flex-wrap items-center gap-1.5">
             {places.map((p) => (
               <Badge key={p.tournamentId} tone={IN_SQUAD.includes(p.status) ? 'green' : p.status === 'DROPPED' || p.status === 'NOT_SELECTED' ? 'red' : 'orange'} className="text-[12px]">
                 {TOURNAMENTS_BY_ID[p.tournamentId]?.shortName ?? p.tournamentId}: {STATUS_LABEL[p.status]}
@@ -45,7 +45,7 @@ export function CareerJourneyCard({ state }: { state: GameState }) {
               <ProgressBar value={progress.ratio * 100} tone={progress.met ? 'green' : 'blue'} height={6} />
             </div>
           ) : proNext ? (
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[14rem] flex-1">
               <div className="mb-1 flex justify-between gap-2 text-[12px] text-ink-muted">
                 <span className="truncate">Next: {proNext.title}</span>
                 {proNext.progress !== null ? <span>{Math.round(proNext.progress)}%</span> : null}
