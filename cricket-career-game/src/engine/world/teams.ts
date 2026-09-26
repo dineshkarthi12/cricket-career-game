@@ -29,11 +29,11 @@ export const LEVELS: Record<SideKind, LevelProfile> = {
   STATE_U23: { ages: [19, 22], potential: [87.5, 5], share: 0.9, ageLimit: 23 },
   STATE: { ages: [20, 33], potential: [88.5, 5], share: 0.92, ageLimit: null },
   INDIA_U19: { ages: [17, 18], potential: [90, 3], share: 0.93, ageLimit: 19 },
-  ZONE: { ages: [23, 32], potential: [86, 4], share: 0.93, ageLimit: null },
-  REST_OF_INDIA: { ages: [23, 32], potential: [86, 4], share: 0.93, ageLimit: null },
-  FRANCHISE: { ages: [21, 34], potential: [85, 5], share: 0.93, ageLimit: null },
-  INDIA_A: { ages: [22, 30], potential: [87, 3], share: 0.93, ageLimit: null },
-  INDIA: { ages: [22, 34], potential: [90, 3], share: 0.95, ageLimit: null },
+  ZONE: { ages: [22, 32], potential: [90.5, 3], share: 0.93, ageLimit: null },
+  REST_OF_INDIA: { ages: [22, 32], potential: [91, 3], share: 0.93, ageLimit: null },
+  FRANCHISE: { ages: [20, 35], potential: [87.5, 4], share: 0.93, ageLimit: null },
+  INDIA_A: { ages: [21, 29], potential: [91.5, 2.5], share: 0.93, ageLimit: null },
+  INDIA: { ages: [21, 35], potential: [94, 2.5], share: 0.95, ageLimit: null },
 };
 
 /** Senior club cricket: grown men, for players past junior age who are not in a state side. */
@@ -59,6 +59,14 @@ const SQUAD_ROLES: PlayerRole[] = [
   'PACE_BOWLER',
   'SPIN_BOWLER',
   'BATTING_ALLROUNDER',
+  // Bigger squads (national sides, franchises)
+  'BATTER',
+  'PACE_BOWLER',
+  'SPIN_BOWLER',
+  'BOWLING_ALLROUNDER',
+  'OPENING_BATTER',
+  'PACE_BOWLER',
+  'WICKET_KEEPER_BATTER',
 ];
 
 export interface SquadInput {
@@ -75,17 +83,23 @@ export interface SquadInput {
   /** Potential offset for the whole side (stronger or weaker nations/states). */
   strengthOffset?: number;
   taken?: Set<string>;
+  /** Squad size (default `WORLD.squadSize`). */
+  size?: number;
+  /** Home regions to draw names from (a national side is from every state). */
+  regions?: string[];
+  /** Roles to fill, in order (default: a balanced squad). */
+  roles?: PlayerRole[];
 }
 
 /** Build a squad, taking the best eligible feeder players first. */
 export function generateSquad(input: SquadInput): RivalPlayer[] {
   const { profile, rng } = input;
-  const size = WORLD.squadSize - (input.leaveFree ?? 0);
+  const size = (input.size ?? WORLD.squadSize) - (input.leaveFree ?? 0);
   const [minAge, maxAge] = profile.ages;
   const squad: RivalPlayer[] = [];
 
   const feeders = (input.feeder ?? []).filter((p) => p.age + 1 >= minAge && p.age + 1 <= maxAge + 1 && !p.injuredUntil);
-  const roles = SQUAD_ROLES.slice(0, size);
+  const roles = (input.roles ?? SQUAD_ROLES).slice(0, size);
   for (const role of roles) {
     const index = feeders.findIndex((p) => p.role === role);
     // Roughly half the places go to players coming up from below.
@@ -99,7 +113,7 @@ export function generateSquad(input: SquadInput): RivalPlayer[] {
     squad.push(
       generateWorldPlayer({
         teamId: input.teamId,
-        region: input.region,
+        region: input.regions?.length ? rng.pick(input.regions) : input.region,
         role,
         age: rng.int(minAge, maxAge),
         seasonStart: input.seasonStart,

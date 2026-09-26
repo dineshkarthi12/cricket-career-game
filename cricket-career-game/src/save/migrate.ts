@@ -1,3 +1,5 @@
+import { createTrophyCabinet } from '@/data/trophies';
+import { emptyProState } from '@/engine/pro/state';
 import { DEFAULT_AGGRESSION, SAVE_VERSION } from '@/types';
 import type {
   Attributes,
@@ -116,6 +118,23 @@ const MIGRATIONS: Record<number, (state: GameState) => GameState> = {
       },
     },
   }),
+  /**
+   * v7 (Phase 7): the professional career - IPL, the national side,
+   * rankings, awards, fans, leadership, retirement and the records book.
+   */
+  6: (state) => ({
+    ...state,
+    version: 7,
+    pro: state.pro ?? emptyProState(state.season?.year ?? 2026),
+    // New trophies join the cabinet, locked.
+    trophies: [...(state.trophies ?? []), ...createTrophyCabinet().filter((t) => !(state.trophies ?? []).some((x) => x.id === t.id))],
+  }),
+  /** v8 (Phase 8): difficulty is Easy / Realistic / Hard. */
+  7: (state) => {
+    const old = (state.settings as { difficulty?: string } | undefined)?.difficulty;
+    const difficulty = old === 'CASUAL' || old === 'EASY' ? 'EASY' : old === 'BRUTAL' || old === 'HARD' ? 'HARD' : 'REALISTIC';
+    return { ...state, version: 8, settings: { ...state.settings, difficulty } };
+  },
 };
 
 /** Pre-Phase-5 training foci, mapped to the drill that does the same job. */

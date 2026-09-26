@@ -25,6 +25,7 @@ import { matchMilestones, tournamentHonours } from '../career/honours';
 import { afterUserMatch } from '../career/squadFlow';
 import { stageCompetitions } from '../career/involvement';
 import { seniorDebut } from '../career/season';
+import { afterProMatch } from '../pro/season';
 import { XP } from '../config';
 import { traitProduct } from '@/data/traits';
 import {
@@ -231,6 +232,8 @@ export function commitMatchDetailed(
       base = { ...base, career: { ...base.career, stages: { ...base.career.stages, [stageId]: { ...progress, matchesPlayed: progress.matchesPlayed + 1 } } } };
     }
     base = seniorDebut(base, match.tournamentId, played);
+    // The professional career: scouts, caps, the press, records, leadership.
+    base = afterProMatch(base, base.matches[match.id] ?? match, Boolean(options.captain));
   }
   const userTeamId = match.userIsHome ? match.homeTeamId : match.awayTeamId;
   const opponentId = match.userIsHome ? match.awayTeamId : match.homeTeamId;

@@ -7,9 +7,10 @@
  */
 import { KNOCKOUT_STAGES } from '../career/afterMatch';
 import { emptySeasonLine } from '../world/players';
-import { computeOverall } from '../ratings';
+import { computeOverall, formatOverall } from '../ratings';
+import { DIFFICULTY, IPL_RULES } from '../config';
 import { traitSum } from '@/data/traits';
-import { STATES_BY_NAME } from '@/data/places';
+import { climateOfVenue } from '@/data/places';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { clampRating } from '@/types';
 import { createRng, deriveSeed } from './rng';
@@ -17,7 +18,7 @@ import { generateSquad } from './squad';
 import { isLimitedOvers } from './simulate';
 import type { LiveMatchSetup } from './live';
 import type { SimPlayer } from './types';
-import type { Fixture, GameState, Id, MatchFormat, Player, RivalPlayer, Team } from '@/types';
+import type { Attributes, Difficulty, Fixture, GameState, Id, MatchFormat, Player, RivalPlayer, Team } from '@/types';
 
 /** Batting order a role usually occupies, used when nothing better is known. */
 const POSITION_BY_ROLE: Record<string, number> = {
@@ -52,14 +53,23 @@ export function simFromRival(rival: RivalPlayer, battingPosition: number): SimPl
     condition: rival.condition,
     battingPosition,
     isUser: false,
+    ...(rival.overseas ? { overseas: true } : {}),
   };
+}
+
+/** The difficulty's help (or handicap) on the player's batting and bowling skills. */
+export function withDifficulty(attributes: Attributes, difficulty: Difficulty): Attributes {
+  const shift = DIFFICULTY[difficulty]?.attributeShift ?? 0;
+  if (shift === 0) return attributes;
+  const move = <T extends object>(group: T): T => Object.fromEntries(Object.entries(group).map(([k, v]) => [k, typeof v === 'number' ? clampRating(v + shift) : v])) as T;
+  return { ...attributes, batting: move(attributes.batting), bowling: move(attributes.bowling) };
 }
 
 export function simFromUser(
   player: Player,
   teamId: Id,
   battingPosition: number,
-  occasion: { bigMatch?: boolean } = {},
+  occasion: { bigMatch?: boolean; difficulty?: Difficulty } = {},
 ): SimPlayer {
   const dev = player.development;
   // Back from a lay-off, the player is not yet match-sharp.
@@ -68,7 +78,7 @@ export function simFromUser(
   const traits = dev?.traits ?? [];
   const temperamentShift =
     traitSum(traits, 'nervousStart') * 0.5 + (occasion.bigMatch ? traitSum(traits, 'bigMatch') : 0);
-  const attributes =
+  const tempered =
     temperamentShift === 0
       ? player.attributes
       : {
@@ -78,6 +88,7 @@ export function simFromUser(
             temperament: clampRating(player.attributes.mental.temperament + temperamentShift),
           },
         };
+  const attributes = withDifficulty(tempered, occasion.difficulty ?? 'REALISTIC');
   return {
     id: player.id,
     name: `${player.firstName} ${player.lastName}`,
@@ -156,13 +167,18 @@ export function battingOrderOf(xi: SimPlayer[]): SimPlayer[] {
  * The XI a squad would pick on its own: the balanced first-choice eleven, with
  * the user in it when this is their team and they have been selected.
  */
-export function defaultXiIds(squad: SimPlayer[], userId?: Id | null): Id[] {
+export function defaultXiIds(squad: SimPlayer[], userId?: Id | null, options?: XiOptions): Id[] {
   const picked: SimPlayer[] = [];
-  const pool = [...squad];
+  // Bigger squads (franchises, national sides) pick their best for the format.
+  const pool = options?.format
+    ? [...squad].sort((a, b) => xiValue(b, options.format!) - xiValue(a, options.format!))
+    : [...squad];
+  const maxOverseas = options?.maxOverseas ?? 11;
+  const allowed = (p: SimPlayer) => !p.overseas || picked.filter((x) => x.overseas).length < maxOverseas;
 
   const take = (test: (p: SimPlayer) => boolean, count: number) => {
     for (let i = 0; i < count; i += 1) {
-      const index = pool.findIndex(test);
+      const index = pool.findIndex((p) => test(p) && allowed(p));
       if (index === -1) return;
       picked.push(pool.splice(index, 1)[0]);
     }
@@ -182,9 +198,34 @@ export function defaultXiIds(squad: SimPlayer[], userId?: Id | null): Id[] {
       b.attributes.bowling.accuracy -
       (a.attributes.batting.technique + a.attributes.bowling.accuracy),
   );
-  while (picked.length < 11 && pool.length > 0) picked.push(pool.shift()!);
+  while (picked.length < 11 && pool.length > 0) {
+    const index = pool.findIndex(allowed);
+    if (index === -1) break;
+    picked.push(pool.splice(index, 1)[0]);
+  }
 
   return picked.slice(0, 11).map((p) => p.id);
+}
+
+/** How a franchise or national side picks its XI. */
+export interface XiOptions {
+  /** Pick the best for this format first. */
+  format?: MatchFormat;
+  /** At most this many overseas players (IPL). */
+  maxOverseas?: number;
+}
+
+/** A player's worth for a format: ability, a little form, and fitness. */
+export function xiValue(p: SimPlayer, format: MatchFormat): number {
+  return formatOverall(p.attributes, p.role, format) + (p.condition.form - 50) * 0.08 - (p.condition.injury ? 50 : 0);
+}
+
+/** XI options for professional sides; age-group and state sides keep their fixed order. */
+export function xiOptionsFor(team: Team | undefined, format: MatchFormat | null | undefined): XiOptions | undefined {
+  if (!team) return undefined;
+  const pro = team.kind === 'FRANCHISE' || team.kind === 'ZONE' || team.level === 'NATIONAL_A' || (team.kind === 'NATIONAL' && team.level === 'INTERNATIONAL' && !/U-19/.test(team.name));
+  if (!pro) return undefined;
+  return { format: format ?? undefined, maxOverseas: team.kind === 'FRANCHISE' ? IPL_RULES.maxOverseasXi : undefined };
 }
 
 /** Warnings shown next to an XI the user has assembled. */
@@ -277,7 +318,7 @@ export function buildMatch(
     const isUserSide = teamId === userTeamId;
     let pool = squad;
     if (isUserSide) {
-      pool = [simFromUser(state.player, teamId, 4, { bigMatch: bigOccasion }), ...squad];
+      pool = [simFromUser(state.player, teamId, 4, { bigMatch: bigOccasion, difficulty: state.settings?.difficulty }), ...squad];
     }
 
     // An explicit order is used exactly as given.
@@ -294,7 +335,7 @@ export function buildMatch(
     const wanted =
       isUserSide && options.userXiIds?.length === 11
         ? options.userXiIds
-        : defaultXiIds(pool, isUserSide && userSelected ? state.player.id : null);
+        : defaultXiIds(pool, isUserSide && userSelected ? state.player.id : null, xiOptionsFor(state.teams[teamId], fixture.format));
     const byId = new Map(pool.map((p) => [p.id, p]));
     const xi = wanted.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p));
     // Top up if the saved XI has gone stale.
@@ -307,6 +348,17 @@ export function buildMatch(
 
   const homeXi = buildSide(homeTeamId);
   const awayXi = buildSide(awayTeamId);
+  // The impact-player rule: each side's bench, for one substitute at the break.
+  const benchFor = (teamId: Id, xi: SimPlayer[]): SimPlayer[] => {
+    const team = state.teams[teamId];
+    const inXi = new Set(xi.map((p) => p.id));
+    const overseasFull = xi.filter((p) => p.overseas).length >= IPL_RULES.maxOverseasXi;
+    return squadFor(state, teamId).filter((p) => {
+      const rival = team?.squad.find((r) => r.id === p.id);
+      return !inXi.has(p.id) && !(rival?.injuredUntil && rival.injuredUntil >= fixture.date) && !(overseasFull && p.overseas);
+    });
+  };
+  const impact = fixture.tournamentId === 'ipl' && IPL_RULES.impactPlayer ? { homeBench: benchFor(homeTeamId, homeXi), awayBench: benchFor(awayTeamId, awayXi) } : undefined;
   const venue =
     (fixture.venueId ? state.venues[fixture.venueId] : null) ??
     state.venues[state.teams[homeTeamId]?.homeVenueId ?? ''] ??
@@ -332,12 +384,13 @@ export function buildMatch(
     underLights: Boolean(venue?.floodlights) && isLimitedOvers(format) && format !== 'MULTI_DAY',
     seed: deriveSeed(state.seed, saltOf(fixture.id)),
     bowlerTrust: options.bowlerTrust,
+    impact,
     teamNames: {
       [homeTeamId]: state.teams[homeTeamId]?.shortName ?? homeTeamId,
       [awayTeamId]: state.teams[awayTeamId]?.shortName ?? awayTeamId,
     },
     month: Number(fixture.date.slice(5, 7)),
-    region: venue ? STATES_BY_NAME[venue.state]?.region : undefined,
+    region: climateOfVenue(venue),
   };
 
   return { setup, homeXi, awayXi, userTeamId, oppositionTeamId };

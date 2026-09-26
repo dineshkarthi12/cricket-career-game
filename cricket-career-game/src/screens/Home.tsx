@@ -1,3 +1,4 @@
+import { TutorialTip } from '@/components';
 import { Navigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { nextMatchFixture } from '@/lib/selectors';
@@ -13,6 +14,7 @@ import { SkillDevelopmentCard } from './home/SkillDevelopmentCard';
 import { TrophiesCard } from './home/TrophiesCard';
 import { CommunityCard } from './home/CommunityCard';
 import { BottomBanner } from './home/BottomBanner';
+import { DecisionsCard } from './pro/DecisionsCard';
 
 /** The Home dashboard from design/dashboard.png. */
 export default function Home() {
@@ -28,28 +30,31 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-3 pb-4">
+      <TutorialTip id="dashboard" />
       {/* Hero, with the Next Match card lapping over its right-hand end. */}
       <div className="relative">
         <HeroBanner state={state} />
-        <div className="mt-3 w-full max-w-md 2xl:absolute 2xl:top-2.5 2xl:right-2.5 2xl:mt-0 2xl:max-w-none 2xl:w-[338px]">
+        <div className="mt-3 w-full wide:absolute wide:top-2.5 wide:right-2.5 wide:mt-0 wide:w-[330px]">
           <NextMatchCard state={state} fixture={nextMatchFixture(state)} />
         </div>
       </div>
 
+      <DecisionsCard state={state} />
+
       <CareerJourneyCard state={state} />
 
-      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 wide:grid-cols-4">
         <UpcomingScheduleCard state={state} />
         <TrainingFocusCard state={state} />
         <PlayerStatsCard state={state} />
         <InboxCard state={state} />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 wide:grid-cols-4">
         <RecentMatchCard state={state} />
         <SkillDevelopmentCard state={state} />
         <TrophiesCard state={state} />
-        <CommunityCard />
+        <CommunityCard state={state} />
       </div>
 
       <BottomBanner />

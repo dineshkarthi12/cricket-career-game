@@ -8,7 +8,7 @@
  * controls appear only when the player captains.
  */
 import { useMemo, useState } from 'react';
-import { Card, CardHeader, Tabs } from '@/components';
+import { Card, CardHeader, Tabs, TutorialTip } from '@/components';
 import type { RiskEstimate } from '@/engine/match/innings';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { FieldSetting, SimPlayer } from '@/engine/match/types';
@@ -138,6 +138,13 @@ export function InPlay(props: InPlayProps) {
   const opposingBowlers = snap.userBatting
     ? cur.bowling.map((b) => ({ id: b.playerId, name: b.name }))
     : [];
+
+  const tips = (
+    <>
+      <TutorialTip id="matchControls" />
+      <TutorialTip id="aggression" after="matchControls" />
+    </>
+  );
 
   const groundCard = (
     <Card flush className="overflow-hidden">
@@ -328,6 +335,7 @@ export function InPlay(props: InPlayProps) {
     return (
       <div className="flex flex-col gap-3 pb-4">
         {scoreStrip}
+        {tips}
         {groundCard}
         <Card>
           <Tabs tabs={mobileTabs} value={active} onChange={setMobileTab} label="Match panels" />
@@ -347,6 +355,7 @@ export function InPlay(props: InPlayProps) {
 
       <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(340px,1fr)] items-start gap-4">
         <div className="flex flex-col gap-4">
+          {tips}
           {groundCard}
           <Card>
             {you}

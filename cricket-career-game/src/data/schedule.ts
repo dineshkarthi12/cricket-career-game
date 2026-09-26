@@ -237,14 +237,6 @@ const seniorDomestic: StageEvent[] = [
   { kind: 'FITNESS_ASSESSMENT', title: FITNESS_TITLE, subtitle: 'Mid-season check', at: [1, 18] },
 ];
 
-const international: StageEvent[] = [
-  { kind: 'TRAINING_CAMP', title: 'National camp', subtitle: 'Centre of Excellence', at: [8, 18], days: 8 },
-  { kind: 'FITNESS_ASSESSMENT', title: FITNESS_TITLE, subtitle: 'Yo-yo & sprint - national camp', at: [8, 20] },
-  { kind: 'SELECTION_MEETING', title: 'Selection meeting', subtitle: 'National selectors', at: [9, 10] },
-  { kind: 'SELECTION_MEETING', title: 'Selection meeting', subtitle: 'National selectors', at: [1, 12] },
-  { kind: 'FITNESS_ASSESSMENT', title: FITNESS_TITLE, subtitle: 'Pre-series check', at: [1, 15] },
-];
-
 export const STAGE_EVENTS: Record<CareerStageId, StageEvent[]> = {
   BEGINNER: [
     { kind: 'FITNESS_ASSESSMENT', title: FITNESS_TITLE, subtitle: 'Academy fitness check', at: [6, 21] },
@@ -287,25 +279,18 @@ export const STAGE_EVENTS: Record<CareerStageId, StageEvent[]> = {
   RANJI_TROPHY: seniorDomestic,
   VIJAY_HAZARE: seniorDomestic,
   SYED_MUSHTAQ_ALI: seniorDomestic,
-  IPL_SCOUTING: [
-    ...seniorDomestic,
-    { kind: 'AUCTION', title: 'IPL auction', subtitle: 'Franchise auction', at: [12, 16] },
-    { kind: 'TRIAL', title: 'Franchise trials', subtitle: 'Scouting camps', at: [2, 10], days: 3 },
-  ],
-  IPL_CAREER: [
-    ...seniorDomestic,
-    { kind: 'AUCTION', title: 'IPL auction', subtitle: 'Franchise auction', at: [12, 16] },
-    { kind: 'TRAINING_CAMP', title: 'Franchise camp', subtitle: 'Pre-season', at: [3, 8], days: 10 },
-    { kind: 'FITNESS_ASSESSMENT', title: FITNESS_TITLE, subtitle: 'Franchise fitness check', at: [3, 9] },
-  ],
+  // The professional events (auction, trials, national camp, series
+  // selections) come from `engine/pro/season.ts`.
+  IPL_SCOUTING: seniorDomestic,
+  IPL_CAREER: seniorDomestic,
   HIGH_LEVEL_DOMESTIC: seniorDomestic,
-  INDIA_A: international,
-  INDIA_SENIOR_CAMP: international,
-  INTERNATIONAL_DEBUT: international,
-  ESTABLISH_INDIA: international,
-  ICC_TOURNAMENTS: international,
-  INTERNATIONAL_STAR: international,
-  LEGACY: international,
+  INDIA_A: seniorDomestic,
+  INDIA_SENIOR_CAMP: seniorDomestic,
+  INTERNATIONAL_DEBUT: seniorDomestic,
+  ESTABLISH_INDIA: seniorDomestic,
+  ICC_TOURNAMENTS: seniorDomestic,
+  INTERNATIONAL_STAR: seniorDomestic,
+  LEGACY: seniorDomestic,
 };
 
 /** School calendar for players under 16: terms, exams, holidays. */

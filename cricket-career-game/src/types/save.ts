@@ -9,6 +9,7 @@ import type { Team } from './team';
 import type { TrainingPlan } from './training';
 import type { Trophy } from './trophy';
 import type { Venue } from './venue';
+import type { ProState } from './pro';
 import type { Id, ISODate } from './primitives';
 
 /** There are exactly three save slots. */
@@ -20,7 +21,7 @@ export const SAVE_SLOT_IDS: readonly SaveSlotId[] = [1, 2, 3] as const;
  * Bumped whenever the shape of `GameState` changes. `migrate` in
  * `src/save/migrate.ts` upgrades older saves to the current version.
  */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 8;
 
 /** The complete, serialisable state of one career. */
 export interface GameState {
@@ -42,16 +43,20 @@ export interface GameState {
   trainingPlan: TrainingPlan;
   /** Season windows, the weekly clock, and a match it is waiting on. */
   calendar: CalendarState;
+  /** Stages 11-20: IPL, the national side, rankings, awards, fans, retirement. */
+  pro: ProState;
   /** Id of the match currently being played, if any. */
   activeMatchId: Id | null;
   settings: GameSettings;
 }
 
+export type Difficulty = 'EASY' | 'REALISTIC' | 'HARD';
+
 export interface GameSettings {
   commentaryDetail: 'BRIEF' | 'NORMAL' | 'DETAILED';
   autosave: boolean;
-  /** Difficulty scales opponent strength and selection competition. */
-  difficulty: 'CASUAL' | 'REALISTIC' | 'BRUTAL';
+  /** How strict the selectors are and how the match engine treats the player. See DIFFICULTY in engine/config.ts. */
+  difficulty: Difficulty;
   soundEnabled: boolean;
   reduceMotion: boolean;
   /**

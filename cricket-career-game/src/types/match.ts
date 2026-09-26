@@ -255,4 +255,9 @@ export interface Match {
   fielders: Fielder[];
   result: MatchResult | null;
   userPerformance: PlayerMatchPerformance | null;
+  /**
+   * Older matches are thinned to keep the save small: TRIM keeps the top of
+   * each scorecard and the player's lines, SUMMARY only the totals.
+   */
+  archiveTier?: 'TRIM' | 'SUMMARY';
 }

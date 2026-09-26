@@ -186,4 +186,10 @@ export interface RivalPlayer {
   isDirectRival: boolean;
   /** 1-99 standing with selectors; the user must out-perform this. */
   selectorFavour: Rating;
+  /** An overseas player in an IPL squad (four may play). */
+  overseas?: boolean;
+  /** Capped by their country. */
+  capped?: boolean;
+  /** IPL salary this season, lakh. */
+  salary?: number;
 }

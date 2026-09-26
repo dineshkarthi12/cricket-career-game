@@ -7,8 +7,8 @@
  * cut-offs and injuries are hard gates. A good player can still be stuck
  * behind a better one.
  */
-import { SQUAD_SELECTION } from '../config';
-import { computeOverall } from '../ratings';
+import { DIFFICULTY, SQUAD_SELECTION } from '../config';
+import { computeOverall, formatOverall } from '../ratings';
 import { eligibleForStage, levelOfCompetition } from './eligibility';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { daysBetweenDates } from '../development/dates';
@@ -71,6 +71,7 @@ export const STATUS_LABEL: Record<SquadStatus, string> = {
   SQUAD: 'In the squad',
   DROPPED: 'Dropped',
   FAST_TRACK: 'Fast-tracked',
+  STANDBY: 'Standby',
 };
 
 /** One player as the selectors see them. */
@@ -124,11 +125,23 @@ function seasonIndex(c: Candidate, peers: Candidate[]): number {
   return Math.max(0, Math.min(100, 50 + ((measure(c) - median) / spread) * 25));
 }
 
-/** The selectors' score. */
-export function candidateScore(c: Candidate, peers: Candidate[]): number {
+/**
+ * Senior and U-23 selectors back a young player on the way up: every year
+ * under `prospectAge` is worth `prospectPerYear` points of ability, for the
+ * user and the AI alike. A 20-year-old at 72 is judged like a 26-year-old
+ * at about 77 - they will be.
+ */
+export function prospectCredit(age: number, level: number): number {
+  const w = SQUAD_SELECTION;
+  if (level < w.prospectFromLevel) return 0;
+  return Math.max(0, w.prospectAge - age) * w.prospectPerYear;
+}
+
+/** The selectors' score. `level` is the competition's place on the path (1-20). */
+export function candidateScore(c: Candidate, peers: Candidate[], level = 0): number {
   const w = SQUAD_SELECTION;
   let score =
-    w.ability * c.overall +
+    w.ability * (c.overall + prospectCredit(c.age, level)) +
     w.form * weightedForm(c.ratings) +
     w.season * seasonIndex(c, peers) +
     w.trust * c.trust +
@@ -226,20 +239,18 @@ function userCandidate(state: GameState, tournamentIds: string[]): Candidate {
   const p = state.player;
   // Cricket below the level counts for less, level by level.
   const level = Math.max(...tournamentIds.map(levelOfCompetition));
-  const weight = (tournamentId: string) => {
-    if (tournamentIds.includes(tournamentId)) return 1;
-    const below = level - levelOfCompetition(tournamentId);
-    return below <= 0 ? 1 : SQUAD_SELECTION.lowerLevelDiscount ** below;
-  };
+  const weight = (tournamentId: string) => levelWeight(level, tournamentId, tournamentIds);
   const ratings = recentUserMatches(state, 8).map((m) => 5 + (m.userPerformance!.rating - 5) * weight(m.tournamentId));
   const season = { matches: 0, runs: 0, innings: 0, notOuts: 0, balls: 0, wickets: 0, ballsBowled: 0, runsConceded: 0 };
   let atLevel = 0;
-  for (const id of state.season.matchIds) {
+  // Professional selectors look back a full year: last season counts, a little less.
+  const lastSeason = level >= 8 ? (state.seasonHistory[state.seasonHistory.length - 1]?.matchIds ?? []).map((id) => [id, SQUAD_SELECTION.proLastSeason] as const) : [];
+  for (const [id, age] of [...lastSeason, ...state.season.matchIds.map((x) => [x, 1] as const)]) {
     const m = state.matches[id];
     const perf = m?.userPerformance;
     if (!m || !perf) continue;
-    const w = weight(m.tournamentId);
-    if (w >= 1) atLevel += 1;
+    const w = weight(m.tournamentId) * age;
+    if (w >= 0.99) atLevel += 1;
     const batted = perf.ballsFaced > 0 || !perf.notOut;
     const bowled = Math.floor(perf.oversBowled) * 6 + Math.round((perf.oversBowled % 1) * 10);
     season.matches += 1;
@@ -272,6 +283,26 @@ function userCandidate(state: GameState, tournamentIds: string[]): Candidate {
   };
 }
 
+/**
+ * How much a match counts towards a competition's selection: fully at the
+ * level, half per level down below it (club runs barely move the U-19
+ * selectors). Professional selectors discount senior cricket more gently.
+ */
+export function levelWeight(level: number, tournamentId: string, targets: string[]): number {
+  if (targets.includes(tournamentId)) return 1;
+  const below = level - levelOfCompetition(tournamentId);
+  if (below <= 0) return 1;
+  if (level < 8) return SQUAD_SELECTION.lowerLevelDiscount ** below;
+  const proSteps = Math.min(below, level - 7);
+  return SQUAD_SELECTION.proLevelDiscount ** proSteps * SQUAD_SELECTION.lowerLevelDiscount ** (below - proSteps);
+}
+
+/** Professional selectors look to the future: every year past 32 counts against a player. */
+export function ageDrag(age: number, level: number): number {
+  if (level < 8) return 0;
+  return Math.max(0, age - SQUAD_SELECTION.ageDragFrom) * SQUAD_SELECTION.ageDragPerYear;
+}
+
 export interface Ranked {
   candidate: Candidate;
   score: number;
@@ -299,9 +330,10 @@ function saltOf(text: string): number {
  * (or the country) are in contention too. They are the same each time within
  * a season, and a little behind the squad on average.
  */
-export function outsideProbables(state: GameState, team: Team, group: RoleGroup): RivalPlayer[] {
+export function outsideProbables(state: GameState, team: Team, group: RoleGroup, level = 0): RivalPlayer[] {
   const profile = profileOf(team);
-  const count = SQUAD_SELECTION.outsidePool[group];
+  // Professional selectors pick from the whole country: the higher the level, the bigger the field.
+  const count = Math.round(SQUAD_SELECTION.outsidePool[group] * (SQUAD_SELECTION.proPoolMultiplier[level] ?? 1));
   if (!profile || count <= 0) return [];
   const year = state.season.year;
   const rng = createRng(deriveSeed(state.seed, saltOf(`probables-${team.id}-${year}-${group}`)));
@@ -315,7 +347,7 @@ export function outsideProbables(state: GameState, team: Team, group: RoleGroup)
       age: rng.int(profile.ages[0], profile.ages[1]),
       seasonStart: state.season.startDate,
       seasonYear: year,
-      potential: profile.potential[0] - SQUAD_SELECTION.outsideBehind + rng.spread() * profile.potential[1] * 1.6,
+      potential: profile.potential[0] + (team.potentialOffset ?? 0) - SQUAD_SELECTION.outsideBehind + rng.spread() * profile.potential[1] * 1.6,
       share: profile.share,
       rng,
       taken,
@@ -328,13 +360,18 @@ export function outsideProbables(state: GameState, team: Team, group: RoleGroup)
 /** Everyone in the user's role group for a side, best first, with the user in it. */
 export function rankGroup(state: GameState, team: Team, tournamentIds: string[]): Ranked[] {
   const today = state.season.currentDate;
-  const user = userCandidate(state, tournamentIds);
-  const rivals = team.squad.map((p) => rivalCandidate(p, today)).filter((c) => c.group === user.group);
-  const outside = outsideProbables(state, team, user.group).map((p) => ({ ...rivalCandidate(p, today), outside: true }));
+  const level = Math.max(...tournamentIds.map(levelOfCompetition));
+  // Professional selectors pick for the format, and look to the future.
+  const format = level >= 8 ? TOURNAMENTS_BY_ID[tournamentIds[0]]?.format : undefined;
+  const adjust = (c: Candidate, attributes: RivalPlayer['attributes']): Candidate =>
+    format ? { ...c, overall: formatOverall(attributes, c.role, format) - ageDrag(c.age, level) } : c;
+  const user = adjust(userCandidate(state, tournamentIds), state.player.attributes);
+  const rivals = team.squad.map((p) => adjust(rivalCandidate(p, today), p.attributes)).filter((c) => c.group === user.group);
+  const outside = outsideProbables(state, team, user.group, level).map((p) => ({ ...adjust(rivalCandidate(p, today), p.attributes), outside: true }));
   const peers = [user, ...rivals, ...outside];
   return peers
     .filter((c) => !c.injured || c.isUser)
-    .map((candidate) => ({ candidate, score: candidateScore(candidate, peers) }))
+    .map((candidate) => ({ candidate, score: candidateScore(candidate, peers, level) }))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -380,9 +417,12 @@ export function decideSquad(
   if (!eligibleForStage(state.player.dateOfBirth, state.season.year, options.stageId)) {
     return { status: 'NOT_SELECTED', reason: `Over the age limit for the ${name} this season.`, rank: 99, rivalName: null };
   }
+  const retired = retiredFromCompetition(state, tournamentId);
+  if (retired) return { status: 'NOT_SELECTED', reason: `Retired from ${retired}.`, rank: 99, rivalName: null };
+  const national = levelOfCompetition(tournamentId) >= 10;
   const ranked = rankGroup(state, team, [tournamentId]);
   const userIndex = ranked.findIndex((r) => r.candidate.isUser);
-  const bonus = (options.incumbent ? SQUAD_SELECTION.incumbentBonus : 0) + (options.trialBonus ?? 0) * SQUAD_SELECTION.trialWeight;
+  const bonus = (options.incumbent ? SQUAD_SELECTION.incumbentBonus : 0) + (options.trialBonus ?? 0) * SQUAD_SELECTION.trialWeight + DIFFICULTY[state.settings?.difficulty ?? 'REALISTIC'].selectionBonus;
   const userScore = ranked[userIndex].score + bonus;
   const rivals = ranked.filter((r) => !r.candidate.isUser);
   const ahead = rivals.filter((r) => r.score > userScore);
@@ -423,6 +463,12 @@ export function decideSquad(
       rivalName: blocker?.name ?? null,
     };
   }
+  if (national && rank === cut + 1) {
+    return { status: 'STANDBY', reason: `On standby for the ${name}: you travel with the squad and are next in if anyone breaks down. ${blocker?.name ?? 'A rival'} is just ahead.`, rank, rivalName: blocker?.name ?? null };
+  }
+  if (national && rank <= wide + 1) {
+    return { status: 'RESERVE', reason: `On the reserves list for the ${name}, behind ${ahead.slice(-2).map((r) => r.candidate.name).join(' and ')}. Runs and wickets at home keep your name in the room.`, rank, rivalName: blocker?.name ?? null };
+  }
   if (rank <= wide) {
     return {
       status: 'PROBABLES',
@@ -440,6 +486,24 @@ export function decideSquad(
     rank,
     rivalName: blocker?.name ?? null,
   };
+}
+
+/** The format a competition belongs to for retirement ("Test cricket", "the IPL"), if the player has left it. */
+export function retiredFromCompetition(state: GameState, tournamentId: string): string | null {
+  const gone = state.pro?.retirement.retiredFrom ?? [];
+  if (gone.length === 0) return null;
+  if (gone.includes('ALL')) return 'all cricket';
+  const format = TOURNAMENTS_BY_ID[tournamentId]?.format;
+  const intl = levelOfCompetition(tournamentId) >= 10;
+  if (tournamentId === 'ipl') return gone.includes('IPL') ? 'the IPL' : null;
+  if (intl) {
+    if (format === 'TEST' && gone.includes('TEST')) return 'Test cricket';
+    if ((format === 'ODI' || format === 'ONE_DAY') && gone.includes('ODI')) return 'ODI cricket';
+    if (format === 'T20' && gone.includes('T20I')) return 'T20 internationals';
+    return null;
+  }
+  if ((format === 'MULTI_DAY' || format === 'TEST') && gone.includes('FIRST_CLASS')) return 'first-class cricket';
+  return null;
 }
 
 /** The "Competition for places" panel: everyone in the user's role group, best first. */

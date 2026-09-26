@@ -1,32 +1,42 @@
-import { useEffect } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '@/layout/AppShell';
 import { ToastHost } from '@/components/ToastHost';
+import { ScreenLoading } from '@/components/ScreenLoading';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { installAutosaveGuards, useGameStore } from '@/store/gameStore';
+import { useAppSettings } from '@/store/appSettings';
 import Home from './screens/Home';
 import SlotPicker from './screens/SlotPicker';
 import StartScreen from './screens/StartScreen';
-import NewCareer from './screens/NewCareer';
-import MatchScreen from './screens/match/MatchScreen';
-import MatchesScreen from './screens/Matches';
-import CalendarScreen from './screens/calendar/CalendarScreen';
-import TrainingScreen from './screens/training/TrainingScreen';
-import RehabScreen from './screens/training/RehabScreen';
-import CareerPathScreen from './screens/career/CareerPathScreen';
-import SelectionScreen from './screens/career/SelectionScreen';
-import SeasonReviewScreen from './screens/career/SeasonReviewScreen';
-import TournamentScreen from './screens/career/TournamentScreen';
-import TrialScreen from './screens/career/TrialScreen';
-import {
-  AuctionScreen,
-  AwardsScreen,
-  CommunityScreen,
-  SettingsScreen,
-  StatsScreen,
-} from './screens/placeholders';
+const NewCareer = lazy(() => import('./screens/NewCareer'));
+const MatchScreen = lazy(() => import('./screens/match/MatchScreen'));
+const MatchesScreen = lazy(() => import('./screens/Matches'));
+const CalendarScreen = lazy(() => import('./screens/calendar/CalendarScreen'));
+const TrainingScreen = lazy(() => import('./screens/training/TrainingScreen'));
+const RehabScreen = lazy(() => import('./screens/training/RehabScreen'));
+const CareerPathScreen = lazy(() => import('./screens/career/CareerPathScreen'));
+const SelectionScreen = lazy(() => import('./screens/career/SelectionScreen'));
+const SeasonReviewScreen = lazy(() => import('./screens/career/SeasonReviewScreen'));
+const TournamentScreen = lazy(() => import('./screens/career/TournamentScreen'));
+const TrialScreen = lazy(() => import('./screens/career/TrialScreen'));
+const IplScreen = lazy(() => import('./screens/pro/IplScreen'));
+const InternationalScreen = lazy(() => import('./screens/pro/InternationalScreen'));
+const AwardsScreen = lazy(() => import('./screens/pro/AwardsScreen'));
+const LegacyScreen = lazy(() => import('./screens/pro/LegacyScreen'));
+const CommunityScreen = lazy(() => import('./screens/pro/CommunityScreen'));
+const SettingsScreen = lazy(() => import('./screens/placeholders').then((m) => ({ default: m.SettingsScreen })));
+const StatsScreen = lazy(() => import('./screens/stats/StatsScreen'));
 
 export default function App() {
   const bootstrap = useGameStore((s) => s.bootstrap);
+  const { pathname } = useLocation();
+  const careerReduce = useGameStore((s) => s.state?.settings.reduceMotion ?? false);
+  const deviceReduce = useAppSettings((s) => s.reduceMotion);
+
+  useEffect(() => {
+    document.documentElement.dataset.reduceMotion = String(careerReduce || deviceReduce);
+  }, [careerReduce, deviceReduce]);
 
   useEffect(() => {
     void bootstrap();
@@ -36,6 +46,8 @@ export default function App() {
   return (
     <>
     <ToastHost />
+    <ErrorBoundary resetKey={pathname}>
+    <Suspense fallback={<ScreenLoading />}>
     <Routes>
       {/* Entry screens: no shell, because there is nothing to navigate yet. */}
       <Route path="/start" element={<StartScreen />} />
@@ -46,6 +58,8 @@ export default function App() {
         path="*"
         element={
           <AppShell>
+            <ErrorBoundary resetKey={pathname}>
+            <Suspense fallback={<ScreenLoading />}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/career" element={<CareerPathScreen />} />
@@ -60,17 +74,24 @@ export default function App() {
               <Route path="/season-review" element={<SeasonReviewScreen />} />
               <Route path="/tournaments" element={<TournamentScreen />} />
               <Route path="/tournaments/:tournamentId" element={<TournamentScreen />} />
-              <Route path="/auction" element={<AuctionScreen />} />
+              <Route path="/auction" element={<IplScreen />} />
+              <Route path="/international" element={<InternationalScreen />} />
+              <Route path="/legacy" element={<LegacyScreen />} />
+              <Route path="/retirement" element={<LegacyScreen />} />
               <Route path="/stats" element={<StatsScreen />} />
               <Route path="/awards" element={<AwardsScreen />} />
               <Route path="/community" element={<CommunityScreen />} />
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
+            </ErrorBoundary>
           </AppShell>
         }
       />
     </Routes>
+    </Suspense>
+    </ErrorBoundary>
     </>
   );
 }

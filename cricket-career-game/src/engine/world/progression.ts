@@ -10,6 +10,9 @@ import { ageOnCutoff } from '../career/eligibility';
 import { LEVELS, SENIOR_CLUB, generateSquad, squadStrength, type LevelProfile } from './teams';
 import { ageRival, seasonRating } from './players';
 import type { SideKind } from '@/data/schedule';
+import { STATES } from '@/data/places';
+
+const INDIAN_REGIONS = STATES.map((s) => s.name);
 import type { GameState, RivalPlayer, Team } from '@/types';
 
 export interface WorldNews {
@@ -93,6 +96,11 @@ export function progressWorld(
       keep.push(p);
     }
 
+    // Franchise squads change at the auction, not here.
+    if (team.kind === 'FRANCHISE') {
+      teams[team.id] = { ...team, squad: keep };
+      continue;
+    }
     // The two worst performers of last season (who played) lose their places.
     const played = keep.filter((p) => p.history[0]?.seasonYear === seasonYear - 1 && p.history[0].matches >= 2);
     const worst = [...played].sort((a, b) => avgRating(a) - avgRating(b)).slice(0, Math.min(2, Math.max(0, played.length - 9)));
@@ -106,14 +114,18 @@ export function progressWorld(
   // Refill every squad, taking the players stepping up first.
   for (const team of Object.values(teams)) {
     if (team.squad.length === 0 && !incoming.has(team.id)) continue;
+    if (team.kind === 'FRANCHISE') continue;
     const profile = profileOf(team);
     if (!profile) continue;
-    const target = 17 - (team.isUserTeam ? 1 : 0);
+    const target = (team.squadSize ?? 17) - (team.isUserTeam && !team.squadSize ? 1 : 0);
     const missing = target - team.squad.length;
     if (missing <= 0) continue;
     const fresh = generateSquad({
       teamId: team.id,
       region: team.squad[0]?.region ?? 'Tamil Nadu',
+      regions: team.nation === 'India' ? INDIAN_REGIONS : undefined,
+      strengthOffset: team.potentialOffset,
+      size: team.squadSize,
       profile,
       seasonStart,
       seasonYear,

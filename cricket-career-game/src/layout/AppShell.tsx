@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { MobileTabBar } from './MobileTabBar';
 import { ContinueBar } from './ContinueBar';
+import { AppBanner } from './AppBanner';
 import { useGameStore } from '@/store/gameStore';
 import { playerTitle, unreadCount } from '@/lib/selectors';
 
@@ -17,6 +18,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-page">
+      <a href="#main" className="skip-link">Skip to content</a>
       {/* Tablet rail */}
       <div className="hidden md:block lg:hidden">
         <Sidebar compact />
@@ -36,8 +38,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             xpToNextLevel={player?.xpToNextLevel ?? 100}
             notifications={state ? unreadCount(state) : 0}
           />
+          <AppBanner />
           <ContinueBar />
-          <main>{children}</main>
+          <main id="main" tabIndex={-1} className="outline-none">{children}</main>
         </div>
       </div>
 

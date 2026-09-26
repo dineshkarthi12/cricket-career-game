@@ -25,6 +25,7 @@ Source of truth for rules is `CAREER_MODE.md`; source of truth for visuals is
 | `/src/engine/match` | The ball-by-ball engine: delivery resolution, innings and match state machines, AI captain, DLS, post-match effects. |
 | `/src/engine/development` | Player creation, hidden potential, traits, age curve, training, injuries and rehab, fitness tests, school, XP, the career simulation. |
 | `/src/engine/calendar` | Season calendar per stage, climate by region, the weekly clock and season rollover. |
+| `/src/engine/pro` | Stages 11-20: the professional world, IPL, national selection, ICC events, rankings, awards, media, leadership, retirement, legacy. |
 | `/src/data` | Static data: stages, tournaments, venues, trophies, name pools. |
 | `/src/save` | 3-slot localStorage save system, autosave, export/import. |
 | `/src/store` | Zustand stores; the only bridge between engine and UI. |
@@ -310,6 +311,8 @@ toast. Settings shows the storage used against the quota and each slot's size.
   counts; AI players get a date of birth, a season line and a history in
   place of a full record; tournament records without tables are dropped.
   The season in progress carries on as scheduled.
+  v7 (Phase 7): `pro` (the professional career, empty for an older save)
+  and the new trophies, locked.
 - **Size** - a multi-day match is over 1 MB of deliveries and a browser gives
   an origin ~5 MB, so only the latest `SAVE.ballByBallMatches` (2) matches
   keep every ball (`engine/match/archive.ts`); older ones keep full
@@ -337,10 +340,12 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 | **Matches** | `/matches` | Fixture list, results, links to live match and scorecards |
 | **Tournaments** | `/tournaments` | Points tables, bracket, run and wicket leaders with the player's rank, fixtures and results, awards — **built in Phase 6** |
 | **Selection / News** | `/selection` | Squad places and reasons, Competition for places, announcements, media and rival news, trials — **built in Phase 6** |
-| **IPL Auction** | `/auction` | Scouting reputation, franchise interest, trials, auction lots and outcomes |
+| **IPL Auction** | `/auction` | Scouting reputation and notes, franchise interest, trials, base-price registration, the auction room with the user's lot replayed bid by bid, contract, trade offers, IPL seasons, the ten franchises — **built in Phase 7** |
+| **International** | `/international` | Squad status and the competition for places per format, India A and zones, series with host conditions, world player and team rankings (with the formula), central contract, caps, workload rests, WTC table and ICC events — **built in Phase 7** |
 | **Stats** | `/stats` | Career and season stats by format and competition, charts (recharts) |
-| **Awards** | `/awards` | Trophy cabinet, milestones, series and tournament awards |
-| **Community** | `/community` | Fan and media reaction feed |
+| **Awards** | `/awards` | Trophy cabinet, individual awards (series, tournaments, IPL caps, annual awards), awards by season, milestones — **built in Phase 7** |
+| **Legacy** | `/legacy` | Legacy rating, stats by level and format, records book, captaincy record, career timeline, retirement by format — **built in Phase 7** |
+| **Community** | `/community` | Followers, public mood, media pressure, the press stories feed — **built in Phase 7** |
 | **Settings** | `/settings` | Storage used (IndexedDB) and slot sizes, autosave, save now, export, slots — storage **built in Phase 6** |
 
 ### Supporting screens
@@ -356,7 +361,7 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 | **Player Profile** | `/player/:id` | Attributes, radar, condition, full record |
 | **Trial** | `/trial/:fixtureId` | Nets approach, fitness effort, practice match, the verdict — **built in Phase 6** |
 | **Season Review** | `/season-review` | Verdict and reasons, figures, targets, squads, awards, coach's report, next goal — **built in Phase 6** |
-| **Retirement** | `/retirement` | Final career statistics and legacy summary |
+| **Retirement** | `/retirement` | Same as Legacy (retirement tab) — **built in Phase 7** |
 
 ---
 
@@ -790,6 +795,242 @@ competition plays without them. India U-19 players also play for their state.
 
 ---
 
+## 8f. The professional career, stages 11-20 (built in Phase 7)
+
+All of it lives in `src/engine/pro` (pure) on top of the Phase 6 selection,
+tournament, calendar and match code; state is `GameState.pro` (`types/pro.ts`,
+save v7). Constants: `IPL_RULES`, `AUCTION`, `NATIONAL`, `RANKINGS`, `MEDIA`,
+`LEADERSHIP`, `RETIREMENT`, `LEGACY`, `PRO` in `engine/config.ts`.
+
+### Earlier senior debuts (step 0)
+Senior selectors give a young player a **prospect credit** of
+`SQUAD_SELECTION.prospectPerYear` (1.8) ability points per year under 25, for
+the user and AI alike. A U-19, India U-19 or U-23 season at 110% of the target,
+with (overall + credit) above the senior bar, can bring a **senior call-up**
+(`SEASON_REVIEW.seniorCallUp`) straight to the senior probables; the player
+keeps playing U-23 cricket while eligible. Average senior debut 25.2 → 22.3,
+with the same share of careers (17.5%) reaching senior level.
+
+### Stages as milestones
+Stages 11-20 run on two parallel tracks (IPL and national), so each has its
+own status (`engine/pro/stages.ts`), set current when reached and complete
+when done; the headline stage is the furthest reached:
+
+| Stage | Current when | Complete when |
+|---|---|---|
+| 11 IPL Scouting | scouting reputation 26+, or a trial | an IPL contract |
+| 12 IPL | contracted | 8 matches in a season (or 20 in all) |
+| 13 Duleep / Irani | picked for either | 3 matches, or India A |
+| 14 India A | picked | invited to the national camp |
+| 15 India Camp | invited | named in an India squad |
+| 16 Debut | in a squad | capped |
+| 17 Regular XI | capped | 25 caps |
+| 18 ICC Events | in an ICC squad | 5 ICC matches |
+| 19 Star / Captaincy | 40 caps, top-10 ranking or an India post | captain of India |
+| 20 Legacy | retired from a format | retired from all cricket |
+
+### The professional season (`pro/season.ts`)
+From a senior state debut every season holds the Duleep Trophy (5 zones,
+round-robin and final), the Irani Cup (last season's Ranji champions v Rest
+of India), India A four-day and one-day series (a summer tour abroad, a home
+series in February) and the IPL. Once the national selectors are watching,
+India's bilateral series (`intl-test`, `intl-odi`, `intl-t20i`: a summer
+tour, a September home series, a southern-hemisphere tour, a home Test
+series; one tournament per format, one two-team group per series) and the
+ICC events of that year are added. Competitions are fixtures like any other:
+the player's only while in the squad (`career.squads`); clashes go to the
+bigger competition (internationals > IPL > India A > zones > state > club).
+Events on the calendar run on their day: selection meetings (India A 5 June
+and 30 January, Duleep 16 August, Irani 25 September, the national selectors a
+week before every series, a fortnight before an ICC event), the India camp
+(20 August), IPL retention day (1 November), trade window (6 November),
+franchise trials (26 November), the auction (16 December), franchise camp
+and replacement signings (March), central contracts (April), awards night
+(28 May). 1 June rolls the pro world over (`rolloverPro`).
+
+### World
+12 nations (`data/nations.ts`: India, Australia, England, South Africa, New
+Zealand, Pakistan strong; Sri Lanka, West Indies, Afghanistan, Bangladesh
+mid; Ireland, Zimbabwe associates), each with 22-man senior and 17-man A
+squads of fictional players, host cities, a home pitch, bat-friendliness and
+climate. New climates: England (cloud, swing), Australia (heat, pace and
+bounce), South Africa, New Zealand (wind, green), Caribbean (humid, slow);
+subcontinent hosts use the Indian regions. Nations drift each season
+(`driftNations`), and the rest of the world's series are settled on ratings
+(`backgroundSeason`) for the team rankings and the WTC. 10 fictional
+franchises (`data/franchises.ts`) with a city, home ground and style; 22-man
+squads with up to 8 overseas players. Five zonal sides and Rest of India.
+
+### Selection at professional level
+The Phase 6 squad score, with: the competition's format (`formatOverall`: T20
+weights power, range, running, death bowling; Tests technique,
+concentration, swing and seam, stamina); last season's matches at 0.7; senior
+cricket discounted 0.8 per level (IPL/zones 8, India A 9, India 10) rather
+than 0.5; an age drag of 1.4 a year past 32; and a field of outside
+contenders ×3 (zones, India A) or ×4 (India). National statuses: selected,
+standby (next in line, travels), reserves, not selected, dropped; playing XI,
+12th man and bench on match day. The camp is a playable trial (fitness test,
+nets, practice match) whose result counts at every meeting that season. The
+board rests a player in a white-ball bilateral at fatigue 72+, a seamer with
+60+ recent overs, or a seamer with two injuries in a year (T20Is).
+Franchise and national XIs pick the best for the format; an IPL XI has at
+most four overseas players.
+
+### IPL (`pro/ipl.ts`)
+- **Scouting reputation** (0-100): match rating above 5.5 × a competition
+  weight (SMAT 2.4, VH 1.3, U-19 WC 1.6, T20I 2.2, IPL 1.8, Ranji 0.5 ...)
+  plus standouts (70 in a T20, 4 wickets, a hundred); ×0.8 each season.
+  26 = scouts in touch (inbox), 36 = franchise trial, 50 = auction shortlist
+  (a trial bonus counts ×1.2; capped players are always in).
+- **Interest** per franchise = reputation × need in the role (1.3 short,
+  0.65 overstocked) × style fit (spin, pace, batting) × a little noise.
+- **Value** = 20 × e^((T20 overall − 71)/3.6) lakh × form (0.8-1.25) × age
+  (young +10%, −18%/year past 32); the user's × (0.55 + 0.9 × reputation/100).
+- **Retention day**: mini years release players worth under 55% of their
+  salary, 36+, or a few at random; mega years (every third season) keep at
+  most four (two overseas) at slab prices. The user is retained on value or
+  a decent share of matches, and a strong season upgrades the deal.
+- **Auction**: released players, 26/60 fresh domestic and 14/34 overseas
+  names, and the user (at a registered base price: 20-50 lakh uncapped,
+  up to 2 crore capped). Each franchise's ceiling = value × need × style ×
+  noise (× interest for the user), within its purse less a reserve for the
+  slots left. Ascending bids in steps (5/10/20/25 lakh) until one bidder is
+  left; nobody at the base price = unsold. Short squads fill at 20 lakh.
+- Replacement signings in March (injuries), trade offers in November for a
+  player on the bench (accept or decline), contracts to the next mega
+  auction, salary as earnings.
+- **Season**: 10 teams, 14 league matches each, NRR table, Qualifier 1
+  (1 v 2), Eliminator (3 v 4), Qualifier 2 (Q1 loser v Eliminator winner,
+  `SeedRef.loserOf`), final. Impact player (`IPL_RULES.impactPlayer`): on the
+  fast sim each side brings one bench player on - a bowler for the side that
+  batted first, a batter for the chasers - replacing the XI's weakest at the
+  job.
+
+### International (`pro/national.ts`, `pro/competitions.ts`)
+Radar: an India A call-up, an IPL season of 380 runs or 16 wickets, or a
+zonal season of 300 runs or 14 wickets. Caps with cap numbers, debut records
+and stories; match fees (Test 15, ODI 6, T20I 3 lakh); central contracts each
+April from the last year (A+ three regular formats 7 cr, A two 5 cr, B one
+3 cr, C capped 1 cr). ICC events: T20 World Cup (even years, 12 teams, 2×6,
+semis, final), ODI World Cup (every fourth year, 10 teams, league, semis,
+final), Champions Trophy (8 teams, 2×4), all at one host's grounds with its
+conditions; the WTC is a two-season table (12 a win, 4 a draw, ranked by
+percentage) and a June final in England for the top two.
+
+### Rankings (`pro/rankings.ts`)
+Per format, every international match earns batting points (base + runs,
+fifty/hundred bonuses, strike rate against par in white-ball) and bowling
+points (base + wickets − economy over par), ×(1 + 0.02 × (opposition
+strength − 80)) and +5% in a win, 0-1000. A rating moves 15% towards each
+match (faster over the first five). 3 matches to be ranked; all-rounder =
+batting × bowling / 1000. Teams: Elo-style per format (scale 10, K 4, home
+advantage 3). Best ranks are kept for the user. Other nations' bilateral
+series (`pro/worldSeries.ts`, five per format a season) are played on the
+fast sim once both squads exist, so rival players earn rankings and season
+figures; each keeps a lightweight scorecard (result, top three scorers and
+wicket-takers) shown under Around the world on the International screen.
+
+### Awards, media, leadership
+Player of the series in every bilateral series; Orange Cap, Purple Cap and
+MVP in the IPL; player of the tournament, top scorer and wicket-taker at ICC
+events; the annual awards night (Indian Cricketer of the Year, Test/ODI/T20I
+player of the year against the best Indian international season, Emerging
+Player, Domestic Cricketer of the Year). Media: followers grow with big days
+on big stages, sentiment follows ratings, failures in big matches build
+pressure (60+ costs confidence, 85+ a little trust), and notable days become
+stories - the Community feed. Leadership offers (vice-captain, then captain)
+at state (season start), IPL (March) and India per format (season start and
+January): a score of leadership 0.45 + temperament 0.2 + 8 per rating point
+above 5 + seniority (max 20), which must pass a threshold and beat the side's
+best other leader; accept or decline (a decline waits two seasons). A captain
+gets Phase 4 captain mode for that side - for India, that format only
+(`isCaptainOf(..., format)`); records per team and format.
+
+### Decline, retirement and legacy
+Decline, recurring injuries and form are the Phase 5 systems. From 34 the
+selectors stop picking a player they have left out ("overlooked"), and from
+32 the inbox raises retirement after a season without senior cricket. The
+player retires from Tests, ODIs, T20Is, the IPL, first-class cricket or all
+cricket (`retireFrom`); all cricket ends the career. The headless simulation
+retires a player who never made a senior debut at 26 after two seasons
+without senior cricket, others at 32+ after two empty seasons, leaves an
+overlooked format from 33-34, and stops at 41. The legacy rating (0-100,
+`legacyInputs` / `scoreLegacy` / `legacyTier`, `LEGACY` in config) is impact
+across formats, not a caps count: runs and wickets weighted per format
+(per 1000 runs: Test 9, ODI 8, T20I 10; per 50 wickets: 9 / 8 / 9; up to
+40), averages (0.5 a point above a batting average of 30 or below a bowling
+average of 34, with 20 innings / 30 wickets to qualify; up to 12), the best
+world ranking (No. 1 10, top 3 7, top 10 4, top 20 2), ICC titles including
+WTC finals (6 each, up to 18), India captaincy (5 + 0.2 a win, up to 5 more;
+IPL captaincy 2), awards and records (up to 12 and 6), and a little for caps
+(0.2 each, up to 10), the IPL and domestic cricket. Tiers run Club Cricketer,
+State Player, Domestic Stalwart, Domestic Legend, IPL Regular, International
+Cap, International Regular (25 caps), India Great (score 50, 25 caps),
+All-Time Great (score 70, 30 caps - the caps floor only rules out a cameo).
+Over 200 simulated careers: 2 All-Time Greats (1%), 1 India Great, 3
+Regulars. The records book (`data/records.ts`,
+fictional holders) covers India Test/ODI/T20I, IPL and Ranji records.
+
+### Save size
+`engine/calendar/compact.ts` thins the career each 1 June: this season's
+matches keep full scorecards (the last two matches every ball), three seasons
+back the top of each scorecard and the player's lines, older ones totals and
+the player's performance; last season's competitions keep their tables, the
+three before the player's group and award winners, older ones the champion,
+awards and the player's line; old fixtures go; AI players keep three seasons
+of history; old auctions keep their headline lots. A full professional
+career ends at about 5-6 MB (average 2.7 MB over 200 careers).
+
+## 8g. Polish, QA and deploy (built in Phase 8)
+
+### Impact player in live matches
+In the IPL the setup carries both benches. At the innings break the side
+batting first may bring on a bowler and the chasers a batter: the AI picks
+with `impactSwap`; a captain chooses In / Out (or no substitute) on the
+Innings Break screen (`LiveMatch.chooseImpact`).
+
+### Difficulty (`DIFFICULTY` in config, per career, save v8)
+Easy / Realistic / Hard: +4 / 0 / -4 on the player's score in every squad
+decision, and +4 / 0 / -4 on the player's batting and bowling skills in
+every match the engine plays (`withDifficulty` in `simFromUser`).
+
+### Device settings (`store/appSettings.ts`, localStorage)
+Animation speed (x1.4 / x1 / x0.6 on ball flight and the auction room),
+default sim speed, reduce motion (also follows `prefers-reduced-motion`),
+and the tutorial tips seen. Settings also has storage usage, export, import
+(with a confirm), delete this career (with a confirm), install-app help and,
+in development builds, the fast-forward tools (`engine/dev/fastForward.ts`).
+
+### Tutorial
+Five one-time tips (`components/TutorialTip.tsx`): dashboard, training,
+match controls, the aggression bar, selection. "Skip tutorial" hides all;
+Settings resets them.
+
+### Accessibility and performance
+Visible focus ring, a skip link, dialogs that move focus in, trap Tab and
+restore focus, `role=radiogroup` choices, contrast-checked text tokens, and
+reduced motion. Every screen but Home is code-split; recharts loads with the
+first chart; fonts are self-hosted.
+
+### Installable app
+`public/manifest.webmanifest` and crown icons (`scripts/make-icons.mjs`); a
+service worker generated at build time (`scripts/sw-template.js`, the
+`serviceWorker` plugin in `vite.config.ts`) precaches the whole build: pages
+network-first with the app shell offline, assets cache-first. `lib/pwa.ts`
+registers it, keeps the install prompt and reports updates (AppBanner).
+
+### Browser QA (`scripts/qa.mjs`, `npm run qa`)
+Plays a career through the dev server in Chromium and screenshots every
+screen at 1440, 820 and 390 px into `qa-screenshots/`, logging console
+errors, horizontal overflow and fast-forward results.
+
+### Deploy
+`vercel.json`: Vite build, SPA rewrite to `index.html`, `sw.js` uncached,
+immutable caching for hashed assets. The Vercel project's root directory is
+`cricket-career-game`.
+
+---
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
@@ -800,5 +1041,5 @@ competition plays without them. India U-19 players also play for their state.
 | 4 | 2D ground view and live match screen | ✅ Done |
 | 5 | New career, development, training, injuries and calendar | ✅ Done |
 | 6 | Selection, tournaments, career stages 1-10, IndexedDB saves | ✅ Done |
-| 7 | IPL scouting and auction | Next |
-| 8 | Stats, awards, community, settings, polish | Planned |
+| 7 | Stages 11-20: IPL to retirement | ✅ Done |
+| 8 | Polish, QA, installable app, deploy | ✅ Done |

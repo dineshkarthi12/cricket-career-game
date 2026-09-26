@@ -28,13 +28,13 @@ export function HeroBanner({ state }: { state: GameState }) {
           src="/assets/player-hero.png"
           alt=""
           aria-hidden
-          className="absolute top-1.5 right-2 hidden h-[104%] w-auto object-contain object-top sm:block md:right-[8%] 2xl:right-[42%]"
+          className="absolute top-1.5 right-2 hidden h-[104%] w-auto object-contain object-top sm:block md:right-[8%] wide:right-[43%] 2xl:right-[40%]"
         />
         <div className="hero-wash absolute inset-0" aria-hidden />
 
         {/* Handwritten mottos, sitting over the photograph. */}
         <p
-          className="font-hand pointer-events-none absolute top-[16%] left-[31%] hidden -rotate-3 text-[25px] leading-[1.05] font-medium text-brand-navy/90 xl:block"
+          className="font-hand pointer-events-none absolute top-[16%] left-[31%] hidden -rotate-3 text-[25px] leading-[1.05] font-medium text-brand-navy/90 xl:block wide:hidden 2xl:block"
           aria-hidden
         >
           Small
@@ -122,7 +122,7 @@ export function HeroBanner({ state }: { state: GameState }) {
             <button
               type="button"
               onClick={() => setStoryOpen(true)}
-              className="ml-3 hidden items-center gap-3 rounded-full py-1 pr-4 pl-1 text-[14px] font-medium text-white transition-colors hover:bg-white/10 lg:flex 2xl:ml-auto 2xl:mr-[27%]"
+              className="ml-3 hidden items-center gap-3 rounded-full py-1 pr-4 pl-1 text-[14px] font-medium text-white transition-colors hover:bg-white/10 lg:flex wide:ml-auto wide:mr-[29%]"
             >
               <span className="grid size-11 place-items-center rounded-full border-2 border-white/80 bg-white/10 backdrop-blur-sm">
                 <Play className="ml-0.5 size-4 fill-white text-white" />

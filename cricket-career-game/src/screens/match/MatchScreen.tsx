@@ -18,6 +18,7 @@ import { PostMatch } from './PostMatch';
 import { PreMatch } from './PreMatch';
 import { QuestionModal } from './QuestionModal';
 import { PitchReport, WeatherReport } from './panels/MatchInfo';
+import { ANIMATION_FACTOR, useAppSettings, useReducedMotion } from '@/store/appSettings';
 
 export default function MatchScreen() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
@@ -28,6 +29,8 @@ export default function MatchScreen() {
   const { stage, fixture, selection, snap, build, speed, autoPlay, autoWatch, after, error } =
     store;
   const [tossSeen, setTossSeen] = useState(false);
+  const animationSpeed = useAppSettings((s) => s.animationSpeed);
+  const reduceMotion = useReducedMotion(state?.settings.reduceMotion ?? false);
 
   // Open the fixture when the route changes.
   useEffect(() => {
@@ -280,6 +283,7 @@ export default function MatchScreen() {
         onContinue={store.startNextInnings}
         onSimulateRest={store.simulateRest}
         onFollowOn={store.chooseFollowOn}
+        onImpact={store.chooseImpact}
       />
     );
   }
@@ -339,8 +343,8 @@ export default function MatchScreen() {
           player={store.player}
           captainDecisions={store.captainDecisions}
           lastBall={store.lastBall}
-          ballMs={ticking && !autoPlay ? BALL_SPEEDS[WATCH_SPEED].ms : BALL_SPEEDS[speed].ms}
-          reduceMotion={state.settings.reduceMotion}
+          ballMs={(ticking && !autoPlay ? BALL_SPEEDS[WATCH_SPEED].ms : BALL_SPEEDS[speed].ms) * ANIMATION_FACTOR[animationSpeed]}
+          reduceMotion={reduceMotion}
           autoPlay={autoPlay}
           autoWatch={autoWatch}
           speed={speed}

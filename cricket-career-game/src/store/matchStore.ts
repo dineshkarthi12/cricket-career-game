@@ -28,6 +28,7 @@ import type { BallOverrides, RiskEstimate } from '@/engine/match/innings';
 import type { BowlerPlan, FieldSetting, SimPlayer } from '@/engine/match/types';
 import { fieldProblems } from '@/lib/fieldRules';
 import { useGameStore } from './gameStore';
+import { useAppSettings } from './appSettings';
 import { DEFAULT_AGGRESSION } from '@/types';
 import type { Ball, CaptainDelegation, Condition, Fixture, GameState, Id, Match } from '@/types';
 
@@ -152,6 +153,8 @@ interface MatchStore {
   answer: (response: { timing?: number; review?: boolean }) => void;
   declare: () => void;
   chooseFollowOn: (enforce: boolean) => void;
+  /** The captain's impact substitute at the innings break (nulls: none). */
+  chooseImpact: (inId: string | null, outId: string | null) => void;
   answerPress: (answers: Record<string, string>) => void;
   quickSim: (state: GameState, fixture: Fixture) => Match | null;
 
@@ -371,7 +374,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     snap: null,
     player: DEFAULT_PLAYER,
     captainDecisions: DEFAULT_CAPTAIN,
-    speed: 1,
+    speed: useAppSettings.getState().defaultSimSpeed,
     autoPlay: false,
     autoWatch: true,
     lastBall: null,
@@ -388,7 +391,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         set({ error: 'That fixture has no side for you yet.', stage: 'SETUP' });
         return;
       }
-      const captain = isCaptainOf(state, team.id, devBuild());
+      const captain = isCaptainOf(state, team.id, devBuild(), fixture.format);
       const xiIds = selection.xi.map((p) => p.id);
       const build = buildFor(state, fixture, xiIds, captain);
       // A preview match, so the pitch and weather can be read before the toss.
@@ -529,6 +532,12 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       }
     },
 
+    chooseImpact: (inId, outId) => {
+      if (!live) return;
+      live.chooseImpact(inId, outId);
+      sync(null);
+    },
+
     chooseFollowOn: (enforce) => {
       if (!live) return;
       tactics.followOnEnforced = enforce;
@@ -554,7 +563,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         set({ error: 'That fixture cannot be played.' });
         return null;
       }
-      const captain = isCaptainOf(state, team.id, devBuild());
+      const captain = isCaptainOf(state, team.id, devBuild(), fixture.format);
       const me = state.player.id;
       const xiIds = selection.xi.map((p) => p.id);
       const build = buildMatch(state, fixture, {
@@ -658,7 +667,7 @@ export function __resetMatchStore(): void {
     snap: null,
     player: DEFAULT_PLAYER,
     captainDecisions: DEFAULT_CAPTAIN,
-    speed: 1,
+    speed: useAppSettings.getState().defaultSimSpeed,
     autoPlay: false,
     autoWatch: true,
     lastBall: null,

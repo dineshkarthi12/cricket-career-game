@@ -12,6 +12,7 @@ import { stateInfo } from '@/data/places';
 import { addDays, ageInYears, daysBetweenDates, isoDate, nextWeekday, seasonDate } from '../development';
 import { homeVenueFor, sidesFor, slug, teamFromSide, type SideSpec } from './sides';
 import { buildTournament, hasStructure } from '../tournament/build';
+import { PRO_LEVEL } from '../career/eligibility';
 import type {
   CalendarWindow,
   CareerStageId,
@@ -41,6 +42,8 @@ export interface SeasonCalendarInput {
   involvement?: Record<string, boolean>;
   /** Extra competitions on top of the stage's own (club cricket, India U-19...). */
   extraTournamentIds?: string[];
+  /** Retired from all cricket: the calendar keeps its birthdays, nothing else. */
+  retired?: boolean;
 }
 
 export interface SeasonCalendar {
@@ -141,7 +144,8 @@ export function buildSeasonCalendar(input: SeasonCalendarInput): SeasonCalendar 
   const stage = getStage(stageId);
   const tournaments: TournamentState[] = [];
   const userAge = Math.floor(ageInYears(input.dateOfBirth, inSeason(9, 1)));
-  const competitionIds = [...new Set([...stage.tournamentIds, ...(input.extraTournamentIds ?? [])])];
+  // Professional competitions are built by `engine/pro/season.ts`.
+  const competitionIds = input.retired ? [] : [...new Set([...stage.tournamentIds, ...(input.extraTournamentIds ?? [])])].filter((id) => !PRO_LEVEL[id]);
   for (const tournamentId of competitionIds) {
     if (hasStructure(tournamentId, seasonYear)) {
       const involved = input.involvement?.[tournamentId] ?? true;
@@ -280,7 +284,7 @@ export function buildSeasonCalendar(input: SeasonCalendarInput): SeasonCalendar 
   }
 
   // --- Camps, trials, tests, meetings ----------------------------------------
-  for (const [i, planned] of (STAGE_EVENTS[stageId] ?? []).entries()) {
+  for (const [i, planned] of (input.retired ? [] : (STAGE_EVENTS[stageId] ?? [])).entries()) {
     const start = inSeason(...planned.at);
     const end = addDays(start, (planned.days ?? 1) - 1);
     if (!keep(start)) continue;
@@ -290,9 +294,6 @@ export function buildSeasonCalendar(input: SeasonCalendarInput): SeasonCalendar 
   // --- The club season and the IPL window, as background --------------------
   if (stage.order <= 3 && !windows.some((w) => w.kind === 'CLUB_SEASON')) {
     windows.push({ id: `win-${seasonYear}-club`, kind: 'CLUB_SEASON', title: 'Local club season', start: inSeason(7, 1), end: inSeason(3, 15), tournamentId: null });
-  }
-  if (stage.order >= 11 && !windows.some((w) => w.kind === 'IPL')) {
-    windows.push({ id: `win-${seasonYear}-ipl`, kind: 'IPL', title: 'IPL window', start: inSeason(3, 22), end: inSeason(5, 25), tournamentId: 'ipl' });
   }
 
   // --- Birthday ----------------------------------------------------------------

@@ -51,10 +51,22 @@ export function careerSteps(state: GameState): StepItem[] {
 }
 
 /** Fixtures from today onwards, soonest first. */
+/**
+ * The player's own calendar: their sides' matches and their own training,
+ * camps and tests - not other teams' fixtures in the same competitions.
+ * Nothing once the career is over.
+ */
+function isForUser(state: GameState, fixture: Fixture, teams: Set<string>): boolean {
+  if (state.pro?.retirement.complete) return false;
+  if (fixture.kind !== 'MATCH' || fixture.involvesUser) return true;
+  return Boolean((fixture.homeTeamId && teams.has(fixture.homeTeamId)) || (fixture.awayTeamId && teams.has(fixture.awayTeamId)));
+}
+
 export function upcomingFixtures(state: GameState, limit = 5): Fixture[] {
   const today = state.season.currentDate;
+  const teams = new Set(Object.values(state.career.squads).map((p) => p.teamId));
   return Object.values(state.fixtures)
-    .filter((fixture) => !fixture.played && daysBetween(today, fixture.date) >= 0)
+    .filter((fixture) => !fixture.played && daysBetween(today, fixture.date) >= 0 && isForUser(state, fixture, teams))
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, limit);
 }
@@ -108,16 +120,21 @@ export function statsTabs(state: GameState): StatsTabDefinition[] {
     {
       id: 'first-class',
       label: 'First-Class',
-      tournamentIds: ['ranji-trophy', 'duleep-trophy', 'irani-cup', 'world-test-championship'],
+      tournamentIds: ['ranji-trophy', 'duleep-trophy', 'irani-cup', 'india-a-tour', 'intl-test', 'world-test-championship'],
     },
     {
       id: 'list-a',
       label: 'List A',
-      tournamentIds: ['vijay-hazare', 'india-a-tour', 'odi-world-cup', 'champions-trophy'],
+      tournamentIds: ['vijay-hazare', 'india-a-one-day', 'intl-odi', 'odi-world-cup', 'champions-trophy'],
     },
     { id: 't20', label: 'T20', formats: ['T20'] },
     { id: 'overall', label: 'Overall' },
   );
+  // The professional game gets its own tabs once there is something in them.
+  const played = (ids: string[]) => ids.some((id) => (state.player.record.byCompetition[id]?.batting.matches ?? 0) > 0);
+  const intl = ['intl-test', 'intl-odi', 'intl-t20i', 't20-world-cup', 'odi-world-cup', 'champions-trophy', 'world-test-championship'];
+  if (played(['ipl'])) tabs.splice(tabs.length - 1, 0, { id: 'ipl', label: 'IPL', tournamentIds: ['ipl'] });
+  if (played(intl)) tabs.splice(tabs.length - 1, 0, { id: 'intl', label: 'India', tournamentIds: intl });
   return tabs;
 }
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CalendarDays, ChevronRight, ClipboardCheck, CloudRain, HeartPulse, Play, ScrollText, Sun, Snowflake, X, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components';
 import { climateNote, pendingMatch, pendingTrial } from '@/engine/calendar';
 import { formatLongDate } from '@/lib/format';
@@ -24,15 +24,20 @@ const CLIMATE_ICON: Record<ClimateKind, typeof Sun> = {
  */
 export function ContinueBar() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const state = useGameStore((s) => s.state);
   const advanceWeek = useGameStore((s) => s.advanceWeek);
   const quickSim = useMatchStore((s) => s.quickSim);
   const coachTrial = useGameStore((s) => s.coachTrial);
-  const [note, setNote] = useState<string | null>(null);
+  // A note belongs to the day (and the match day) it was written about.
+  const [noteState, setNoteState] = useState<{ text: string; date: string; fixtureId: string | null } | null>(null);
 
-  if (!state) return null;
+  // A match in progress has its own controls; the clock waits for it.
+  if (!state || pathname.startsWith('/match/') || pathname.startsWith('/trial/')) return null;
   const today = state.season.currentDate;
   const pending = pendingMatch(state);
+  const note = noteState && noteState.date === today && noteState.fixtureId === (pending?.id ?? null) ? noteState.text : null;
+  const setNote = (text: string | null, date = today, fixtureId: string | null = null) => setNoteState(text ? { text, date, fixtureId } : null);
   const trial = pendingTrial(state);
   const review = state.career.pendingReview;
   const month = Number(today.slice(5, 7));
@@ -55,7 +60,7 @@ export function ContinueBar() {
       return;
     }
     if (result.stoppedFor) {
-      setNote(`Match day: ${result.stoppedFor.title}. Play it or sim it to carry on.`);
+      setNote(`Match day: ${result.stoppedFor.title}. Play it or sim it to carry on.`, result.state.season.currentDate, result.stoppedFor.id);
       return;
     }
     const report = result.state.player.development.weeklyReports[0];
@@ -64,6 +69,7 @@ export function ContinueBar() {
       `${formatLongDate(result.state.season.currentDate)}. ` +
         (gains.length ? gains.slice(0, 3).join(', ') + '. ' : '') +
         (report ? report.coachNote : ''),
+      result.state.season.currentDate,
     );
   };
 

@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Card, CardHeader, Tabs } from '@/components';
+import { Badge, Card, CardHeader, Tabs, TutorialTip } from '@/components';
 import { ROLE_GROUP_LABEL, STATUS_LABEL, IN_SQUAD, competitionForPlaces, roleGroup, weightedForm } from '@/engine/career/squads';
 import { CLUB_COMPETITION, stageCompetitions } from '@/engine/career/involvement';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { formatLongDate } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useGameStore } from '@/store/gameStore';
+import { proPlaces } from '@/lib/pro';
 import type { GameState, InboxMessage, SquadPlace, SquadStatus } from '@/types';
 
 const TABS = [
@@ -30,9 +31,8 @@ export default function SelectionScreen() {
 
 function Selection({ state }: { state: GameState }) {
   const [tab, setTab] = useState('squads');
-  const places = stageCompetitions(state.career.currentStageId)
-    .map((id) => state.career.squads[id])
-    .filter((p): p is SquadPlace => Boolean(p));
+  const places = [...stageCompetitions(state.career.currentStageId).map((id) => state.career.squads[id]), ...(state.pro ? proPlaces(state) : [])]
+    .filter((p): p is SquadPlace => Boolean(p) && Boolean(p!.teamId));
   const club = state.career.squads[CLUB_COMPETITION];
   const announcements = state.inbox.filter((m) => m.category === 'SELECTION');
   const news = state.inbox.filter((m) => m.category === 'NEWS' || m.category === 'AWARD' || m.sender === 'MEDIA');
@@ -43,6 +43,7 @@ function Selection({ state }: { state: GameState }) {
         <h1 className="text-[22px] leading-tight font-bold text-ink">Selection / News</h1>
         <p className="text-[13px] text-ink-muted">Where you stand with the selectors, who is ahead of you, and what is being said.</p>
       </div>
+      <TutorialTip id="selection" />
       <Tabs tabs={TABS} value={tab} onChange={setTab} label="Selection sections" />
 
       {tab === 'squads' ? (
