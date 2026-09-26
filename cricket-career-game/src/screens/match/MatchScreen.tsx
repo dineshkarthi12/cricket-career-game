@@ -20,6 +20,7 @@ import { QuestionModal } from './QuestionModal';
 import { PitchReport, WeatherReport } from './panels/MatchInfo';
 import { ANIMATION_FACTOR, useAppSettings, useReducedMotion } from '@/store/appSettings';
 import { useMatchAudio } from '@/lib/audio/useMatchAudio';
+import { isSpeaking } from '@/lib/audio/player';
 
 export default function MatchScreen() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
@@ -75,11 +76,22 @@ export default function MatchScreen() {
     !snap.question &&
     (autoPlay || watching);
   const tickMs = autoPlay ? BALL_SPEEDS[speed].ms : BALL_SPEEDS[WATCH_SPEED].ms;
+  const paceToVoice = useAppSettings((s) => s.commentaryVoice && s.commentaryStyle === 'FULL' && s.volume > 0);
   useEffect(() => {
     if (!ticking) return;
-    const timer = window.setTimeout(() => useMatchStore.getState().playBall(), tickMs);
+    // With full commentary on, the next ball waits for the commentator
+    // (up to a few seconds), the way a broadcast does.
+    let waited = 0;
+    let timer = window.setTimeout(function tick() {
+      if (paceToVoice && isSpeaking() && waited < 8000) {
+        waited += 200;
+        timer = window.setTimeout(tick, 200);
+        return;
+      }
+      useMatchStore.getState().playBall();
+    }, tickMs);
     return () => window.clearTimeout(timer);
-  }, [ticking, tickMs, snap]);
+  }, [ticking, tickMs, snap, paceToVoice]);
 
   const teams = state?.teams;
   const teamName = useCallback((id: string) => teams?.[id]?.name ?? 'they', [teams]);

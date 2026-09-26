@@ -218,15 +218,25 @@ export function stopSpeech(): void {
   speakingPriority = -1;
 }
 
+export type SpeakMode = 'polite' | 'interrupt' | 'queue';
+
+/** Something is being said (or waiting to be). */
+export function isSpeaking(): boolean {
+  return speechAvailable() && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+}
+
 /**
- * Say a line. A bigger moment interrupts a smaller one; a smaller one is
- * dropped while something bigger is still being said, so the voice never
- * falls behind the match.
+ * Say a line. `polite` (highlights): a bigger moment interrupts a smaller
+ * one and a smaller one is dropped while something bigger is being said,
+ * so the voice never falls behind. `interrupt`: the next ball cuts in (the
+ * player tapped ahead). `queue`: follows what is being said.
  */
-export function speak(text: string, priority: number, excited = false): void {
+export function speak(text: string, priority: number, excited = false, mode: SpeakMode = 'polite'): void {
   if (!prefs.voice || prefs.volume === 0 || !speechAvailable()) return;
   const synth = window.speechSynthesis;
-  if (synth.speaking) {
+  if (mode === 'interrupt') {
+    if (synth.speaking || synth.pending) synth.cancel();
+  } else if (mode === 'polite' && synth.speaking) {
     if (priority < speakingPriority || (priority === speakingPriority && priority < 2)) return;
     synth.cancel();
   }
@@ -236,12 +246,12 @@ export function speak(text: string, priority: number, excited = false): void {
     if (v) u.voice = v;
     u.lang = v?.lang ?? 'en-IN';
     u.volume = prefs.volume;
-    u.rate = priority >= 3 || excited ? 1.12 : 1.02;
+    u.rate = priority >= 3 || excited ? 1.12 : 1.04;
     u.pitch = priority >= 3 ? 1.15 : excited ? 1.08 : 1;
     u.onend = () => {
-      speakingPriority = -1;
+      if (!synth.pending) speakingPriority = -1;
     };
-    speakingPriority = priority;
+    speakingPriority = Math.max(mode === 'queue' ? speakingPriority : -1, priority);
     lastLine = text;
     synth.speak(u);
   } catch {
@@ -260,4 +270,10 @@ export function playCall(call: BallCall, ballMs: number, seed: number): void {
   const fast = ballMs < 900;
   const speakIt = call.priority >= 2 || (!fast && call.priority === 1) || (!fast && call.priority === 0 && seed % 3 === 0);
   if (speakIt) speak(call.line, call.priority, call.mine);
+}
+
+/** Full commentary: every line for the ball, the first cutting in, the rest in turn. */
+export function playFull(sfx: BallCall['sfx'], lines: { text: string; priority: number; queue: boolean; excited: boolean }[]): void {
+  playSfx(sfx);
+  lines.forEach((l, i) => speak(l.text, l.priority, l.excited, i === 0 && !l.queue ? 'interrupt' : 'queue'));
 }

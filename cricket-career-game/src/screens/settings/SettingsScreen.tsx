@@ -159,6 +159,15 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
           <Row title="Commentary voice" hint={speechAvailable() ? 'A commentator calls the sixes, fours, wickets, ducks, run outs and milestones' : 'This browser has no text-to-speech voice'}>
             <Toggle label="Commentary voice" checked={app.commentaryVoice} disabled={!speechAvailable()} onChange={(v) => app.set({ commentaryVoice: v })} />
           </Row>
+          <Row title="Commentary style" hint={app.commentaryStyle === 'FULL' ? 'Every ball, like a broadcast: bowler to batter, the shot, the score each over. Auto-play waits for the commentator.' : 'Only the big moments: boundaries, wickets, ducks, run outs, milestones.'}>
+            <Choice
+              label="Commentary style"
+              value={app.commentaryStyle}
+              options={[{ id: 'FULL', label: 'Ball by ball' }, { id: 'HIGHLIGHTS', label: 'Highlights' }]}
+              disabled={!app.commentaryVoice}
+              onChange={(v) => app.set({ commentaryStyle: v })}
+            />
+          </Row>
           <Row title="Crowd atmosphere" hint="A quiet crowd murmur while play is on">
             <Toggle label="Crowd atmosphere" checked={app.crowdAmbience} disabled={!app.soundEffects} onChange={(v) => app.set({ crowdAmbience: v })} />
           </Row>

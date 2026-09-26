@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 
 export type AnimationSpeed = 'SLOW' | 'NORMAL' | 'FAST';
+export type CommentaryStyle = 'FULL' | 'HIGHLIGHTS';
 
 /** Multiplier on ball-flight and other animation durations. */
 export const ANIMATION_FACTOR: Record<AnimationSpeed, number> = { SLOW: 1.4, NORMAL: 1, FAST: 0.6 };
@@ -23,6 +24,8 @@ export interface AppSettings {
   soundEffects: boolean;
   /** Spoken commentary (the browser's text-to-speech). */
   commentaryVoice: boolean;
+  /** Every ball like a broadcast, or only the big moments. */
+  commentaryStyle: CommentaryStyle;
   /** A quiet crowd murmur under a match. */
   crowdAmbience: boolean;
   /** A soft tick on buttons. */
@@ -40,6 +43,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   tipsSeen: [],
   soundEffects: true,
   commentaryVoice: true,
+  commentaryStyle: 'FULL',
   crowdAmbience: true,
   buttonClicks: false,
   volume: 0.8,
@@ -57,6 +61,7 @@ function load(): AppSettings {
       tipsSeen: Array.isArray(parsed.tipsSeen) ? parsed.tipsSeen.filter((x): x is string => typeof x === 'string') : [],
       soundEffects: parsed.soundEffects !== false,
       commentaryVoice: parsed.commentaryVoice !== false,
+      commentaryStyle: parsed.commentaryStyle === 'HIGHLIGHTS' ? 'HIGHLIGHTS' : 'FULL',
       crowdAmbience: parsed.crowdAmbience !== false,
       buttonClicks: parsed.buttonClicks === true,
       volume: typeof parsed.volume === 'number' ? Math.max(0, Math.min(1, parsed.volume)) : 0.8,
@@ -83,8 +88,8 @@ interface AppSettingsStore extends AppSettings {
 export const useAppSettings = create<AppSettingsStore>((set, get) => {
   const commit = (patch: Partial<AppSettings>) => {
     set(patch);
-    const { animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, commentaryVoice, crowdAmbience, buttonClicks, volume } = get();
-    save({ animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, commentaryVoice, crowdAmbience, buttonClicks, volume });
+    const { animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, commentaryVoice, commentaryStyle, crowdAmbience, buttonClicks, volume } = get();
+    save({ animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, commentaryVoice, commentaryStyle, crowdAmbience, buttonClicks, volume });
   };
   return {
     ...load(),

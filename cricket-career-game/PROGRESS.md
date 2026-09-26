@@ -1176,9 +1176,20 @@ fast-forward. 524 tests pass; `npm run build` is clean.
   every kind of wicket, ducks and golden ducks, run outs, drops, fifties,
   hundreds, five-fors, wides, no-balls and the result. Bigger moments cut
   in; at speed only the big ones are spoken.
-- Settings: sound effects, commentary voice, crowd atmosphere, button
-  clicks, volume, and "Test the sound".
+- Commentary style **Ball by ball** (default): every delivery called like a
+  broadcast - bowler to batter by surname (whatever name the player
+  created), the shot and the result, the excited call on boundaries,
+  wickets and milestones, "3 more for a fifty", and the score and the chase
+  each over. Auto-play waits for the commentator. **Highlights** keeps only
+  the big moments.
+- The written commentary's grammar fixed on the way: sentences start with
+  a capital, no "clips it away it", and a scoring leave or block reads as
+  steered or nudged.
+- Settings: sound effects, commentary voice, commentary style, crowd
+  atmosphere, button clicks, volume, and "Test the sound".
 - Tests: 6 new (the calls for sixes, fours, 1/2/3, ducks, golden ducks, run
   outs of the non-striker, fifty / hundred / five-for, the result, and every
-  line filled without repeats). Checked in Chromium: lines are spoken for
-  the right moments with no console errors. 530 tests pass.
+  line filled without repeats, surnames, speakable text, ball-by-ball
+  lines, over summaries, milestone build-up). Checked in Chromium with a
+  newly created player: every ball called with the real names, no console
+  errors. 536 tests pass.

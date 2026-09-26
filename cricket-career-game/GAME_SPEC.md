@@ -1013,7 +1013,14 @@ dismissal, ducks and golden ducks, run outs (naming whoever was out),
 drops, milestones and the result - spoken with the browser's
 text-to-speech (an Indian English voice when the device has one). Bigger
 moments interrupt smaller ones; at speed only priority 2+ is spoken, and
-routine balls get a word only now and then. Device settings: sound effects,
+routine balls get a word only now and then. Commentary style "Ball by ball"
+(the default) calls every delivery like a broadcast (`fullCommentary`):
+"Bowler to Batter" by surname - taken from the players in the match, so it
+is whatever name the player created - then the engine's own description,
+the excited call first on a boundary, wicket or milestone, "moves to 47, 3
+more for a fifty", and the score (and the chase) at the end of each over;
+auto-play waits for the commentator (up to 8 s a ball). "Highlights" keeps
+only the big moments. Device settings: sound effects,
 commentary voice, crowd atmosphere, button clicks, volume, and a test
 button. Audio unlocks on the first tap.
 

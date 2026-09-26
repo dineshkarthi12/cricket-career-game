@@ -4,8 +4,9 @@
  * while play is on; the result gets the last word.
  */
 import { useEffect, useRef } from 'react';
-import { callForBall, callForResult } from './calls';
-import { lastSpokenLine, playCall, speak, playSfx, startAmbience, stopAmbience, stopSpeech } from './player';
+import { callForBall, callForResult, fullCommentary } from './calls';
+import { useAppSettings } from '@/store/appSettings';
+import { lastSpokenLine, playCall, playFull, speak, playSfx, startAmbience, stopAmbience, stopSpeech } from './player';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { Ball } from '@/types';
 
@@ -21,6 +22,7 @@ interface Options {
 }
 
 export function useMatchAudio({ lastBall, snap, playing, userId, userTeamId, teamName, ballMs }: Options): void {
+  const style = useAppSettings((s) => s.commentaryStyle);
   const heard = useRef<string | null>(null);
   const resultSaid = useRef<string | null>(null);
 
@@ -32,10 +34,17 @@ export function useMatchAudio({ lastBall, snap, playing, userId, userTeamId, tea
     const lines = current ?? snap.completed.at(-1);
     if (!lines) return;
     const call = callForBall(lastBall, lines, userId, lastSpokenLine());
+    if (style === 'FULL') {
+      const state = current
+        ? { battingTeam: teamName(current.battingTeamId), runs: current.runs, wickets: current.wickets, target: current.target, requiredRate: current.requiredRate, legalBalls: current.balls }
+        : null;
+      playFull(call.sfx, fullCommentary(lastBall, call, lines, state));
+      return;
+    }
     let seed = 0;
     for (let i = 0; i < lastBall.id.length; i += 1) seed = (seed * 31 + lastBall.id.charCodeAt(i)) >>> 0;
     playCall(call, ballMs, seed);
-  }, [lastBall, snap, userId, ballMs]);
+  }, [lastBall, snap, userId, ballMs, style, teamName]);
 
   useEffect(() => {
     const result = snap?.result;
