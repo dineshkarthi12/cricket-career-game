@@ -408,8 +408,9 @@ export const SEASON_REVIEW = {
   trialPerPoint: 0.035,
   /** Per point of selector trust above 50. */
   trustPerPoint: 0.004,
-  /** Per point of overall above the next level's bar. */
-  abilityPerPoint: 0.02,
+  /** Per point of overall above the next level's bar (the next level's trials judge the rest). */
+  abilityPerPoint: 0.012,
+  abilityCap: 0.2,
   failedFitness: -0.2,
   notInSquad: -0.25,
   /** Fast-track: this share of the target, and this much above the next level's bar. */

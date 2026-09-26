@@ -12,12 +12,15 @@ import MatchesScreen from './screens/Matches';
 import CalendarScreen from './screens/calendar/CalendarScreen';
 import TrainingScreen from './screens/training/TrainingScreen';
 import RehabScreen from './screens/training/RehabScreen';
+import CareerPathScreen from './screens/career/CareerPathScreen';
+import SelectionScreen from './screens/career/SelectionScreen';
+import SeasonReviewScreen from './screens/career/SeasonReviewScreen';
+import TournamentScreen from './screens/career/TournamentScreen';
+import TrialScreen from './screens/career/TrialScreen';
 import {
   AuctionScreen,
   AwardsScreen,
-  CareerPathScreen,
   CommunityScreen,
-  SelectionScreen,
   SettingsScreen,
   StatsScreen,
 } from './screens/placeholders';
@@ -53,6 +56,10 @@ export default function App() {
               <Route path="/matches/:matchId" element={<MatchesScreen />} />
               <Route path="/match/:fixtureId" element={<MatchScreen />} />
               <Route path="/selection" element={<SelectionScreen />} />
+              <Route path="/trial/:fixtureId" element={<TrialScreen />} />
+              <Route path="/season-review" element={<SeasonReviewScreen />} />
+              <Route path="/tournaments" element={<TournamentScreen />} />
+              <Route path="/tournaments/:tournamentId" element={<TournamentScreen />} />
               <Route path="/auction" element={<AuctionScreen />} />
               <Route path="/stats" element={<StatsScreen />} />
               <Route path="/awards" element={<AwardsScreen />} />

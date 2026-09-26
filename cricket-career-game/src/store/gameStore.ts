@@ -25,6 +25,7 @@ import {
   withSessions,
   withStudyFocus,
 } from '@/engine/development';
+import { applyTrial, autoTrial } from '@/engine/career/trials';
 import { SAVE_SLOT_IDS } from '@/types';
 import type {
   GameState,
@@ -34,6 +35,7 @@ import type {
   SaveMeta,
   SaveSlotId,
   TrainingSession,
+  TrialRecord,
 } from '@/types';
 
 export interface Toast {
@@ -90,6 +92,12 @@ interface GameStore {
    * null with no career loaded.
    */
   advanceWeek: () => AdvanceResult | null;
+  /** Attend the trial the clock stopped for, with a played-out record. */
+  attendTrial: (record: TrialRecord) => void;
+  /** Let the coach make the calls at the trial. */
+  coachTrial: (fixtureId: string) => void;
+  /** The season review has been read. */
+  dismissReview: () => void;
   setSessions: (sessions: TrainingSession[]) => void;
   setLifestyle: (lifestyle: Partial<Lifestyle>) => void;
   setStudyFocus: (focus: number) => void;
@@ -292,6 +300,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().update(() => result.state);
     return result;
   },
+
+  attendTrial: (record) => get().update((state) => applyTrial(state, record)),
+
+  coachTrial: (fixtureId) => get().update((state) => autoTrial(state, fixtureId)),
+
+  dismissReview: () =>
+    get().update((state) => (state.career.pendingReview ? { ...state, career: { ...state.career, pendingReview: null } } : state)),
 
   setSessions: (sessions) =>
     get().update((state) => ({ ...state, trainingPlan: withSessions(state.trainingPlan, sessions) })),

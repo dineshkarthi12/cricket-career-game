@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { CalendarDays, ChevronRight, CloudRain, HeartPulse, Play, Sun, Snowflake, X, Zap } from 'lucide-react';
+import { CalendarDays, ChevronRight, ClipboardCheck, CloudRain, HeartPulse, Play, ScrollText, Sun, Snowflake, X, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components';
-import { climateNote, pendingMatch } from '@/engine/calendar';
+import { climateNote, pendingMatch, pendingTrial } from '@/engine/calendar';
 import { formatLongDate } from '@/lib/format';
 import { useGameStore } from '@/store/gameStore';
 import { useMatchStore } from '@/store/matchStore';
@@ -27,11 +27,14 @@ export function ContinueBar() {
   const state = useGameStore((s) => s.state);
   const advanceWeek = useGameStore((s) => s.advanceWeek);
   const quickSim = useMatchStore((s) => s.quickSim);
+  const coachTrial = useGameStore((s) => s.coachTrial);
   const [note, setNote] = useState<string | null>(null);
 
   if (!state) return null;
   const today = state.season.currentDate;
   const pending = pendingMatch(state);
+  const trial = pendingTrial(state);
+  const review = state.career.pendingReview;
   const month = Number(today.slice(5, 7));
   const climate = climateNote(state.calendar.region, month);
   const ClimateIcon = CLIMATE_ICON[climate.kind];
@@ -40,8 +43,17 @@ export function ContinueBar() {
   const exams = state.calendar.windows.some((w) => w.kind === 'EXAMS' && w.start <= today && w.end >= today);
 
   const onContinue = () => {
+    const hadReview = Boolean(state.career.pendingReview);
     const result = advanceWeek();
     if (!result) return;
+    if (!hadReview && result.state.career.pendingReview) {
+      navigate('/season-review');
+      return;
+    }
+    if (result.trial) {
+      navigate(`/trial/${result.trial.id}`);
+      return;
+    }
     if (result.stoppedFor) {
       setNote(`Match day: ${result.stoppedFor.title}. Play it or sim it to carry on.`);
       return;
@@ -78,8 +90,36 @@ export function ContinueBar() {
           </Badge>
         ) : null}
 
+        {review ? (
+          <button type="button" onClick={() => navigate('/season-review')} className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]">
+            <ScrollText className="size-3.5" aria-hidden />
+            Season review ready
+          </button>
+        ) : null}
+
         <div className="ml-auto flex items-center gap-2">
-          {pending ? (
+          {trial ? (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate(`/trial/${trial.id}`)}
+                className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-brand-blue/90"
+              >
+                <ClipboardCheck className="size-3.5" aria-hidden />
+                Trial day: attend
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  coachTrial(trial.id);
+                  setNote(`${trial.title}: the coach made the calls. See Selection / News for the verdict.`);
+                }}
+                className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page"
+              >
+                Coach decides
+              </button>
+            </>
+          ) : pending ? (
             <>
               <button
                 type="button"

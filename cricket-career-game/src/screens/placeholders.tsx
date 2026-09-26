@@ -9,34 +9,6 @@ import { CaptaincyCard } from './stats/CaptaincyCard';
  * straight from the screen list in GAME_SPEC.md §8.
  */
 
-export const CareerPathScreen = () => (
-  <Placeholder
-    route="/career"
-    phase="Phase 5"
-    description="The full 20-stage path, what each stage asks of you, and every turning point so far."
-    contents={[
-      'All 20 stages with their steps',
-      'Requirement progress per stage',
-      'Career event timeline',
-      'Fast-track and fallback routes',
-    ]}
-  />
-);
-
-export const SelectionScreen = () => (
-  <Placeholder
-    route="/selection"
-    phase="Phase 5"
-    description="Where you stand with the selectors, who you are competing with, and what the press is saying."
-    contents={[
-      'Current selection status',
-      'Selector feedback',
-      'Squad list and direct rivals',
-      'Full inbox and news feed',
-    ]}
-  />
-);
-
 export const AuctionScreen = () => (
   <Placeholder
     route="/auction"

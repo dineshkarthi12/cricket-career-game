@@ -192,7 +192,7 @@ export function reviewSeason(state: GameState): SeasonVerdict {
           base +
           (trial?.bonus ?? 0) * SEASON_REVIEW.trialPerPoint +
           (trust - 50) * SEASON_REVIEW.trustPerPoint +
-          (overall - stageBar(next)) * SEASON_REVIEW.abilityPerPoint +
+          Math.max(-SEASON_REVIEW.abilityCap, Math.min(SEASON_REVIEW.abilityCap, (overall - stageBar(next)) * SEASON_REVIEW.abilityPerPoint)) +
           (progress.fitness === 'FAILED' ? SEASON_REVIEW.failedFitness : 0) +
           (!reached ? SEASON_REVIEW.notInSquad : 0);
         chance = Math.max(SEASON_REVIEW.minChance, Math.min(SEASON_REVIEW.maxChance, chance));

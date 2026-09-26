@@ -10,6 +10,7 @@ import {
   Trophy,
   Users,
   Newspaper,
+  Table2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -26,6 +27,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Calendar', to: '/calendar', icon: CalendarDays },
   { label: 'Training', to: '/training', icon: Dumbbell },
   { label: 'Matches', to: '/matches', icon: Swords },
+  { label: 'Tournaments', to: '/tournaments', icon: Table2 },
   { label: 'Selection / News', to: '/selection', icon: Newspaper },
   { label: 'IPL Auction', to: '/auction', icon: Gavel },
   { label: 'Stats', to: '/stats', icon: BarChart3 },

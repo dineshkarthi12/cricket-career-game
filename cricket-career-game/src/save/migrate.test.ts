@@ -140,3 +140,58 @@ describe('save migration to v5', () => {
     if (result.ok) expect(result.value.version).toBe(SAVE_VERSION);
   });
 });
+
+describe('save migration to v6', () => {
+  /** A v5 save: no squad places, path or reviews; AI players with a full record. */
+  function asV5(): GameState {
+    const state = structuredClone(createDemoCareer()) as unknown as Record<string, any>;
+    state.version = 5;
+    for (const key of ['squads', 'path', 'seasonReviews', 'pendingReview', 'lowScores', 'drops', 'trials']) delete state.career[key];
+    delete state.calendar.pendingTrialId;
+    for (const team of Object.values(state.teams) as Record<string, any>[]) {
+      team.squad = (team.squad ?? []).map((p: Record<string, any>) => {
+        const old: Record<string, any> = { ...p, record: { matches: 3 } };
+        delete old.season;
+        delete old.history;
+        delete old.dateOfBirth;
+        delete old.injuredUntil;
+        return old;
+      });
+    }
+    state.season.tournaments = [{ tournamentId: 'old-style', seasonYear: state.season.year }];
+    return state as unknown as GameState;
+  }
+
+  it('adds squad places for the stage the career is at', () => {
+    const result = migrate(asV5());
+    if (!result.ok) throw new Error('migration failed');
+    const state = result.value;
+    expect(state.version).toBe(SAVE_VERSION);
+    expect(state.career.squads['vijay-merchant'].status).toBe('SQUAD');
+    expect(state.career.path).toEqual([]);
+    expect(state.career.seasonReviews).toEqual([]);
+    expect(state.career.pendingReview).toBeNull();
+    expect(state.career.trials).toEqual([]);
+    expect(state.career.lowScores).toBe(0);
+    expect(state.calendar.pendingTrialId).toBeNull();
+  });
+
+  it('gives AI players a date of birth, a season line and a history', () => {
+    const result = migrate(asV5());
+    if (!result.ok) throw new Error('migration failed');
+    const rivals = Object.values(result.value.teams).flatMap((t) => t.squad);
+    expect(rivals.length).toBeGreaterThan(0);
+    for (const rival of rivals) {
+      expect(rival.dateOfBirth).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(rival.season.matches).toBeGreaterThanOrEqual(0);
+      expect(Array.isArray(rival.history)).toBe(true);
+      expect('record' in rival).toBe(false);
+    }
+  });
+
+  it('drops tournament records from before tables existed', () => {
+    const result = migrate(asV5());
+    if (!result.ok) throw new Error('migration failed');
+    expect(result.value.season.tournaments.every((t) => Array.isArray(t.groups))).toBe(true);
+  });
+});
