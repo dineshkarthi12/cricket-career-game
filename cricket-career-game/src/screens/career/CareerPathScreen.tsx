@@ -11,6 +11,8 @@ import { careerSteps } from '@/lib/selectors';
 import { formatLongDate } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useGameStore } from '@/store/gameStore';
+import { proPlaces, proTargets } from '@/lib/pro';
+import { DecisionsCard } from '../pro/DecisionsCard';
 import type { CareerStageProgress, GameState, SeasonOutcome } from '@/types';
 
 export const OUTCOME_TONE: Record<SeasonOutcome, BadgeTone> = {
@@ -51,7 +53,8 @@ function CareerPath({ state }: { state: GameState }) {
   const stage = getStage(state.career.currentStageId);
   const progress = evaluateTargets(state);
   const target = STAGE_TARGETS[stage.id];
-  const places = stageCompetitions(stage.id).map((id) => state.career.squads[id]).filter(Boolean);
+  const places = [...stageCompetitions(stage.id).map((id) => state.career.squads[id]), ...(state.pro ? proPlaces(state) : [])].filter(Boolean);
+  const pro = state.pro ? proTargets(state) : [];
 
   return (
     <div className="flex flex-col gap-3 pb-4">
@@ -61,6 +64,8 @@ function CareerPath({ state }: { state: GameState }) {
           Stage {stage.order} of 20 · {stage.name} · age {state.player.age}. Nothing is handed out: every step is earned.
         </p>
       </div>
+
+      <DecisionsCard state={state} />
 
       <Card>
         <CardHeader title="The 20 stages" className="mb-3" />
@@ -87,7 +92,7 @@ function CareerPath({ state }: { state: GameState }) {
         </Card>
 
         <Card>
-          <CardHeader title="Next targets" subtitle={target ? describeTarget(target) : 'The path beyond here opens in a later phase.'} className="mb-3" />
+          <CardHeader title="Next targets" subtitle={target ? describeTarget(target) : pro.length ? 'The professional game: the IPL and the national side run side by side.' : 'Keep performing - the next steps open with the runs and wickets.'} className="mb-3" />
           {target ? (
             <>
               <div className="mb-3">
@@ -113,6 +118,17 @@ function CareerPath({ state }: { state: GameState }) {
                 {target.nextAgeLimit ? ` The next level is under-${target.nextAgeLimit} on 1 September - miss it and you move on without it.` : ''}
               </p>
             </>
+          ) : null}
+          {pro.length ? (
+            <ul className={cn('flex flex-col gap-2', target && 'mt-3 border-t border-line pt-3')}>
+              {pro.map((t) => (
+                <li key={t.title} className="rounded-tile bg-page p-3">
+                  <p className="text-[13px] font-semibold text-ink">{t.title}</p>
+                  <p className="text-[12.5px] text-ink-muted">{t.detail}</p>
+                  {t.progress !== null ? <ProgressBar value={t.progress} tone="blue" height={6} className="mt-1.5" /> : null}
+                </li>
+              ))}
+            </ul>
           ) : null}
         </Card>
       </div>

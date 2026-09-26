@@ -108,16 +108,21 @@ export function statsTabs(state: GameState): StatsTabDefinition[] {
     {
       id: 'first-class',
       label: 'First-Class',
-      tournamentIds: ['ranji-trophy', 'duleep-trophy', 'irani-cup', 'world-test-championship'],
+      tournamentIds: ['ranji-trophy', 'duleep-trophy', 'irani-cup', 'india-a-tour', 'intl-test', 'world-test-championship'],
     },
     {
       id: 'list-a',
       label: 'List A',
-      tournamentIds: ['vijay-hazare', 'india-a-tour', 'odi-world-cup', 'champions-trophy'],
+      tournamentIds: ['vijay-hazare', 'india-a-one-day', 'intl-odi', 'odi-world-cup', 'champions-trophy'],
     },
     { id: 't20', label: 'T20', formats: ['T20'] },
     { id: 'overall', label: 'Overall' },
   );
+  // The professional game gets its own tabs once there is something in them.
+  const played = (ids: string[]) => ids.some((id) => (state.player.record.byCompetition[id]?.batting.matches ?? 0) > 0);
+  const intl = ['intl-test', 'intl-odi', 'intl-t20i', 't20-world-cup', 'odi-world-cup', 'champions-trophy', 'world-test-championship'];
+  if (played(['ipl'])) tabs.splice(tabs.length - 1, 0, { id: 'ipl', label: 'IPL', tournamentIds: ['ipl'] });
+  if (played(intl)) tabs.splice(tabs.length - 1, 0, { id: 'intl', label: 'India', tournamentIds: intl });
   return tabs;
 }
 

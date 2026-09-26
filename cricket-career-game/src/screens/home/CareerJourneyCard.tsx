@@ -6,15 +6,18 @@ import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { evaluateTargets } from '@/engine/career/targets';
 import { stageCompetitions } from '@/engine/career/involvement';
 import { IN_SQUAD, STATUS_LABEL } from '@/engine/career/squads';
+import { proPlaces, proTargets } from '@/lib/pro';
 import type { GameState } from '@/types';
 
 /** The 20-stage path, with the crowned retirement node on the end, and where the player stands now. */
 export function CareerJourneyCard({ state }: { state: GameState }) {
   const target = STAGE_TARGETS[state.career.currentStageId];
   const progress = target ? evaluateTargets(state) : null;
-  const places = stageCompetitions(state.career.currentStageId)
-    .map((id) => state.career.squads?.[id])
-    .filter((p) => p !== undefined);
+  const places = [
+    ...stageCompetitions(state.career.currentStageId).map((id) => state.career.squads?.[id]),
+    ...(state.pro ? proPlaces(state) : []),
+  ].filter((p) => p !== undefined);
+  const proNext = !target && state.pro ? proTargets(state)[0] : undefined;
   return (
     <Card>
       <CardHeader
@@ -40,6 +43,14 @@ export function CareerJourneyCard({ state }: { state: GameState }) {
                 <span>{Math.round(progress.ratio * 100)}% of the target</span>
               </div>
               <ProgressBar value={progress.ratio * 100} tone={progress.met ? 'green' : 'blue'} height={6} />
+            </div>
+          ) : proNext ? (
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex justify-between gap-2 text-[12px] text-ink-muted">
+                <span className="truncate">Next: {proNext.title}</span>
+                {proNext.progress !== null ? <span>{Math.round(proNext.progress)}%</span> : null}
+              </div>
+              <ProgressBar value={proNext.progress ?? 0} tone="blue" height={6} />
             </div>
           ) : null}
         </div>

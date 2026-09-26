@@ -17,13 +17,12 @@ import SelectionScreen from './screens/career/SelectionScreen';
 import SeasonReviewScreen from './screens/career/SeasonReviewScreen';
 import TournamentScreen from './screens/career/TournamentScreen';
 import TrialScreen from './screens/career/TrialScreen';
-import {
-  AuctionScreen,
-  AwardsScreen,
-  CommunityScreen,
-  SettingsScreen,
-  StatsScreen,
-} from './screens/placeholders';
+import IplScreen from './screens/pro/IplScreen';
+import InternationalScreen from './screens/pro/InternationalScreen';
+import AwardsScreen from './screens/pro/AwardsScreen';
+import LegacyScreen from './screens/pro/LegacyScreen';
+import CommunityScreen from './screens/pro/CommunityScreen';
+import { SettingsScreen, StatsScreen } from './screens/placeholders';
 
 export default function App() {
   const bootstrap = useGameStore((s) => s.bootstrap);
@@ -60,7 +59,10 @@ export default function App() {
               <Route path="/season-review" element={<SeasonReviewScreen />} />
               <Route path="/tournaments" element={<TournamentScreen />} />
               <Route path="/tournaments/:tournamentId" element={<TournamentScreen />} />
-              <Route path="/auction" element={<AuctionScreen />} />
+              <Route path="/auction" element={<IplScreen />} />
+              <Route path="/international" element={<InternationalScreen />} />
+              <Route path="/legacy" element={<LegacyScreen />} />
+              <Route path="/retirement" element={<LegacyScreen />} />
               <Route path="/stats" element={<StatsScreen />} />
               <Route path="/awards" element={<AwardsScreen />} />
               <Route path="/community" element={<CommunityScreen />} />

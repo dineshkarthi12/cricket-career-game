@@ -10,7 +10,8 @@ import { quickMatch } from '../sim/quickMatch';
 import { regionOf } from '@/data/places';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { selectForFixture, userTeamOf } from './selection';
-import { playAiFixture } from '../tournament/live';
+import { impactBench, playAiFixture } from '../tournament/live';
+import { IPL_RULES } from '../config';
 import type { SimPlayer } from '../match/types';
 import type { Fixture, GameState } from '@/types';
 
@@ -45,6 +46,14 @@ export function autoPlayFixture(state: GameState, fixture: Fixture): GameState {
   const played = xi.some((p) => p.id === me);
   const meta = TOURNAMENTS_BY_ID[fixture.tournamentId ?? ''];
   const venue = (fixture.venueId && state.venues[fixture.venueId]) || state.venues[team.homeVenueId] || Object.values(state.venues)[0];
+  const homeXi = userIsHome ? xi : opponentXi(state, opponentId, fixture.format);
+  const awayXi = userIsHome ? opponentXi(state, opponentId, fixture.format) : xi;
+  const homeTeam = state.teams[fixture.homeTeamId];
+  const awayTeam = state.teams[fixture.awayTeamId];
+  const impact =
+    fixture.tournamentId === 'ipl' && IPL_RULES.impactPlayer && homeTeam && awayTeam
+      ? { homeBench: impactBench(state, homeTeam, homeXi, fixture.date), awayBench: impactBench(state, awayTeam, awayXi, fixture.date) }
+      : undefined;
   const result = quickMatch({
     id: `m-${fixture.id}`,
     fixtureId: fixture.id,
@@ -57,8 +66,9 @@ export function autoPlayFixture(state: GameState, fixture: Fixture): GameState {
     venue,
     homeTeamId: fixture.homeTeamId,
     awayTeamId: fixture.awayTeamId,
-    homeXi: userIsHome ? xi : opponentXi(state, opponentId, fixture.format),
-    awayXi: userIsHome ? opponentXi(state, opponentId, fixture.format) : xi,
+    homeXi,
+    awayXi,
+    impact,
     userPlayerId: played ? me : null,
     userIsHome,
     seed: deriveSeed(state.seed, saltOf(`user-${fixture.id}`)),

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { it } from 'vitest';
 import { createNewCareer } from '@/engine/newCareer';
 import { playOn } from '@/engine/career/careerSim';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { it } from 'vitest';
 import { appendFileSync } from 'node:fs';
 import { simulateCareer } from '@/engine/career/careerSim';

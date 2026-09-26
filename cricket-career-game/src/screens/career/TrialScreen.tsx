@@ -92,7 +92,7 @@ function Trial({ state, fixtureId }: { state: GameState; fixtureId: string }) {
     <div className="flex flex-col gap-3 pb-4">
       <Header
         title={fixture.title}
-        subtitle={`${formatLongDate(fixture.date)} · ${plan.purpose === 'SQUAD' ? `squad places for the ${at}` : `the ${stageName} selectors are watching`}`}
+        subtitle={`${formatLongDate(fixture.date)} · ${plan.purpose === 'SQUAD' ? `squad places for the ${at}` : plan.purpose === 'FRANCHISE' ? 'franchise scouts and coaches are watching' : plan.purpose === 'NATIONAL_CAMP' ? 'the national selectors are watching' : `the ${stageName} selectors are watching`}`}
       />
       <Card>
         <p className="text-[13.5px] text-ink">{plan.note} Three parts: nets, a fitness test and a practice match. How you go about them is up to you.</p>

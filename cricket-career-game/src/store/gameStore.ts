@@ -26,6 +26,9 @@ import {
   withStudyFocus,
 } from '@/engine/development';
 import { applyTrial, autoTrial } from '@/engine/career/trials';
+import { answerLeadership } from '@/engine/pro/leadership';
+import { answerTrade, registerBase } from '@/engine/pro/ipl';
+import { retireFrom } from '@/engine/pro/retirement';
 import { SAVE_SLOT_IDS } from '@/types';
 import type {
   GameState,
@@ -36,6 +39,7 @@ import type {
   SaveSlotId,
   TrainingSession,
   TrialRecord,
+  RetirementScope,
 } from '@/types';
 
 export interface Toast {
@@ -98,6 +102,14 @@ interface GameStore {
   coachTrial: (fixtureId: string) => void;
   /** The season review has been read. */
   dismissReview: () => void;
+  /** Accept or decline a vice-captaincy or captaincy offer. */
+  answerLeadership: (accept: boolean) => void;
+  /** Accept or decline an IPL trade offer. */
+  answerTrade: (accept: boolean) => void;
+  /** Register for the IPL auction at a base price (lakh). */
+  registerBase: (lakh: number) => void;
+  /** Retire from a format, or from all cricket. */
+  retire: (scope: RetirementScope) => void;
   setSessions: (sessions: TrainingSession[]) => void;
   setLifestyle: (lifestyle: Partial<Lifestyle>) => void;
   setStudyFocus: (focus: number) => void;
@@ -304,6 +316,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   attendTrial: (record) => get().update((state) => applyTrial(state, record)),
 
   coachTrial: (fixtureId) => get().update((state) => autoTrial(state, fixtureId)),
+
+  answerLeadership: (accept) => get().update((state) => answerLeadership(state, accept)),
+
+  answerTrade: (accept) => get().update((state) => answerTrade(state, accept)),
+
+  registerBase: (lakh) => get().update((state) => registerBase(state, lakh)),
+
+  retire: (scope) => get().update((state) => retireFrom(state, scope)),
 
   dismissReview: () =>
     get().update((state) => (state.career.pendingReview ? { ...state, career: { ...state.career, pendingReview: null } } : state)),

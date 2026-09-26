@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { it } from 'vitest';
 import { writeFileSync } from 'node:fs';
 import { createNewCareer } from '@/engine/newCareer';

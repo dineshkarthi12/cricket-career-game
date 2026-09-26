@@ -13,6 +13,7 @@ import { SkillDevelopmentCard } from './home/SkillDevelopmentCard';
 import { TrophiesCard } from './home/TrophiesCard';
 import { CommunityCard } from './home/CommunityCard';
 import { BottomBanner } from './home/BottomBanner';
+import { DecisionsCard } from './pro/DecisionsCard';
 
 /** The Home dashboard from design/dashboard.png. */
 export default function Home() {
@@ -36,6 +37,8 @@ export default function Home() {
         </div>
       </div>
 
+      <DecisionsCard state={state} />
+
       <CareerJourneyCard state={state} />
 
       <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
@@ -49,7 +52,7 @@ export default function Home() {
         <RecentMatchCard state={state} />
         <SkillDevelopmentCard state={state} />
         <TrophiesCard state={state} />
-        <CommunityCard />
+        <CommunityCard state={state} />
       </div>
 
       <BottomBanner />

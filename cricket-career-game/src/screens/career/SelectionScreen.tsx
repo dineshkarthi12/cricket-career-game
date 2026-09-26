@@ -7,6 +7,7 @@ import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { formatLongDate } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useGameStore } from '@/store/gameStore';
+import { proPlaces } from '@/lib/pro';
 import type { GameState, InboxMessage, SquadPlace, SquadStatus } from '@/types';
 
 const TABS = [
@@ -30,9 +31,8 @@ export default function SelectionScreen() {
 
 function Selection({ state }: { state: GameState }) {
   const [tab, setTab] = useState('squads');
-  const places = stageCompetitions(state.career.currentStageId)
-    .map((id) => state.career.squads[id])
-    .filter((p): p is SquadPlace => Boolean(p));
+  const places = [...stageCompetitions(state.career.currentStageId).map((id) => state.career.squads[id]), ...(state.pro ? proPlaces(state) : [])]
+    .filter((p): p is SquadPlace => Boolean(p) && Boolean(p!.teamId));
   const club = state.career.squads[CLUB_COMPETITION];
   const announcements = state.inbox.filter((m) => m.category === 'SELECTION');
   const news = state.inbox.filter((m) => m.category === 'NEWS' || m.category === 'AWARD' || m.sender === 'MEDIA');

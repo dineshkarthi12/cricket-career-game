@@ -11,6 +11,7 @@ import { regionOf } from '@/data/places';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { matchRating, quickMatch, type QuickPlayerLine } from '../sim/quickMatch';
 import { recordResult, settleKnockout, type MatchLine } from './results';
+import { IPL_RULES } from '../config';
 import { rankMatch } from '../pro/rankings';
 import { rateResult, trackSeries } from '../pro/awards';
 import type { SimPlayer } from '../match/types';
@@ -222,12 +223,24 @@ export function playAiFixtures(state: GameState, date: string): GameState {
   return next;
 }
 
+/** The bench an impact substitute comes from (IPL only, when the rule is on). */
+export function impactBench(state: GameState, team: Team, xi: SimPlayer[], date: string): SimPlayer[] {
+  const inXi = new Set(xi.map((p) => p.id));
+  const overseasFull = xi.filter((p) => p.overseas).length >= IPL_RULES.maxOverseasXi;
+  return squadFor(state, team.id).filter((p) => {
+    const rival = team.squad.find((r) => r.id === p.id);
+    return !inXi.has(p.id) && !(rival?.injuredUntil && rival.injuredUntil >= date) && !(overseasFull && p.overseas);
+  });
+}
+
 export function playAiFixture(state: GameState, fixture: Fixture): GameState {
   const home = state.teams[fixture.homeTeamId!];
   const away = state.teams[fixture.awayTeamId!];
   if (!home || !away) return state;
   const meta = TOURNAMENTS_BY_ID[fixture.tournamentId ?? ''];
   const venue = (fixture.venueId && state.venues[fixture.venueId]) || state.venues[home.homeVenueId] || Object.values(state.venues)[0];
+  const homeXi = xiFor(state, home, fixture.date, fixture.format);
+  const awayXi = xiFor(state, away, fixture.date, fixture.format);
   const result = quickMatch({
     fixtureId: fixture.id,
     tournamentId: fixture.tournamentId ?? 'friendly',
@@ -239,8 +252,9 @@ export function playAiFixture(state: GameState, fixture: Fixture): GameState {
     venue,
     homeTeamId: home.id,
     awayTeamId: away.id,
-    homeXi: xiFor(state, home, fixture.date, fixture.format),
-    awayXi: xiFor(state, away, fixture.date, fixture.format),
+    homeXi,
+    awayXi,
+    impact: fixture.tournamentId === 'ipl' && IPL_RULES.impactPlayer ? { homeBench: impactBench(state, home, homeXi, fixture.date), awayBench: impactBench(state, away, awayXi, fixture.date) } : undefined,
     userIsHome: false,
     seed: deriveSeed(state.seed, saltOf(fixture.id)),
     region: regionOf(venue?.state),

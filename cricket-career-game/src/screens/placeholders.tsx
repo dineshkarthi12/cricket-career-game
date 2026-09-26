@@ -9,19 +9,6 @@ import { CaptaincyCard } from './stats/CaptaincyCard';
  * straight from the screen list in GAME_SPEC.md §8.
  */
 
-export const AuctionScreen = () => (
-  <Placeholder
-    route="/auction"
-    phase="Phase 7"
-    description="Scouting reputation, franchise interest and the auction itself."
-    contents={[
-      'Scouting reputation',
-      'Franchise interest and trials',
-      'Auction lots and bidding',
-      'Contract outcomes',
-    ]}
-  />
-);
 
 export const StatsScreen = () => (
   <>
@@ -40,33 +27,7 @@ export const StatsScreen = () => (
   </>
 );
 
-export const AwardsScreen = () => (
-  <Placeholder
-    route="/awards"
-    phase="Phase 8"
-    description="The trophy cabinet: what you have won and what is still locked."
-    contents={[
-      'Trophy cabinet',
-      'Career milestones',
-      'Series and tournament awards',
-      'Progress towards locked trophies',
-    ]}
-  />
-);
 
-export const CommunityScreen = () => (
-  <Placeholder
-    route="/community"
-    phase="Phase 8"
-    description="Fan and media reaction as your name starts to travel."
-    contents={[
-      'Fan reaction feed',
-      'Media coverage',
-      'Reputation over time',
-      'Replies and interactions',
-    ]}
-  />
-);
 
 export const SettingsScreen = () => (
   <SettingsPage devTools={import.meta.env.DEV ? <DevTools /> : null} />

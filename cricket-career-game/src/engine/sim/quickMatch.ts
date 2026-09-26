@@ -42,6 +42,24 @@ export interface QuickMatchSetup {
   userIsHome: boolean;
   seed: number;
   region?: ClimateRegion;
+  /**
+   * The impact-player rule (IPL): each side may bring one substitute from its
+   * bench - a bowler for the side batting first once it bowls, a batter for
+   * the side chasing once it bats.
+   */
+  impact?: { homeBench: SimPlayer[]; awayBench: SimPlayer[] };
+}
+
+/** The impact substitute: the bench's best for the job replaces the XI's weakest at it. */
+export function impactSwap(xi: SimPlayer[], bench: SimPlayer[], job: 'BAT' | 'BOWL'): { xi: SimPlayer[]; sub: SimPlayer | null } {
+  if (bench.length === 0) return { xi, sub: null };
+  const skill = job === 'BAT' ? battingAbility : bowlingAbility;
+  const best = [...bench].filter((p) => !p.isUser).sort((a, b) => skill(b) - skill(a))[0];
+  if (!best) return { xi, sub: null };
+  const candidates = xi.filter((p) => !p.isUser && p.role !== 'WICKET_KEEPER_BATTER');
+  const weakest = [...candidates].sort((a, b) => skill(a) - skill(b))[0];
+  if (!weakest || skill(best) <= skill(weakest) + 0.02) return { xi, sub: null };
+  return { xi: xi.map((p) => (p.id === weakest.id ? { ...best, battingPosition: weakest.battingPosition } : p)), sub: best };
 }
 
 export interface QuickPlayerLine {
@@ -358,11 +376,25 @@ export function quickMatch(setup: QuickMatchSetup): QuickMatchResult {
   let result: MatchResult;
   let firstInningsLeadTeamId: string | null = null;
 
+  const subs: SimPlayer[] = [];
   if (key !== 'MULTI_DAY') {
     const balls = (OVERS[key] ?? 50) * 6;
     const one = playInnings(1, first, second, firstId, secondId, key, ease, rng, { balls, target: null, declareAt: null });
     const target = one.innings.runs + 1;
-    const two = playInnings(2, second, first, secondId, firstId, key, ease, rng, { balls, target, declareAt: null });
+    // Impact substitutes: a bowler in for the side that batted, a batter for the chasers.
+    let bowlSecond = first;
+    let batSecond = second;
+    if (setup.impact) {
+      const firstBench = batFirstHome ? setup.impact.homeBench : setup.impact.awayBench;
+      const secondBench = batFirstHome ? setup.impact.awayBench : setup.impact.homeBench;
+      const a = impactSwap(first, firstBench, 'BOWL');
+      const b = impactSwap(second, secondBench, 'BAT');
+      bowlSecond = a.xi;
+      batSecond = [...b.xi].sort((x, y) => x.battingPosition - y.battingPosition);
+      if (a.sub) subs.push(a.sub);
+      if (b.sub) subs.push(b.sub);
+    }
+    const two = playInnings(2, batSecond, bowlSecond, secondId, firstId, key, ease, rng, { balls, target, declareAt: null });
     plays.push(one, two);
     const a = one.innings.runs;
     const b = two.innings.runs;
@@ -410,7 +442,7 @@ export function quickMatch(setup: QuickMatchSetup): QuickMatchResult {
   }
 
   // Everyone's figures and rating.
-  const all = [...setup.homeXi, ...setup.awayXi];
+  const all = [...setup.homeXi, ...setup.awayXi, ...subs];
   const lines: Record<string, QuickPlayerLine> = {};
   for (const p of all) {
     lines[p.id] = { playerId: p.id, teamId: p.teamId, name: p.name, runs: 0, balls: 0, innings: 0, notOuts: 0, fours: 0, sixes: 0, wickets: 0, ballsBowled: 0, runsConceded: 0, catches: 0, stumpings: 0, rating: 0 };
