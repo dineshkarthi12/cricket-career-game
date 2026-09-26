@@ -874,4 +874,164 @@ new screens.
 
 ---
 
-## ▶️ Next — Phase 7: IPL scouting and auction
+## ✅ Phase 7 — Stages 11-20: IPL to retirement (complete)
+
+Still a career game: the user controls only their own player; captain
+controls unlock only with a real appointment (for India, per format). Nothing
+is automatic - every stage from the IPL scouts to the India captaincy is
+earned through selection against real rivals.
+
+**0. Earlier senior debuts** - the average TN senior debut was 25.2. Senior
+selectors now give young players a prospect credit (1.8 ability points a year
+under 25, for the AI too), and a strong U-19 / India U-19 / U-23 season can
+bring a senior call-up (the player keeps playing U-23 cricket while
+eligible). Result: debut at 22.3 on average (most between 19 and 23) with the
+same share reaching senior level (17.5% v 18%).
+
+**1. IPL (stages 11-12)**
+- 10 fictional franchises with cities, home grounds, a style (spin, pace,
+  batting, balanced), 22-man squads with up to 8 overseas players, purses.
+- Scouting reputation from SMAT, Vijay Hazare, India U-19, U-23 and standout
+  days; per-franchise interest from their needs and style; scouts in the
+  inbox; franchise trials as a playable trial (nets, fitness test, a T20
+  practice match).
+- Retention day, then the auction: base-price bands the player registers at,
+  lots under the hammer with ascending bids from franchises valuing ability,
+  form, age, need, style and purse; not shortlisted / shortlisted / unsold /
+  bought / replacement / retained / released / traded. Mega auction every
+  third season (four retentions at slab prices).
+- IPL season: 14-match league, points table and NRR, Qualifier 1,
+  Eliminator, Qualifier 2 (the Q1 loser's second chance), final; four
+  overseas players in an XI; a configurable impact substitute.
+- Bench v XI by the franchise's own selection; contracts run to the next
+  mega auction; strong seasons raise the retention deal and bring the
+  national selectors; trade offers for a benched player.
+
+**2. Duleep, Irani, India A (stages 13-14)** - five zones (round-robin and
+final), the Irani Cup (Ranji champions v Rest of India), India A four-day and
+one-day series at home and on tour in local conditions; the zonal and A
+selectors pick from a field three times the squad.
+
+**3. India (stages 15-17)** - the national selectors weigh format-specific
+ability, form, a year's figures (senior cricket discounted 0.8 a level),
+fitness and the camp, age, and the 22 rivals in the India squad plus the
+country's best outside it. A playable camp; squads per format before every
+series: selected, standby, reserves, dropped; XI, 12th man or bench on match
+day. Debut in whichever format the player's case reaches first; caps and cap
+numbers, match fees, central contracts (A+/A/B/C), board rests for
+workload. 12 nations of fictional players in three tiers whose strength
+drifts; home conditions per country (new climates for England, Australia,
+South Africa, New Zealand and the Caribbean). Four bilateral windows a
+season.
+
+**4. ICC (stage 18)** - T20 World Cup, ODI World Cup, Champions Trophy
+(groups or a league, semi-finals, final, all at a host's grounds) and the
+World Test Championship (a two-season table and a June final). The rest of
+the world's series are settled on ratings for the team rankings and the WTC.
+
+**5. Star (stage 19)** - world rankings per format (batting, bowling,
+all-rounder) after every international match, with the formula on the
+screen; team rankings. Player of the series, IPL Orange/Purple Cap and MVP,
+ICC awards, the annual awards night. Leadership offers (vice-captain, then
+captain) at state, IPL and India level - accept or decline; captain mode is
+live; records per team and format. Media: followers, mood and pressure (which
+costs confidence), and stories that feed the dashboard's Community card.
+
+**6. Legacy (stage 20)** - decline, recurring injuries and form (Phase 5)
+plus selectors who move on from ageing players; retire from Tests, ODIs,
+T20Is, the IPL, first-class cricket, or everything. Legacy screen: stats by
+level and format, trophies, awards, caps, IPL and domestic seasons,
+captaincy, the records book (fictional record holders), a timeline and the
+legacy rating.
+
+**7. Screens** - IPL Auction (scouting, the auction room with the user's lot
+replayed bid by bid, contract, franchises), International (squads, series,
+rankings, contract and caps, ICC and WTC), Awards, Legacy and Community; a
+decisions card (leadership and trade offers) on Home and Career Path; the
+Career Path, journey card, Selection / News, stats tabs, trophies and inbox
+all read the professional career. Nav gains International and Legacy.
+
+**Save v7** - `GameState.pro` and the new trophies; older careers load with an
+empty professional record. Tiered compaction each season (GAME_SPEC §8f).
+
+### 200 careers from age 10 to retirement (the balance run)
+
+`CAREER_SIM=200 npx vitest run careerSim.report` runs the same
+`simulateCareer`; these numbers came from four parallel batches of 50 seeds.
+
+```
+200 careers from age 10 to retirement, default training, every match on the fast sim
+
+Stage reached                            careers   share   avg age   completed
+1. Beginner                                  200    100%       9.5         200
+2. District                                  140     70%      12.3         141
+3. State U-16                                118     59%      14.8         119
+4. U-19                                      104     52%      17.3         105
+5. India U-19                                  7    3.5%      17.7          15
+6. U-23                                       62     31%        21          62
+7. TN Senior                                  35   17.5%      22.3          35
+8. Ranji                                      34     17%      22.6          13
+9. Vijay Hazare                               33   16.5%      23.8          27
+10. SMAT                                      33   16.5%      24.8          15
+11. IPL Scouting                              32     16%      23.5          25
+12. IPL                                       25   12.5%      28.6          21
+13. Duleep / Irani                            30     15%      25.2          29
+14. India A                                   23   11.5%      24.9          14
+15. India Camp                                14      7%      26.6          12
+16. Intl Debut                                12      6%      28.1          12
+17. Regular XI                                12      6%      28.1           4
+18. ICC Events                                 8      4%      28.4           4
+19. Captaincy                                  6      3%      27.5           1
+20. Legacy                                   200    100%      27.5         200
+(1-10: selected and played at the stage; 11-20: entered the stage; 20: retired from a format or all cricket)
+
+Established regular (stages 8-10)
+Ranji                                         13    6.5%        28
+Vijay Hazare                                  27   13.5%      25.9
+SMAT                                          15    7.5%      26.7
+
+Retired: 200; average retirement age 27.7; average career 17.7 years (from age 10)
+Players with a senior debut retire at 35.3 on average
+IPL players: 25 (12.5%)
+Capped by India: 12 (6%); regular internationals (25+ caps): 4 (2%)
+Captains: state 10, IPL 0, India 1
+Legacy: Club Cricketer 165, Domestic Stalwart 15, International Cap 8, State Player 5, International Regular 4, Domestic Legend 2, IPL Regular 1
+Season outcomes: promote 316, stay 2173, bench 349, dropped 91, comeback 39, fast_track 32, aged_out 642
+Careers with a drop: 72; drops 307; comebacks 64
+Average matches per career: 163
+Save size at retirement: average 2.73 MB, largest seen 5.79 MB
+```
+
+- Very few reach India (6%), a handful become regulars (2%), one in 200
+  captained India, and no All-Time Great appeared (the tier needs 150 caps
+  and a legacy score of 85 - within reach of a top-potential player who
+  debuts young and stays fit, but none of these 200 did).
+- Players with a senior debut retire at 35 on average; careers that never
+  reach senior cricket end in the mid-twenties.
+- Save size stays under control: 2.7 MB on average at retirement, 5.8 MB at
+  most (a full international career; 15.5 MB before compaction).
+- Tuning on the way: the first run capped 8 of 13 senior players. The India
+  profile rose to potential 94, contender fields grew (×3 zones and India A,
+  ×4 India), and leadership now has to beat the side's other leaders, with
+  level-specific vacancies.
+
+**Tests** - 32 new: the pro season (competitions, IPL shape, playoffs with
+the Qualifier 1 loser, overseas limits), the auction (hammer price, unsold,
+valuation, the mega cycle, shortlist and the room, mega retention), rankings
+(points, rating steps, team ratings and WTC, ranked lists), ICC progression
+(years, groups, neutral venues, semis and final), format-specific selection,
+leadership (per-format India captaincy, decline), retirement (per format,
+all cricket, the sim), legacy, compaction, IPL and international matches on
+the match screen, the five screens and the v7 migration; plus the prospect
+credit.
+
+**Known limits / next**
+- The impact substitute applies on the fast sim; a ball-by-ball match the
+  player plays uses the XI as named.
+- Other nations' bilateral series are settled on ratings (no scorecards), so
+  opposition players' rankings come from matches against India and ICC events.
+- Phase 8: the Stats screen, settings and polish.
+
+---
+
+## ▶️ Next — Phase 8: Stats, settings and polish

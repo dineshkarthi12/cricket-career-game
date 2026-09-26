@@ -20,7 +20,7 @@ A realistic 2D cricket career simulation web game. The player starts as a young 
 - Vitest for tests
 - Save data (3 slots, autosave, export/import JSON): careers in IndexedDB via `idb-keyval` (`src/save/blobStore.ts`, `slotCache.ts`), held in memory and written through; localStorage only for small slot headers, the active slot and settings. Old localStorage careers move to IndexedDB automatically on first load
 - Every storage access is wrapped: sync paths return a `SaveResult`, background IndexedDB writes report through `onSaveError`, and every failure shows a visible toast - never fail silently
-- Keep saves lean: only the user's last 2 matches keep ball-by-ball; older matches keep full scorecards; AI-vs-AI matches store results and scorecard lines only
+- Keep saves lean: only the user's last 2 matches keep ball-by-ball; older matches keep full scorecards; AI-vs-AI matches store results and scorecard lines only; each 1 June `engine/calendar/compact.ts` thins older seasons in tiers (a full professional career stays around 5-6 MB)
 - Tests run on `fake-indexeddb` (`src/test/setup.ts` resets it before every test)
 
 ## Folder structure
