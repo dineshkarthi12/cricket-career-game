@@ -6,11 +6,13 @@
  * included, so their form is real when the selectors compare.
  */
 import { createRng, deriveSeed } from '../match/rng';
-import { defaultXiIds, squadFor, battingOrderOf } from '../match/lineup';
+import { defaultXiIds, squadFor, battingOrderOf, xiOptionsFor } from '../match/lineup';
 import { regionOf } from '@/data/places';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { matchRating, quickMatch, type QuickPlayerLine } from '../sim/quickMatch';
 import { recordResult, settleKnockout, type MatchLine } from './results';
+import { rankMatch } from '../pro/rankings';
+import { rateResult, trackSeries } from '../pro/awards';
 import type { SimPlayer } from '../match/types';
 import type { CompactResult, Fixture, GameState, Match, Team, TournamentState } from '@/types';
 
@@ -157,7 +159,7 @@ function fillKnockouts(state: GameState, t: TournamentState, filled: TournamentS
       ...fixture,
       homeTeamId: tie.homeTeamId,
       awayTeamId: tie.awayTeamId,
-      venueId: home?.homeVenueId ?? null,
+      venueId: fixture.venueId ?? home?.homeVenueId ?? null,
       title: `${home?.shortName ?? 'TBC'} vs ${away?.shortName ?? 'TBC'}`,
       subtitle: `${t.name} · ${tie.label}`,
       involvesUser: userInvolved && (tie.homeTeamId === t.userTeamId || tie.awayTeamId === t.userTeamId),
@@ -185,15 +187,21 @@ export function recordInTournament(
   const outcome = recordResult(t, compact, lines);
   next = withTournament(next, outcome.tournament);
   next = fillKnockouts(next, outcome.tournament, outcome.filled);
+  // International cricket moves the rankings; a finished series has a player of the series.
+  if (next.pro) {
+    next = rankMatch(next, match, lines);
+    next = rateResult(next, outcome.tournament, compact);
+    next = trackSeries(next, outcome.tournament, fixture, lines);
+  }
   return next;
 }
 
-function xiFor(state: GameState, team: Team, date: string): SimPlayer[] {
+function xiFor(state: GameState, team: Team, date: string, format?: Fixture['format']): SimPlayer[] {
   const pool = squadFor(state, team.id).filter((p) => {
     const rival = team.squad.find((r) => r.id === p.id);
     return !rival?.injuredUntil || rival.injuredUntil < date;
   });
-  const ids = defaultXiIds(pool.length >= 11 ? pool : squadFor(state, team.id));
+  const ids = defaultXiIds(pool.length >= 11 ? pool : squadFor(state, team.id), null, xiOptionsFor(team, format));
   const byId = new Map(squadFor(state, team.id).map((p) => [p.id, p]));
   return battingOrderOf(ids.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p)));
 }
@@ -231,8 +239,8 @@ export function playAiFixture(state: GameState, fixture: Fixture): GameState {
     venue,
     homeTeamId: home.id,
     awayTeamId: away.id,
-    homeXi: xiFor(state, home, fixture.date),
-    awayXi: xiFor(state, away, fixture.date),
+    homeXi: xiFor(state, home, fixture.date, fixture.format),
+    awayXi: xiFor(state, away, fixture.date, fixture.format),
     userIsHome: false,
     seed: deriveSeed(state.seed, saltOf(fixture.id)),
     region: regionOf(venue?.state),

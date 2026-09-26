@@ -8,7 +8,7 @@ import { formatReport, simulateCareer, summarise, type SimulatedCareerRun } from
 const env = (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process.env;
 
 const count = Number(env.CAREER_SIM ?? 0);
-const endAge = Number(env.CAREER_SIM_END_AGE ?? 30);
+const endAge = env.CAREER_SIM_END_AGE ? Number(env.CAREER_SIM_END_AGE) : undefined;
 const first = Number(env.CAREER_SIM_FIRST ?? 1);
 
 describe.skipIf(!count)('career balance simulation', () => {

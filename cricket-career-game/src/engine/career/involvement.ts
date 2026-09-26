@@ -8,16 +8,15 @@ import { getStage } from '@/data/stages';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { newId } from '../id';
 import { IN_SQUAD, STATUS_LABEL } from './squads';
-import { eligibleForStage } from './eligibility';
+import { PRO_LEVEL, eligibleForStage } from './eligibility';
 import type { CareerStageId, GameState, InboxMessage, SelectionStatus, SquadPlace, SquadStatus } from '@/types';
 
 export const SENIOR_COMPETITIONS = ['ranji-trophy', 'vijay-hazare', 'syed-mushtaq-ali'];
 export const CLUB_COMPETITION = 'club-league';
 
-/** Stages 7-13 play senior state cricket. */
+/** Stages 7 onwards play senior state cricket (India players too, when free). */
 export function isSeniorStage(stageId: CareerStageId): boolean {
-  const order = getStage(stageId).order;
-  return order >= 7 && order <= 13;
+  return getStage(stageId).order >= 7;
 }
 
 /** The competitions whose squads the selectors pick at a stage. */
@@ -36,13 +35,16 @@ export function extraCompetitions(stageId: CareerStageId, ctx?: { dob: string; s
   const extras: string[] = [];
   if (stageId === 'INDIA_U19') extras.push('vinoo-mankad', 'cooch-behar');
   if (stageId === 'SENIOR_STATE' && ctx && eligibleForStage(ctx.dob, ctx.seasonYear, 'U23_EMERGING')) extras.push('ck-nayudu', 'u23-state-a');
-  if (order >= 2 && order <= 13) extras.push(CLUB_COMPETITION);
+  if (order >= 2) extras.push(CLUB_COMPETITION);
   return extras;
 }
 
 /** Bigger competitions win clashes. */
 function priority(tournamentId: string | null): number {
   if (!tournamentId) return 0;
+  // Internationals first, then the IPL, India A, the zones, then the state.
+  const pro = PRO_LEVEL[tournamentId];
+  if (pro) return 10 + pro * 2 - (tournamentId === 'ipl' ? 3 : 0);
   if (tournamentId === CLUB_COMPETITION) return 1;
   if (tournamentId === 'school-league') return 2;
   if (tournamentId.startsWith('u19-')) return 5;

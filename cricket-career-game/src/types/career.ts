@@ -244,8 +244,12 @@ export interface TrialRecord {
   date: ISODate;
   seasonYear: number;
   title: string;
-  /** SQUAD picks this season's squads; NEXT_LEVEL feeds the season review. */
-  purpose: 'SQUAD' | 'NEXT_LEVEL';
+  /**
+   * SQUAD picks this season's squads; NEXT_LEVEL feeds the season review;
+   * FRANCHISE is an IPL trial (scouting reputation); NATIONAL_CAMP is the
+   * India camp (national selection).
+   */
+  purpose: 'SQUAD' | 'NEXT_LEVEL' | 'FRANCHISE' | 'NATIONAL_CAMP';
   /** The stage whose selectors are watching. */
   stageId: CareerStageId;
   nets: { approach: NetsApproach; score: number; note: string };
@@ -270,7 +274,9 @@ export type SquadStatus =
   | 'RESERVE'
   | 'SQUAD'
   | 'DROPPED'
-  | 'FAST_TRACK';
+  | 'FAST_TRACK'
+  /** Travels with the squad as cover, without a squad number (national sides). */
+  | 'STANDBY';
 
 export interface SquadPlace {
   tournamentId: string;

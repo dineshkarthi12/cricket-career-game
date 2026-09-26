@@ -219,10 +219,28 @@ export const TOURNAMENT_STRUCTURES: Record<string, TournamentStructure> = {
   },
 };
 
+/** The Duleep Trophy: the five zones, a round-robin and a final (added in Phase 7). */
+TOURNAMENT_STRUCTURES['duleep-trophy'] = {
+  tournamentId: 'duleep-trophy',
+  side: 'ZONE',
+  groups: 1,
+  groupSize: 5,
+  legs: 1,
+  qualifiersPerGroup: 2,
+  knockouts: ['FINAL'],
+  roundWindows: [{ from: [8, 26], to: [9, 20], rounds: 5 }],
+  knockoutWindow: { from: [9, 24], to: [9, 29] },
+  weekday: null,
+  points: 'FIRST_CLASS',
+};
+
 export const STAGE_LABEL: Partial<Record<TournamentStage, string>> = {
   GROUP: 'Group',
   LEAGUE: 'League',
   QUARTER_FINAL: 'Quarter-final',
   SEMI_FINAL: 'Semi-final',
   FINAL: 'Final',
+  QUALIFIER_1: 'Qualifier 1',
+  ELIMINATOR: 'Eliminator',
+  QUALIFIER_2: 'Qualifier 2',
 };

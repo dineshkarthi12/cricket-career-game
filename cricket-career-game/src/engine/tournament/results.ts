@@ -129,11 +129,20 @@ export function recordResult(t: TournamentState, result: CompactResult, lines: M
     }
   } else {
     const knockouts = next.knockouts.map((tie) => (tie.fixtureId === result.fixtureId ? { ...tie, winnerTeamId: result.winnerTeamId } : tie));
-    // Winners go through to the next round.
+    // Winners go through to the next round (and an IPL Qualifier 1 loser gets a second go).
+    const from = (ref: KnockoutTie['home'], current: string | null): string | null => {
+      if ('tieId' in ref) return knockouts.find((k) => k.id === ref.tieId)?.winnerTeamId ?? null;
+      if ('loserOf' in ref) {
+        const tie = knockouts.find((k) => k.id === ref.loserOf);
+        if (!tie?.winnerTeamId) return null;
+        return tie.winnerTeamId === tie.homeTeamId ? tie.awayTeamId : tie.homeTeamId;
+      }
+      return current;
+    };
     next.knockouts = knockouts.map((tie) => {
       if (tie.homeTeamId && tie.awayTeamId) return tie;
-      const home = 'tieId' in tie.home ? knockouts.find((k) => k.id === (tie.home as { tieId: string }).tieId)?.winnerTeamId ?? null : tie.homeTeamId;
-      const away = 'tieId' in tie.away ? knockouts.find((k) => k.id === (tie.away as { tieId: string }).tieId)?.winnerTeamId ?? null : tie.awayTeamId;
+      const home = from(tie.home, tie.homeTeamId);
+      const away = from(tie.away, tie.awayTeamId);
       const updated = { ...tie, homeTeamId: home, awayTeamId: away };
       if (home && away && !(tie.homeTeamId && tie.awayTeamId)) {
         filled.push(updated);
@@ -141,9 +150,11 @@ export function recordResult(t: TournamentState, result: CompactResult, lines: M
       }
       return updated;
     });
-    // Losers are out.
+    // Losers are out - unless a later tie takes the loser (IPL Qualifier 1).
+    const tieId = t.knockouts.find((k) => k.fixtureId === result.fixtureId)?.id;
+    const secondChance = t.knockouts.some((k) => ('loserOf' in k.home && k.home.loserOf === tieId) || ('loserOf' in k.away && k.away.loserOf === tieId));
     const loser = result.winnerTeamId === result.homeTeamId ? result.awayTeamId : result.homeTeamId;
-    next.standings = next.standings.map((s) => (s.teamId === loser ? { ...s, eliminated: true } : s));
+    if (!secondChance) next.standings = next.standings.map((s) => (s.teamId === loser ? { ...s, eliminated: true } : s));
   }
 
   const finished = isFinished(next);

@@ -379,6 +379,13 @@ export const SQUAD_SELECTION = {
   prospectFromLevel: 7,
   prospectAge: 25,
   prospectPerYear: 1.8,
+  /** Professional selectors (IPL, zones, India A, India) discount senior cricket per level by this. */
+  proLevelDiscount: 0.8,
+  /** ...and count last season's matches at this weight. */
+  proLastSeason: 0.7,
+  /** Past this age, professional selectors mark a player down per year. */
+  ageDragFrom: 32,
+  ageDragPerYear: 1.4,
 } as const;
 
 /** Trials and selection camps. */
@@ -1170,4 +1177,225 @@ export const MATCH = {
 
   /** Super over. */
   superOver: { balls: 6, wickets: 2 },
+} as const;
+
+/**
+ * IPL playing rules. The impact-player substitute can be switched off; the
+ * overseas limits are the real ones.
+ */
+export const IPL_RULES = {
+  maxOverseasXi: 4,
+  maxOverseasSquad: 8,
+  squadSize: 22,
+  /** A side may bring on one impact substitute during the match. */
+  impactPlayer: true,
+  leagueMatches: 14,
+} as const;
+
+/** The professional world: squad sizes and the pace of international cricket. */
+export const PRO = {
+  nationalSquad: 22,
+  aSquad: 17,
+} as const;
+
+/**
+ * Scouting, the auction and IPL contracts. Money is in lakh rupees
+ * (100 lakh = 1 crore).
+ */
+export const AUCTION = {
+  /** Base price bands a player can register at; uncapped players top out at 50 lakh... */
+  bases: [20, 30, 50, 75, 100, 150, 200],
+  uncappedMaxBase: 50,
+  /** Total purse per franchise, grows each season. */
+  purse: 12000,
+  purseGrowth: 400,
+  /** Mega auction retention: at most four, at these slab prices. */
+  retentionSlabs: [1800, 1400, 1100, 900],
+  maxRetained: 4,
+  /** Market value = valueBase x e^((T20 overall - valueFrom) / valueScale), lakh. */
+  valueBase: 20,
+  valueFrom: 71,
+  valueScale: 3.6,
+  valueCap: 2700,
+  /** Bid increments by price band. */
+  increments: [
+    { upTo: 100, step: 5 },
+    { upTo: 200, step: 10 },
+    { upTo: 500, step: 20 },
+    { upTo: 100000, step: 25 },
+  ],
+  /** Fresh names in the auction pool. */
+  freshDomestic: { mini: 26, mega: 60 },
+  freshOverseas: { mini: 14, mega: 34 },
+  /** Target mix of a 22-man squad by role group. */
+  roleTargets: { BATTER: 7, KEEPER: 2, ALLROUNDER: 5, PACE: 5, SPIN: 3 } as Record<string, number>,
+  /** Scouting reputation needed to be shortlisted for the auction. */
+  shortlistAt: 48,
+  /** ... to be invited to franchise trials. */
+  trialAt: 36,
+  /** ... for scouts to be in touch at all. */
+  scoutedAt: 26,
+  /** Reputation kept from one season to the next. */
+  seasonCarry: 0.8,
+  /** Scouting points per match-rating point above 5.5, by competition. */
+  scoutingWeight: {
+    'syed-mushtaq-ali': 2.4,
+    'vijay-hazare': 1.3,
+    'ranji-trophy': 0.5,
+    'u19-world-cup': 1.6,
+    'u19-bilateral': 0.8,
+    'vinoo-mankad': 0.4,
+    'ck-nayudu': 0.4,
+    'u23-state-a': 0.7,
+    'duleep-trophy': 0.6,
+    'india-a-one-day': 1.0,
+    'india-a-tour': 0.6,
+    ipl: 1.8,
+    'intl-t20i': 2.2,
+    'intl-odi': 1.3,
+    'intl-test': 0.6,
+    't20-world-cup': 2.6,
+    'odi-world-cup': 1.6,
+    'champions-trophy': 1.4,
+  } as Record<string, number>,
+  /** Chance a franchise loses someone to injury before the season and signs a replacement. */
+  replacementChance: 0.3,
+  /** Share of a franchise's matches below which a player may be traded. */
+  tradeBelowShare: 0.35,
+} as const;
+
+/** World rankings (players and teams). See `engine/pro/rankings.ts`. */
+export const RANKINGS = {
+  /** Each match moves a rating this share of the way to its points (after five matches). */
+  weight: 0.15,
+  /** A debut match counts at this share. */
+  debutShare: 0.6,
+  minMatches: 3,
+  strengthPar: 80,
+  strengthPerPoint: 0.02,
+  bat: {
+    T20I: { base: 220, perRun: 7, fifty: 60, hundred: 120, parSr: 130, perSr: 1.6 },
+    ODI: { base: 230, perRun: 5.2, fifty: 60, hundred: 120, parSr: 90, perSr: 1.4 },
+    TEST: { base: 240, perRun: 4.2, fifty: 60, hundred: 130, parSr: 0, perSr: 0 },
+  },
+  bowl: {
+    T20I: { base: 300, perWicket: 115, parEconomy: 8, perEconomy: 40 },
+    ODI: { base: 300, perWicket: 90, parEconomy: 5.4, perEconomy: 45 },
+    TEST: { base: 280, perWicket: 70, parEconomy: 3.2, perEconomy: 40 },
+  },
+  /** Team ratings: logistic scale and step. */
+  teamScale: 10,
+  teamK: 4,
+  homeAdvantage: 3,
+  testDraw: 0.22,
+  backgroundSeries: { TEST: 5, ODI: 5, T20I: 5 } as Record<'TEST' | 'ODI' | 'T20I', number>,
+  /** How far a nation's strength can wander in a season (potential points). */
+  nationDrift: 0.8,
+} as const;
+
+/** Press, fans and pressure. See `engine/pro/media.ts`. */
+export const MEDIA = {
+  storiesKept: 40,
+  /** Share of the following gained per match on the biggest stage. */
+  followRate: 0.012,
+  followFloor: 60,
+  sentimentPerPoint: 3,
+  /** A match rating below this on a big stage is a failure. */
+  failRating: 4.8,
+  pressurePerFail: 6,
+  pressureEase: 4,
+  /** From here pressure costs confidence (and, near the top, trust). */
+  pressureHurts: 60,
+} as const;
+
+/** The national setup. See `engine/pro/national.ts`. */
+export const NATIONAL = {
+  /** The national selectors start watching after an IPL season like this... */
+  watchIplRuns: 380,
+  watchIplWickets: 16,
+  /** ...or a zonal season like this. */
+  watchZonalRuns: 300,
+  watchZonalWickets: 14,
+  /** The camp takes the wider group plus this many in each role. */
+  campMargin: 1,
+  /** The board rests a player at this fatigue, or a seamer with this many recent overs. */
+  restFatigue: 72,
+  restWorkload: 60,
+  /** Match fees, lakh. */
+  matchFee: { TEST: 15, ODI: 6, T20I: 3 } as Record<'TEST' | 'ODI' | 'T20I', number>,
+  /** Retainers by grade, lakh a year. */
+  retainer: { 'A+': 700, A: 500, B: 300, C: 100 } as Record<'A+' | 'A' | 'B' | 'C', number>,
+  /** Matches in a year that make a format "regular" for the contract. */
+  regularMatches: { TEST: 4, ODI: 6, T20I: 6 } as Record<'TEST' | 'ODI' | 'T20I', number>,
+  gradeCMatches: 2,
+  /** Caps that make a regular international (stage 17 complete). */
+  regularCaps: 25,
+  /** ICC matches that complete stage 18. */
+  iccMatches: 5,
+} as const;
+
+/** Leadership offers. See `engine/pro/leadership.ts`. */
+export const LEADERSHIP = {
+  leadershipWeight: 0.45,
+  temperamentWeight: 0.2,
+  /** Points per match-rating point above 5. */
+  formWeight: 8,
+  seniorityCap: 20,
+  cappedBonus: 6,
+  minAge: { STATE: 23, IPL: 25, INDIA: 25 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
+  /** Matches (caps for India) before a player is considered. */
+  minMatches: { STATE: 15, IPL: 20, INDIA: 20 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
+  thresholds: {
+    STATE: { vice: 60, captain: 66 },
+    IPL: { vice: 64, captain: 70 },
+    INDIA: { vice: 66, captain: 72 },
+  } as Record<'STATE' | 'IPL' | 'INDIA', { vice: number; captain: number }>,
+  /** Chance the post is free when the case is made. */
+  viceVacancy: 0.45,
+  captainVacancy: 0.35,
+} as const;
+
+/** The legacy rating. See `engine/pro/legacy.ts`. */
+export const LEGACY = {
+  perCap: 0.2,
+  capsCap: 30,
+  perThousandRuns: 2.2,
+  perFortyWickets: 2.2,
+  outputCap: 30,
+  perBigAward: 3,
+  perIccTitle: 5,
+  indiaCaptain: 6,
+  perRecord: 3,
+  numberOne: 8,
+  topTen: 3,
+  perIplMatch: 0.06,
+  iplCap: 8,
+  perDomesticMatch: 0.05,
+  domesticCap: 6,
+  stalwartMatches: 60,
+  legendMatches: 110,
+  legendRuns: 6500,
+  legendWickets: 320,
+  iplRegularMatches: 40,
+  regularCaps: 25,
+  greatCaps: 100,
+  greatScore: 60,
+  allTimeCaps: 150,
+  allTimeScore: 85,
+} as const;
+
+/** Retirement. See `engine/pro/retirement.ts`. */
+export const RETIREMENT = {
+  /** From here the inbox raises retirement after a season without senior cricket. */
+  nudgeAge: 32,
+  /** From here selectors stop picking a player they have left out. */
+  overlookAge: 34,
+  /** Headless simulation: quit at this age after two seasons without senior cricket... */
+  quitAge: 32,
+  /** A player who never made a senior debut gives up the dream around here. */
+  amateurQuitAge: 26,
+  /** ...and always by this age. */
+  hardStop: 41,
+  /** ...and leave a format they are overlooked in from this age. */
+  formatAge: { TEST: 33, ODI: 34, T20I: 34 } as Record<'TEST' | 'ODI' | 'T20I', number>,
 } as const;

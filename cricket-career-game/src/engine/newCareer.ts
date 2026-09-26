@@ -1,3 +1,4 @@
+import { emptyProState } from './pro/state';
 import { emptyCaptaincy } from './career/captaincy';
 import { openingSquads } from './career/season';
 import { DEFAULT_AGGRESSION, SAVE_VERSION } from '@/types';
@@ -147,6 +148,7 @@ export function createNewCareer(options: NewCareerOptions): GameState {
   const base: GameState = {
     version: SAVE_VERSION,
     seed,
+    pro: emptyProState(seasonYear),
     player,
     career: {
       currentStageId: startStageId,

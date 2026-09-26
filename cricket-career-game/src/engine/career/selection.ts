@@ -8,11 +8,11 @@
  * selectors can say no.
  */
 import { SELECTION } from '../config';
-import { computeOverall } from '../ratings';
+import { computeOverall, formatOverall } from '../ratings';
 import { createRng, deriveSeed } from '../match/rng';
-import { battingOrderOf, simFromUser, squadFor } from '../match/lineup';
+import { battingOrderOf, simFromUser, squadFor, xiOptionsFor } from '../match/lineup';
 import type { SimPlayer } from '../match/types';
-import type { Fixture, GameState, Id, PlayerRole, Team, TeamNeed } from '@/types';
+import type { Fixture, GameState, Id, MatchFormat, PlayerRole, Team, TeamNeed } from '@/types';
 
 export type MatchSelection = 'PLAYING_XI' | 'TWELFTH_MAN' | 'BENCH' | 'NOT_SELECTED';
 
@@ -91,8 +91,9 @@ export function candidatesFor(state: GameState, team: Team): SimPlayer[] {
 }
 
 /** GAME_SPEC.md section 6, with selector trust blended in. */
-export function selectionScore(player: SimPlayer, team: Team): number {
-  const overall = computeOverall(player.attributes, player.role);
+export function selectionScore(player: SimPlayer, team: Team, format?: MatchFormat | null): number {
+  // Franchises and national sides pick for the format in front of them.
+  const overall = format && xiOptionsFor(team, format) ? formatOverall(player.attributes, player.role, format) : computeOverall(player.attributes, player.role);
   const c = player.condition;
   const need = team.needs.some((n) => NEED_ROLES[n]?.includes(player.role)) ? 100 : 40;
   let score =
@@ -113,19 +114,24 @@ function unavailable(player: SimPlayer): string | null {
   return null;
 }
 
-/** Pick a balanced XI from a ranked list. */
-function pickBalanced(ranked: { player: SimPlayer; score: number }[]): SimPlayer[] {
+/** Pick a balanced XI from a ranked list (at most `maxOverseas` overseas players). */
+function pickBalanced(ranked: { player: SimPlayer; score: number }[], maxOverseas = 11): SimPlayer[] {
   const pool = ranked.map((r) => r.player);
   const picked: SimPlayer[] = [];
+  const allowed = (p: SimPlayer) => !p.overseas || picked.filter((x) => x.overseas).length < maxOverseas;
   for (const slot of XI_SLOTS) {
     for (let i = 0; i < slot.count; i += 1) {
-      const index = pool.findIndex((p) => slot.roles.includes(p.role));
+      const index = pool.findIndex((p) => slot.roles.includes(p.role) && allowed(p));
       if (index === -1) break;
       picked.push(pool.splice(index, 1)[0]);
     }
   }
   // Best of the rest to make eleven.
-  while (picked.length < 11 && pool.length > 0) picked.push(pool.shift()!);
+  while (picked.length < 11 && pool.length > 0) {
+    const index = pool.findIndex(allowed);
+    if (index === -1) break;
+    picked.push(pool.splice(index, 1)[0]);
+  }
   return picked;
 }
 
@@ -199,16 +205,19 @@ export function selectForFixture(state: GameState, fixture: Fixture): SelectionD
   if (!team) return null;
 
   const rng = createRng(deriveSeed(state.seed, saltOf(`select-${fixture.id}`)));
-  const candidates = candidatesFor(state, team);
+  // Rivals out injured are not in the frame (the user is always considered first).
+  const candidates = candidatesFor(state, team).filter(
+    (p, i) => i === 0 || !((team.squad.find((r) => r.id === p.id)?.injuredUntil ?? '') > fixture.date),
+  );
   const reasons: string[] = [];
 
   // Every selection meeting has its whims.
   const ranked = candidates
     .filter((p) => !unavailable(p))
-    .map((player) => ({ player, score: selectionScore(player, team) + rng.spread() * 4 }))
+    .map((player) => ({ player, score: selectionScore(player, team, fixture.format) + rng.spread() * 4 }))
     .sort((a, b) => b.score - a.score);
 
-  const picked = pickBalanced(ranked);
+  const picked = pickBalanced(ranked, xiOptionsFor(team, fixture.format)?.maxOverseas);
   const order = battingOrderOf(picked);
   const userId = state.player.id;
   const user = candidates[0];

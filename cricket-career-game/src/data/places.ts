@@ -1,3 +1,4 @@
+import { NATIONS_BY_NAME } from './nations';
 import type { ClimateRegion } from '@/types';
 
 /**
@@ -168,7 +169,14 @@ export function stateInfo(name: string): StateInfo {
 
 /** Climate zone for a state name; overseas venues count as the home region. */
 export function regionOf(stateName: string | undefined): ClimateRegion {
-  return (stateName && STATES_BY_NAME[stateName]?.region) || 'SOUTH_EAST';
+  return (stateName && (STATES_BY_NAME[stateName]?.region ?? NATIONS_BY_NAME[stateName]?.region)) || 'SOUTH_EAST';
+}
+
+/** A venue's climate: its state's, or its country's overseas; undefined when unknown. */
+export function climateOfVenue(venue: { state: string; country: string } | undefined | null): ClimateRegion | undefined {
+  if (!venue) return undefined;
+  if (venue.country && venue.country !== 'India') return NATIONS_BY_NAME[venue.country]?.region;
+  return STATES_BY_NAME[venue.state]?.region;
 }
 
 /** Fictional school and club names for the beginner stage. */

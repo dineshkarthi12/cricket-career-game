@@ -83,7 +83,7 @@ export interface TournamentGroup {
 }
 
 /** Where a knockout side comes from: a group position, or the winner of an earlier tie. */
-export type SeedRef = { groupId: string; position: number } | { tieId: string };
+export type SeedRef = { groupId: string; position: number } | { tieId: string } | { loserOf: string };
 
 export interface KnockoutTie {
   id: string;

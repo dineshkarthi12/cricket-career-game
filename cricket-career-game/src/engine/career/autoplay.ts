@@ -4,7 +4,7 @@
  * any other match. Used by the headless career simulation.
  */
 import { deriveSeed } from '../match/rng';
-import { battingOrderOf, defaultXiIds, squadFor } from '../match/lineup';
+import { battingOrderOf, defaultXiIds, squadFor, xiOptionsFor } from '../match/lineup';
 import { commitMatchDetailed } from '../match/commit';
 import { quickMatch } from '../sim/quickMatch';
 import { regionOf } from '@/data/places';
@@ -23,9 +23,9 @@ function saltOf(text: string): number {
   return hash >>> 0;
 }
 
-function opponentXi(state: GameState, teamId: string): SimPlayer[] {
-  const squad = squadFor(state, teamId);
-  const ids = defaultXiIds(squad);
+function opponentXi(state: GameState, teamId: string, format: Fixture['format']): SimPlayer[] {
+  const squad = squadFor(state, teamId).filter((p) => !state.teams[teamId]?.squad.find((r) => r.id === p.id)?.injuredUntil);
+  const ids = defaultXiIds(squad.length >= 11 ? squad : squadFor(state, teamId), null, xiOptionsFor(state.teams[teamId], format));
   const byId = new Map(squad.map((p) => [p.id, p]));
   return battingOrderOf(ids.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p)));
 }
@@ -57,8 +57,8 @@ export function autoPlayFixture(state: GameState, fixture: Fixture): GameState {
     venue,
     homeTeamId: fixture.homeTeamId,
     awayTeamId: fixture.awayTeamId,
-    homeXi: userIsHome ? xi : opponentXi(state, opponentId),
-    awayXi: userIsHome ? opponentXi(state, opponentId) : xi,
+    homeXi: userIsHome ? xi : opponentXi(state, opponentId, fixture.format),
+    awayXi: userIsHome ? opponentXi(state, opponentId, fixture.format) : xi,
     userPlayerId: played ? me : null,
     userIsHome,
     seed: deriveSeed(state.seed, saltOf(`user-${fixture.id}`)),

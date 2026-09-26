@@ -1,3 +1,4 @@
+import { iccEventsIn } from '../pro/competitions';
 import { describe, expect, it } from 'vitest';
 import { CAREER_STAGES } from '@/data/stages';
 import { createNewCareer } from '../newCareer';
@@ -72,9 +73,9 @@ describe('season calendar by stage', () => {
     expect(month('syed-mushtaq-ali').every((m) => m === 11 || m === 12)).toBe(true);
     expect(month('vijay-hazare').every((m) => m === 12 || m === 1)).toBe(true);
     expect(month('ranji-trophy').every((m) => [10, 11, 1, 2, 3].includes(m))).toBe(true);
+    // The IPL, India A and internationals are built by the professional season (engine/pro).
     const ipl = calendarFor('IPL_CAREER', '2000-08-01');
-    expect(ipl.windows.some((w) => w.kind === 'IPL' && w.start.slice(5, 7) === '03')).toBe(true);
-    expect(ipl.fixtures.filter((f) => f.tournamentId === 'ipl')).toHaveLength(14);
+    expect(ipl.fixtures.some((f) => f.tournamentId === 'ipl')).toBe(false);
   });
 
   it('never double-books the player', () => {
@@ -91,8 +92,7 @@ describe('season calendar by stage', () => {
   });
 
   it('holds ICC events only in their years', () => {
-    const inYear = (year: number, id: string) =>
-      buildSeasonCalendar({ ...BASE, seasonYear: year, stageId: 'ICC_TOURNAMENTS', dateOfBirth: '1998-01-01' }).fixtures.some((f) => f.tournamentId === id);
+    const inYear = (year: number, id: string) => iccEventsIn(year).includes(id);
     expect(inYear(2027, 'odi-world-cup')).toBe(true);
     expect(inYear(2028, 'odi-world-cup')).toBe(false);
     expect(inYear(2028, 't20-world-cup')).toBe(true);

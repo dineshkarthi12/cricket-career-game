@@ -6,6 +6,8 @@
  */
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { newId } from '../id';
+import { PRO_LEVEL } from './eligibility';
+import { proTournamentFinished } from '../pro/season';
 import type { GameState, InboxMessage, Match, TournamentState } from '@/types';
 
 export function unlockTrophy(state: GameState, trophyId: string, date: string, seasonYear: number): GameState {
@@ -81,6 +83,7 @@ export function tournamentHonours(before: GameState, after: GameState): GameStat
     const was = before.season.tournaments.find((x) => x.tournamentId === t.tournamentId && x.seasonYear === t.seasonYear);
     if (was?.complete) continue;
     next = honoursFor(next, t);
+    if (PRO_LEVEL[t.tournamentId]) next = proTournamentFinished(next, t);
   }
   return next;
 }

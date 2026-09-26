@@ -39,6 +39,27 @@ export function stageOfCompetition(tournamentId: string): CareerStageId {
 }
 
 /** A competition's place on the path, 1 (school, club) to 7 (senior state). */
+/**
+ * Professional competitions sit just above senior state cricket for
+ * selection purposes: the IPL and the zones at 8, India A at 9, internationals
+ * at 10 - so Ranji runs still count for a lot with the national selectors.
+ */
+export const PRO_LEVEL: Record<string, number> = {
+  ipl: 8,
+  'duleep-trophy': 8,
+  'irani-cup': 8,
+  'india-a-tour': 9,
+  'india-a-one-day': 9,
+  'intl-test': 10,
+  'intl-odi': 10,
+  'intl-t20i': 10,
+  't20-world-cup': 10,
+  'odi-world-cup': 10,
+  'champions-trophy': 10,
+  'world-test-championship': 10,
+};
+
 export function levelOfCompetition(tournamentId: string): number {
+  if (PRO_LEVEL[tournamentId]) return PRO_LEVEL[tournamentId];
   return CAREER_STAGES.find((s) => s.tournamentIds.includes(tournamentId))?.order ?? 7;
 }

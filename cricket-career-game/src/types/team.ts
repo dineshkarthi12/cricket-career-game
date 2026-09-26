@@ -46,6 +46,12 @@ export interface Team {
   morale: number;
   /** Level of cricket the squad is generated for (e.g. STATE_U16). Missing on older saves. */
   sideKind?: string;
+  /** Potential offset for new players (stronger or weaker nations and states). */
+  potentialOffset?: number;
+  /** Squad size when it is refilled (17 by default; national sides and franchises carry more). */
+  squadSize?: number;
+  /** For national sides: the country. */
+  nation?: string;
 }
 
 export type TeamNeed =

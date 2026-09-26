@@ -449,7 +449,7 @@ export const CAREER_STAGES: CareerStage[] = [
     maxAge: 38,
     softAgeLimit: 32,
     formats: ['ONE_DAY', 'MULTI_DAY'],
-    tournamentIds: ['india-a-tour'],
+    tournamentIds: ['india-a-tour', 'india-a-one-day'],
     steps: [
       'India A Camp',
       'India A Squad',
@@ -481,7 +481,7 @@ export const CAREER_STAGES: CareerStage[] = [
     maxAge: 38,
     softAgeLimit: 33,
     formats: ['T20', 'ODI', 'TEST'],
-    tournamentIds: ['intl-bilateral'],
+    tournamentIds: ['intl-t20i', 'intl-odi', 'intl-test'],
     steps: [
       'National Selection',
       'India Camp',
@@ -511,7 +511,7 @@ export const CAREER_STAGES: CareerStage[] = [
     maxAge: 38,
     softAgeLimit: 34,
     formats: ['T20', 'ODI', 'TEST'],
-    tournamentIds: ['intl-bilateral'],
+    tournamentIds: ['intl-t20i', 'intl-odi', 'intl-test'],
     steps: ['T20I Debut', 'ODI Debut', 'Test Debut'],
     requirements: [
       req('matches', 'Make your international debut', 'MATCHES_PLAYED', 1, 'STAGE'),
@@ -533,7 +533,7 @@ export const CAREER_STAGES: CareerStage[] = [
     maxAge: 40,
     softAgeLimit: 35,
     formats: ['T20', 'ODI', 'TEST'],
-    tournamentIds: ['intl-bilateral', 'world-test-championship'],
+    tournamentIds: ['intl-t20i', 'intl-odi', 'intl-test'],
     steps: [
       'International Debut',
       'More Matches',
@@ -595,7 +595,7 @@ export const CAREER_STAGES: CareerStage[] = [
     maxAge: 42,
     softAgeLimit: 37,
     formats: ['T20', 'ODI', 'TEST'],
-    tournamentIds: ['intl-bilateral', 'odi-world-cup', 't20-world-cup', 'world-test-championship'],
+    tournamentIds: ['intl-t20i', 'intl-odi', 'intl-test', 'odi-world-cup', 't20-world-cup', 'world-test-championship'],
     steps: [
       'Regular India Player',
       'Major Performances',
@@ -628,7 +628,7 @@ export const CAREER_STAGES: CareerStage[] = [
     maxAge: 45,
     softAgeLimit: 38,
     formats: ['T20', 'ODI', 'TEST'],
-    tournamentIds: ['intl-bilateral', 'ipl'],
+    tournamentIds: ['intl-t20i', 'intl-odi', 'intl-test', 'ipl'],
     steps: [
       'Prime Years',
       'Injuries',

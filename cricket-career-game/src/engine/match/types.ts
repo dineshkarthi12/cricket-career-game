@@ -39,6 +39,8 @@ export interface SimPlayer {
    * only). Playing away from it costs a little; absent means no effect.
    */
   aggressionComfort?: AggressionComfort;
+  /** Overseas player in a franchise side (at most four in an XI). */
+  overseas?: boolean;
 }
 
 export type BowlerKind = 'PACE' | 'SPIN';

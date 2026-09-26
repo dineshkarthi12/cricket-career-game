@@ -28,6 +28,7 @@ import { tournamentHonours } from '../career/honours';
 import { applyVerdict, involvementFor, reviewSeason } from '../career/season';
 import { progressWorld, pruneIdleSquads } from '../world/progression';
 import { IN_SQUAD } from '../career/squads';
+import { applyProSeason, isProEvent, proActiveTeamIds, rolloverPro, runProEvent } from '../pro/season';
 import type { WorldNews } from '../world/progression';
 import type {
   CareerEvent,
@@ -122,6 +123,7 @@ function trialVerdict(state: GameState, fixture: Fixture): { subject: string; bo
 
 /** Handle one non-match event on its day. */
 function runEvent(state: GameState, fixture: Fixture): GameState {
+  if (isProEvent(fixture)) return runProEvent(state, fixture);
   const date = fixture.date;
   let next = markPlayed(state, fixture.id);
   const out: InboxMessage[] = [];
@@ -333,6 +335,7 @@ export function applySeasonCalendar(state: GameState, seasonYear: number, from: 
     existingTeams: state.teams,
     involvement: involvementFor(state.career.currentStageId, state.career.squads ?? {}, { dob: state.player.dateOfBirth, seasonYear }),
     extraTournamentIds: [...stageCompetitions(state.career.currentStageId), ...extraCompetitions(state.career.currentStageId, { dob: state.player.dateOfBirth, seasonYear })],
+    retired: Boolean(state.pro?.retirement.complete),
   });
 
   const fixtures = { ...state.fixtures };
@@ -386,7 +389,8 @@ export function applySeasonCalendar(state: GameState, seasonYear: number, from: 
       pendingTrialId: state.calendar?.pendingTrialId ?? null,
     },
   };
-  return resolveClashes(applied);
+  // The professional season: Duleep, Irani, India A, the IPL and (when watched) India.
+  return resolveClashes(applyProSeason(applied, seasonYear, from));
 }
 
 export function emptySeason(year: number, stageId: string, currentDate = seasonStart(year)): Season {
@@ -464,23 +468,25 @@ export function startNewSeason(state: GameState, year: number): GameState {
 
   // A year passes for everyone else.
   const world = progressWorld(reviewed, year, new Set(state.player.currentTeamIds), createRng(deriveSeed(state.seed, year * 13 + 5)));
+  const filedPro = { ...reviewed, teams: world.teams };
 
   // Old, unplayed non-match entries are dropped; played matches stay for the scorecards.
   const fixtures = Object.fromEntries(
     Object.entries(reviewed.fixtures).filter(([, f]) => f.endDate >= start || (f.kind === 'MATCH' && f.matchId)),
   );
   const filed = { ...reviewed.season, complete: true, tournaments: reviewed.season.tournaments.map((t) => compactTournament(t, state.player.id)) };
-  const next: GameState = {
-    ...reviewed,
+  const rolled: GameState = {
+    ...filedPro,
     fixtures,
-    teams: world.teams,
     seasonHistory: [...reviewed.seasonHistory, filed],
     season: emptySeason(year, reviewed.career.currentStageId, addDays(start, -1)),
     calendar: { ...reviewed.calendar, pendingFixtureId: null, pendingTrialId: null },
   };
+  // The professional world turns over (it reads last season from the history).
+  const next = rolloverPro(rolled, year);
   const withCalendar = applySeasonCalendar(next, year, start);
   // Sides with nothing to play this season keep their names, not their squads.
-  const active = new Set<string>([...withCalendar.player.currentTeamIds, ...withCalendar.season.tournaments.flatMap((t) => t.groups.flatMap((g) => g.teamIds))]);
+  const active = new Set<string>([...withCalendar.player.currentTeamIds, ...withCalendar.season.tournaments.flatMap((t) => t.groups.flatMap((g) => g.teamIds)), ...proActiveTeamIds(withCalendar)]);
   const pruned: GameState = { ...withCalendar, teams: pruneIdleSquads(withCalendar.teams, active) };
   return withInbox(pruned, [
     ...rivalDigest(start, world.news),

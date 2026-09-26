@@ -7,9 +7,10 @@
  */
 import { KNOCKOUT_STAGES } from '../career/afterMatch';
 import { emptySeasonLine } from '../world/players';
-import { computeOverall } from '../ratings';
+import { computeOverall, formatOverall } from '../ratings';
+import { IPL_RULES } from '../config';
 import { traitSum } from '@/data/traits';
-import { STATES_BY_NAME } from '@/data/places';
+import { climateOfVenue } from '@/data/places';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { clampRating } from '@/types';
 import { createRng, deriveSeed } from './rng';
@@ -52,6 +53,7 @@ export function simFromRival(rival: RivalPlayer, battingPosition: number): SimPl
     condition: rival.condition,
     battingPosition,
     isUser: false,
+    ...(rival.overseas ? { overseas: true } : {}),
   };
 }
 
@@ -156,13 +158,18 @@ export function battingOrderOf(xi: SimPlayer[]): SimPlayer[] {
  * The XI a squad would pick on its own: the balanced first-choice eleven, with
  * the user in it when this is their team and they have been selected.
  */
-export function defaultXiIds(squad: SimPlayer[], userId?: Id | null): Id[] {
+export function defaultXiIds(squad: SimPlayer[], userId?: Id | null, options?: XiOptions): Id[] {
   const picked: SimPlayer[] = [];
-  const pool = [...squad];
+  // Bigger squads (franchises, national sides) pick their best for the format.
+  const pool = options?.format
+    ? [...squad].sort((a, b) => xiValue(b, options.format!) - xiValue(a, options.format!))
+    : [...squad];
+  const maxOverseas = options?.maxOverseas ?? 11;
+  const allowed = (p: SimPlayer) => !p.overseas || picked.filter((x) => x.overseas).length < maxOverseas;
 
   const take = (test: (p: SimPlayer) => boolean, count: number) => {
     for (let i = 0; i < count; i += 1) {
-      const index = pool.findIndex(test);
+      const index = pool.findIndex((p) => test(p) && allowed(p));
       if (index === -1) return;
       picked.push(pool.splice(index, 1)[0]);
     }
@@ -182,9 +189,34 @@ export function defaultXiIds(squad: SimPlayer[], userId?: Id | null): Id[] {
       b.attributes.bowling.accuracy -
       (a.attributes.batting.technique + a.attributes.bowling.accuracy),
   );
-  while (picked.length < 11 && pool.length > 0) picked.push(pool.shift()!);
+  while (picked.length < 11 && pool.length > 0) {
+    const index = pool.findIndex(allowed);
+    if (index === -1) break;
+    picked.push(pool.splice(index, 1)[0]);
+  }
 
   return picked.slice(0, 11).map((p) => p.id);
+}
+
+/** How a franchise or national side picks its XI. */
+export interface XiOptions {
+  /** Pick the best for this format first. */
+  format?: MatchFormat;
+  /** At most this many overseas players (IPL). */
+  maxOverseas?: number;
+}
+
+/** A player's worth for a format: ability, a little form, and fitness. */
+export function xiValue(p: SimPlayer, format: MatchFormat): number {
+  return formatOverall(p.attributes, p.role, format) + (p.condition.form - 50) * 0.08 - (p.condition.injury ? 50 : 0);
+}
+
+/** XI options for professional sides; age-group and state sides keep their fixed order. */
+export function xiOptionsFor(team: Team | undefined, format: MatchFormat | null | undefined): XiOptions | undefined {
+  if (!team) return undefined;
+  const pro = team.kind === 'FRANCHISE' || team.kind === 'ZONE' || team.level === 'NATIONAL_A' || (team.kind === 'NATIONAL' && team.level === 'INTERNATIONAL' && !/U-19/.test(team.name));
+  if (!pro) return undefined;
+  return { format: format ?? undefined, maxOverseas: team.kind === 'FRANCHISE' ? IPL_RULES.maxOverseasXi : undefined };
 }
 
 /** Warnings shown next to an XI the user has assembled. */
@@ -294,7 +326,7 @@ export function buildMatch(
     const wanted =
       isUserSide && options.userXiIds?.length === 11
         ? options.userXiIds
-        : defaultXiIds(pool, isUserSide && userSelected ? state.player.id : null);
+        : defaultXiIds(pool, isUserSide && userSelected ? state.player.id : null, xiOptionsFor(state.teams[teamId], fixture.format));
     const byId = new Map(pool.map((p) => [p.id, p]));
     const xi = wanted.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p));
     // Top up if the saved XI has gone stale.
@@ -337,7 +369,7 @@ export function buildMatch(
       [awayTeamId]: state.teams[awayTeamId]?.shortName ?? awayTeamId,
     },
     month: Number(fixture.date.slice(5, 7)),
-    region: venue ? STATES_BY_NAME[venue.state]?.region : undefined,
+    region: climateOfVenue(venue),
   };
 
   return { setup, homeXi, awayXi, userTeamId, oppositionTeamId };

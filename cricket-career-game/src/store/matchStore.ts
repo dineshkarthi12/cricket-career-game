@@ -388,7 +388,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         set({ error: 'That fixture has no side for you yet.', stage: 'SETUP' });
         return;
       }
-      const captain = isCaptainOf(state, team.id, devBuild());
+      const captain = isCaptainOf(state, team.id, devBuild(), fixture.format);
       const xiIds = selection.xi.map((p) => p.id);
       const build = buildFor(state, fixture, xiIds, captain);
       // A preview match, so the pitch and weather can be read before the toss.
@@ -554,7 +554,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         set({ error: 'That fixture cannot be played.' });
         return null;
       }
-      const captain = isCaptainOf(state, team.id, devBuild());
+      const captain = isCaptainOf(state, team.id, devBuild(), fixture.format);
       const me = state.player.id;
       const xiIds = selection.xi.map((p) => p.id);
       const build = buildMatch(state, fixture, {

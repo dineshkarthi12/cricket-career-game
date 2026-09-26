@@ -15,6 +15,7 @@ import { eligibleForStage } from './eligibility';
 import { CLUB_COMPETITION, SENIOR_COMPETITIONS, extraCompetitions, isSeniorStage, stageCompetitions } from './involvement';
 import { IN_SQUAD, STATUS_LABEL, prospectCredit, userSeasonStats } from './squads';
 import { ageOutStage, evaluateTargets, nextStageFor } from './targets';
+import { applyProSeason } from '../pro/season';
 import type {
   CareerStageId,
   CareerStageProgress,
@@ -197,7 +198,8 @@ export function reviewSeason(state: GameState): SeasonVerdict {
       }
     }
     const done = new Set([...completed, ...ESTABLISH_STAGES.map((e) => e.stageId).filter((sid) => state.career.stages[sid]?.status === 'COMPLETED')]);
-    nextStageId = ESTABLISH_STAGES.find((e) => !done.has(e.stageId))?.stageId ?? 'IPL_SCOUTING';
+    // Stages 11-20 are milestones of their own (engine/pro/stages.ts): the headline stays.
+    nextStageId = stage.order >= 11 ? stageId : (ESTABLISH_STAGES.find((e) => !done.has(e.stageId))?.stageId ?? stageId);
     outcome = completed.length ? 'PROMOTE' : stayOutcome();
   } else if (isSeniorStage(stageId)) {
     // Stage 7 is completed by a debut, during the season.
@@ -403,7 +405,7 @@ export function seniorDebut(state: GameState, tournamentId: string, date: string
   stages.SENIOR_STATE = { ...stages.SENIOR_STATE, status: 'COMPLETED', completedOn: date, outcome: 'PROMOTE' };
   stages.RANJI_TROPHY = { ...stages.RANJI_TROPHY, status: 'CURRENT', enteredOn: date };
   const name = TOURNAMENTS_BY_ID[tournamentId]?.name ?? tournamentId;
-  return {
+  const debuted: GameState = {
     ...state,
     career: {
       ...state.career,
@@ -428,4 +430,6 @@ export function seniorDebut(state: GameState, tournamentId: string, date: string
       ...state.inbox,
     ].slice(0, 80),
   };
+  // The professional season opens: Duleep, Irani, India A and the IPL from today.
+  return applyProSeason(debuted, debuted.season.year, date);
 }

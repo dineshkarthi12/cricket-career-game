@@ -1,3 +1,4 @@
+import { emptyProState } from '@/engine/pro/state';
 import { emptyCaptaincy } from '@/engine/career/captaincy';
 import { DEFAULT_AGGRESSION, SAVE_VERSION } from '@/types';
 import { applySeasonCalendar } from '@/engine/calendar';
@@ -471,6 +472,7 @@ export function createDemoCareer(): GameState {
   const state: GameState = {
     version: SAVE_VERSION,
     seed: 20261010,
+    pro: emptyProState(2026),
     player: {
       id: 'plr-demo-dinesh',
       firstName: 'Dinesh',

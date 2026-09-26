@@ -2,7 +2,9 @@
  * Captaincy: who captains, how it is going, and the pressure that comes with
  * it. Pure functions over career state - no React, no storage.
  */
+import { intlFormatOf } from '@/types';
 import type {
+  MatchFormat,
   CaptainDelegation,
   CaptaincyRecord,
   CaptaincyState,
@@ -51,8 +53,16 @@ export function isCaptainOf(
   state: GameState,
   teamId: Id | null | undefined,
   devBuild = false,
+  format?: MatchFormat | null,
 ): boolean {
   if (!teamId) return false;
+  const team = state.teams[teamId];
+  // India's captaincy is per format.
+  if (team?.kind === 'NATIONAL' && team.level === 'INTERNATIONAL' && state.pro) {
+    const posts = state.pro.leadership.posts.filter((p) => p.level === 'INDIA' && p.role === 'CAPTAIN' && !p.until);
+    if (posts.length) return !format || posts.some((p) => p.format === intlFormatOf(format));
+    return devBuild && state.settings.devCaptainMode && Boolean(team.isUserTeam);
+  }
   if (state.career.captaincy.teamId === teamId) return true;
   if (state.teams[teamId]?.captainId === state.player.id) return true;
   return devBuild && state.settings.devCaptainMode && Boolean(state.teams[teamId]?.isUserTeam);

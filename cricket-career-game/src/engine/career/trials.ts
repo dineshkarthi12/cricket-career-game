@@ -5,7 +5,7 @@
  * A squad trial decides this season's squads there and then; an end-of-season
  * trial for the next level feeds the season review.
  */
-import { FITNESS_TEST, TRIALS } from '../config';
+import { AUCTION, FITNESS_TEST, TRIALS } from '../config';
 import { createRng, deriveSeed } from '../match/rng';
 import { battingOrderOf, defaultXiIds, simFromUser, squadFor } from '../match/lineup';
 import { quickMatch } from '../sim/quickMatch';
@@ -19,6 +19,10 @@ import { stageCompetitions } from './involvement';
 import { decideCompetition, hasMatchesLeft } from './squadFlow';
 import { evaluateTargets, nextStageFor } from './targets';
 import { tournamentOf } from '../tournament/live';
+import { proActive } from '../pro/season';
+import { keenest } from '../pro/ipl';
+import { applyCamp, campInvite } from '../pro/national';
+import { nationTeamId } from '@/data/nations';
 import type { SimPlayer } from '../match/types';
 import type { CareerStageId, FitnessEffort, Fixture, GameState, InboxMessage, NetsApproach, Team, TrialRecord } from '@/types';
 
@@ -26,7 +30,11 @@ export interface TrialPlan {
   fixtureId: string;
   title: string;
   date: string;
-  purpose: 'SQUAD' | 'NEXT_LEVEL';
+  purpose: TrialRecord['purpose'];
+  /** The side whose standard the trial is judged against (pro trials). */
+  teamId?: string;
+  /** The practice match format. */
+  format?: 'ONE_DAY' | 'T20';
   /** The stage whose selectors are watching. */
   stageId: CareerStageId;
   /** Squads decided on the day (squad trials). */
@@ -50,6 +58,7 @@ const month = (date: string) => Number(date.slice(5, 7));
 /** Is this event a trial the player takes part in, and for what? */
 export function trialFor(state: GameState, fixture: Fixture): TrialPlan | null {
   if (fixture.kind !== 'TRIAL' && fixture.kind !== 'SELECTION_CAMP') return null;
+  if (fixture.id.includes('-pro-')) return proTrialFor(state, fixture);
   const stageId = state.career.currentStageId;
   const late = [3, 4, 5].includes(month(fixture.date));
   if (late && fixture.kind === 'TRIAL') {
@@ -78,8 +87,35 @@ export function trialFor(state: GameState, fixture: Fixture): TrialPlan | null {
   return { fixtureId: fixture.id, title: fixture.title, date: fixture.date, purpose: 'SQUAD', stageId, tournamentIds: waiting, invited: true, note: 'Squad places are decided today.' };
 }
 
+/** Franchise trials (IPL scouts) and the India camp (national selectors). */
+function proTrialFor(state: GameState, fixture: Fixture): TrialPlan | null {
+  if (!proActive(state)) return null;
+  const base = { fixtureId: fixture.id, title: fixture.title, date: fixture.date, tournamentIds: [] as string[] };
+  if (fixture.id.endsWith('-pro-trials')) {
+    if (state.pro.ipl.franchiseId || state.pro.retirement.retiredFrom.includes('IPL')) return null;
+    const f = keenest(state);
+    const interest = f ? (state.pro.scouting.interest[f.id] ?? 0) : 0;
+    const invited = Boolean(f) && Math.max(interest, state.pro.scouting.reputation) >= AUCTION.trialAt;
+    return {
+      ...base,
+      purpose: 'FRANCHISE',
+      stageId: 'IPL_SCOUTING',
+      teamId: f?.id,
+      format: 'T20',
+      invited,
+      note: invited ? `${f?.name} have invited you to their trials (interest ${interest}).` : `No franchise trial invitation: scouting reputation ${Math.round(state.pro.scouting.reputation)} (${AUCTION.trialAt} gets you in the door).`,
+    };
+  }
+  if (fixture.id.endsWith('-pro-camp')) {
+    const invite = campInvite(state);
+    return { ...base, purpose: 'NATIONAL_CAMP', stageId: 'INDIA_SENIOR_CAMP', teamId: nationTeamId('India'), format: 'ONE_DAY', invited: invite.invited, note: invite.note };
+  }
+  return null;
+}
+
 /** The side the selectors are picking, for the level bar and the practice match. */
 function trialTeam(state: GameState, plan: TrialPlan): Team | null {
+  if (plan.teamId && state.teams[plan.teamId]?.squad.length) return state.teams[plan.teamId];
   for (const id of plan.tournamentIds) {
     const t = tournamentOf(state, id);
     if (t?.userTeamId && state.teams[t.userTeamId]) return state.teams[t.userTeamId];
@@ -171,7 +207,7 @@ export function runPracticeMatch(state: GameState, plan: TrialPlan, nets: NetsRe
     fixtureId: `trial-${plan.fixtureId}`,
     tournamentId: 'friendly',
     seasonYear: state.season.year,
-    format: 'ONE_DAY',
+    format: plan.format ?? 'ONE_DAY',
     stage: 'FRIENDLY',
     date: plan.date,
     days: 1,
@@ -270,6 +306,8 @@ export function applyTrial(state: GameState, record: TrialRecord): GameState {
     calendar: { ...state.calendar, pendingTrialId: null },
   };
   const decisions: TrialRecord['decisions'] = [];
+  if (record.purpose === 'FRANCHISE' && plan) next = franchiseTrialResult(next, plan, record);
+  if (record.purpose === 'NATIONAL_CAMP') next = applyCamp(next, record.bonus, date);
   if (record.purpose === 'SQUAD' && plan) {
     for (const id of plan.tournamentIds) {
       next = decideCompetition(next, id, { date, trialBonus: record.bonus, announce: true });
@@ -297,6 +335,27 @@ export function applyTrial(state: GameState, record: TrialRecord): GameState {
     inbox: [msg, ...next.inbox].slice(0, 80),
   };
   return next;
+}
+
+/** A franchise trial moves the scouts: reputation, and that franchise's interest most of all. */
+function franchiseTrialResult(state: GameState, plan: TrialPlan, record: TrialRecord): GameState {
+  const s = state.pro.scouting;
+  const fid = plan.teamId ?? '';
+  const reputation = Math.max(0, Math.min(100, s.reputation + record.bonus * 1.2));
+  const interest = { ...s.interest, [fid]: Math.max(0, Math.min(100, (s.interest[fid] ?? 0) + record.bonus * 3)) };
+  return {
+    ...state,
+    pro: {
+      ...state.pro,
+      scouting: {
+        ...s,
+        reputation,
+        interest,
+        trials: [{ franchiseId: fid, date: record.date, bonus: record.bonus, verdict: record.verdict }, ...s.trials].slice(0, 10),
+        notes: [{ date: record.date, delta: Math.round(record.bonus * 12) / 10, reason: `Franchise trial: ${record.verdict}` }, ...s.notes].slice(0, 20),
+      },
+    },
+  };
 }
 
 /** The choices a coach would make, for the headless sim and "let the coach decide". */

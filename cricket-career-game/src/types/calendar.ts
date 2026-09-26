@@ -34,7 +34,17 @@ export type ClimateRegion =
   /** Bengal, Odisha, Assam: monsoon plus early-winter dew. */
   | 'EAST'
   /** Deccan plateau: Hyderabad, Bengaluru, MP. */
-  | 'CENTRAL';
+  | 'CENTRAL'
+  /** Overseas: cool, cloudy English (and Irish) summers - swing and seam. */
+  | 'ENGLAND'
+  /** Hot, dry Australian summers. */
+  | 'AUSTRALIA'
+  /** South Africa and Zimbabwe: dry highveld summers, thunderstorms. */
+  | 'SOUTH_AFRICA'
+  /** Cool, windy and damp. */
+  | 'NEW_ZEALAND'
+  /** Humid Caribbean with tropical showers. */
+  | 'CARIBBEAN';
 
 /**
  * The season calendar. Matches, camps, tests and exams are `Fixture`s; the
