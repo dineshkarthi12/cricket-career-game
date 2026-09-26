@@ -20,7 +20,7 @@ const FAST_FORWARDS: { label: string; target: FastForwardTarget }[] = [
   { label: '4 weeks', target: { kind: 'WEEKS', weeks: 4 } },
   { label: 'Next season', target: { kind: 'SEASON' } },
   { label: 'Senior state debut', target: { kind: 'STAGE', stageId: 'SENIOR_STATE' } },
-  { label: 'IPL auction', target: { kind: 'IPL_AUCTION' } },
+  { label: 'IPL auction or contract', target: { kind: 'IPL_AUCTION' } },
   { label: 'India cap', target: { kind: 'INDIA_CAP' } },
   { label: 'ICC event', target: { kind: 'ICC_EVENT' } },
   { label: 'Leadership offer', target: { kind: 'LEADERSHIP_OFFER' } },

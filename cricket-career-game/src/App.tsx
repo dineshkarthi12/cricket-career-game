@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '@/layout/AppShell';
 import { ToastHost } from '@/components/ToastHost';
 import { ScreenLoading } from '@/components/ScreenLoading';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { installAutosaveGuards, useGameStore } from '@/store/gameStore';
 import { useAppSettings } from '@/store/appSettings';
 import Home from './screens/Home';
@@ -29,6 +30,7 @@ const StatsScreen = lazy(() => import('./screens/stats/StatsScreen'));
 
 export default function App() {
   const bootstrap = useGameStore((s) => s.bootstrap);
+  const { pathname } = useLocation();
   const careerReduce = useGameStore((s) => s.state?.settings.reduceMotion ?? false);
   const deviceReduce = useAppSettings((s) => s.reduceMotion);
 
@@ -44,6 +46,7 @@ export default function App() {
   return (
     <>
     <ToastHost />
+    <ErrorBoundary resetKey={pathname}>
     <Suspense fallback={<ScreenLoading />}>
     <Routes>
       {/* Entry screens: no shell, because there is nothing to navigate yet. */}
@@ -55,6 +58,7 @@ export default function App() {
         path="*"
         element={
           <AppShell>
+            <ErrorBoundary resetKey={pathname}>
             <Suspense fallback={<ScreenLoading />}>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -81,11 +85,13 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             </Suspense>
+            </ErrorBoundary>
           </AppShell>
         }
       />
     </Routes>
     </Suspense>
+    </ErrorBoundary>
     </>
   );
 }

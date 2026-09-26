@@ -37,7 +37,7 @@ export function CareerJourneyCard({ state }: { state: GameState }) {
             ))}
           </div>
           {target && progress ? (
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[14rem] flex-1">
               <div className="mb-1 flex justify-between gap-2 text-[12px] text-ink-muted">
                 <span className="truncate">Next: {target.step}</span>
                 <span>{Math.round(progress.ratio * 100)}% of the target</span>

@@ -1025,13 +1025,88 @@ all cricket, the sim), legacy, compaction, IPL and international matches on
 the match screen, the five screens and the v7 migration; plus the prospect
 credit.
 
-**Known limits / next**
-- The impact substitute applies on the fast sim; a ball-by-ball match the
-  player plays uses the XI as named.
-- Other nations' bilateral series are settled on ratings (no scorecards), so
-  opposition players' rankings come from matches against India and ICC events.
-- Phase 8: the Stats screen, settings and polish.
+**Known limits (addressed in Phase 8)**
+- The impact substitute applied only on the fast sim.
+- Other nations' bilateral series were settled on ratings, without scorecards.
+- No All-Time Great in 200 careers.
 
 ---
 
-## ▶️ Next — Phase 8: Stats, settings and polish
+## ✅ Phase 8 — Polish, QA, installable app and deploy (complete)
+
+**1. Fixes from Phase 7**
+- **Impact player, ball by ball.** IPL matches the player plays carry both
+  benches; at the innings break the side batting first may bring on a bowler
+  and the chasers a batter. The AI picks for itself; a captain gets an
+  In / Out picker (or "No substitute") on the Innings Break screen.
+- **Legacy on impact, not caps.** The score now adds runs and wickets
+  weighted per format, averages, the best world ranking, ICC trophies (WTC
+  finals included), India captaincy and wins, awards and records, with a
+  little for caps, the IPL and domestic cricket. All-Time Great needs a score
+  of 70 and 30 caps (the floor only rules out a cameo). The Legacy screen
+  shows where the score comes from.
+- **The rest of the world plays.** Other nations' series run on the fast sim
+  once squads exist, so rival players earn real rankings and season figures;
+  each match keeps a lightweight scorecard (result, top three scorers and
+  wicket-takers) under Around the world on the International screen.
+
+200 careers, age 10 to retirement, after the changes:
+
+```
+Senior state debut 17.5% · IPL 11.5% · India cap 5.0% · India captain 3
+Legacy tiers: All-Time Great 2 (1.0%) · India Great 1 · International
+Regular 3 · International Cap 4 · Domestic Legend 4 · Domestic Stalwart 17
+Most caps 53 · save at retirement 2.73 MB average, 5.81 MB largest
+```
+
+Both All-Time Greats were high-potential all-rounders (hidden potential 89)
+who debuted for India at 24, the youngest India debuts in the run: one with
+53 caps across all three formats, 85 Test wickets, No. 1 in the world, an
+ICC title and the India captaincy; the other 35 caps, a batting average of
+54.5 and 65 Test wickets. A long career of modest impact (60 Tests at 29)
+stays an International Regular.
+
+**2. Browser QA** - `npm run qa` (`scripts/qa.mjs`, Playwright on the
+preinstalled Chromium) starts the dev server, creates a career through the
+real UI, visits every screen, plays a match ball by ball, then uses the dev
+fast-forward to a senior debut, an IPL auction, an India cap, an ICC event,
+a leadership offer and retirement, and screenshots each screen at 1440, 820
+and 390 px (light mode) into `qa-screenshots/`, with console errors,
+horizontal overflow and fast-forward results in `qa-screenshots/console.txt`.
+
+QA_FIXES_PLACEHOLDER
+
+**3. Player experience**
+- First-time tutorial: five short tips (dashboard, training, match
+  controls, the aggression bar, selection); "Skip tutorial"; reset in
+  Settings.
+- Loading skeletons for code-split screens, empty states (Stats, fixtures
+  after retirement), error toasts on bad save files, confirm dialogs for
+  retiring (existing), deleting a career and replacing it by import.
+- Settings: difficulty Easy / Realistic / Hard (selection bonus ±4 and the
+  player's batting and bowling ±4 in every match; save v8), commentary,
+  animation speed, default sim speed, reduce motion, reset tutorial,
+  storage usage, export / import, delete, install help.
+- Accessibility: focus ring, skip link, dialogs that trap and restore
+  focus, radio groups for choices, darker secondary text, reduced motion
+  from the system or the in-game switch.
+- Performance: every screen but Home is code-split and recharts loads with
+  the first chart - the main bundle went from 1.52 MB to about 0.82 MB
+  (270 KB gzipped); fonts are self-hosted.
+- A real Stats screen: by format, competition, level and season (with a
+  chart), and the captaincy record.
+
+**4. Installable app** - web manifest and crown icons (any, maskable,
+Apple touch), a build-generated service worker that precaches the whole app
+(verified: with the network off, deep links, lazy screens and fonts all
+load), an Install app banner and an Update banner for new versions.
+
+**5. Deploy** - `vercel.json` (Vite build, SPA fallback to `index.html`,
+`sw.js` never cached, immutable assets), a root `README.md` (what the game
+is, running locally, deploying, the tech stack). Vercel's Root Directory
+must be `cricket-career-game`.
+
+**Tests** - new: the live impact substitute (AI, captain's choice, no
+substitute), legacy impact (All-Time Great without 150 caps, long modest
+career, what each part adds, no cameo greats), other nations' scorecards and
+rankings, difficulty (engine and selection), the v8 migration.

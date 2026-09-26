@@ -12,7 +12,7 @@ import { clamp } from './common';
 import { rngFor } from './world';
 import type { GameState, Match, MediaStory } from '@/types';
 
-const OUTLETS = ['The Cricket Chronicle', 'Wisden Desk', 'Sports Daily', 'The Morning Post', 'Cover Drive Podcast', 'Stumps Live', 'The Hindu Sport', 'Fan Zone'];
+const OUTLETS = ['The Cricket Chronicle', 'Long Room Desk', 'Sports Daily', 'The Morning Post', 'Cover Drive Podcast', 'Stumps Live', 'The Southern Herald', 'Fan Zone'];
 
 export function addStory(state: GameState, date: string, headline: string, body: string, tone: MediaStory['tone'], outlet?: string): GameState {
   const fans = state.pro.fans;

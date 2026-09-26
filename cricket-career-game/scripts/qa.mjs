@@ -29,7 +29,7 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
 // --- Dev server -----------------------------------------------------------------------------
-const server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, BROWSER: 'none' } });
+const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, BROWSER: 'none' } });
 await new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error('Dev server did not start')), 60000);
   server.stdout.on('data', (d) => {
@@ -124,7 +124,11 @@ async function continueToMatch(maxWeeks = 30) {
 /** One fast-forward from the dev tools; returns the toast it reports. */
 async function fastForwardOnce(label) {
   await go('/settings');
-  await page.evaluate(() => document.querySelectorAll('[data-toast]').forEach((t) => t.remove()));
+  // Dismiss old toasts through the UI (never remove React's nodes by hand).
+  for (let i = 0; i < 10 && (await page.locator('[data-toast]').count()) > 0; i += 1) {
+    await page.locator('[data-toast] button[aria-label="Dismiss"]').first().click().catch(() => {});
+    await page.waitForTimeout(100);
+  }
   await page.locator(`[data-fast-forward="${label}"]`).click();
   // The sim runs on the main thread; wait for its toast.
   await page.waitForSelector('[data-toast]', { timeout: 600000 });
@@ -212,6 +216,13 @@ try {
     if (await captainBox.isVisible().catch(() => false)) {
       await captainBox.check();
       await page.waitForTimeout(500);
+      // Pick yourself: leave out the last man and bring the player in.
+      const bringIn = page.getByRole('button', { name: /Bring in/ }).first();
+      if (await bringIn.isVisible().catch(() => false)) {
+        await page.getByRole('button', { name: /Leave out/ }).last().click().catch(() => {});
+        await bringIn.click().catch(() => {});
+        await page.waitForTimeout(300);
+      }
       await snap('match-pre-captain');
     }
     for (let i = 0; i < 8 && !(await visible(/Next ball/)); i += 1) {
@@ -270,7 +281,7 @@ try {
   await snap('season-review');
   await go('/selection');
   await snap('pro-selection');
-  await fastForward('IPL auction');
+  await fastForward('IPL auction or contract');
   await answerDecisions();
   await go('/auction');
   await snap('ipl-auction');

@@ -924,7 +924,11 @@ points (base + wickets − economy over par), ×(1 + 0.02 × (opposition
 strength − 80)) and +5% in a win, 0-1000. A rating moves 15% towards each
 match (faster over the first five). 3 matches to be ranked; all-rounder =
 batting × bowling / 1000. Teams: Elo-style per format (scale 10, K 4, home
-advantage 3). Best ranks are kept for the user.
+advantage 3). Best ranks are kept for the user. Other nations' bilateral
+series (`pro/worldSeries.ts`, five per format a season) are played on the
+fast sim once both squads exist, so rival players earn rankings and season
+figures; each keeps a lightweight scorecard (result, top three scorers and
+wicket-takers) shown under Around the world on the International screen.
 
 ### Awards, media, leadership
 Player of the series in every bilateral series; Orange Cap, Purple Cap and
@@ -950,12 +954,21 @@ player retires from Tests, ODIs, T20Is, the IPL, first-class cricket or all
 cricket (`retireFrom`); all cricket ends the career. The headless simulation
 retires a player who never made a senior debut at 26 after two seasons
 without senior cricket, others at 32+ after two empty seasons, leaves an
-overlooked format from 33-34, and stops at 41. The legacy rating (0-100) adds
-caps, international runs and wickets, major awards, ICC titles, India
-captaincy, records, rankings, IPL and domestic matches; tiers run Club
-Cricketer, State Player, Domestic Stalwart, Domestic Legend, IPL Regular,
-International Cap, International Regular (25 caps), India Great (100 caps,
-60+), All-Time Great (150 caps, 85+). The records book (`data/records.ts`,
+overlooked format from 33-34, and stops at 41. The legacy rating (0-100,
+`legacyInputs` / `scoreLegacy` / `legacyTier`, `LEGACY` in config) is impact
+across formats, not a caps count: runs and wickets weighted per format
+(per 1000 runs: Test 9, ODI 8, T20I 10; per 50 wickets: 9 / 8 / 9; up to
+40), averages (0.5 a point above a batting average of 30 or below a bowling
+average of 34, with 20 innings / 30 wickets to qualify; up to 12), the best
+world ranking (No. 1 10, top 3 7, top 10 4, top 20 2), ICC titles including
+WTC finals (6 each, up to 18), India captaincy (5 + 0.2 a win, up to 5 more;
+IPL captaincy 2), awards and records (up to 12 and 6), and a little for caps
+(0.2 each, up to 10), the IPL and domestic cricket. Tiers run Club Cricketer,
+State Player, Domestic Stalwart, Domestic Legend, IPL Regular, International
+Cap, International Regular (25 caps), India Great (score 50, 25 caps),
+All-Time Great (score 70, 30 caps - the caps floor only rules out a cameo).
+Over 200 simulated careers: 2 All-Time Greats (1%), 1 India Great, 3
+Regulars. The records book (`data/records.ts`,
 fictional holders) covers India Test/ODI/T20I, IPL and Ranji records.
 
 ### Save size
@@ -967,6 +980,54 @@ three before the player's group and award winners, older ones the champion,
 awards and the player's line; old fixtures go; AI players keep three seasons
 of history; old auctions keep their headline lots. A full professional
 career ends at about 5-6 MB (average 2.7 MB over 200 careers).
+
+## 8g. Polish, QA and deploy (built in Phase 8)
+
+### Impact player in live matches
+In the IPL the setup carries both benches. At the innings break the side
+batting first may bring on a bowler and the chasers a batter: the AI picks
+with `impactSwap`; a captain chooses In / Out (or no substitute) on the
+Innings Break screen (`LiveMatch.chooseImpact`).
+
+### Difficulty (`DIFFICULTY` in config, per career, save v8)
+Easy / Realistic / Hard: +4 / 0 / -4 on the player's score in every squad
+decision, and +4 / 0 / -4 on the player's batting and bowling skills in
+every match the engine plays (`withDifficulty` in `simFromUser`).
+
+### Device settings (`store/appSettings.ts`, localStorage)
+Animation speed (x1.4 / x1 / x0.6 on ball flight and the auction room),
+default sim speed, reduce motion (also follows `prefers-reduced-motion`),
+and the tutorial tips seen. Settings also has storage usage, export, import
+(with a confirm), delete this career (with a confirm), install-app help and,
+in development builds, the fast-forward tools (`engine/dev/fastForward.ts`).
+
+### Tutorial
+Five one-time tips (`components/TutorialTip.tsx`): dashboard, training,
+match controls, the aggression bar, selection. "Skip tutorial" hides all;
+Settings resets them.
+
+### Accessibility and performance
+Visible focus ring, a skip link, dialogs that move focus in, trap Tab and
+restore focus, `role=radiogroup` choices, contrast-checked text tokens, and
+reduced motion. Every screen but Home is code-split; recharts loads with the
+first chart; fonts are self-hosted.
+
+### Installable app
+`public/manifest.webmanifest` and crown icons (`scripts/make-icons.mjs`); a
+service worker generated at build time (`scripts/sw-template.js`, the
+`serviceWorker` plugin in `vite.config.ts`) precaches the whole build: pages
+network-first with the app shell offline, assets cache-first. `lib/pwa.ts`
+registers it, keeps the install prompt and reports updates (AppBanner).
+
+### Browser QA (`scripts/qa.mjs`, `npm run qa`)
+Plays a career through the dev server in Chromium and screenshots every
+screen at 1440, 820 and 390 px into `qa-screenshots/`, logging console
+errors, horizontal overflow and fast-forward results.
+
+### Deploy
+`vercel.json`: Vite build, SPA rewrite to `index.html`, `sw.js` uncached,
+immutable caching for hashed assets. The Vercel project's root directory is
+`cricket-career-game`.
 
 ---
 
@@ -981,4 +1042,4 @@ career ends at about 5-6 MB (average 2.7 MB over 200 careers).
 | 5 | New career, development, training, injuries and calendar | ✅ Done |
 | 6 | Selection, tournaments, career stages 1-10, IndexedDB saves | ✅ Done |
 | 7 | Stages 11-20: IPL to retirement | ✅ Done |
-| 8 | Stats, settings, polish | Planned |
+| 8 | Polish, QA, installable app, deploy | ✅ Done |

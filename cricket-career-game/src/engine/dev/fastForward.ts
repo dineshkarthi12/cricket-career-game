@@ -49,6 +49,7 @@ export function fastForward(state: GameState, target: FastForwardTarget, maxWeek
   const startCaps = caps(state);
   const lastAuction = (s: GameState) => s.pro?.ipl.auctions.filter((a) => a.userLot).at(-1)?.date ?? '';
   const startAuction = lastAuction(state);
+  const startFranchise = state.pro?.ipl.franchiseId ?? null;
   const startIcc = state.pro?.national.iccEvents.length ?? 0;
   const done = (s: GameState, weeks: number): boolean => {
     switch (target.kind) {
@@ -60,9 +61,9 @@ export function fastForward(state: GameState, target: FastForwardTarget, maxWeek
         return stageReached(s, target.stageId);
       case 'AGE':
         return ageInYears(s.player.dateOfBirth, s.season.currentDate) >= target.age;
-      // An auction the player was in.
+      // An auction the player was in, or their first IPL contract however it came.
       case 'IPL_AUCTION':
-        return lastAuction(s) > startAuction;
+        return lastAuction(s) > startAuction || (!startFranchise && Boolean(s.pro?.ipl.franchiseId));
       case 'INDIA_CAP':
         return caps(s) > startCaps;
       case 'ICC_EVENT':
