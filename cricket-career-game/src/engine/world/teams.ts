@@ -33,7 +33,7 @@ export const LEVELS: Record<SideKind, LevelProfile> = {
   REST_OF_INDIA: { ages: [22, 32], potential: [91, 3], share: 0.93, ageLimit: null },
   FRANCHISE: { ages: [20, 35], potential: [87.5, 4], share: 0.93, ageLimit: null },
   INDIA_A: { ages: [21, 29], potential: [91.5, 2.5], share: 0.93, ageLimit: null },
-  INDIA: { ages: [21, 35], potential: [93.5, 2.5], share: 0.95, ageLimit: null },
+  INDIA: { ages: [21, 35], potential: [94, 2.5], share: 0.95, ageLimit: null },
 };
 
 /** Senior club cricket: grown men, for players past junior age who are not in a state side. */

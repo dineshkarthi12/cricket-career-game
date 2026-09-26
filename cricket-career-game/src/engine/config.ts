@@ -1243,7 +1243,7 @@ export const AUCTION = {
   /** Target mix of a 22-man squad by role group. */
   roleTargets: { BATTER: 7, KEEPER: 2, ALLROUNDER: 5, PACE: 5, SPIN: 3 } as Record<string, number>,
   /** Scouting reputation needed to be shortlisted for the auction. */
-  shortlistAt: 48,
+  shortlistAt: 50,
   /** ... to be invited to franchise trials. */
   trialAt: 36,
   /** ... for scouts to be in touch at all. */
@@ -1357,19 +1357,19 @@ export const LEADERSHIP = {
   cappedBonus: 6,
   minAge: { STATE: 23, IPL: 25, INDIA: 25 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
   /** Matches (caps for India) before a player is considered. */
-  minMatches: { STATE: 15, IPL: 20, INDIA: 20 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
+  minMatches: { STATE: 15, IPL: 20, INDIA: 12 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
   /** The case needed, and the best rival leader's case in the side (mean). */
   thresholds: {
-    STATE: { vice: 62, captain: 67, rival: 66 },
+    STATE: { vice: 64, captain: 69, rival: 68 },
     IPL: { vice: 64, captain: 68, rival: 67 },
-    INDIA: { vice: 68, captain: 72, rival: 71 },
+    INDIA: { vice: 66, captain: 70, rival: 69 },
   } as Record<'STATE' | 'IPL' | 'INDIA', { vice: number; captain: number; rival: number }>,
   rivalSpread: 6,
   /** A captain must be this far ahead of the side's other leaders. */
   captainOverRival: 3,
   /** Chance the post is free when the case is made. */
-  viceVacancy: 0.4,
-  captainVacancy: 0.3,
+  viceVacancy: { STATE: 0.25, IPL: 0.4, INDIA: 0.4 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
+  captainVacancy: { STATE: 0.15, IPL: 0.3, INDIA: 0.3 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
 } as const;
 
 /** The legacy rating. See `engine/pro/legacy.ts`. */

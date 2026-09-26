@@ -156,6 +156,15 @@ export function simulateCareer(seed: number, endAge?: number): SimulatedCareerRu
     if (p.completedOn && p.status === 'COMPLETED') completedAt[s.id] = age(p.completedOn);
     if (s.order >= 11 && (p.status === 'CURRENT' || p.status === 'COMPLETED') && reachedAt[s.id] === undefined) reachedAt[s.id] = age(p.enteredOn ?? state.season.currentDate);
   }
+  // Stages 8-10: reached with a first match in that competition.
+  const firstIn: Record<string, string> = {};
+  for (const m of Object.values(state.matches)) {
+    if (!m.userPerformance) continue;
+    if (!firstIn[m.tournamentId] || m.date < firstIn[m.tournamentId]) firstIn[m.tournamentId] = m.date;
+  }
+  for (const [sid, tid] of [['RANJI_TROPHY', 'ranji-trophy'], ['VIJAY_HAZARE', 'vijay-hazare'], ['SYED_MUSHTAQ_ALI', 'syed-mushtaq-ali']] as const) {
+    if (firstIn[tid]) reachedAt[sid] = age(firstIn[tid]);
+  }
   const matches = Object.values(state.player.record.byFormat).reduce((sum, r) => sum + (r?.batting.matches ?? 0), 0);
   const posts = state.pro.leadership.posts;
   const legacy = legacyRating(state);
@@ -195,7 +204,7 @@ export function simulateCareer(seed: number, endAge?: number): SimulatedCareerRu
 
 export interface CareerSimReport {
   careers: number;
-  byStage: { stageId: CareerStageId; label: string; reached: number; averageAge: number | null }[];
+  byStage: { stageId: CareerStageId; label: string; reached: number; averageAge: number | null; completed: number }[];
   established: { stageId: CareerStageId; label: string; count: number; averageAge: number | null }[];
   outcomes: Record<SeasonOutcome, number>;
   droppedCareers: number;
@@ -206,6 +215,8 @@ export interface CareerSimReport {
   retired: number;
   averageRetirementAge: number | null;
   averageCareerYears: number | null;
+  /** Players with a senior debut: when they retired. */
+  seniorRetirementAge: number | null;
   capped: number;
   regularInternationals: number;
   captains: { state: number; ipl: number; india: number };
@@ -220,7 +231,7 @@ const avg = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b
 export function summarise(runs: SimulatedCareerRun[]): CareerSimReport {
   const byStage = CAREER_STAGES.map((s) => {
     const ages = runs.map((r) => r.reachedAt[s.id]).filter((a): a is number => a !== undefined);
-    return { stageId: s.id, label: `${s.order}. ${s.shortLabel}`, reached: ages.length, averageAge: avg(ages) };
+    return { stageId: s.id, label: `${s.order}. ${s.shortLabel}`, reached: ages.length, averageAge: avg(ages), completed: runs.filter((r) => r.completedAt?.[s.id] !== undefined).length };
   });
   const established = (['RANJI_TROPHY', 'VIJAY_HAZARE', 'SYED_MUSHTAQ_ALI'] as CareerStageId[]).map((id) => {
     const ages = runs.map((r) => r.establishedAt[id]).filter((a): a is number => a !== undefined);
@@ -244,6 +255,7 @@ export function summarise(runs: SimulatedCareerRun[]): CareerSimReport {
     retired: retiredAges.length,
     averageRetirementAge: avg(retiredAges),
     averageCareerYears: avg(retiredAges.map((a) => a - 10)),
+    seniorRetirementAge: avg(runs.filter((r) => r.reachedAt.SENIOR_STATE !== undefined && r.retiredAt !== null).map((r) => r.retiredAt as number)),
     capped: runs.filter((r) => caps(r) > 0).length,
     regularInternationals: runs.filter((r) => caps(r) >= NATIONAL.regularCaps).length,
     captains: { state: runs.filter((r) => r.captain.state).length, ipl: runs.filter((r) => r.captain.ipl).length, india: runs.filter((r) => r.captain.india).length },
@@ -259,9 +271,9 @@ export function formatReport(report: CareerSimReport): string {
   const lines: string[] = [];
   lines.push(`${report.careers} careers from age 10 to retirement, default training, every match on the fast sim`);
   lines.push('');
-  lines.push('Stage reached                            careers   share   avg age');
+  lines.push('Stage reached                            careers   share   avg age   completed');
   for (const s of report.byStage) {
-    lines.push(`${s.label.padEnd(40)} ${String(s.reached).padStart(7)} ${pct(s.reached).padStart(7)} ${String(s.averageAge ?? '-').padStart(9)}`);
+    lines.push(`${s.label.padEnd(40)} ${String(s.reached).padStart(7)} ${pct(s.reached).padStart(7)} ${String(s.averageAge ?? '-').padStart(9)} ${String(s.completed).padStart(11)}`);
   }
   lines.push('(1-10: selected and played at the stage; 11-20: entered the stage; 20: retired from a format or all cricket)');
   lines.push('');
@@ -269,6 +281,7 @@ export function formatReport(report: CareerSimReport): string {
   for (const e of report.established) lines.push(`${e.label.padEnd(40)} ${String(e.count).padStart(7)} ${pct(e.count).padStart(7)} ${String(e.averageAge ?? '-').padStart(9)}`);
   lines.push('');
   lines.push(`Retired: ${report.retired}; average retirement age ${report.averageRetirementAge ?? '-'}; average career ${report.averageCareerYears ?? '-'} years (from age 10)`);
+  lines.push(`Players with a senior debut retire at ${report.seniorRetirementAge ?? '-'} on average`);
   lines.push(`IPL players: ${report.iplPlayers} (${pct(report.iplPlayers)})`);
   lines.push(`Capped by India: ${report.capped} (${pct(report.capped)}); regular internationals (${NATIONAL.regularCaps}+ caps): ${report.regularInternationals} (${pct(report.regularInternationals)})`);
   lines.push(`Captains: state ${report.captains.state}, IPL ${report.captains.ipl}, India ${report.captains.india}`);

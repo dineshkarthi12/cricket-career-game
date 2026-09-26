@@ -109,8 +109,8 @@ export function leadershipReview(state: GameState, level: LeadershipLevel, date:
     // The side has other leaders: the user's case must beat the best of them this season.
     const rival = t.rival + rng.spread() * LEADERSHIP.rivalSpread;
     let role: LeadershipRole | null = null;
-    if (vc && c.score >= t.captain && c.score >= rival + LEADERSHIP.captainOverRival && rng.chance(LEADERSHIP.captainVacancy)) role = 'CAPTAIN';
-    else if (!vc && c.score >= t.vice && c.score >= rival && rng.chance(LEADERSHIP.viceVacancy)) role = 'VICE_CAPTAIN';
+    if (vc && c.score >= t.captain && c.score >= rival + LEADERSHIP.captainOverRival && rng.chance(LEADERSHIP.captainVacancy[level])) role = 'CAPTAIN';
+    else if (!vc && c.score >= t.vice && c.score >= rival && rng.chance(LEADERSHIP.viceVacancy[level])) role = 'VICE_CAPTAIN';
     if (!role) continue;
     return offer(state, { id: newId('offer'), level, role, teamId: c.teamId, teamName: c.teamName, format: c.format, date, reason: `Leadership ${state.player.attributes.mental.leadership}, temperament ${state.player.attributes.mental.temperament}, ${c.seniority}.` });
   }
