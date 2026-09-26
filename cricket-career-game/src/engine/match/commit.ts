@@ -20,6 +20,7 @@ import { pressConferenceFor, type PressConference } from '../career/press';
 import type { MatchSelection } from '../career/selection';
 import { applyAftermath } from './aftermath';
 import { compactMatches } from './archive';
+import { recordInTournament } from '../tournament/live';
 import { XP } from '../config';
 import { traitProduct } from '@/data/traits';
 import {
@@ -210,7 +211,10 @@ export function commitMatchDetailed(
   match: Match,
   options: CommitOptions = { userPlayed: true },
 ): CommitResult {
-  const base = commitScorecard(state, match, options);
+  const scored = commitScorecard(state, match, options);
+  // The result goes into its competition: table, leaders, bracket, rivals' seasons.
+  const fixture = scored.fixtures[match.fixtureId];
+  const base = fixture ? recordInTournament(scored, fixture, scored.matches[match.id] ?? match) : scored;
   const userTeamId = match.userIsHome ? match.homeTeamId : match.awayTeamId;
   const opponentId = match.userIsHome ? match.awayTeamId : match.homeTeamId;
   const result = resultFor(match, userTeamId);

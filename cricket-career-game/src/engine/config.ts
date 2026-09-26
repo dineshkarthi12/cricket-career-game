@@ -290,7 +290,7 @@ export const WORLD = {
   /** Chance a player starts a season injured. */
   seasonInjuryChance: 0.1,
   /** Squad size for every generated side. */
-  squadSize: 16,
+  squadSize: 17,
 } as const;
 
 /**
@@ -342,6 +342,13 @@ export const QUICK_SIM = {
     /** Overs the side batting third leaves to bowl the opposition out. */
     leaveForFourth: 80,
   },
+} as const;
+
+/** Points tables (Phase 6). BCCI-style domestic rules. */
+export const TOURNAMENT = {
+  limited: { win: 4, tie: 2, noResult: 2, loss: 0 },
+  /** First-class: outright win, first-innings lead or deficit in a draw. */
+  firstClass: { win: 6, tie: 3, drawLead: 3, drawTrail: 1, noResult: 1, loss: 0 },
 } as const;
 
 export const SAVE = {

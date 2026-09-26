@@ -11,6 +11,7 @@ import { SCHOOL_YEAR, STAGE_EVENTS, TOURNAMENT_SCHEDULE, type TournamentSchedule
 import { stateInfo } from '@/data/places';
 import { addDays, ageInYears, daysBetweenDates, isoDate, nextWeekday, seasonDate } from '../development';
 import { homeVenueFor, sidesFor, slug, teamFromSide, type SideSpec } from './sides';
+import { buildTournament, hasStructure } from '../tournament/build';
 import type {
   CalendarWindow,
   CareerStageId,
@@ -18,6 +19,7 @@ import type {
   FixtureKind,
   Team,
   TournamentStage,
+  TournamentState,
   Venue,
 } from '@/types';
 
@@ -32,6 +34,13 @@ export interface SeasonCalendarInput {
   from: string;
   /** Teams already in the save; a side with the same id is reused, not replaced. */
   existingTeams?: Record<string, Team>;
+  /**
+   * Is the user in each competition's squad? Their side's fixtures are only
+   * theirs to play when they are. Missing means yes.
+   */
+  involvement?: Record<string, boolean>;
+  /** Extra competitions on top of the stage's own (club cricket, India U-19...). */
+  extraTournamentIds?: string[];
 }
 
 export interface SeasonCalendar {
@@ -39,6 +48,8 @@ export interface SeasonCalendar {
   fixtures: Fixture[];
   teams: Team[];
   venues: Venue[];
+  /** Full competitions (groups, tables, brackets) for this season. */
+  tournaments: TournamentState[];
 }
 
 export function seasonStart(seasonYear: number): string {
@@ -128,7 +139,56 @@ export function buildSeasonCalendar(input: SeasonCalendarInput): SeasonCalendar 
 
   // --- Competitions ---------------------------------------------------------
   const stage = getStage(stageId);
-  for (const tournamentId of stage.tournamentIds) {
+  const tournaments: TournamentState[] = [];
+  const userAge = Math.floor(ageInYears(input.dateOfBirth, inSeason(9, 1)));
+  const competitionIds = [...new Set([...stage.tournamentIds, ...(input.extraTournamentIds ?? [])])];
+  for (const tournamentId of competitionIds) {
+    if (hasStructure(tournamentId, seasonYear)) {
+      const involved = input.involvement?.[tournamentId] ?? true;
+      const built = buildTournament({
+        tournamentId,
+        seasonYear,
+        hometown: input.hometown,
+        stateName: input.stateName,
+        seed: input.seed,
+        userAge,
+        userInvolved: involved,
+        existingTeams: { ...(input.existingTeams ?? {}), ...Object.fromEntries([...teams.entries()]) },
+        from: input.from,
+      });
+      tournaments.push(built.tournament);
+      for (const team of built.teams) teams.set(team.id, team);
+      for (const venue of built.venues) venues.set(venue.id, venue);
+      const meta = TOURNAMENTS_BY_ID[tournamentId];
+      const windowRange = TOURNAMENT_SCHEDULE[tournamentId]?.windowKind ?? 'TOURNAMENT';
+      const matchDates = built.fixtures.filter((f) => f.kind === 'MATCH').map((f) => f.date).sort();
+      if (matchDates.length) {
+        windows.push({
+          id: `win-${seasonYear}-${tournamentId}`,
+          kind: windowRange,
+          title: meta?.name ?? tournamentId,
+          start: matchDates[0],
+          end: built.fixtures.reduce((end, f) => (f.endDate > end ? f.endDate : end), matchDates[0]),
+          tournamentId,
+        });
+      }
+      for (const fixture of built.fixtures) {
+        fixtures.push(fixture);
+        if (!fixture.involvesUser) continue;
+        busy.push({ start: fixture.date, end: fixture.endDate });
+        const userIsHome = fixture.homeTeamId === built.userTeamId;
+        const home = fixture.homeTeamId ? teams.get(fixture.homeTeamId) : undefined;
+        if (!userIsHome && home && ['STATE_AGE_GROUP', 'STATE_SENIOR', 'INTERNATIONAL'].includes(home.level)) {
+          const travel = addDays(fixture.date, -1);
+          if (keep(travel)) fixtures.push(event(`${fixture.id}-travel`, 'TRAVEL', `Travel to ${venues.get(home.homeVenueId)?.city ?? home.name}`, meta?.name ?? '', travel, travel));
+        }
+        if ((meta?.matchDays ?? 1) >= 3) {
+          const rest = addDays(fixture.endDate, 1);
+          fixtures.push(event(`${fixture.id}-rest`, 'REST', 'Recovery day', 'After the match', rest, rest));
+        }
+      }
+      continue;
+    }
     const plan = TOURNAMENT_SCHEDULE[tournamentId];
     const tournament = TOURNAMENTS_BY_ID[tournamentId];
     if (!plan || !tournament) continue;
@@ -245,7 +305,7 @@ export function buildSeasonCalendar(input: SeasonCalendarInput): SeasonCalendar 
 
   fixtures.sort((a, b) => a.date.localeCompare(b.date) || kindOrder(a.kind) - kindOrder(b.kind));
   windows.sort((a, b) => a.start.localeCompare(b.start));
-  return { windows, fixtures, teams: [...teams.values()], venues: [...venues.values()] };
+  return { windows, fixtures, teams: [...teams.values()], venues: [...venues.values()], tournaments };
 }
 
 /** Put a match on its weekday, clear of exams and anything already booked. */

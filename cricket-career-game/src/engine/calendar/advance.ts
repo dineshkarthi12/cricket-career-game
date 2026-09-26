@@ -20,6 +20,7 @@ import {
   type DevelopmentMessage,
 } from '../development';
 import { buildSeasonCalendar, seasonEnd, seasonStart } from './season';
+import { playAiFixtures } from '../tournament/live';
 import type {
   CareerEvent,
   Fixture,
@@ -211,6 +212,8 @@ export function advanceWeek(input: GameState): AdvanceResult {
     const next = addDays(start, i);
     if (next > state.season.endDate) state = startNewSeason(state, state.season.year + 1);
 
+    // Every other match in the user's competitions that day, on the fast sim.
+    state = playAiFixtures(state, next);
     const todays = fixturesOn(state, next);
     const match = todays.find((f) => f.kind === 'MATCH');
     for (const fixture of todays.filter((f) => f.kind !== 'MATCH')) state = runEvent(state, fixture);
@@ -284,7 +287,11 @@ export function applySeasonCalendar(state: GameState, seasonYear: number, from: 
   const fixtures = { ...state.fixtures };
   for (const fixture of calendar.fixtures) if (!fixtures[fixture.id]) fixtures[fixture.id] = fixture;
   const teams: Record<string, Team> = { ...state.teams };
-  for (const team of calendar.teams) teams[team.id] = teams[team.id] ?? team;
+  for (const team of calendar.teams) {
+    const existing = teams[team.id];
+    // A side from an older save without a squad takes the generated one.
+    teams[team.id] = existing && existing.squad.length >= 11 ? existing : existing ? { ...existing, squad: team.squad, strength: team.strength } : team;
+  }
   const venues: Record<string, Venue> = { ...state.venues };
   for (const venue of calendar.venues) venues[venue.id] = venues[venue.id] ?? structuredClone(venue);
   // The senior-most side first: it is the one the slot picker and top bar name.
@@ -305,6 +312,10 @@ export function applySeasonCalendar(state: GameState, seasonYear: number, from: 
     season: {
       ...state.season,
       fixtureIds: [...new Set([...state.season.fixtureIds, ...calendar.fixtures.map((f) => f.id)])],
+      tournaments: [
+        ...state.season.tournaments.filter((t) => !calendar.tournaments.some((c) => c.tournamentId === t.tournamentId && c.seasonYear === t.seasonYear)),
+        ...calendar.tournaments,
+      ],
     },
     calendar: {
       seasonYear,

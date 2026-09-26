@@ -5,6 +5,9 @@
  */
 import type { Rng } from '../match/rng';
 import {
+  ALL_SIDES,
+  U19_NATIONS,
+  type CricketSide,
   CLUB_NAMES,
   FRANCHISE_NAMES,
   SCHOOL_NAMES,
@@ -124,6 +127,14 @@ function capitalOf(state: StateInfo): string {
   return state.towns[0];
 }
 
+/** Other national sides (states and associations), nearest zone first. */
+function otherSides(home: CricketSide, rng: Rng, count: number): CricketSide[] {
+  const others = ALL_SIDES.filter((s) => s.team !== home.team);
+  const same = others.filter((s) => s.zone === home.zone);
+  const rest = others.filter((s) => s.zone !== home.zone);
+  return [...shuffle(same, rng), ...shuffle(rest, rng)].slice(0, count);
+}
+
 /** Other states, nearest zone first. */
 function otherStates(home: StateInfo, rng: Rng, count: number): StateInfo[] {
   const same = STATES.filter((s) => s.name !== home.name && s.zone === home.zone);
@@ -180,7 +191,10 @@ export function sidesFor(
     }
     case 'DISTRICT': {
       const user = spec(`${hometown} U-14`, `${hometown} U-14`, 'DISTRICT', 'DISTRICT', base + 1, hometown, state.name, true, state.colors);
-      const towns = shuffle(state.towns.filter((t) => t !== hometown), rng).slice(0, count);
+      let towns = shuffle(state.towns.filter((t) => t !== hometown), rng);
+      // Smaller states field extra sides from their towns' surrounds.
+      for (let i = 0; towns.length < count; i += 1) towns.push(`${state.towns[i % state.towns.length]} Rural`);
+      towns = towns.slice(0, count);
       const opponents = towns.map((town, i) =>
         spec(`${town} U-14`, `${town} U-14`, 'DISTRICT', 'DISTRICT', around(), town, state.name, false, PALETTE[i % PALETTE.length]),
       );
@@ -192,11 +206,12 @@ export function sidesFor(
     case 'STATE': {
       const suffix = kind === 'STATE' ? '' : ` ${kind.replace('STATE_', '').replace('U', 'U-')}`;
       const level: CompetitionLevel = kind === 'STATE' ? 'STATE_SENIOR' : 'STATE_AGE_GROUP';
-      const make = (s: StateInfo, isUser: boolean, strength: number) =>
-        spec(`${s.team}${suffix}`, isUser ? `${s.monogram}${suffix}` : `${s.team}${suffix}`, 'STATE', level, strength, capitalOf(s), s.name, isUser, s.colors, { monogram: s.monogram });
+      const make = (s: CricketSide, isUser: boolean, strength: number) =>
+        spec(`${s.team}${suffix}`, isUser ? `${s.monogram}${suffix}` : `${s.team}${suffix}`, 'STATE', level, strength, s.city, s.state, isUser, s.colors, { monogram: s.monogram });
+      const home = ALL_SIDES.find((side) => side.state === state.name && side.team === state.team) ?? ALL_SIDES[0];
       return {
-        user: make(state, true, base + 1),
-        opponents: otherStates(state, rng, count).map((s) => make(s, false, around())),
+        user: make(home, true, base + 1),
+        opponents: otherSides(home, rng, count).map((s) => make(s, false, around())),
       };
     }
     case 'ZONE': {
@@ -235,7 +250,8 @@ export function sidesFor(
       const suffix = kind === 'INDIA_A' ? ' A' : kind === 'INDIA_U19' ? ' U-19' : '';
       const level: CompetitionLevel = kind === 'INDIA_A' ? 'NATIONAL_A' : 'INTERNATIONAL';
       const user = spec(`India${suffix}`, `India${suffix}`, 'NATIONAL', level, base + 1, 'Chennai', 'Tamil Nadu', true, ['#1E5EF0', '#F59E0B'], { monogram: 'IN' });
-      const opponents = shuffle(TEST_NATIONS, rng)
+      const nations = kind === 'INDIA_U19' ? U19_NATIONS : TEST_NATIONS;
+      const opponents = shuffle(nations, rng)
         .slice(0, count)
         .map((nation, i) => {
           const strength = (NATION_STRENGTH[nation] ?? 72) - (STRENGTH.INDIA - base) + rng.spread() * 2;

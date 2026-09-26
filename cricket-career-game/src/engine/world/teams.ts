@@ -39,7 +39,7 @@ export const LEVELS: Record<SideKind, LevelProfile> = {
 /** Senior club cricket: grown men, for players past junior age who are not in a state side. */
 export const SENIOR_CLUB: LevelProfile = { ages: [17, 34], potential: [70, 7], share: 0.9, ageLimit: null };
 
-/** A squad of 16: a balanced XI plus cover. */
+/** A squad of 17: a balanced XI plus cover (the last place is the first given up for the user). */
 const SQUAD_ROLES: PlayerRole[] = [
   'OPENING_BATTER',
   'OPENING_BATTER',
@@ -58,6 +58,7 @@ const SQUAD_ROLES: PlayerRole[] = [
   'WICKET_KEEPER_BATTER',
   'PACE_BOWLER',
   'SPIN_BOWLER',
+  'BATTING_ALLROUNDER',
 ];
 
 export interface SquadInput {

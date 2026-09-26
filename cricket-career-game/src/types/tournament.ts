@@ -49,9 +49,10 @@ export interface Tournament {
   description: string;
 }
 
-/** Standing of one team within a tournament. */
+/** Standing of one team within a tournament group. */
 export interface TournamentStanding {
   teamId: Id;
+  groupId: string;
   played: number;
   won: number;
   lost: number;
@@ -59,22 +60,115 @@ export interface TournamentStanding {
   tied: number;
   noResult: number;
   points: number;
+  /** Limited overs: (runs for / overs faced) - (runs against / overs bowled). */
   netRunRate: number;
-  /** Bonus/first-innings-lead points used in first-class competitions. */
+  /** First-class: first-innings leads taken in drawn matches. */
   bonusPoints: number;
+  runsFor: number;
+  /** Balls faced; an all-out innings counts the full quota (the NRR rule). */
+  ballsFaced: number;
+  runsAgainst: number;
+  ballsBowled: number;
+  wicketsLost: number;
+  wicketsTaken: number;
   position: number;
   qualified: boolean;
   eliminated: boolean;
 }
 
+export interface TournamentGroup {
+  id: string;
+  name: string;
+  teamIds: Id[];
+}
+
+/** Where a knockout side comes from: a group position, or the winner of an earlier tie. */
+export type SeedRef = { groupId: string; position: number } | { tieId: string };
+
+export interface KnockoutTie {
+  id: string;
+  stage: TournamentStage;
+  label: string;
+  home: SeedRef;
+  away: SeedRef;
+  homeTeamId: Id | null;
+  awayTeamId: Id | null;
+  fixtureId: Id;
+  winnerTeamId: Id | null;
+}
+
+/** A played match, kept small: enough for tables, results lists and knockouts. */
+export interface CompactResult {
+  fixtureId: Id;
+  stage: TournamentStage;
+  homeTeamId: Id;
+  awayTeamId: Id;
+  winnerTeamId: Id | null;
+  type: 'WIN' | 'TIE' | 'DRAW' | 'NO_RESULT';
+  summary: string;
+  /** One entry per innings, in order. */
+  scores: { teamId: Id; runs: number; wickets: number; balls: number; allOut: boolean }[];
+  firstInningsLeadTeamId: Id | null;
+  /** Full match id when the user played it (ball-by-ball or scorecard in `matches`). */
+  matchId: Id | null;
+}
+
+/** One player's figures in one tournament. */
+export interface PlayerTournamentLine {
+  playerId: Id;
+  name: string;
+  teamId: Id;
+  matches: number;
+  innings: number;
+  notOuts: number;
+  runs: number;
+  balls: number;
+  highScore: number;
+  fifties: number;
+  hundreds: number;
+  wickets: number;
+  ballsBowled: number;
+  runsConceded: number;
+  bestWickets: number;
+  bestRuns: number;
+  ratingSum: number;
+}
+
+export interface AwardWinner {
+  playerId: Id;
+  name: string;
+  teamId: Id;
+  /** e.g. "612 runs", "34 wickets". */
+  detail: string;
+}
+
+export interface TournamentAwards {
+  championTeamId: Id | null;
+  runnerUpTeamId: Id | null;
+  playerOfTournament: AwardWinner | null;
+  topScorer: AwardWinner | null;
+  topWicketTaker: AwardWinner | null;
+}
+
 export interface TournamentState {
   tournamentId: Id;
   seasonYear: number;
+  name: string;
+  format: MatchFormat;
+  /** Points system for the table. */
+  points: 'LIMITED' | 'FIRST_CLASS';
   currentStage: TournamentStage;
+  groups: TournamentGroup[];
   standings: TournamentStanding[];
+  knockouts: KnockoutTie[];
   /** Fixture ids belonging to this tournament this season. */
   fixtureIds: Id[];
+  results: Record<Id, CompactResult>;
+  stats: Record<Id, PlayerTournamentLine>;
+  /** The side the user belongs to in this competition, if any. */
+  userTeamId: Id | null;
   winnerTeamId: Id | null;
+  awards: TournamentAwards | null;
   complete: boolean;
 }
 
