@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Badge, Card, CardHeader, ProgressBar, Stepper } from '@/components';
 import { careerSteps } from '@/lib/selectors';
 import { TOTAL_CAREER_STAGES } from '@/data/stages';
@@ -18,6 +19,7 @@ export function CareerJourneyCard({ state }: { state: GameState }) {
     ...(state.pro ? proPlaces(state) : []),
   ].filter((p) => p !== undefined);
   const proNext = !target && state.pro ? proTargets(state)[0] : undefined;
+  const retired = Boolean(state.pro?.retirement.complete);
   return (
     <Card>
       <CardHeader
@@ -27,7 +29,11 @@ export function CareerJourneyCard({ state }: { state: GameState }) {
         className="mb-3"
       />
       <Stepper steps={careerSteps(state)} endLabel="Retirement" />
-      {places.length || progress ? (
+      {retired ? (
+        <p className="mt-3 border-t border-line pt-3 text-[13px] text-ink-muted">
+          Retired from all cricket - the journey is complete. <Link to="/legacy" className="font-semibold text-brand-blue">See the legacy</Link>
+        </p>
+      ) : places.length || progress ? (
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3">
           <div className="flex max-w-full flex-wrap items-center gap-1.5">
             {places.map((p) => (

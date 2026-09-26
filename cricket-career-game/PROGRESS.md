@@ -1112,6 +1112,10 @@ What the screenshots and logs showed, and the fixes:
 12. **Dev fast-forward**: an "IPL auction" target never fired for a player
     who joined a franchise without an auction lot; it now stops at the first
     auction or contract.
+13. **After retirement** the journey card still showed "Not selected" chips
+    and "Next: an IPL contract"; it now says the journey is complete (fixed
+    after the final screenshot run, so 65-home-retired still shows the old
+    card).
 
 The final run: 66 screens × 3 widths, **no console errors or warnings, no
 horizontal overflow**. Mobile full-page screenshots show the fixed bottom tab
@@ -1150,7 +1154,8 @@ must be `cricket-career-game`.
 **Tests** - new: the live impact substitute (AI, captain's choice, no
 substitute), legacy impact (All-Time Great without 150 caps, long modest
 career, what each part adds, no cameo greats), other nations' scorecards and
-rankings, difficulty (engine and selection), the v8 migration.
+rankings, difficulty (engine and selection), the v8 migration, the dev
+fast-forward. 524 tests pass; `npm run build` is clean.
 
 **Known limits**
 - The dev fast-forward runs on the main thread: a jump of many seasons

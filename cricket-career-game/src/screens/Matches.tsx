@@ -192,7 +192,7 @@ function ResultRow({ state, match }: { state: GameState; match: Match }) {
           {home ? <Crest crest={home.crest} size={26} label={home.name} /> : null}
           {away ? <Crest crest={away.crest} size={26} label={away.name} /> : null}
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[12rem] flex-1">
           <p className="truncate text-[13px] font-semibold text-ink">
             {home?.shortName} v {away?.shortName}
           </p>
