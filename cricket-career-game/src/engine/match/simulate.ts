@@ -11,6 +11,7 @@ import { simulateInnings, type InningsResult, type Partnership } from './innings
 import { createRng, deriveSeed, type Rng } from './rng';
 import type { SimPlayer } from './types';
 import type {
+  ClimateRegion,
   Innings,
   Match,
   MatchFormat,
@@ -44,6 +45,8 @@ export interface MatchSetup {
   seed: number;
   /** Month, 1-12, used to weight the weather. */
   month?: number;
+  /** Climate region of the venue; shapes monsoon, heat and dew. */
+  region?: ClimateRegion;
   /**
    * What the user chose at the toss, when they are captain and won it.
    * Left unset, the AI captain decides.
@@ -104,7 +107,7 @@ export function simulateMatch(setup: MatchSetup): MatchSimulation {
   const matchId = setup.id ?? newId('match');
 
   const pitch = createPitch(rng, setup.venue);
-  const weather = createWeather(rng, setup.month ?? new Date(setup.date).getMonth() + 1);
+  const weather = createWeather(rng, setup.month ?? new Date(setup.date).getMonth() + 1, setup.region);
   const underLights = setup.underLights ?? false;
 
   // Toss.

@@ -109,7 +109,7 @@ export function HeroBanner({ state }: { state: GameState }) {
 
             <HeroStatTile label="Fitness">
               <Heart className="size-[22px] text-brand-navy" strokeWidth={1.8} />
-              <span className="text-[14px] font-semibold text-ink">{player.condition.fitness}%</span>
+              <span className="text-[14px] font-semibold text-ink">{Math.round(player.condition.fitness)}%</span>
             </HeroStatTile>
 
             <HeroStatTile label="Morale">

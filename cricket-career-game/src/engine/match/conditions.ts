@@ -5,7 +5,8 @@
 import { MATCH } from '../config';
 import { clamp01 } from './skill';
 import type { Rng } from './rng';
-import type { BallState, Pitch, PitchType, Venue, Weather, WeatherType } from '@/types';
+import { regionalHumidity, regionalTemperature, regionalWeatherWeights } from '../calendar/climate';
+import type { BallState, ClimateRegion, Pitch, PitchType, Venue, Weather, WeatherType } from '@/types';
 
 /** Axis values each pitch type is generated around. */
 const PITCH_PROFILES: Record<PitchType, Omit<Pitch, 'type' | 'deterioration'>> = {
@@ -56,25 +57,35 @@ export function createPitch(rng: Rng, venue: Venue): Pitch {
   };
 }
 
-/** Weather at the start of play, weighted by the month the match is in. */
-export function createWeather(rng: Rng, month: number): Weather {
+/**
+ * Weather at the start of play, weighted by the month the match is in and -
+ * when the venue's climate region is known - by that region's monsoon, heat
+ * and dew. Without a region the weighting is the original month-only one, so
+ * the balance harness is unchanged. Both paths draw the same random numbers.
+ */
+export function createWeather(rng: Rng, month: number, region?: ClimateRegion): Weather {
   const monsoon = month >= 6 && month <= 9;
   const winter = month === 12 || month <= 2;
-  const type = rng.weighted<WeatherType>([
-    { item: 'SUNNY', weight: winter ? 30 : 26 },
-    { item: 'HOT', weight: monsoon ? 8 : winter ? 4 : 22 },
-    { item: 'OVERCAST', weight: monsoon ? 22 : 12 },
-    { item: 'HUMID', weight: monsoon ? 20 : 14 },
-    { item: 'CLOUDY', weight: 16 },
-    { item: 'LIGHT_RAIN', weight: monsoon ? 12 : 4 },
-    { item: 'HEAVY_RAIN', weight: monsoon ? 5 : 1 },
-    { item: 'WINDY', weight: 8 },
-  ]);
+  const weights = region
+    ? regionalWeatherWeights(region, month)
+    : [
+        { item: 'SUNNY' as WeatherType, weight: winter ? 30 : 26 },
+        { item: 'HOT' as WeatherType, weight: monsoon ? 8 : winter ? 4 : 22 },
+        { item: 'OVERCAST' as WeatherType, weight: monsoon ? 22 : 12 },
+        { item: 'HUMID' as WeatherType, weight: monsoon ? 20 : 14 },
+        { item: 'CLOUDY' as WeatherType, weight: 16 },
+        { item: 'LIGHT_RAIN' as WeatherType, weight: monsoon ? 12 : 4 },
+        { item: 'HEAVY_RAIN' as WeatherType, weight: monsoon ? 5 : 1 },
+        { item: 'WINDY' as WeatherType, weight: 8 },
+      ];
+  const type = rng.weighted<WeatherType>(weights);
   const profile = WEATHER_PROFILES[type];
+  const temperature = region ? regionalTemperature(region, month, profile.temperature) : profile.temperature;
+  const humidity = region ? Math.min(100, profile.humidity + regionalHumidity(region, month)) : profile.humidity;
   return {
     type,
-    temperature: Math.round(profile.temperature + rng.spread() * 4),
-    humidity: jitter(rng, profile.humidity, 10),
+    temperature: Math.round(temperature + rng.spread() * 4),
+    humidity: jitter(rng, humidity, 10),
     cloudCover: jitter(rng, profile.cloudCover, 12),
     wind: jitter(rng, profile.wind, 10),
     rainRisk: jitter(rng, profile.rainRisk, 8),

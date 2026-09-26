@@ -19,6 +19,22 @@ import {
 import { pressConferenceFor, type PressConference } from '../career/press';
 import type { MatchSelection } from '../career/selection';
 import { applyAftermath } from './aftermath';
+import { compactMatches } from './archive';
+import { recordInTournament } from '../tournament/live';
+import { matchMilestones, tournamentHonours } from '../career/honours';
+import { afterUserMatch } from '../career/squadFlow';
+import { stageCompetitions } from '../career/involvement';
+import { seniorDebut } from '../career/season';
+import { XP } from '../config';
+import { traitProduct } from '@/data/traits';
+import {
+  addXp,
+  formStreak,
+  historyEntry,
+  practiseComfort,
+  startRehab,
+  streakConfidence,
+} from '../development';
 import { createRng, deriveSeed } from './rng';
 import { newId } from '../id';
 import { emptyFormatRecord } from '../records';
@@ -199,7 +215,23 @@ export function commitMatchDetailed(
   match: Match,
   options: CommitOptions = { userPlayed: true },
 ): CommitResult {
-  const base = commitScorecard(state, match, options);
+  const scored = commitScorecard(state, match, options);
+  // The result goes into its competition: table, leaders, bracket, rivals' seasons.
+  const fixture = scored.fixtures[match.fixtureId];
+  let base = fixture ? recordInTournament(scored, fixture, scored.matches[match.id] ?? match) : scored;
+  base = tournamentHonours(scored, base);
+  // The selectors keep count, and a senior debut completes a stage on the spot.
+  if (options.userPlayed && match.userPerformance) {
+    const played = base.season.currentDate;
+    base = matchMilestones(base, match);
+    base = afterUserMatch(base, match.tournamentId, match.userPerformance.rating, played);
+    const stageId = base.career.currentStageId;
+    if (stageCompetitions(stageId).includes(match.tournamentId)) {
+      const progress = base.career.stages[stageId];
+      base = { ...base, career: { ...base.career, stages: { ...base.career.stages, [stageId]: { ...progress, matchesPlayed: progress.matchesPlayed + 1 } } } };
+    }
+    base = seniorDebut(base, match.tournamentId, played);
+  }
   const userTeamId = match.userIsHome ? match.homeTeamId : match.awayTeamId;
   const opponentId = match.userIsHome ? match.awayTeamId : match.homeTeamId;
   const result = resultFor(match, userTeamId);
@@ -284,7 +316,7 @@ function commitScorecard(state: GameState, match: Match, options: CommitOptions)
 
   const next: GameState = {
     ...state,
-    matches: { ...state.matches, [match.id]: match },
+    matches: compactMatches({ ...state.matches, [match.id]: match }, match.id),
     activeMatchId: null,
   };
 
@@ -360,6 +392,9 @@ function commitScorecard(state: GameState, match: Match, options: CommitOptions)
       prestige: tournament?.prestige ?? 20,
       date: endDate,
       durability: state.player.attributes.physical.durability,
+      role: state.player.role,
+      age: state.player.age,
+      injuryMultiplier: traitProduct(state.player.development?.traits ?? [], 'injury'),
     },
     createRng(deriveSeed(state.seed, match.id.length + performance.runs + 7)),
   );
@@ -378,13 +413,36 @@ function commitScorecard(state: GameState, match: Match, options: CommitOptions)
   accumulate(record.byCompetition[match.tournamentId], performance, batted);
   if (performance.manOfTheMatch) record.manOfTheMatch += 1;
 
-  let xp = state.player.xp + aftermath.xpEarned;
-  let level = state.player.level;
-  let toNext = state.player.xpToNextLevel;
-  while (xp >= toNext) {
-    xp -= toNext;
-    level += 1;
-    toNext = Math.round(toNext * 1.12);
+  // Milestones pay extra XP on top of the appearance.
+  const milestoneXp =
+    (performance.runs >= 100 ? XP.perHundred : performance.runs >= 50 ? XP.perFifty : 0) +
+    (performance.wickets >= 5 ? XP.perFiveFor : 0);
+  const xpEarned = aftermath.xpEarned + milestoneXp;
+  const { xp, level, xpToNextLevel: toNext } = addXp(state.player, xpEarned);
+
+  // Streaks feed confidence; a match sharpens match fitness; playing at a
+  // level makes the player more comfortable there.
+  const streak = formStreak(aftermath.condition.recentRatings);
+  const condition = {
+    ...aftermath.condition,
+    confidence: Math.max(0, Math.min(100, aftermath.condition.confidence + streakConfidence(streak))),
+  };
+  const dev = state.player.development;
+  const comfort = { batting: [...dev.comfort.batting], bowling: [...dev.comfort.bowling] };
+  const levels = state.career.aggression ?? { batting: 3, bowling: 3 };
+  if (performance.ballsFaced > 0) practiseComfort(comfort, 'BATTING', levels.batting, 0.6);
+  if (performance.oversBowled > 0) practiseComfort(comfort, 'BOWLING', levels.bowling, 0.6);
+  let development = {
+    ...dev,
+    comfort,
+    matchFitness: Math.min(100, dev.matchFitness + 6 * match.days),
+  };
+  if (aftermath.injury) {
+    development = {
+      ...development,
+      rehab: startRehab(aftermath.injury),
+      injuryHistory: [historyEntry(aftermath.injury), ...development.injuryHistory],
+    };
   }
 
   // The stored scorecard carries the XP that was actually awarded.
@@ -392,17 +450,23 @@ function commitScorecard(state: GameState, match: Match, options: CommitOptions)
     ...next.matches,
     [match.id]: {
       ...match,
-      userPerformance: { ...performance, xpEarned: aftermath.xpEarned },
+      userPerformance: { ...performance, xpEarned },
     },
   };
 
   next.player = {
     ...state.player,
-    condition: aftermath.condition,
+    condition,
     record,
     xp,
     level,
     xpToNextLevel: toNext,
+    development,
+  };
+  next.career = {
+    ...next.career,
+    lastAppearance: endDate,
+    ...(aftermath.injury ? { selectionStatus: 'INJURED_OUT' as const } : {}),
   };
 
   if (aftermath.injury) {

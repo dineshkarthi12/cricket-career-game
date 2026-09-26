@@ -53,8 +53,12 @@ export const XP = {
   /** Multiplier applied to XP by tournament prestige (0-100). */
   prestigeScale: 0.02,
   /** XP needed for level n is `base * n^curve`. */
-  levelBase: 120,
-  levelCurve: 1.35,
+  levelBase: 150,
+  levelCurve: 0.83,
+  /** Milestones reached in a match. */
+  perFifty: 40,
+  perHundred: 100,
+  perFiveFor: 100,
 } as const;
 
 export const SELECTION = {
@@ -87,17 +91,339 @@ export const PROGRESSION = {
   ageGraceSeasons: 2,
 } as const;
 
+/* ------------------------------------------------------------------ *
+ * Player development (Phase 5)
+ *
+ * Tuned against the 50-career simulation in
+ * `src/engine/development/simulation.test.ts` - change one and re-run it.
+ * ------------------------------------------------------------------ */
+
+export const DEVELOPMENT = {
+  /** Hidden potential range for a new player's overall. */
+  potentialRange: [60, 95] as [number, number],
+  /**
+   * Share of an attribute's ceiling a body and mind of this age can reach,
+   * whatever the training. Growth tracks this up to about 24.
+   */
+  maturity: [
+    [8, 0.36],
+    [10, 0.44],
+    [12, 0.53],
+    [14, 0.63],
+    [16, 0.73],
+    [18, 0.82],
+    [20, 0.9],
+    [22, 0.96],
+    [24, 1],
+  ] as [number, number][],
+  /** Years a late bloomer lags, and an early bloomer leads, on maturity. */
+  lateBloomerLag: 1.8,
+  earlyBloomerLead: 1.2,
+  /** A new player starts at this share of their age's reachable level. */
+  startShare: [0.66, 0.84] as [number, number],
+  /** How fast training converts, by age. Fast when young, slow after 30. */
+  learningRate: [
+    [8, 1.2],
+    [13, 1.35],
+    [17, 1.3],
+    [20, 1.1],
+    [23, 0.85],
+    [26, 0.55],
+    [30, 0.32],
+    [33, 0.2],
+    [40, 0.12],
+  ] as [number, number][],
+  /**
+   * Past the peak the ceiling itself comes down, per year, by group. Physical
+   * goes first and fastest; mental keeps growing for a long time.
+   */
+  decline: {
+    startAge: 31.5,
+    fastAge: 35.5,
+    perYear: { batting: 1.3, bowling: 1.6, fielding: 1.9, physical: 3, mental: 0 },
+    fastPerYear: { batting: 3, bowling: 3.5, fielding: 4, physical: 5.5, mental: 0.5 },
+    /** Share of the gap above the lowered ceiling lost each week. */
+    weeklyPull: 0.025,
+    /** Share of the yearly decline that erodes the current level directly. */
+    erosionShare: 1,
+  },
+  /** Diminishing returns: gain x (1 - e^(-headroom / this)). */
+  headroomScale: 9,
+  /** Growing up: every attribute creeps towards the age's reachable level. */
+  passiveShare: 0.05,
+  /** Mental attributes that grow with experience on their own. */
+  experienceGrowth: 0.012,
+} as const;
+
 export const TRAINING = {
-  /** Attribute points gained per week at MODERATE intensity, before modifiers. */
-  baseWeeklyGain: 0.18,
-  intensityMultiplier: { LIGHT: 0.5, MODERATE: 1.0, HARD: 1.5, MAXIMUM: 2.0 },
-  /** Fatigue added per week at each intensity. */
-  intensityFatigue: { LIGHT: 3, MODERATE: 7, HARD: 13, MAXIMUM: 20 },
-  /** Gains shrink as an attribute approaches its potential. */
-  potentialFalloff: 0.85,
-  /** Age past which attributes start to decline without maintenance. */
-  declineAge: 32,
-  declinePerSeason: 1.2,
+  /** Attribute points per session at NORMAL intensity, full weight, before modifiers. */
+  sessionGain: 0.52,
+  intensity: {
+    LIGHT: { gain: 0.55, fatigue: 0.5, energy: 1, injury: 0.6 },
+    NORMAL: { gain: 1, fatigue: 1, energy: 2, injury: 1 },
+    HARD: { gain: 1.45, fatigue: 1.75, energy: 3, injury: 1.8 },
+  },
+  /** Sessions allowed in a week. */
+  maxSessions: 7,
+  /** Weekly energy by age band. */
+  energyByAge: [
+    [8, 9],
+    [12, 11],
+    [16, 12],
+    [34, 12],
+    [40, 11],
+  ] as [number, number][],
+  /** Energy lost to school work at full study focus (under 16). */
+  studyEnergy: 4,
+  /** Share of energy left in an exam week. */
+  examEnergyShare: 0.5,
+  /** Energy lost when carrying heavy fatigue. */
+  tiredEnergyPenalty: 2,
+  tiredFatigue: 65,
+  /**
+   * Fatigue recovered every week: a flat amount plus a share of the week's
+   * peak, so a sensible plan settles low and a hard one settles high.
+   */
+  weeklyRecovery: 14,
+  recoveryShare: 0.25,
+  /** Extra recovery per rest session. */
+  restRecovery: 8,
+  /** Gains fall off above this fatigue, to `tiredGainFloor` at 100. */
+  fatigueGainThreshold: 55,
+  tiredGainFloor: 0.45,
+  /** Consistency: +x per week the plan runs unchanged, capped. */
+  consistencyPerWeek: 0.01,
+  consistencyCap: 0.1,
+  /** XP per session at NORMAL intensity. */
+  xpPerSession: 6,
+  /** Comfort gained at the level trained, per NORMAL session. */
+  comfortGain: 7,
+  comfortNeighbourShare: 0.3,
+  /** Weekly drift of comfort towards 0 at levels never used, per week. */
+  comfortDecay: 0.15,
+  /** Match fitness rebuilt per match-simulation session. */
+  matchFitnessPerSim: 7,
+  matchFitnessPerWeek: 3,
+  lifestyle: {
+    sleep: {
+      SHORT: { recovery: -7, injury: 1.2, energy: 1, morale: -0.5 },
+      NORMAL: { recovery: 0, injury: 1, energy: 0, morale: 0 },
+      FULL: { recovery: 4, injury: 0.9, energy: 0, morale: 0.3 },
+    },
+    diet: {
+      CARELESS: { fitness: -1, injury: 1.12, morale: 0.3 },
+      BALANCED: { fitness: 0.3, injury: 1, morale: 0 },
+      STRICT: { fitness: 1, injury: 0.92, morale: -0.2 },
+    },
+    recovery: {
+      NONE: { recovery: 0, injury: 1, energy: 0 },
+      STRETCHING: { recovery: 2, injury: 0.93, energy: 0 },
+      FULL: { recovery: 5, injury: 0.85, energy: 1 },
+    },
+  },
+} as const;
+
+export const INJURY = {
+  /** Weekly chance of a training injury on an ordinary week. */
+  baseWeekly: 0.0035,
+  /** Extra weekly chance at 100 fatigue, rising with the square of fatigue. */
+  fatigueWeekly: 0.06,
+  /** Per unit of drill injury load (sum over sessions, intensity-weighted). */
+  loadWeekly: 0.0016,
+  /** Durability 100 takes this share off the risk. */
+  durabilityRelief: 0.5,
+  injuryProne: 1.6,
+  fitnessFreak: 0.85,
+  /** Risk multiplier for this many weeks after a rushed return. */
+  rushedMultiplier: 2.2,
+  rushedWeeks: 10,
+  /** Match fitness on return, falling with weeks out. */
+  returnMatchFitness: 78,
+  matchFitnessLostPerWeekOut: 2.2,
+  /** Rehab plans: time needed and re-injury risk afterwards. */
+  rehab: {
+    CAUTIOUS: { time: 1.25, reinjury: 0.5, passChance: 0.94 },
+    STANDARD: { time: 1, reinjury: 1, passChance: 0.84 },
+    AGGRESSIVE: { time: 0.75, reinjury: 2, passChance: 0.62 },
+  },
+  /** A lay-off this long costs selector trust, and this long a squad place. */
+  trustLossWeeks: 6,
+  trustLoss: 10,
+  squadLossWeeks: 12,
+} as const;
+
+export const FITNESS_TEST = {
+  /** Yo-yo level = base + stamina/100 x staminaScale + ... */
+  yoyoBase: 11,
+  yoyoStamina: 9,
+  yoyoFitness: 3,
+  yoyoFatigue: 2.2,
+  sprintBase: 3.78,
+  sprintSpeed: 0.95,
+  sprintFatigue: 0.003,
+  /** Selector trust moved by the result. */
+  passTrust: 2,
+  failTrust: -8,
+} as const;
+
+export const STUDIES = {
+  /** Players at school until this age. */
+  schoolUntil: 16,
+  /** Study focus below this lets grades slide. */
+  neutralFocus: 35,
+  gradeRate: 0.06,
+  examPenalty: 4,
+  /** Family unhappy below this grade. */
+  familyWorry: 45,
+  familyRate: 1.5,
+} as const;
+
+/** AI cricketers: how they are generated and how they age (Phase 6). */
+export const WORLD = {
+  /** Share of reachable level an established (selected) player has developed. */
+  developedShare: 0.9,
+  /** Each year the overall closes this share of the gap to its target. */
+  annualPull: 0.55,
+  annualNoise: 1.6,
+  declineStart: 31,
+  declinePerYear: 1.4,
+  /** Chance a player starts a season injured. */
+  seasonInjuryChance: 0.1,
+  /** Squad size for every generated side. */
+  squadSize: 17,
+} as const;
+
+/**
+ * The fast score-only sim (`engine/sim/quickMatch.ts`) used for matches the
+ * user is not in. Calibrated against the ball-by-ball engine in
+ * `quickMatch.test.ts` - change one and re-run it.
+ */
+export const QUICK_SIM = {
+  /** How strongly the batting-vs-bowling ability gap moves a batter's average. */
+  skillK: { T20: 1.45, ODI: 1.9, MULTI_DAY: 3.0 },
+  /** ...and their strike rate. */
+  srK: 0.9,
+  /**
+   * A side's day: every batter's mean in an innings is scaled by
+   * e^(spread x this), so upsets happen as often as in the full engine.
+   */
+  dayVariance: { T20: 0.66, ODI: 0.5, MULTI_DAY: 0.3 },
+  T20: {
+    average: 26,
+    strikeRate: 146,
+    position: [1, 1, 1, 1, 0.95, 0.85, 0.6, 0.42, 0.3, 0.2, 0.16],
+    extras: 8,
+    fourShare: 0.42,
+    sixShare: 0.2,
+  },
+  ODI: {
+    average: 35,
+    strikeRate: 97,
+    position: [1, 1, 1, 1, 0.95, 0.85, 0.62, 0.45, 0.32, 0.22, 0.16],
+    extras: 12,
+    fourShare: 0.4,
+    sixShare: 0.1,
+  },
+  MULTI_DAY: {
+    average: 29,
+    strikeRate: 58,
+    position: [1, 1, 1, 1, 0.97, 0.94, 0.8, 0.6, 0.45, 0.34, 0.26],
+    extras: 18,
+    fourShare: 0.5,
+    sixShare: 0.04,
+    /** Overs a day, before time lost to weather and slow over rates. */
+    oversPerDay: 48,
+    /** First innings declared on this many. */
+    declareFirst: 520,
+    /** Second innings declared once this far ahead. */
+    declareLead: 150,
+    /** Target the side batting third tries to set. */
+    fourthInningsTarget: 290,
+    /** Overs the side batting third leaves to bowl the opposition out. */
+    leaveForFourth: 80,
+  },
+} as const;
+
+/** Points tables (Phase 6). BCCI-style domestic rules. */
+export const TOURNAMENT = {
+  limited: { win: 4, tie: 2, noResult: 2, loss: 0 },
+  /** First-class: outright win, first-innings lead or deficit in a draw. */
+  firstClass: { win: 6, tie: 3, drawLead: 3, drawTrail: 1, noResult: 1, loss: 0 },
+} as const;
+
+/** Squad selection weights (Phase 6), all on a 0-100 scale. */
+export const SQUAD_SELECTION = {
+  ability: 0.6,
+  form: 0.14,
+  season: 0.14,
+  trust: 0.04,
+  reputation: 0.01,
+  discipline: 0.03,
+  /** Probables from outside the squad in contention, per role group. */
+  outsidePool: { BATTER: 3, KEEPER: 1, ALLROUNDER: 2, PACE: 2, SPIN: 2 },
+  /** How far (in potential) the outside probables are behind the squad on average. */
+  outsideBehind: 2,
+  /** Selection points per point of trial bonus (-10..10). */
+  trialWeight: 0.3,
+  /** A failed fitness test this season. */
+  failedTestPenalty: 6,
+  /** Being in possession of a place counts for something. */
+  incumbentBonus: 2,
+  /** Consecutive low scores that put an incumbent's place at risk. */
+  lowScoresToDrop: 4,
+  /** A match rating below this is a low score. */
+  lowScoreRating: 4.6,
+  /** Form and figures from cricket one level down count this much (per level). */
+  lowerLevelDiscount: 0.5,
+} as const;
+
+/** Trials and selection camps. */
+export const TRIALS = {
+  /** End-of-season trials invite players at this share of their target. */
+  inviteRatio: 0.7,
+  /** The next level's bar is this much above the current squad's. */
+  nextLevelStep: 5,
+  /** Fallback level bar (overall) by stage order, when there is no squad to compare with. */
+  stageBar: { 1: 34, 2: 44, 3: 51, 4: 57, 5: 62, 6: 62, 7: 66, 8: 68, 9: 68, 10: 68 } as Record<number, number>,
+  netsWeight: 0.9,
+  practiceWeight: 1.1,
+  fitnessPass: 1.5,
+  fitnessFail: -4,
+  /** Pushing flat out in the fitness test: better numbers, more tired. */
+  allOutYoyo: 0.4,
+  allOutSprint: 0.03,
+  allOutFatigue: 12,
+  /** Selector trust per point of trial bonus. */
+  trustPerBonus: 0.6,
+} as const;
+
+/** The end-of-season verdict. */
+export const SEASON_REVIEW = {
+  /** Chance of promotion with the target met, before the adjustments. */
+  metChance: 0.72,
+  /** Chance with the target nearly met (>= nearRatio). */
+  nearChance: 0.18,
+  nearRatio: 0.8,
+  /** Per point of next-level trial bonus. */
+  trialPerPoint: 0.035,
+  /** Per point of selector trust above 50. */
+  trustPerPoint: 0.004,
+  /** Per point of overall above the next level's bar (the next level's trials judge the rest). */
+  abilityPerPoint: 0.012,
+  abilityCap: 0.2,
+  failedFitness: -0.2,
+  notInSquad: -0.25,
+  /** Fast-track: this share of the target, and this much above the next level's bar. */
+  fastTrackRatio: 1.6,
+  fastTrackEdge: 3,
+  fastTrackChance: 0.55,
+  /** Skip a whole level with this share of the target. */
+  skipRatio: 2.1,
+  /** A season in the squad with fewer than this share of the side's matches is "on the bench". */
+  benchShare: 0.4,
+  /** Matches (as a share of the target) that count as established at a senior level. */
+  minChance: 0.04,
+  maxChance: 0.95,
 } as const;
 
 export const SAVE = {
@@ -108,6 +434,11 @@ export const SAVE = {
   autosaveEveryDays: 1,
   /** Debounce for autosave writes, in ms. */
   autosaveDebounceMs: 800,
+  /**
+   * Matches that keep every ball in the save. Older ones keep the scorecard
+   * only - a multi-day match is over a megabyte of deliveries.
+   */
+  ballByBallMatches: 2,
 } as const;
 
 /* ------------------------------------------------------------------ *
@@ -551,6 +882,15 @@ export const MATCH = {
      * multiple of the format's base wicket rate.
      */
     riskLabels: { medium: 0.6, high: 1.2, veryHigh: 2.1 },
+    /**
+     * Playing away from a comfortable level: contact lost at zero comfort.
+     * Only players with a comfort profile (the career player) are affected.
+     */
+    comfortPenalty: 0.06,
+    /** Comfort (0-100) at or above which there is no penalty. */
+    comfortableAt: 70,
+    /** The same for a bowler's skill at an unpractised bowling level. */
+    bowlingComfortPenalty: 0.05,
   },
 
   /**

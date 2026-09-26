@@ -23,6 +23,8 @@ Source of truth for rules is `CAREER_MODE.md`; source of truth for visuals is
 | `/src/types` | Data models only. No logic. |
 | `/src/engine` | Pure game logic: match sim, selection, training, progression. |
 | `/src/engine/match` | The ball-by-ball engine: delivery resolution, innings and match state machines, AI captain, DLS, post-match effects. |
+| `/src/engine/development` | Player creation, hidden potential, traits, age curve, training, injuries and rehab, fitness tests, school, XP, the career simulation. |
+| `/src/engine/calendar` | Season calendar per stage, climate by region, the weekly clock and season rollover. |
 | `/src/data` | Static data: stages, tournaments, venues, trophies, name pools. |
 | `/src/save` | 3-slot localStorage save system, autosave, export/import. |
 | `/src/store` | Zustand stores; the only bridge between engine and UI. |
@@ -127,15 +129,17 @@ bowler is not judged on their cover drive:
 | Pace bowler | 0.10 | 0.58 | 0.10 | 0.14 | 0.08 |
 | Spin bowler | 0.10 | 0.60 | 0.10 | 0.10 | 0.10 |
 
-**Growth.** Training converts into attribute points via `TRAINING` config:
-`baseWeeklyGain` × intensity multiplier × `workRate`, shrinking as an attribute
-nears its potential (`potentialFalloff`). Past `declineAge` (32) attributes fall
-by `declinePerSeason` unless maintained.
+**Growth (Phase 5).** Every player has a hidden potential (60-95) for their
+overall; per-attribute ceilings (`Player.potential`) are shaped by role,
+bowling type, batting approach and traits, then shifted as a whole so their
+role-weighted overall lands on the hidden potential. Training and growing up
+move each attribute towards `ceiling × maturity(age) − decline(age)`, with
+diminishing returns near it. See §8d.
 
-**XP and level.** `XP` config: appearance + per run + per wicket + per catch,
-scaled by tournament prestige. Level *n* costs `levelBase × n^levelCurve`.
-
----
+**XP and level.** Matches (appearance, runs, wickets, catches, prestige, plus
+bonuses for fifties, hundreds and five-fors) and training sessions earn XP.
+Level *n* costs `levelBase × n^levelCurve` (150 × n^0.83: level 12 needs
+~1,180), one curve for both (`engine/development/xp.ts`).
 
 ## 4. Player condition
 
@@ -154,10 +158,14 @@ right now. It is the single most important input to selection.
 | `recentWorkload` | overs in last 14 days | Drives workload management |
 | `reputation` | 1–99 | What selectors and scouts actually know about you |
 
-**Injuries.** `Injury` carries `severity` (NIGGLE → SEVERE), `bodyPart`,
-`expectedReturn`, `attributePenalty`, `matchesMissed` and `recurrence`.
-Per-match risk = `baseInjuryChance` (1.2%) + `fatigueInjuryChance` (up to 9%)
-scaled by fatigue, reduced by `durability`, raised by a prior `recurrence`.
+**Injuries.** `Injury` carries a `type` (hamstring, side strain, lumbar
+stress fracture, fractured finger, ankle sprain, concussion, shoulder, knee,
+groin, niggle - `src/data/injuries.ts`, each with a realistic recovery range),
+`severity` derived from the weeks out, `bodyPart`, `expectedReturn`,
+`attributePenalty` and `recurrence`. Per-match risk = `baseInjuryChance`
+(1.2%) + `fatigueInjuryChance` (up to 9%) scaled by fatigue, raised by overs
+bowled and traits, reduced by `durability`. Training has its own weekly roll
+(§8d). Injured players go into rehab (§8d).
 
 ---
 
@@ -216,48 +224,67 @@ drives commentary, the scorecard and the 2D ground view.
 
 ## 6. Selection rules and statuses
 
-### Statuses (`SelectionStatus`)
-`NOT_IN_SETUP`, `TRIALIST`, `CAMP_INVITEE`, `SQUAD`, `RESERVE`, `STANDBY`,
-`BENCH`, `PLAYING_XI`, `ROTATED`, `RESTED`, `DROPPED`, `INJURED_OUT`,
-`VICE_CAPTAIN`, `CAPTAIN`.
+Selection has two layers (Phase 6): **squads** per competition, decided by
+selectors a few times a season, and the **match-day XI**, picked fixture by
+fixture from the squad.
 
-### Selection score
-For each squad candidate (the user and every `RivalPlayer`), selectors compute:
+### Squad statuses (`SquadStatus`, `career.squads[tournamentId]`)
+`NOT_SELECTED`, `TRIAL_ONLY` (invited to trials, waiting on a decision),
+`PROBABLES` (the wider group outside the match squad), `RESERVE` (next in
+line), `SQUAD`, `DROPPED`, `FAST_TRACK` (straight into the squad after an
+outstanding season). Only `SQUAD` and `FAST_TRACK` make the side's fixtures
+the player's own (`involvesUser`); otherwise the AI plays them and the
+player plays club cricket. Match day then adds `PLAYING_XI`, `TWELFTH_MAN`
+and `BENCH` (`engine/career/selection.ts`), and the coach moves the batting
+position and bowling usage with form and trust.
+
+### Squad score (`engine/career/squads.ts`, `SQUAD_SELECTION` in config)
+The player is ranked against everyone in their **role group** (batters,
+keepers, all-rounders, seamers, spinners): the side's AI squad plus a few
+**outside probables** generated at the side's level (the rest of the state
+is in contention too).
 
 ```
-score = abilityWeight    (0.40) × overall
-      + formWeight       (0.35) × form
-      + reputationWeight (0.15) × reputation
-      + teamNeedWeight   (0.10) × role-matches-team-need
+score = 0.60 × overall
+      + 0.14 × recent form   (last 8 match ratings, newest weighted most)
+      + 0.14 × season index  (the season's figures against the same peers)
+      + 0.04 × selector trust + 0.01 × reputation + 0.03 × discipline
+      - fitness below 70, a failed fitness test this season (-6)
+      + trial bonus × 0.3, + 2 for a player in possession
 ```
 
-Then:
+Figures and ratings from cricket below the competition's level count half per
+level down (club runs barely move the U-19 selectors).
 
-- **Hard gates.** `fitness < minFitness` (65) or an active injury → `INJURED_OUT`.
-  Over the stage's `ageLimit` → not eligible for that age-group competition.
-- **The XI.** Top 11 eligible by score, subject to a balanced side (openers, a
-  keeper, enough bowling). The rest of the top 15 are `SQUAD` / `BENCH`.
-- **Bench.** `poorMatchesBeforeBench` (3) consecutive ratings below par → `BENCH`.
-- **Dropped.** `benchedMatchesBeforeDrop` (4) consecutive matches benched, or
-  form collapse → `DROPPED`, and the career falls back a stage.
-- **Rotation and rest.** High `recentWorkload` or high fatigue in a congested
-  block → `ROTATED` / `RESTED` (no form penalty; it still costs you matches).
-- **Comeback.** A dropped player re-enters through `TRIALIST` → `CAMP_INVITEE` →
-  `SQUAD`, and `CareerState.comebacks` increments.
-- **Leadership.** High `leadership` + reputation + seniority → `VICE_CAPTAIN`,
-  then `CAPTAIN` (stage 19).
-
-Difficulty (`CASUAL` / `REALISTIC` / `BRUTAL`) scales rival `selectorFavour` and
-squad strength.
+- **Hard gates.** Age-group cut-offs by date of birth: under X on 1 September
+  of the season year (`engine/career/eligibility.ts`). A long injury → `RESERVE`.
+- **Newcomers** need to rank inside the XI places plus one cover
+  (`SQUAD_CUT`: 5 batters, 1 keeper, 3 all-rounders, 3 seamers, 3 spinners);
+  inside the wider group (`SQUAD_PLACES`) they are `PROBABLES`, one past it
+  `RESERVE`.
+- **Incumbents** keep the place while they stay in the wider group; four low
+  scores in a row (rating < 4.6) or falling out of it → `DROPPED`.
+- **When the selectors sit:** at trials and camps, at the season's selection
+  meetings (senior: the Ranji squad in October, the white-ball squads in
+  November), before a competition's first match for anyone still on
+  `TRIAL_ONLY`, every 28 days for a player outside the squad (call-ups only),
+  and after the fourth low score.
+- Every decision is announced in the inbox with its reason ("Dropped from the
+  Cooch Behar Trophy squad after 4 low scores; X comes in", "picked ahead of Y
+  for a better strike rate").
 
 ---
 
 ## 7. Save system
 
-Three slots in `localStorage`, keys `cricket-career:slot:{1,2,3}` with a
-matching `cricket-career:meta:{n}` header so the slot picker never has to
-deserialise a whole career. `cricket-career:active-slot` remembers where to
-resume.
+Three slots. Careers live in **IndexedDB** (`idb-keyval`, store
+`cricket-career/saves`), held in an in-memory cache and written through
+(`src/save/slotCache.ts`), so the save API stays synchronous. localStorage
+holds only the small `cricket-career:meta:{n}` headers (the slot picker never
+deserialises a career), `cricket-career:active-slot` and settings. On first
+load old localStorage careers are copied to IndexedDB, verified, and removed.
+Background write failures go through `onSaveError` and every failure shows a
+toast. Settings shows the storage used against the quota and each slot's size.
 
 - **Autosave** — debounced (`autosaveDebounceMs` 800 ms), flushed on
   `beforeunload` and on tab hide. Every gameplay mutation goes through
@@ -272,7 +299,21 @@ resume.
   careers must keep loading. v2 (Phase 3): shot geometry, selector trust.
   v3 (Phase 4): captaincy, relationships, media reputation, team morale, the
   dev captain toggle. v4: the player's 1-5 batting and bowling aggression
-  (`career.aggression`, default 3/3).
+  (`career.aggression`, default 3/3). v5 (Phase 5): `player.development`
+  (hidden potential from the old `potentialOverall`, traits drawn from the
+  seed, comfort around the saved aggression, rehab for a current injury),
+  the session-based `trainingPlan` (old slots mapped to the matching drills),
+  `calendar` (the rest of the current season generated after the last
+  existing fixture) and older matches archived to scorecards. v6 (Phase 6):
+  squad places for the current stage (a career in progress keeps its
+  places), the career path, season reviews, trials, low-score and drop
+  counts; AI players get a date of birth, a season line and a history in
+  place of a full record; tournament records without tables are dropped.
+  The season in progress carries on as scheduled.
+- **Size** - a multi-day match is over 1 MB of deliveries and a browser gives
+  an origin ~5 MB, so only the latest `SAVE.ballByBallMatches` (2) matches
+  keep every ball (`engine/match/archive.ts`); older ones keep full
+  scorecards. The Matches screen says so where the charts would be.
 - **Errors** — `STORAGE_UNAVAILABLE`, `QUOTA_EXCEEDED`, `NOT_FOUND`, `CORRUPT`,
   `WRONG_APP`, `UNSUPPORTED_VERSION`, `UNKNOWN`. Nothing throws.
 
@@ -290,28 +331,31 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 | Screen | Route | Contents |
 |---|---|---|
 | **Home** | `/` | Hero banner, OVR/Form/Fitness/Morale tiles, Next Match, 20-stage stepper, Upcoming Schedule, Training Focus, Player Stats, Inbox, Recent Match, Skill radar, Trophies, Community |
-| **Career Path** | `/career` | Full 20-stage path, per-stage steps, requirement progress, career event timeline |
-| **Calendar** | `/calendar` | Season calendar of fixtures, camps, trials, assessments; advance-day control |
-| **Training** | `/training` | Weekly plan editor, drill slots and intensity, fatigue/injury-risk preview, attribute growth |
+| **Career Path** | `/career` | 20-stage stepper, squad places, next targets with progress, the path taken, every stage with its target, turning points — **built in Phase 6** |
+| **Calendar** | `/calendar` | Month and list views colour-coded by event type, season windows, monthly climate, filters — **built in Phase 5** |
+| **Training** | `/training` | Weekly plan within the energy budget, expected gains, fatigue and injury-risk preview, lifestyle, school, aggression comfort, fitness tests, coach hints, overall by age — **built in Phase 5** |
 | **Matches** | `/matches` | Fixture list, results, links to live match and scorecards |
-| **Selection / News** | `/selection` | Current status, selector feedback, squad list, rivals for your spot, inbox/news feed |
+| **Tournaments** | `/tournaments` | Points tables, bracket, run and wicket leaders with the player's rank, fixtures and results, awards — **built in Phase 6** |
+| **Selection / News** | `/selection` | Squad places and reasons, Competition for places, announcements, media and rival news, trials — **built in Phase 6** |
 | **IPL Auction** | `/auction` | Scouting reputation, franchise interest, trials, auction lots and outcomes |
 | **Stats** | `/stats` | Career and season stats by format and competition, charts (recharts) |
 | **Awards** | `/awards` | Trophy cabinet, milestones, series and tournament awards |
 | **Community** | `/community` | Fan and media reaction feed |
-| **Settings** | `/settings` | Slots, autosave, export/import, difficulty, commentary detail, accessibility |
+| **Settings** | `/settings` | Storage used (IndexedDB) and slot sizes, autosave, save now, export, slots — storage **built in Phase 6** |
 
 ### Supporting screens
 
 | Screen | Route | Contents |
 |---|---|---|
-| **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import, player creation — **built in Phase 2** |
+| **Start** | `/start` | Title screen on `banner-bg.jpg`: Continue, New Career, Load slot, Import save, the demo career — **built in Phase 5** |
+| **Slot Picker / New Career** | `/slots`, `/new` | 3 save slots, create / load / delete / import; the four-step creation wizard (Phase 5) |
+| **Rehab** | `/training/rehab` | Injury, rehab plan, return-to-play test, early return, injury record — **built in Phase 5** |
 | **Live Match** | `/match/:fixtureId` | Selection and role, toss, 2D ground with the player's controls (and captain's, when appointed), innings break, post-match with career effects and press — **built in Phase 4** |
 | **Scorecard** | `/matches/:matchId` | Full innings scorecards, fall of wickets, bowling figures, charts, commentary — **built in Phase 4** |
 | **Squad / Team** | `/team/:id` | Squad list, XI, rivals, team needs |
 | **Player Profile** | `/player/:id` | Attributes, radar, condition, full record |
-| **Tournament** | `/tournament/:id` | Standings, fixtures, knockout bracket |
-| **Season Review** | `/season/:year` | Season summary, awards, progression verdict |
+| **Trial** | `/trial/:fixtureId` | Nets approach, fitness effort, practice match, the verdict — **built in Phase 6** |
+| **Season Review** | `/season-review` | Verdict and reasons, figures, targets, squads, awards, coach's report, next goal — **built in Phase 6** |
 | **Retirement** | `/retirement` | Final career statistics and legacy summary |
 
 ---
@@ -495,6 +539,257 @@ layers; motion is SVG `animateMotion`.
 
 ---
 
+## 8d. Career, development, training and calendar (built in Phase 5)
+
+### New career
+`/start` is the title screen; a browser that has never played lands there (the
+demo career is an option, not seeded). The wizard (`/new`) asks for name, age
+8-12 and birthday (the date of birth is derived so the age is exact on
+1 June 2026), hometown (38 Tamil Nadu districts first, then towns in every
+other state; the state follows), role (batter / bowler / all-rounder /
+wicketkeeper), batting hand, batting style (anchor / stroke-maker /
+finisher), bowling type (right/left-arm fast, right/left-arm medium, off-spin,
+leg-spin, left-arm orthodox, left-arm wrist spin, none), jersey number,
+preferred aggression (1-5) and 2-3 personality traits, then previews day one
+with the same seed the career will use. Roles map onto the engine's roles
+(an anchor batter opens, a spin bowler is a `SPIN_BOWLER`, ...).
+
+`engine/development/creation.ts`: hidden potential is the mean of three
+uniforms stretched to 60-95 (most players low 70s). Ceilings = potential +
+role/style/approach/trait offsets + noise, calibrated to the potential.
+Starting attributes = `reachable(ceiling, age) × U(0.66, 0.84)`.
+
+### Traits (`src/data/traits.ts`)
+| Trait | Effect |
+|---|---|
+| Hard worker | Training ×1.15; work-rate and discipline ceilings up |
+| Big-match temperament | +12 temperament in knockouts / prestige ≥ 60 |
+| Nervous starter | −5 temperament ceiling, −5 temperament in every match |
+| Injury-prone | Injury chance ×1.6, slower recovery, lower durability ceiling |
+| Natural leader | Leadership ceiling +14; captaincy relief |
+| Fitness freak | Injury ×0.85, faster recovery, +1 energy, fitness ceilings up, decline a year later |
+| Late bloomer / Early bloomer | Maturity curve 1.8 years behind / 1.2 ahead; coaches under/over-rate while young |
+| Quick learner | Training ×1.12 |
+| Easily distracted | Training ×0.88; discipline and concentration ceilings down |
+
+Exclusive pairs (hard worker / distracted, big match / nervous, prone /
+freak, late / early) cannot be picked together.
+
+### Age curve (`engine/development/curves.ts`, `DEVELOPMENT` in config)
+- **Maturity** — share of a ceiling reachable at an age: 0.36 at 8, 0.53 at
+  12, 0.73 at 16, 0.9 at 20, 1.0 from 24.
+- **Learning rate** — multiplier on training: 1.2 at 8, 1.35 at 13, 1.1 at
+  20, 0.55 at 26, 0.32 at 30, 0.2 at 33.
+- **Decline** — from 31.5 the ceiling falls and the current level erodes
+  weekly: batting 1.3 / bowling 1.6 / fielding 1.9 / physical 3.0 / mental 0
+  points a year, rising to 3 / 3.5 / 4 / 5.5 / 0.5 from 35.5. Mental keeps
+  growing with experience until 34.
+
+### Training (`engine/development/training.ts`, `TRAINING` in config)
+A plan is up to 7 sessions (`TrainingSession`: drill, LIGHT/NORMAL/HARD,
+practised aggression). 18 drills in `src/data/drills.ts`: nets vs pace, vs
+spin, power hitting, defence; line & length, pace & seam, variations, death
+bowling, spin; fielding & catching, wicketkeeping; strength, speed &
+agility, endurance; temperament, focus; match simulation; rest. Drills a
+player cannot use (spin for a seamer, keeping for a non-keeper) are skipped.
+
+- **Energy** — 9 a week at 8, 11 at 12, 12 from 16 (11 at 40). Light 1,
+  Normal 2, Hard 3, rest 0. Sessions run in order until the energy is spent.
+  −2 when fatigue ≥ 65; +1 for late nights (sleep); −1 for the full recovery
+  routine; up to −4 for school work (study focus) under 16; ×0.5 in exam weeks.
+- **Gain per session per target** = 0.52 × target weight × intensity (0.55 /
+  1 / 1.45) × learning rate(age) × traits × coach (0.85 + 0.3 × quality) ×
+  work rate (0.8 + 0.35 × workRate) × fatigue (falls to 0.45 above 55) ×
+  confidence (0.95-1.05) × consistency (+1% a week unchanged, max +10%) ×
+  headroom (1 − e^(−room/9), room = reachable − current).
+- **Growing up** — every attribute creeps 5% of a session's rate towards the
+  reachable level each week.
+- Gains accumulate fractionally in `development.progress`; whole points pay out.
+- **Fatigue** — each session adds its drill's fatigue × intensity (0.5 / 1 /
+  1.75). Weekly recovery = 14 + 25% of the week's peak + 8 per rest session
+  + lifestyle + traits. A sensible plan settles low; a hard one settles ~70.
+- **Comfort** — training at a level adds 7 × intensity × (1 − comfort) there
+  and 30% of that either side; unused levels fade slowly. In a match, the
+  player's contact drops by up to 0.06 (bowling skill by 0.05) in proportion
+  to how far below 70 their comfort is at the level they play
+  (`comfortShortfall`); matches also build comfort at the level used.
+- **Lifestyle** — sleep (late nights / normal / full), diet (anything goes /
+  balanced / strict), recovery (none / stretching / ice + physio): small
+  energy, recovery, fitness, morale and injury multipliers.
+- **School (under 16)** — study focus 0-100: below 35 grades slide; exam
+  weeks at low focus cost more; grades under 45 upset the family, and a
+  family below 35 costs morale. Exam results arrive in the inbox.
+- **Coach** — a weekly note in the inbox and on the Training screen;
+  monthly the coaches' potential estimate moves towards the truth (noisy when
+  young, biased by bloomer traits and recent form) and their hints are
+  rewritten. The radar's "Potential" is this estimate, never the truth.
+
+### Injuries and rehab (`engine/development/injuries.ts`, `INJURY`)
+Weekly training chance = (0.35% + 6% × fatigue² + 0.16% × load) ×
+(1 − 0.5 × durability) × traits × lifestyle × 2.2 if rushed back in the last
+10 weeks. Type is weighted by role (side strains and stress fractures for
+fast bowlers, more so when young and bowling a lot; fingers for keepers;
+concussion only in matches). Rehab plans: cautious (×1.25 time, ½ re-injury,
+94% test pass), standard, aggressive (×0.75, counts as rushed, 62%). After
+the weeks, a return-to-play test; a fail adds 1-2 weeks. From halfway the
+player may return early (rushed). On return match fitness is 88 − 2.2 per
+week out (min 40); it feeds match-day fitness (`simFromUser`) and is rebuilt
+by match simulation and matches. Six weeks out costs 10 selector trust;
+twelve costs the squad place (`RESERVE`).
+
+### Fitness tests (`fitnessTest.ts`)
+Yo-yo = 11 + 9 × stamina + 3 × (fitness − 75) − 2.2 × fatigue (±0.7);
+sprint (20 m) = 3.78 − 0.95 × speed + 0.003 × fatigue. Pass marks: beginner
+12 / 3.85 s, district 13.5 / 3.65, U-16 15 / 3.5, U-19 16 / 3.4, senior
+16.5 / 3.3, India 17.1 / 3.2. Pass +2 selector trust, fail −8.
+
+### Form
+Form and confidence chase match ratings (aftermath); three ratings ≥ 7 is a
+hot streak (+4 confidence), three ≤ 4.5 a slump (−4). In weeks without a
+match both drift back towards normal.
+
+### Calendar (`engine/calendar`)
+- **Season** — 1 June to 31 May. `buildSeasonCalendar` builds windows and
+  fixtures for the current stage only, from `src/data/schedule.ts`: school
+  terms, holidays and exams (quarterly Sep, half-yearly Dec, annual Mar; Class
+  10 boards at 15) while under 16; school league on Saturdays and club league
+  on Sundays for beginners; district league Aug-Feb; Vijay Merchant Nov-Jan;
+  Vinoo Mankad Oct; Cooch Behar Nov-Jan; C.K. Nayudu Oct-Feb; Ranji Oct-Nov
+  and late Jan; SMAT Nov-Dec; Vijay Hazare Dec-Jan; IPL late Mar-May;
+  Duleep Aug-Sep; Irani Oct; India A tours Jun-Jul; bilaterals Sep-Oct and
+  Jan-Mar; ICC events in their years (T20 WC even years, ODI WC 2027/2031,
+  Champions Trophy 2028-29, WTC final odd Junes, U-19 WC even Januaries).
+  Plus each stage's trials, camps, fitness tests and selection meetings,
+  travel days before away state-level matches, recovery days after long
+  ones, and the birthday. Matches avoid exams and never overlap.
+- **Sides** (`sides.ts`) — fictional schools, clubs and franchises; district,
+  state, zone and national sides by name; strengths by level tuned to the
+  age curve (school 25, club 30, district 37, U-16 46, U-19 53, U-23 59,
+  senior 65, zone 70, franchise 71, India 77). A team already in the save
+  (by id or name) is reused.
+- **Clock** (`advance.ts`) — `advanceWeek` ticks day by day: events run on
+  their day (fitness tests, trial verdicts from the player's level, camps
+  raise coach quality, birthdays age the player, rest and travel move
+  fatigue); it stops on the morning of a match and waits (`pendingFixtureId`)
+  until it is played or simmed. The days advanced then run one
+  `developmentWeek` (training scaled to the share of the week, rehab, school,
+  form drift, monthly coach review, XP). Crossing 31 May files the season and
+  generates the next.
+- **Climate** (`climate.ts`) — rain, heat and dew by region and month (Tamil
+  Nadu's north-east monsoon Oct-Dec; Kerala and the west coast Jun-Sep; hot
+  northern summers and dewy winters). `createWeather(rng, month, region)`
+  reshapes the weather draw and temperature for the venue's region with the
+  same random draws; without a region it is unchanged, so the balance suite
+  and live/sim parity hold.
+
+### Dashboard
+Upcoming Schedule, Next Match, Inbox, the four hero tiles, Lv/XP and the
+Skill radar all read live state. Training Focus shows this week's plan by
+kind of work with its share of the energy (rest shows fatigue). The Continue
+bar (every screen) shows the date, the month's climate, exam and injury
+status, and becomes Play / Sim on a match day.
+
+---
+
+## 8e. Selection, tournaments and career stages 1-10 (built in Phase 6)
+
+### World (`engine/world`)
+- Every side in a competition has a persistent 17-player squad of
+  `RivalPlayer`s with role, attributes, age and date of birth, form, a hidden
+  potential and a season line. Names come from regional pools
+  (`src/data/names.ts`) - Tamil, Kannada, Telugu, Malayalam, Marathi,
+  Gujarati, Bengali, Punjabi, Hindi belt, North-east, and national pools for
+  the 15 fictional-named U-19 nations - with famous real players blocked.
+- Level profiles (`LEVELS` in `world/teams.ts`): ages, potential and how
+  developed each level is, from school (10-13) to senior state (20-33).
+  Weaker associations and minnow nations are a little weaker.
+- Each 1 June (`progressWorld`): everyone ages and develops or declines, the
+  season is archived to their history, age-group players over the cut-off
+  leave (the better ones step up to the next side in the state: U-16 → U-19
+  → U-23 → senior), the oldest retire, the worst performers are dropped,
+  squads are refilled by role. Changes around the player's own sides are an
+  inbox digest. Sides with nothing to play keep their names, not their squads.
+
+### Tournaments (`engine/tournament`, `data/tournamentStructures.ts`)
+- Real structures for stages 1-10: school and club leagues, the district
+  league (2 groups + semis), Vijay Merchant, Vinoo Mankad, Cooch Behar,
+  C.K. Nayudu, U-23 State A, Ranji (4×8, two windows), Vijay Hazare and
+  Mushtaq Ali (4×8), India U-19 bilaterals (5 legs) and the U-19 World Cup
+  (even years, 4×4 against fictional-named nations).
+- Round-robin by the circle method; brackets seeded A1 v B2 with group
+  winners in opposite halves. Knockouts are settled on the day: a drawn
+  first-class knockout goes to the first-innings lead, a tie to a super over.
+- Points: limited overs 4 / 2 (tie, no result) with net run rate (all out
+  counts the full quota); first-class 6 for a win, 3 / 1 for a first-innings
+  lead / deficit in a draw, quotient as tie-break.
+- Every match the player is not in is played on the **fast sim**
+  (`engine/sim/quickMatch.ts`): score-only, calibrated against the ball-by-
+  ball engine (`calibrate.ts`) for first-innings totals, top-order averages
+  and strike rates, how often the stronger side wins, and draws.
+- Results feed the table, the run and wicket lists, the bracket, the AI
+  players' season lines and form, and at the end the trophy and awards
+  (champion, top scorer, leading wicket-taker, player of the tournament).
+  Finished competitions are filed compactly in `seasonHistory`.
+
+### Trials (`engine/career/trials.ts`)
+A trial or selection camp stops the clock like a match. The player chooses a
+nets approach (solid / positive / show them - more spread, more risk) and a
+fitness-test effort (steady / flat out - better numbers, more fatigue); the
+practice match is Probables A v B on the fast sim. The day is worth -10 to
++10 (`TRIALS` in config). A squad trial decides that season's squads on the
+spot; an end-of-season trial for the next level (by invitation, at 70% of
+the target) feeds the season review. "Let the coach decide" plays it with
+the default choices (as does the headless simulation).
+
+### Stage targets and season review (`data/stageTargets.ts`, `career/season.ts`)
+- Every stage 1-10 shows a visible target for the next step, e.g. State
+  U-16: 300 runs at 35 or 15 wickets in the Vijay Merchant, 4+ matches, pass
+  the fitness test. Only that level's competitions count.
+- 1 June, before anything else: `reviewSeason`.
+  - **Promote** (to the next stage the player is young enough for, as
+    `TRIAL_ONLY`): 72% with the target met, 18% at 80% of it, moved by the
+    next-level trial, trust, ability against the next level (capped), a
+    failed fitness test and not having been in the squad (`SEASON_REVIEW`).
+  - **Fast-track**: 160% of the target and clearly above the next level →
+    straight into its squad; at 210% a level can be skipped (as probables).
+  - **Aged out**: too old for the stage next season and not promoted → on to
+    the next stage they are young enough for, without the missed level
+    (marked passed over).
+  - **Stay**, **Bench** (under 40% of the side's matches), **Dropped**
+    (dropped and not back), **Comeback** (dropped and back in the side).
+- Senior (stages 7-10): separate Ranji, Vijay Hazare and Mushtaq Ali squads.
+  A senior debut completes stage 7 on the day; meeting the "established"
+  target in a format completes stage 8, 9 or 10.
+- The review goes to the inbox and the Season Review screen, the season to
+  `career.path`, and the stage records to `career.stages`.
+
+### Fixtures that are the player's
+Squad places switch a competition's remaining fixtures to the player
+(`involvement.ts`). Juniors play club cricket alongside; seniors only when
+they are in no squad. When two of the player's matches overlap, the smaller
+competition plays without them. India U-19 players also play for their state.
+
+### Screens
+- **Trial** (`/trial/:fixtureId`): the choices, then nets, fitness test and
+  practice match revealed in turn, then the selectors' verdict and squads.
+- **Career Path** (`/career`): the 20-stage stepper, current squad places,
+  next targets with progress, the path taken season by season, every stage
+  with its target and dates, and the turning points.
+- **Selection / News** (`/selection`): squad places with reasons and the
+  Competition for places table per competition (the player among their role
+  group, with XI / squad / outside), announcements, media and rival news,
+  trials attended.
+- **Season Review** (`/season-review`): the verdict and reasons, the season's
+  figures, the targets, squads, awards, the coach's report and next season's
+  goal. The Continue bar opens it when a season ends.
+- **Tournaments** (`/tournaments`): points tables per group (NRR or
+  first-innings lead and quotient), the bracket, run and wicket leaders with
+  the player's rank, fixtures and results, awards and past winners.
+- **Home**: the stepper, stats tabs, trophies and inbox read the real career;
+  the journey card shows squad places and progress to the next target.
+
+---
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
@@ -503,7 +798,7 @@ layers; motion is SVG `animateMotion`.
 | 2 | Design-system components + full Home dashboard | ✅ Done |
 | 3 | Match engine (ball-by-ball, commentary, scorecards) | ✅ Done |
 | 4 | 2D ground view and live match screen | ✅ Done |
-| 5 | Selection, training and progression engines | Next |
-| 6 | Season, calendar and tournament flow | Planned |
-| 7 | IPL scouting and auction | Planned |
+| 5 | New career, development, training, injuries and calendar | ✅ Done |
+| 6 | Selection, tournaments, career stages 1-10, IndexedDB saves | ✅ Done |
+| 7 | IPL scouting and auction | Next |
 | 8 | Stats, awards, community, settings, polish | Planned |

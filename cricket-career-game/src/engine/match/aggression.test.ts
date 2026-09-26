@@ -240,3 +240,14 @@ describe('the risk of attacking depends on the situation', () => {
     );
   });
 });
+
+describe('aggression comfort (career player)', () => {
+  it('costs nothing at a comfortable level and a little far from it', async () => {
+    const { comfortShortfall } = await import('./skill');
+    const comfort = [8, 32, 82, 56, 16];
+    expect(comfortShortfall(comfort, 3)).toBe(0);
+    expect(comfortShortfall(comfort, 4)).toBeGreaterThan(0);
+    expect(comfortShortfall(comfort, 1)).toBeGreaterThan(comfortShortfall(comfort, 4));
+    expect(comfortShortfall(undefined, 5)).toBe(0);
+  });
+});

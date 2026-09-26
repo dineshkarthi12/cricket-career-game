@@ -1,3 +1,4 @@
+import type { CalendarState } from './calendar';
 import type { CareerState } from './career';
 import type { InboxMessage } from './inbox';
 import type { Match } from './match';
@@ -19,7 +20,7 @@ export const SAVE_SLOT_IDS: readonly SaveSlotId[] = [1, 2, 3] as const;
  * Bumped whenever the shape of `GameState` changes. `migrate` in
  * `src/save/migrate.ts` upgrades older saves to the current version.
  */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 6;
 
 /** The complete, serialisable state of one career. */
 export interface GameState {
@@ -39,6 +40,8 @@ export interface GameState {
   inbox: InboxMessage[];
   trophies: Trophy[];
   trainingPlan: TrainingPlan;
+  /** Season windows, the weekly clock, and a match it is waiting on. */
+  calendar: CalendarState;
   /** Id of the match currently being played, if any. */
   activeMatchId: Id | null;
   settings: GameSettings;

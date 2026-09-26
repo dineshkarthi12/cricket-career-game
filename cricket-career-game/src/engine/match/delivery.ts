@@ -13,6 +13,7 @@ import {
   batterSkill,
   bowlerSkill,
   clamp01,
+  comfortShortfall,
   matchupBonus,
   normalise,
   pacePreference,
@@ -348,8 +349,12 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   // false shots; defending, fewer.
   const aggressionContact =
     cfg.aggression.contact[intentIndex] - cfg.aggression.contact[defaultIntentIndex];
+  // Playing away from the level they are used to costs the career player a little.
+  const discomfort =
+    comfortShortfall(context.striker.aggressionComfort?.batting, context.approach.level) *
+    cfg.aggression.comfortPenalty;
   const contact = clamp01(
-    0.5 + (edge - threat * 0.55) * 0.6 + rng.spread() * 0.3 - bite * 0.18 + aggressionContact,
+    0.5 + (edge - threat * 0.55) * 0.6 + rng.spread() * 0.3 - bite * 0.18 + aggressionContact - discomfort,
   );
 
   // --- Wicket -------------------------------------------------------------

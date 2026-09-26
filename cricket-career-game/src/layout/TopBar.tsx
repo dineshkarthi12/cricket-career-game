@@ -49,7 +49,7 @@ export function TopBar({
         </button>
 
         <Link
-          to="/slots"
+          to="/start"
           title="Switch career"
           className="flex items-center gap-2.5 rounded-xl p-1 transition-colors hover:bg-surface"
         >

@@ -44,6 +44,8 @@ export interface Team {
   isUserTeam: boolean;
   /** 0-100 dressing-room mood. Feeds every player's morale on match day. */
   morale: number;
+  /** Level of cricket the squad is generated for (e.g. STATE_U16). Missing on older saves. */
+  sideKind?: string;
 }
 
 export type TeamNeed =

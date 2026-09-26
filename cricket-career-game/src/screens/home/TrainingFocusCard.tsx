@@ -1,11 +1,11 @@
 import { Card, CardHeader, ProgressBar } from '@/components';
-import { focusMeta, slotEffect } from '@/lib/training';
+import { trainingFocusRows } from '@/lib/training';
 import { cn } from '@/lib/cn';
 import type { GameState } from '@/types';
 
-/** This week's drills, each with what it improves and how far along it is. */
+/** This week's plan by kind of work, each with its share of the week. */
 export function TrainingFocusCard({ state }: { state: GameState }) {
-  const slots = state.trainingPlan.slots;
+  const rows = trainingFocusRows(state);
 
   return (
     <Card>
@@ -15,36 +15,32 @@ export function TrainingFocusCard({ state }: { state: GameState }) {
         action={{ label: 'Manage Plan', to: '/training' }}
         className="mb-2.5"
       />
-      <ul className="flex flex-col gap-2.5">
-        {slots.map((slot) => {
-          const meta = focusMeta(slot.focus);
-          return (
-            <li key={slot.id} className="flex items-center gap-3">
-              <span
-                className={cn('grid size-8 shrink-0 place-items-center rounded-xl', meta.tile)}
-                aria-hidden
-              >
-                <meta.icon className="size-[18px]" strokeWidth={2} />
+      {rows.length === 0 ? (
+        <p className="py-6 text-[13.5px] text-ink-muted">No sessions planned. Set up your week.</p>
+      ) : (
+        <ul className="flex flex-col gap-2.5">
+          {rows.map((row) => (
+            <li key={row.category} className="flex items-center gap-3">
+              <span className={cn('grid size-8 shrink-0 place-items-center rounded-xl', row.tile)} aria-hidden>
+                <row.icon className="size-[18px]" strokeWidth={2} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[12.5px] leading-[1.25] font-semibold text-ink">
-                  {meta.label}
+                  {row.label}
                 </span>
-                <span className="block truncate text-[10.5px] leading-[1.3] text-ink-soft">
-                  {slotEffect(slot)}
-                </span>
+                <span className="block truncate text-[10.5px] leading-[1.3] text-ink-soft">{row.effect}</span>
               </span>
               <ProgressBar
-                value={slot.progress * 100}
-                tone={meta.tone}
+                value={row.value}
+                tone={row.tone}
                 height={7}
                 className="w-[80px] shrink-0"
-                label={`${meta.label} progress`}
+                label={row.category === 'RECOVERY' ? 'Fatigue' : `${row.label} share of the week`}
               />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }

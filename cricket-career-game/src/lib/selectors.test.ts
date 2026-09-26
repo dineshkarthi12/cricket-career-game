@@ -57,7 +57,8 @@ describe('schedule selectors', () => {
       season: { ...state.season, currentDate: '2026-11-06' },
     };
     const dates = upcomingFixtures(past, 5).map((f) => f.date);
-    expect(dates).toEqual(['2026-11-12']);
+    expect(dates[0]).toBe('2026-11-12');
+    expect(dates.every((d) => d >= '2026-11-06')).toBe(true);
   });
 
   it('picks the next actual match, skipping camps and meetings', () => {

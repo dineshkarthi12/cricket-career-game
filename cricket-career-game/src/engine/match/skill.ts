@@ -115,6 +115,18 @@ export function batterSkill(context: DeliveryContext): number {
   return clamp01(raw * lerp(0.74, 1, settle) * (1 + set * MATCH.setBatter.skill));
 }
 
+/**
+ * 0-1 how uncomfortable a player is at an aggression level: 0 at or above
+ * `MATCH.aggression.comfortableAt`, 1 with no comfort at all. Players with no
+ * comfort profile (everyone but the career player) are never penalised.
+ */
+export function comfortShortfall(values: number[] | undefined, level: number): number {
+  if (!values) return 0;
+  const value = values[Math.max(0, Math.min(4, Math.round(level) - 1))] ?? 100;
+  const at = MATCH.aggression.comfortableAt;
+  return clamp01((at - value) / at);
+}
+
 /** 0-1, how well set the batter is beyond simply having survived a few balls. */
 export function setLevel(ballsFaced: number): number {
   const beyond = ballsFaced - MATCH.newBatter.settleBalls;
@@ -140,7 +152,10 @@ export function bowlerSkill(context: DeliveryContext): number {
       ? w.accuracy * 0.28 + w.control * 0.2 + w.pace * 0.18 + w.seam * 0.14 + w.swing * 0.12 + w.variation * 0.08
       : w.accuracy * 0.28 + w.control * 0.22 + w.spin * 0.22 + w.variation * 0.12 + w.flight * 0.1 + w.bounce * 0.06;
 
-  const raw = normalise(core) * conditionMultiplier(bowler.condition);
+  const raw =
+    normalise(core) * conditionMultiplier(bowler.condition) -
+    comfortShortfall(bowler.aggressionComfort?.bowling, context.bowlingAggression ?? 3) *
+      MATCH.aggression.bowlingComfortPenalty;
 
   // A bowler kept on too long in one spell loses their edge.
   const spellLimit =

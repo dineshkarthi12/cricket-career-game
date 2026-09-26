@@ -10,7 +10,8 @@ import type {
   SaveResult,
   SaveSlotId,
 } from '@/types';
-import { activeSlotKey, metaKey, slotKey } from './keys';
+import { activeSlotKey, metaKey } from './keys';
+import { readBlob, removeBlob, settleWrites, writeBlob } from './slotCache';
 import { migrate } from './migrate';
 import { fail, ok, readKey, removeKey, writeKey } from './storage';
 
@@ -70,8 +71,9 @@ export function saveToSlot(slot: SaveSlotId, state: GameState): SaveResult<SaveM
     return fail('CORRUPT', `Could not serialise the save: ${describe(error)}`);
   }
 
-  const stateWrite = writeKey(slotKey(slot), payload);
-  if (!stateWrite.ok) return stateWrite;
+  // The career goes to IndexedDB (in the background - a failure is reported
+  // through `onSaveError`); the small header stays in localStorage.
+  void writeBlob(slot, payload);
 
   const metaWrite = writeKey(metaKey(slot), metaPayload);
   if (!metaWrite.ok) return metaWrite;
@@ -79,17 +81,25 @@ export function saveToSlot(slot: SaveSlotId, state: GameState): SaveResult<SaveM
   return ok(meta);
 }
 
+/** `saveToSlot`, but resolves only once the career is actually on disk. */
+export async function saveToSlotAsync(slot: SaveSlotId, state: GameState): Promise<SaveResult<SaveMeta>> {
+  const result = saveToSlot(slot, state);
+  if (!result.ok) return result;
+  await settleWrites();
+  const stored = readBlob(slot);
+  return stored === null ? fail('UNKNOWN', `Slot ${slot} did not save.`) : result;
+}
+
 /** Read a career out of a slot, migrating it forward if it is from an older build. */
 export function loadSlot(slot: SaveSlotId): SaveResult<SaveFile> {
   if (!isValidSlot(slot)) return fail('NOT_FOUND', `Slot ${slot} does not exist.`);
 
-  const raw = readKey(slotKey(slot));
-  if (!raw.ok) return raw;
-  if (raw.value === null) return fail('NOT_FOUND', `Slot ${slot} is empty.`);
+  const raw = readBlob(slot);
+  if (raw === null) return fail('NOT_FOUND', `Slot ${slot} is empty.`);
 
   let parsed: GameState;
   try {
-    parsed = JSON.parse(raw.value) as GameState;
+    parsed = JSON.parse(raw) as GameState;
   } catch (error) {
     return fail('CORRUPT', `Slot ${slot} contains damaged data: ${describe(error)}`);
   }
@@ -129,8 +139,7 @@ export function listSlots(): (SaveMeta | null)[] {
 
 export function deleteSlot(slot: SaveSlotId): SaveResult<true> {
   if (!isValidSlot(slot)) return fail('NOT_FOUND', `Slot ${slot} does not exist.`);
-  const stateDelete = removeKey(slotKey(slot));
-  if (!stateDelete.ok) return stateDelete;
+  void removeBlob(slot);
   return removeKey(metaKey(slot));
 }
 

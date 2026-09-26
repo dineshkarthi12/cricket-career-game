@@ -548,4 +548,330 @@ First-class career averages against mixed opposition: 39.0 / 44.2.
 
 ---
 
-## ▶️ Next — Phase 5: selection, training and progression engines
+## ✅ Phase 5 — New career, development, training and calendar (complete)
+
+A career now runs week by week: create a cricketer at 8-12, press Continue,
+train within an energy budget, sit exams, get injured and come back, play
+the matches the calendar puts in front of you. Still a career game — the user
+controls only their own player; captain controls stay behind the captain
+flag (Phase 4).
+
+**New career flow**
+- `/start` title screen on `banner-bg.jpg`: Continue (last career), New
+  Career, Load slot (the three slots), Import save, and the Dinesh demo as an
+  option. A browser that has never played lands here — the demo is no longer
+  seeded automatically.
+- Four-step wizard (reuses `Stepper`, `Card`, `AggressionBar`): name, age
+  8-12 and birthday, hometown (38 Tamil Nadu districts first, then towns in
+  every other state), jersey number, motto; role (batter / bowler /
+  all-rounder / wicketkeeper), batting hand, batting style (anchor /
+  stroke-maker / finisher), bowling type (or none — not allowed for a
+  bowler), preferred aggression 1-5; 2-3 personality traits (exclusive pairs
+  blocked, "Surprise me"); review with the day-one attributes and the academy
+  coach's words, and the slot.
+- Starting attributes by role, style and age; a **hidden potential** (60-95)
+  the UI never shows — coaches give vague hints ("High ceiling", "Late
+  bloomer - give it time") and a noisy estimate that firms up with age.
+- Ten traits that change training gains, injury chance, recovery,
+  temperament in big matches or at the start of an innings, leadership and
+  the shape of the age curve.
+
+**Time and calendar**
+- Continue bar on every screen: date, the month's climate, exam and injury
+  status. It advances a week a day at a time and stops on a match day (Play
+  or Sim) — the week cannot go on without the match.
+- Season calendar for the player's stage only: school terms, holidays and
+  exams (Class 10 boards at 15) under 16; school and club leagues for
+  beginners; district league; Vijay Merchant, Vinoo Mankad, Cooch Behar,
+  C.K. Nayudu; Ranji, Vijay Hazare, SMAT; the IPL window; Duleep and Irani;
+  India A, bilaterals and ICC events in their years. Trials, camps, fitness
+  tests, selection meetings, travel and recovery days, birthdays. Matches
+  never clash with each other or with exams.
+- Calendar screen: month grid and list, colour-coded (match, training/camp,
+  fitness test, trial/selection, rest, travel, exams, other), season windows
+  as bands, per-month climate note, filters, Play and Scorecard links.
+- Birthdays age the player; 1 June files the season and draws up the next.
+- Weather by region and month — Tamil Nadu's north-east monsoon Oct-Dec, the
+  west-coast monsoon Jun-Sep, northern summer heat and winter dew — feeds
+  the match engine through the venue's region.
+
+**Training**
+- Weekly plan of up to 7 sessions from 18 drills (nets vs pace / spin /
+  power hitting / defence; line & length, pace & seam, variations, death,
+  spin; fielding & catching; wicketkeeping; strength, speed, endurance;
+  temperament, focus; match simulation; rest), each Light / Normal / Hard,
+  inside an energy budget that depends on age, fatigue, exams and studies.
+- Nets, bowling and match simulation practise an aggression level; comfort
+  there rises, and in matches the player loses up to 0.06 contact (bowling
+  skill 0.05) at levels they are not comfortable with.
+- Gains by age, potential, traits, coaching, fatigue, form and consistency,
+  with diminishing returns near the ceiling. Overtraining raises fatigue and
+  injury risk; rest and lifestyle (sleep, diet, recovery) bring it down.
+- Coach feedback in the inbox after every week; the Training screen shows
+  the preview (expected gains, fatigue, injury risk), last week, overall by
+  age, lifestyle, school, comfort, fitness tests and the coaches' hints.
+- Fitness tests (yo-yo + 20 m sprint) at camps with pass marks per level;
+  failing costs selector trust.
+- Under 16: study focus vs cricket; exam weeks halve training; poor grades
+  upset the family and cost morale.
+
+**Development**
+- Age curve: growth to ~24, peak ~26-31, slow decline after 32-33, faster
+  after 36; physical first, mental last.
+- XP from matches (with fifty / hundred / five-for bonuses) and training; one
+  level curve (150 × n^0.83) for both; Lv and XP bar in the top bar.
+- OVR from role-weighted attributes; form streaks (three good or bad matches
+  in a row move confidence); form drifts back to normal between matches.
+- Skill radar shows current against the coaches' estimate, never the truth.
+
+**Injuries**
+- Hamstring, side strain, lumbar stress fracture, fractured finger, ankle
+  sprain, concussion (matches only), shoulder, knee, groin and niggles, with
+  realistic recovery ranges; young fast bowlers under load get the side
+  strains and stress fractures. Causes: fatigue, workload, traits, lifestyle,
+  bad luck, matches.
+- Rehab screen (`/training/rehab`): cautious / standard / aggressive plans,
+  return-to-play test, early return from halfway (rushed: 2.2× risk for ten
+  weeks), reduced match fitness on return, injury record. Six weeks out
+  costs selector trust; twelve costs the squad place.
+
+**Dashboard** — Upcoming Schedule, Training Focus (this week's plan by kind
+of work), Inbox, Next Match, the OVR / Form / Fitness / Morale tiles, Lv/XP
+and the Skill radar all read the live career; Training and Calendar in the
+sidebar are real screens.
+
+**Save** — `SAVE_VERSION` 5. The migration derives the hidden potential from
+the old `potentialOverall`, draws traits from the seed, builds comfort around
+the saved aggression, starts rehab for a current injury, maps the old
+training slots onto drills, and generates the rest of the current season
+after the last existing fixture. A v1 save migrates all the way.
+
+**Bug found and fixed** — a multi-day match stores over 1 MB of deliveries;
+with a full season scheduled, the save passed localStorage's ~5 MB after
+three matches and autosave failed silently (a reload lost the week). Only the
+two latest matches now keep ball-by-ball; older ones keep full scorecards.
+A test plays a season and checks the save stays under 3.5 MB.
+
+### 50 careers of training only, age 10 to 35
+
+`src/engine/development/simulation.test.ts` creates 50 random players (role,
+bowling type, traits, approach) at 10 and runs the coach's plan every week
+until 35 — no matches — and asserts the bands below.
+
+| Age | OVR mean | p10 | p90 | % of potential | Bat | Bowl | Field | Phys | Mental |
+|---|---|---|---|---|---|---|---|---|---|
+| 10 | 24.3 | 20 | 28 | 32% | 23.3 | 16.2 | 22.3 | 25.2 | 25.3 |
+| 11 | 30.1 | 24 | 35 | 40% | 28.9 | 19.5 | 28.6 | 28.5 | 27.5 |
+| 12 | 33.5 | 27 | 38 | 45% | 32.2 | 21.8 | 32 | 31.3 | 30.2 |
+| 13 | 36.9 | 30 | 42 | 49% | 35.4 | 23.9 | 35.5 | 35.7 | 33.2 |
+| 14 | 40.2 | 33 | 45 | 54% | 38.6 | 26.1 | 38.9 | 39.5 | 36.1 |
+| 15 | 43.7 | 37 | 49 | 58% | 42 | 28.3 | 42.3 | 42.9 | 39.1 |
+| 16 | 47.1 | 40 | 53 | 63% | 45.2 | 30.6 | 45.6 | 46.2 | 42 |
+| 17 | 50.4 | 43 | 57 | 67% | 48.4 | 32.8 | 48.9 | 49.5 | 45.4 |
+| 18 | 53.6 | 46 | 60 | 72% | 51.5 | 34.9 | 52 | 52.5 | 48.4 |
+| 19 | 56.5 | 49 | 63 | 75% | 54.4 | 36.9 | 54.8 | 55.5 | 51.3 |
+| 20 | 59.3 | 53 | 66 | 79% | 57.1 | 38.8 | 57.4 | 58.3 | 54 |
+| 21 | 61.8 | 55 | 69 | 82% | 59.5 | 40.5 | 59.7 | 60.7 | 56.6 |
+| 22 | 64.1 | 58 | 71 | 85% | 61.7 | 42 | 61.9 | 63 | 58.9 |
+| 23 | 65.9 | 60 | 73 | 88% | 63.6 | 43.3 | 63.6 | 65 | 61 |
+| 24 | 67.4 | 61 | 75 | 90% | 65.1 | 44.4 | 64.9 | 66.6 | 62.9 |
+| 25 | 68.4 | 62 | 76 | 91% | 66 | 45.1 | 65.7 | 67.7 | 64.4 |
+| 26 | 69.1 | 63 | 76 | 92% | 66.8 | 45.6 | 66.2 | 68.6 | 65.7 |
+| 27 | 69.5 | 63 | 76 | 93% | 67.2 | 46 | 66.5 | 69.2 | 66.8 |
+| 28 | 69.9 | 64 | 77 | 93% | 67.5 | 46.3 | 66.6 | 69.7 | 67.7 |
+| 29 | 70.1 | 64 | 77 | 94% | 67.8 | 46.5 | 66.7 | 70.1 | 68.4 |
+| 30 | 70.4 | 64 | 77 | 94% | 68 | 46.7 | 66.8 | 70.5 | 69.1 |
+| 31 | 70.6 | 64 | 77 | 94% | 68.2 | 46.9 | 66.9 | 70.8 | 69.6 |
+| 32 | 70.7 | 64 | 78 | 94% | 68.3 | 47 | 66.9 | 70.8 | 70.1 |
+| 33 | 70 | 65 | 77 | 93% | 67.8 | 46.1 | 66.1 | 68.6 | 70.5 |
+| 34 | 68.7 | 63 | 75 | 92% | 66.9 | 44.6 | 64.3 | 65.8 | 70.8 |
+| 35 | 67.4 | 62 | 74 | 90% | 65.7 | 43.2 | 62.4 | 63 | 71 |
+
+Injuries per career 12.1, weeks injured 58; peak age median 29 (p10 27, p90 31).
+
+- Raw at 10 (24), state-age-group standard at 16 (47), first-class by the
+  mid-twenties (67 at 24, 90% of potential).
+- A plateau from 26 to 32 (+1.6), the peak median at 29, then −3.3 by 35 —
+  physical (−7.8 from 32) and fielding go first, batting holds better, and
+  mental keeps rising with experience.
+- The spread is real: p10-p90 is 13-14 points from 16 on, and high-potential
+  players (80+) peak well above low ones (≤ 68). Nobody passes their
+  potential; training alone reaches ~94% of it (matches add the rest).
+- About one training injury every two years, 58 weeks out over a career.
+
+**Tests — 425 passing across 35 files** (54 new): creation and potential
+calibration, traits, the age curve, training gains by age, diminishing
+returns, the gain multipliers, energy and exam weeks, comfort, fatigue and
+recovery, injury rates by workload (and fast-bowler injury types), fitness
+tests, studies, XP, streaks; calendar generation for every stage (only the
+stage's competitions, real windows, no double-booking, exams avoided, ICC
+years, travel and rest, school ending at 16), climate and the engine's
+regional weather, the weekly clock (stops for matches, fitness tests,
+birthdays, season rollover), save size over a season, the v5 migration, the
+comfort penalty, the wizard and the store. The balance suite and live/sim
+parity are unchanged.
+
+**Known limits / next**
+- Stage progression is not wired yet: the calendar is generated for the
+  current stage and the player stays there. Promotion, trials that actually
+  select, tournament standings and knockouts are Phase 6.
+- Only the player's own fixtures are simulated; other results are not.
+
+---
+
+## ✅ Phase 6 — Selection, tournaments and career stages 1-10 (complete)
+
+The career now moves. Squads are picked, tournaments are played out in full
+around the player, and seasons end with a verdict: promote, stay, bench,
+dropped, comeback, fast-track, or move on after ageing out. Nothing is
+automatic. Still a career game: the user controls only their own player;
+captain controls stay behind the captain flag.
+
+**Storage upgrade (done first)**
+- Careers moved to IndexedDB (`idb-keyval`) behind an in-memory write-through
+  cache, so the synchronous save API is unchanged; localStorage keeps only
+  slot headers, the active slot and settings.
+- Old localStorage careers are migrated automatically on first load (copied,
+  verified, removed) with a toast saying so.
+- Ball-by-ball is kept for the user's last 2 matches only; AI-vs-AI matches
+  keep results and scorecard lines.
+- Every save failure shows a toast (errors stay until dismissed); background
+  IndexedDB failures report through `onSaveError`.
+- Settings shows the storage used against the quota and each slot's size.
+- CLAUDE.md updated. Tests run on `fake-indexeddb`.
+
+**Teams and rivals**
+- Sides for every level: schools, clubs, the 38 Tamil Nadu districts, every
+  Indian state and association (38 sides), and 15 fictional-named U-19
+  nations. Names come from regional pools, with real players blocked.
+- 17-man AI squads, each player with a role, attributes, age and date of
+  birth, form, hidden potential and a season line. Each season they age and
+  develop, age-group players step up the state lineage or leave, veterans
+  retire, poor performers are dropped and replaced. Rival news reaches the
+  inbox.
+- The Competition for places panel ranks the player among their role group:
+  the squad plus outside probables at that level.
+
+**Tournaments**
+- Real structures for stages 1-10: groups, round-robins, points tables (win /
+  loss / draw / first-innings lead for multi-day, NRR for limited overs),
+  quarter-finals, semi-finals and finals, knockouts settled on the day.
+- Every other match is played on a fast score-only sim calibrated against
+  the ball-by-ball engine: T20 first innings 156 v 159, ODI 235 v 240, the
+  stronger side winning about 80% in both, four-day draws 32-43% v 37%.
+- Tournament screen: fixtures, results, points tables, the bracket, top
+  scorers and wicket-takers with the player's rank, awards and past winners.
+- Trophies for titles the player played in; individual awards (top scorer,
+  leading wicket-taker, player of the tournament); career firsts (state cap,
+  Ranji debut, first hundred, first five-for).
+
+**Selection**
+- Selectors weigh ability, recent form (last 8 matches, newest weighted
+  most), the season's figures against the rivals (lower-level cricket
+  discounted by level), fitness and fitness tests, trust, reputation,
+  discipline, incumbency and trials. Age cut-offs by date of birth (under X on
+  1 September); injuries keep players out.
+- Statuses: not selected, trial only, probables, reserve, squad, dropped,
+  fast-track; on match day playing XI, 12th man or bench. Batting position and
+  bowling usage move with form and trust (Phase 4 coach logic).
+- Squad announcements in the inbox with reasons: "Dropped from the Cooch
+  Behar Trophy squad after 4 low scores; X comes in", "picked ahead of Y for a
+  better strike rate", "in the probables, stuck behind A and B".
+- Playable trials and camps: nets (solid / positive / show them), fitness test
+  (steady / flat out) and a practice match, or let the coach decide.
+- A good player can be stuck behind a better rival; a strong season can
+  fast-track (and at 210% of the target, skip a level).
+
+**Career progression, stages 1-10**
+- Beginner → District U-14 → State U-16 → U-19 → India U-19 → U-23 → TN
+  Senior → Ranji / Vijay Hazare / Mushtaq Ali, as in CAREER_MODE.md.
+- Visible targets per stage make selection likely, never certain.
+- Ageing out: too old for a level and not promoted means moving on without it
+  (marked passed over on the Career Path).
+- India U-19 plays bilaterals and the U-19 World Cup (even years) against
+  fictional-named nations, and its players still play for their state.
+- Senior state has separate Ranji, Vijay Hazare and Mushtaq Ali squads; a
+  debut completes stage 7, and meeting the established target in a format
+  completes stage 8, 9 or 10.
+- Juniors play club cricket alongside; seniors play it only without a squad.
+  Clashes go to the bigger competition.
+
+**Screens**
+- Career Path (stepper, squad places, next targets with progress, the path
+  taken, all 20 stages, turning points), Selection / News (squads and reasons,
+  Competition for places, announcements, media and rival news, trials), Trial,
+  Season Review, Tournaments. Home's journey card shows squad places and
+  progress to the next target; the stepper, stats tabs, trophies and inbox
+  read the real career. The Continue bar handles trial days and opens the
+  season review.
+
+**Save migration v6**: squad places for the current stage, path, reviews,
+trials, low-score and drop counts; AI players converted to the new shape;
+old tournament records without tables dropped. The season in progress carries
+on as scheduled.
+
+### 100 careers from age 10 (the balance run)
+
+`CAREER_SIM=100 npx vitest run careerSim.report` plays whole careers
+headless: the real calendar, the default training plan, every match of the
+player's on the fast sim, every trial with the coach's choices, every
+selection meeting and season review, to age 30.
+
+| Stage (selected and played there) | Careers | Avg age |
+|---|---|---|
+| 1. Beginner | 100 | 9.5 |
+| 2. District U-14 | 69 | 12.2 |
+| 3. State U-16 | 57 | 14.9 |
+| 4. State U-19 | 48 | 17.4 |
+| 5. India U-19 | 8 | 18.1 |
+| 6. U-23 | 33 | 20.9 |
+| 7. TN Senior (debut) | **18** | 25.2 |
+| 8. Ranji (debut made, working to establish) | 18 | 25.3 |
+
+| Established regular (stages 8-10 completed) | Careers | Avg age |
+|---|---|---|
+| Ranji Trophy | **5** | 24.8 |
+| Vijay Hazare | 7 | 26.6 |
+| Mushtaq Ali | 8 | 26.9 |
+
+- Season outcomes over 1,956 seasons: stay 1,277, aged out 335, bench 165,
+  promote 155, dropped 17, comeback 4, fast-track 3.
+- 33 careers were dropped at least once (54 drops in all); 13 fought back
+  into the side.
+- 152 matches per career on average (age 10 to 30).
+- Against the targets: two-thirds never get past district or state
+  age-group cricket, 18% reach senior state (target 10-20%), and a few
+  (5%) become Ranji regulars.
+
+How it got there: the first run put 99% into senior cricket. Two things
+fixed it. The player's club form and trust outweighed a real ability gap, so
+ability now carries 0.60 of the score and lower-level figures count half per
+level down. And an age-group squad had only about six players per role for
+six places, so outside probables now join the contest and newcomers must
+break into the XI places plus one cover. The level profiles were then
+raised (state U-16 83, U-19 84, U-23 87.5, senior 88.5 potential) so a
+senior place needs roughly the top fifth of peaks.
+
+**Tests - 478 passing across 40 files** (53 new; the balance run is a 41st, skipped unless `CAREER_SIM` is set): points tables, NRR and quotient, bracket
+seeding, a full competition to its final, knockouts settled on the day, no
+double recording; the fast sim against the engine; age eligibility and cut-off
+dates; selection (weighted form, better and worse rivals, drops after low
+scores, incumbency, trials, the competition panel, involvement and clashes);
+trials (deterministic, showy riskier than solid, squads decided); season
+reviews (targets, stay, aged out, promotion likely but not certain, the path,
+senior debut, separate senior squads); IndexedDB persistence, migration from
+localStorage and failure toasts; the v6 migration; smoke tests for the five
+new screens.
+
+**Known limits / next**
+- Stages 11+ (IPL scouting onwards) are Phase 7: a player who establishes in
+  all three senior formats reaches IPL Scouting and keeps playing senior
+  domestic cricket until then.
+- Club cricket counts only a little towards selection; a player stuck at a
+  level for years mostly waits for ageing out or a strong season.
+- The balance run uses the coach's default trial choices; a player making
+  good choices does a little better.
+
+---
+
+## ▶️ Next — Phase 7: IPL scouting and auction

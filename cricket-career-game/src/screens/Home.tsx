@@ -20,7 +20,7 @@ export default function Home() {
   const booted = useGameStore((s) => s.booted);
 
   if (!state) {
-    if (booted) return <Navigate to="/slots" replace />;
+    if (booted) return <Navigate to="/start" replace />;
     return (
       <p className="py-20 text-center text-[14px] text-ink-muted">Loading your career…</p>
     );

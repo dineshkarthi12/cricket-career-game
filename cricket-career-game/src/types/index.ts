@@ -12,4 +12,6 @@ export * from './career';
 export * from './inbox';
 export * from './trophy';
 export * from './training';
+export * from './development';
+export * from './calendar';
 export * from './save';

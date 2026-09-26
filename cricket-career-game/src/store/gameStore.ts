@@ -10,12 +10,41 @@ import {
   listSlots,
   loadSlot,
   saveToSlot,
+  initSaveStorage,
+  onSaveError,
   scheduleAutosave,
   setActiveSlot,
 } from '@/save';
 import { downloadSave } from '@/save/file';
+import { advanceWeek as advanceCareerWeek, type AdvanceResult } from '@/engine/calendar';
+import {
+  canReturnEarly,
+  changeRehabPlan,
+  returnEarly,
+  withLifestyle,
+  withSessions,
+  withStudyFocus,
+} from '@/engine/development';
+import { applyTrial, autoTrial } from '@/engine/career/trials';
 import { SAVE_SLOT_IDS } from '@/types';
-import type { GameState, SaveError, SaveMeta, SaveSlotId } from '@/types';
+import type {
+  GameState,
+  Lifestyle,
+  RehabPlan,
+  SaveError,
+  SaveMeta,
+  SaveSlotId,
+  TrainingSession,
+  TrialRecord,
+} from '@/types';
+
+export interface Toast {
+  id: number;
+  tone: 'error' | 'info' | 'success';
+  message: string;
+}
+
+let toastSeq = 0;
 
 interface GameStore {
   /** The career currently loaded, or `null` on the slot-picker screen. */
@@ -30,13 +59,18 @@ interface GameStore {
   slots: (SaveMeta | null)[];
   lastError: SaveError | null;
   lastSavedAt: number | null;
+  /** Messages shown in the corner. Every failed save lands here. */
+  toasts: Toast[];
+  pushToast: (toast: Omit<Toast, 'id'>) => void;
+  dismissToast: (id: number) => void;
 
   refreshSlots: () => void;
   /**
-   * Resume the last career, or seed the demo career into slot 1 when this
-   * browser has never played. Safe to call more than once.
+   * Resume the last career (or the first saved one). A browser that has
+   * never played gets no career, and the start screen. Safe to call more
+   * than once.
    */
-  bootstrap: () => void;
+  bootstrap: () => Promise<void>;
   startNewCareer: (slot: SaveSlotId, options: NewCareerOptions) => boolean;
   /** Write the `design/dashboard.png` career into a slot and load it. */
   loadDemoCareer: (slot?: SaveSlotId) => boolean;
@@ -53,6 +87,23 @@ interface GameStore {
    * Every gameplay mutation should go through here.
    */
   update: (mutate: (state: GameState) => GameState) => void;
+  /**
+   * The Continue button: advance up to a week. Returns what happened, or
+   * null with no career loaded.
+   */
+  advanceWeek: () => AdvanceResult | null;
+  /** Attend the trial the clock stopped for, with a played-out record. */
+  attendTrial: (record: TrialRecord) => void;
+  /** Let the coach make the calls at the trial. */
+  coachTrial: (fixtureId: string) => void;
+  /** The season review has been read. */
+  dismissReview: () => void;
+  setSessions: (sessions: TrainingSession[]) => void;
+  setLifestyle: (lifestyle: Partial<Lifestyle>) => void;
+  setStudyFocus: (focus: number) => void;
+  setRehabPlan: (plan: RehabPlan) => void;
+  /** Come back from injury before the physio is happy. */
+  returnEarly: () => boolean;
   closeCareer: () => void;
   clearError: () => void;
 }
@@ -67,9 +118,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   refreshSlots: () => set({ slots: listSlots() }),
 
-  bootstrap: () => {
+  toasts: [],
+  pushToast: (toast) =>
+    set((s) => ({ toasts: [...s.toasts.slice(-3), { ...toast, id: (toastSeq += 1) }] })),
+  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
+  bootstrap: async () => {
     if (get().booted) return;
     if (get().state) {
+      set({ booted: true });
+      return;
+    }
+    // Careers live in IndexedDB; wait for them (and for any move from localStorage).
+    const init = await initSaveStorage();
+    if (init.ok && init.value.migrated.length > 0) {
+      get().pushToast({
+        tone: 'info',
+        message: `Moved ${init.value.migrated.length} saved career${init.value.migrated.length === 1 ? '' : 's'} to the new save database.`,
+      });
+    }
+    if (get().booted || get().state) {
       set({ booted: true });
       return;
     }
@@ -81,8 +149,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const slots = listSlots();
     const firstUsed = SAVE_SLOT_IDS.find((slot) => slots[slot - 1]);
     if (firstUsed) get().loadCareer(firstUsed);
-    else get().loadDemoCareer(1);
-    set({ booted: true });
+    set({ booted: true, slots });
   },
 
   loadDemoCareer: (slot = 1) => {
@@ -91,7 +158,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!result.ok) {
       // Storage may be unavailable (private mode, quota). The demo career is
       // still perfectly playable in memory, so show it anyway.
-      set({ state, slot: null, lastError: result.error });
+      set({ state, slot: null });
+      reportError(result.error);
       return false;
     }
     setActiveSlot(slot);
@@ -109,7 +177,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = createNewCareer(options);
     const result = saveToSlot(slot, state);
     if (!result.ok) {
-      set({ lastError: result.error });
+      reportError(result.error);
       return false;
     }
     setActiveSlot(slot);
@@ -126,7 +194,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   loadCareer: (slot) => {
     const result = loadSlot(slot);
     if (!result.ok) {
-      set({ lastError: result.error });
+      reportError(result.error);
       return false;
     }
     setActiveSlot(slot);
@@ -151,7 +219,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!state || slot === null) return false;
     const result = saveToSlot(slot, state);
     if (!result.ok) {
-      set({ lastError: result.error });
+      reportError(result.error);
       return false;
     }
     set({ slots: listSlots(), lastError: null, lastSavedAt: result.value.savedAt });
@@ -161,7 +229,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   deleteCareer: (slot) => {
     const result = deleteSlot(slot);
     if (!result.ok) {
-      set({ lastError: result.error });
+      reportError(result.error);
       return false;
     }
     const closingCurrent = get().slot === slot;
@@ -177,12 +245,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   exportSlot: (slot) => {
     const loaded = loadSlot(slot);
     if (!loaded.ok) {
-      set({ lastError: loaded.error });
+      reportError(loaded.error);
       return false;
     }
     const result = downloadSave(loaded.value.state, slot);
     if (!result.ok) {
-      set({ lastError: result.error });
+      reportError(result.error);
       return false;
     }
     set({ lastError: null });
@@ -194,7 +262,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!state || slot === null) return false;
     const result = downloadSave(state, slot);
     if (!result.ok) {
-      set({ lastError: result.error });
+      reportError(result.error);
       return false;
     }
     return true;
@@ -203,7 +271,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   importCareer: (json, slot) => {
     const result = importSaveToSlot(json, slot);
     if (!result.ok) {
-      set({ lastError: result.error });
+      reportError(result.error);
       return false;
     }
     setActiveSlot(slot);
@@ -225,6 +293,63 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (slot !== null) scheduleAutosave(slot, next);
   },
 
+  advanceWeek: () => {
+    const { state } = get();
+    if (!state) return null;
+    const result = advanceCareerWeek(state);
+    get().update(() => result.state);
+    return result;
+  },
+
+  attendTrial: (record) => get().update((state) => applyTrial(state, record)),
+
+  coachTrial: (fixtureId) => get().update((state) => autoTrial(state, fixtureId)),
+
+  dismissReview: () =>
+    get().update((state) => (state.career.pendingReview ? { ...state, career: { ...state.career, pendingReview: null } } : state)),
+
+  setSessions: (sessions) =>
+    get().update((state) => ({ ...state, trainingPlan: withSessions(state.trainingPlan, sessions) })),
+
+  setLifestyle: (lifestyle) =>
+    get().update((state) => ({ ...state, trainingPlan: withLifestyle(state.trainingPlan, lifestyle) })),
+
+  setStudyFocus: (focus) =>
+    get().update((state) => ({ ...state, trainingPlan: withStudyFocus(state.trainingPlan, focus) })),
+
+  setRehabPlan: (plan) =>
+    get().update((state) => {
+      const { development, condition } = state.player;
+      if (!development.rehab || !condition.injury) return state;
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          development: { ...development, rehab: changeRehabPlan(development.rehab, condition.injury, plan) },
+        },
+      };
+    }),
+
+  returnEarly: () => {
+    const { state } = get();
+    if (!state) return false;
+    const { development, condition } = state.player;
+    if (!condition.injury || !canReturnEarly(development.rehab)) return false;
+    get().update((s) => ({
+      ...s,
+      player: {
+        ...s.player,
+        condition: { ...s.player.condition, injury: null },
+        development: returnEarly(s.player.development, condition.injury!, s.season.currentDate),
+      },
+      career: {
+        ...s.career,
+        selectionStatus: s.career.selectionStatus === 'INJURED_OUT' ? 'SQUAD' : s.career.selectionStatus,
+      },
+    }));
+    return true;
+  },
+
   closeCareer: () => {
     flushAutosave();
     set({ state: null, slot: null, slots: listSlots() });
@@ -233,9 +358,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   clearError: () => set({ lastError: null }),
 }));
 
-/** Flush any queued autosave when the tab goes away. */
+/** Record a save error and show it: nothing about saving fails silently. */
+function reportError(error: SaveError): void {
+  useGameStore.setState({ lastError: error });
+  useGameStore.getState().pushToast({ tone: 'error', message: error.message });
+}
+
+/** Flush any queued autosave when the tab goes away, and surface every save failure. */
 export function installAutosaveGuards(): () => void {
   if (typeof window === 'undefined') return () => {};
+
+  const unsubscribe = onSaveError(reportError);
 
   const flush = () => {
     flushAutosave();
@@ -250,5 +383,6 @@ export function installAutosaveGuards(): () => void {
   return () => {
     window.removeEventListener('beforeunload', flush);
     document.removeEventListener('visibilitychange', onVisibility);
+    unsubscribe();
   };
 }

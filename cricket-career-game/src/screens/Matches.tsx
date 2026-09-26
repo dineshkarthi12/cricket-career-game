@@ -7,6 +7,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Play, Trophy, Zap } from 'lucide-react';
 import { Badge, Card, CardHeader, Crest, Tabs } from '@/components';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
+import { isArchived } from '@/engine/match/archive';
 import { ballsToOvers, formatLongDate } from '@/lib/format';
 import { resultHeadline } from '@/lib/matchText';
 import { useGameStore } from '@/store/gameStore';
@@ -289,7 +290,15 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
               <Worm innings={chartInnings(match.innings, null)} />
             </div>
           </Card>
-          {shown ? (
+          {shown && isArchived(match) ? (
+            <Card>
+              <CardHeader title="Ball by ball" />
+              <p className="mt-2 text-[13px] text-ink-muted">
+                Commentary, the wagon wheel and per-over charts are kept for your latest matches only. The scorecard
+                above is complete.
+              </p>
+            </Card>
+          ) : shown ? (
             <>
               <Card>
                 <CardHeader title="Runs per over" />
