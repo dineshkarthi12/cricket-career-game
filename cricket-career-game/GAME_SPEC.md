@@ -224,48 +224,67 @@ drives commentary, the scorecard and the 2D ground view.
 
 ## 6. Selection rules and statuses
 
-### Statuses (`SelectionStatus`)
-`NOT_IN_SETUP`, `TRIALIST`, `CAMP_INVITEE`, `SQUAD`, `RESERVE`, `STANDBY`,
-`BENCH`, `PLAYING_XI`, `ROTATED`, `RESTED`, `DROPPED`, `INJURED_OUT`,
-`VICE_CAPTAIN`, `CAPTAIN`.
+Selection has two layers (Phase 6): **squads** per competition, decided by
+selectors a few times a season, and the **match-day XI**, picked fixture by
+fixture from the squad.
 
-### Selection score
-For each squad candidate (the user and every `RivalPlayer`), selectors compute:
+### Squad statuses (`SquadStatus`, `career.squads[tournamentId]`)
+`NOT_SELECTED`, `TRIAL_ONLY` (invited to trials, waiting on a decision),
+`PROBABLES` (the wider group outside the match squad), `RESERVE` (next in
+line), `SQUAD`, `DROPPED`, `FAST_TRACK` (straight into the squad after an
+outstanding season). Only `SQUAD` and `FAST_TRACK` make the side's fixtures
+the player's own (`involvesUser`); otherwise the AI plays them and the
+player plays club cricket. Match day then adds `PLAYING_XI`, `TWELFTH_MAN`
+and `BENCH` (`engine/career/selection.ts`), and the coach moves the batting
+position and bowling usage with form and trust.
+
+### Squad score (`engine/career/squads.ts`, `SQUAD_SELECTION` in config)
+The player is ranked against everyone in their **role group** (batters,
+keepers, all-rounders, seamers, spinners): the side's AI squad plus a few
+**outside probables** generated at the side's level (the rest of the state
+is in contention too).
 
 ```
-score = abilityWeight    (0.40) × overall
-      + formWeight       (0.35) × form
-      + reputationWeight (0.15) × reputation
-      + teamNeedWeight   (0.10) × role-matches-team-need
+score = 0.60 × overall
+      + 0.14 × recent form   (last 8 match ratings, newest weighted most)
+      + 0.14 × season index  (the season's figures against the same peers)
+      + 0.04 × selector trust + 0.01 × reputation + 0.03 × discipline
+      - fitness below 70, a failed fitness test this season (-6)
+      + trial bonus × 0.3, + 2 for a player in possession
 ```
 
-Then:
+Figures and ratings from cricket below the competition's level count half per
+level down (club runs barely move the U-19 selectors).
 
-- **Hard gates.** `fitness < minFitness` (65) or an active injury → `INJURED_OUT`.
-  Over the stage's `ageLimit` → not eligible for that age-group competition.
-- **The XI.** Top 11 eligible by score, subject to a balanced side (openers, a
-  keeper, enough bowling). The rest of the top 15 are `SQUAD` / `BENCH`.
-- **Bench.** `poorMatchesBeforeBench` (3) consecutive ratings below par → `BENCH`.
-- **Dropped.** `benchedMatchesBeforeDrop` (4) consecutive matches benched, or
-  form collapse → `DROPPED`, and the career falls back a stage.
-- **Rotation and rest.** High `recentWorkload` or high fatigue in a congested
-  block → `ROTATED` / `RESTED` (no form penalty; it still costs you matches).
-- **Comeback.** A dropped player re-enters through `TRIALIST` → `CAMP_INVITEE` →
-  `SQUAD`, and `CareerState.comebacks` increments.
-- **Leadership.** High `leadership` + reputation + seniority → `VICE_CAPTAIN`,
-  then `CAPTAIN` (stage 19).
-
-Difficulty (`CASUAL` / `REALISTIC` / `BRUTAL`) scales rival `selectorFavour` and
-squad strength.
+- **Hard gates.** Age-group cut-offs by date of birth: under X on 1 September
+  of the season year (`engine/career/eligibility.ts`). A long injury → `RESERVE`.
+- **Newcomers** need to rank inside the XI places plus one cover
+  (`SQUAD_CUT`: 5 batters, 1 keeper, 3 all-rounders, 3 seamers, 3 spinners);
+  inside the wider group (`SQUAD_PLACES`) they are `PROBABLES`, one past it
+  `RESERVE`.
+- **Incumbents** keep the place while they stay in the wider group; four low
+  scores in a row (rating < 4.6) or falling out of it → `DROPPED`.
+- **When the selectors sit:** at trials and camps, at the season's selection
+  meetings (senior: the Ranji squad in October, the white-ball squads in
+  November), before a competition's first match for anyone still on
+  `TRIAL_ONLY`, every 28 days for a player outside the squad (call-ups only),
+  and after the fourth low score.
+- Every decision is announced in the inbox with its reason ("Dropped from the
+  Cooch Behar Trophy squad after 4 low scores; X comes in", "picked ahead of Y
+  for a better strike rate").
 
 ---
 
 ## 7. Save system
 
-Three slots in `localStorage`, keys `cricket-career:slot:{1,2,3}` with a
-matching `cricket-career:meta:{n}` header so the slot picker never has to
-deserialise a whole career. `cricket-career:active-slot` remembers where to
-resume.
+Three slots. Careers live in **IndexedDB** (`idb-keyval`, store
+`cricket-career/saves`), held in an in-memory cache and written through
+(`src/save/slotCache.ts`), so the save API stays synchronous. localStorage
+holds only the small `cricket-career:meta:{n}` headers (the slot picker never
+deserialises a career), `cricket-career:active-slot` and settings. On first
+load old localStorage careers are copied to IndexedDB, verified, and removed.
+Background write failures go through `onSaveError` and every failure shows a
+toast. Settings shows the storage used against the quota and each slot's size.
 
 - **Autosave** — debounced (`autosaveDebounceMs` 800 ms), flushed on
   `beforeunload` and on tab hide. Every gameplay mutation goes through
@@ -285,7 +304,12 @@ resume.
   seed, comfort around the saved aggression, rehab for a current injury),
   the session-based `trainingPlan` (old slots mapped to the matching drills),
   `calendar` (the rest of the current season generated after the last
-  existing fixture) and older matches archived to scorecards.
+  existing fixture) and older matches archived to scorecards. v6 (Phase 6):
+  squad places for the current stage (a career in progress keeps its
+  places), the career path, season reviews, trials, low-score and drop
+  counts; AI players get a date of birth, a season line and a history in
+  place of a full record; tournament records without tables are dropped.
+  The season in progress carries on as scheduled.
 - **Size** - a multi-day match is over 1 MB of deliveries and a browser gives
   an origin ~5 MB, so only the latest `SAVE.ballByBallMatches` (2) matches
   keep every ball (`engine/match/archive.ts`); older ones keep full
@@ -307,16 +331,17 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 | Screen | Route | Contents |
 |---|---|---|
 | **Home** | `/` | Hero banner, OVR/Form/Fitness/Morale tiles, Next Match, 20-stage stepper, Upcoming Schedule, Training Focus, Player Stats, Inbox, Recent Match, Skill radar, Trophies, Community |
-| **Career Path** | `/career` | Full 20-stage path, per-stage steps, requirement progress, career event timeline |
+| **Career Path** | `/career` | 20-stage stepper, squad places, next targets with progress, the path taken, every stage with its target, turning points — **built in Phase 6** |
 | **Calendar** | `/calendar` | Month and list views colour-coded by event type, season windows, monthly climate, filters — **built in Phase 5** |
 | **Training** | `/training` | Weekly plan within the energy budget, expected gains, fatigue and injury-risk preview, lifestyle, school, aggression comfort, fitness tests, coach hints, overall by age — **built in Phase 5** |
 | **Matches** | `/matches` | Fixture list, results, links to live match and scorecards |
-| **Selection / News** | `/selection` | Current status, selector feedback, squad list, rivals for your spot, inbox/news feed |
+| **Tournaments** | `/tournaments` | Points tables, bracket, run and wicket leaders with the player's rank, fixtures and results, awards — **built in Phase 6** |
+| **Selection / News** | `/selection` | Squad places and reasons, Competition for places, announcements, media and rival news, trials — **built in Phase 6** |
 | **IPL Auction** | `/auction` | Scouting reputation, franchise interest, trials, auction lots and outcomes |
 | **Stats** | `/stats` | Career and season stats by format and competition, charts (recharts) |
 | **Awards** | `/awards` | Trophy cabinet, milestones, series and tournament awards |
 | **Community** | `/community` | Fan and media reaction feed |
-| **Settings** | `/settings` | Slots, autosave, export/import, difficulty, commentary detail, accessibility |
+| **Settings** | `/settings` | Storage used (IndexedDB) and slot sizes, autosave, save now, export, slots — storage **built in Phase 6** |
 
 ### Supporting screens
 
@@ -329,8 +354,8 @@ soft shadow, 20px padding; Poppins UI, Caveat for handwritten quotes; shared
 | **Scorecard** | `/matches/:matchId` | Full innings scorecards, fall of wickets, bowling figures, charts, commentary — **built in Phase 4** |
 | **Squad / Team** | `/team/:id` | Squad list, XI, rivals, team needs |
 | **Player Profile** | `/player/:id` | Attributes, radar, condition, full record |
-| **Tournament** | `/tournament/:id` | Standings, fixtures, knockout bracket |
-| **Season Review** | `/season/:year` | Season summary, awards, progression verdict |
+| **Trial** | `/trial/:fixtureId` | Nets approach, fitness effort, practice match, the verdict — **built in Phase 6** |
+| **Season Review** | `/season-review` | Verdict and reasons, figures, targets, squads, awards, coach's report, next goal — **built in Phase 6** |
 | **Retirement** | `/retirement` | Final career statistics and legacy summary |
 
 ---
@@ -666,6 +691,105 @@ status, and becomes Play / Sim on a match day.
 
 ---
 
+## 8e. Selection, tournaments and career stages 1-10 (built in Phase 6)
+
+### World (`engine/world`)
+- Every side in a competition has a persistent 17-player squad of
+  `RivalPlayer`s with role, attributes, age and date of birth, form, a hidden
+  potential and a season line. Names come from regional pools
+  (`src/data/names.ts`) - Tamil, Kannada, Telugu, Malayalam, Marathi,
+  Gujarati, Bengali, Punjabi, Hindi belt, North-east, and national pools for
+  the 15 fictional-named U-19 nations - with famous real players blocked.
+- Level profiles (`LEVELS` in `world/teams.ts`): ages, potential and how
+  developed each level is, from school (10-13) to senior state (20-33).
+  Weaker associations and minnow nations are a little weaker.
+- Each 1 June (`progressWorld`): everyone ages and develops or declines, the
+  season is archived to their history, age-group players over the cut-off
+  leave (the better ones step up to the next side in the state: U-16 → U-19
+  → U-23 → senior), the oldest retire, the worst performers are dropped,
+  squads are refilled by role. Changes around the player's own sides are an
+  inbox digest. Sides with nothing to play keep their names, not their squads.
+
+### Tournaments (`engine/tournament`, `data/tournamentStructures.ts`)
+- Real structures for stages 1-10: school and club leagues, the district
+  league (2 groups + semis), Vijay Merchant, Vinoo Mankad, Cooch Behar,
+  C.K. Nayudu, U-23 State A, Ranji (4×8, two windows), Vijay Hazare and
+  Mushtaq Ali (4×8), India U-19 bilaterals (5 legs) and the U-19 World Cup
+  (even years, 4×4 against fictional-named nations).
+- Round-robin by the circle method; brackets seeded A1 v B2 with group
+  winners in opposite halves. Knockouts are settled on the day: a drawn
+  first-class knockout goes to the first-innings lead, a tie to a super over.
+- Points: limited overs 4 / 2 (tie, no result) with net run rate (all out
+  counts the full quota); first-class 6 for a win, 3 / 1 for a first-innings
+  lead / deficit in a draw, quotient as tie-break.
+- Every match the player is not in is played on the **fast sim**
+  (`engine/sim/quickMatch.ts`): score-only, calibrated against the ball-by-
+  ball engine (`calibrate.ts`) for first-innings totals, top-order averages
+  and strike rates, how often the stronger side wins, and draws.
+- Results feed the table, the run and wicket lists, the bracket, the AI
+  players' season lines and form, and at the end the trophy and awards
+  (champion, top scorer, leading wicket-taker, player of the tournament).
+  Finished competitions are filed compactly in `seasonHistory`.
+
+### Trials (`engine/career/trials.ts`)
+A trial or selection camp stops the clock like a match. The player chooses a
+nets approach (solid / positive / show them - more spread, more risk) and a
+fitness-test effort (steady / flat out - better numbers, more fatigue); the
+practice match is Probables A v B on the fast sim. The day is worth -10 to
++10 (`TRIALS` in config). A squad trial decides that season's squads on the
+spot; an end-of-season trial for the next level (by invitation, at 70% of
+the target) feeds the season review. "Let the coach decide" plays it with
+the default choices (as does the headless simulation).
+
+### Stage targets and season review (`data/stageTargets.ts`, `career/season.ts`)
+- Every stage 1-10 shows a visible target for the next step, e.g. State
+  U-16: 300 runs at 35 or 15 wickets in the Vijay Merchant, 4+ matches, pass
+  the fitness test. Only that level's competitions count.
+- 1 June, before anything else: `reviewSeason`.
+  - **Promote** (to the next stage the player is young enough for, as
+    `TRIAL_ONLY`): 72% with the target met, 18% at 80% of it, moved by the
+    next-level trial, trust, ability against the next level (capped), a
+    failed fitness test and not having been in the squad (`SEASON_REVIEW`).
+  - **Fast-track**: 160% of the target and clearly above the next level →
+    straight into its squad; at 210% a level can be skipped (as probables).
+  - **Aged out**: too old for the stage next season and not promoted → on to
+    the next stage they are young enough for, without the missed level
+    (marked passed over).
+  - **Stay**, **Bench** (under 40% of the side's matches), **Dropped**
+    (dropped and not back), **Comeback** (dropped and back in the side).
+- Senior (stages 7-10): separate Ranji, Vijay Hazare and Mushtaq Ali squads.
+  A senior debut completes stage 7 on the day; meeting the "established"
+  target in a format completes stage 8, 9 or 10.
+- The review goes to the inbox and the Season Review screen, the season to
+  `career.path`, and the stage records to `career.stages`.
+
+### Fixtures that are the player's
+Squad places switch a competition's remaining fixtures to the player
+(`involvement.ts`). Juniors play club cricket alongside; seniors only when
+they are in no squad. When two of the player's matches overlap, the smaller
+competition plays without them. India U-19 players also play for their state.
+
+### Screens
+- **Trial** (`/trial/:fixtureId`): the choices, then nets, fitness test and
+  practice match revealed in turn, then the selectors' verdict and squads.
+- **Career Path** (`/career`): the 20-stage stepper, current squad places,
+  next targets with progress, the path taken season by season, every stage
+  with its target and dates, and the turning points.
+- **Selection / News** (`/selection`): squad places with reasons and the
+  Competition for places table per competition (the player among their role
+  group, with XI / squad / outside), announcements, media and rival news,
+  trials attended.
+- **Season Review** (`/season-review`): the verdict and reasons, the season's
+  figures, the targets, squads, awards, the coach's report and next season's
+  goal. The Continue bar opens it when a season ends.
+- **Tournaments** (`/tournaments`): points tables per group (NRR or
+  first-innings lead and quotient), the bracket, run and wicket leaders with
+  the player's rank, fixtures and results, awards and past winners.
+- **Home**: the stepper, stats tabs, trophies and inbox read the real career;
+  the journey card shows squad places and progress to the next target.
+
+---
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
@@ -675,6 +799,6 @@ status, and becomes Play / Sim on a match day.
 | 3 | Match engine (ball-by-ball, commentary, scorecards) | ✅ Done |
 | 4 | 2D ground view and live match screen | ✅ Done |
 | 5 | New career, development, training, injuries and calendar | ✅ Done |
-| 6 | Tournament flow, stage progression and promotion | Next |
-| 7 | IPL scouting and auction | Planned |
+| 6 | Selection, tournaments, career stages 1-10, IndexedDB saves | ✅ Done |
+| 7 | IPL scouting and auction | Next |
 | 8 | Stats, awards, community, settings, polish | Planned |
