@@ -107,9 +107,9 @@ function InningsScore({
   const only = innings.length === 1 ? innings[0] : null;
 
   return (
-    <span className={align === 'right' ? 'text-right' : 'text-left'}>
-      <span className="block text-[13px] font-medium text-ink">{team}</span>
-      <span className="block text-[16px] font-bold text-ink">
+    <span className={`min-w-0 ${align === 'right' ? 'text-right' : 'text-left'}`}>
+      <span className="block truncate text-[13px] font-medium text-ink" title={team}>{team}</span>
+      <span className="block text-[16px] font-bold whitespace-nowrap text-ink">
         {innings.length === 0 ? '—' : innings.map(score).join(' & ')}
         {only ? (
           <span className="ml-1 text-[13px] font-normal text-ink-soft">

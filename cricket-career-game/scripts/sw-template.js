@@ -3,12 +3,11 @@
  * - The whole app (every code-split chunk, the images and icons) is cached on
  *   install, so the game plays offline once it has been opened.
  * - Pages: network first, falling back to the cached app shell.
- * - Build assets: cache first (their names change when their content does).
- * - Google Fonts: stale-while-revalidate. */
+ * - Build assets (fonts included): cache first; their names change when
+ *   their content does. */
 const VERSION = '__VERSION__';
 const PRECACHE = __PRECACHE__;
 const APP_CACHE = `cricket-career-app-${VERSION}`;
-const FONT_CACHE = 'cricket-career-fonts';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(APP_CACHE).then((cache) => cache.addAll(PRECACHE)));
@@ -50,18 +49,6 @@ self.addEventListener('fetch', (event) => {
           caches.open(APP_CACHE).then((c) => c.put(request, copy));
         }
         return res;
-      })),
-    );
-    return;
-  }
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(
-      caches.open(FONT_CACHE).then((cache) => cache.match(request).then((hit) => {
-        const network = fetch(request).then((res) => {
-          if (res.ok || res.type === 'opaque') cache.put(request, res.clone());
-          return res;
-        }).catch(() => hit);
-        return hit || network;
       })),
     );
   }

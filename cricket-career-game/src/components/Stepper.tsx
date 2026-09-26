@@ -26,7 +26,7 @@ const NODE = 'grid size-8 shrink-0 place-items-center rounded-full text-[13px] f
  */
 export function Stepper({ steps, endLabel, className }: StepperProps) {
   return (
-    <div className={cn('no-scrollbar -mx-1 overflow-x-auto px-1 pt-1 pb-1', className)}>
+    <div className={cn('no-scrollbar relative -mx-1 overflow-x-auto px-1 pt-1 pb-1', className)}>
       <ol className="flex min-w-max items-start">
         {steps.map((step, i) => {
           const previous = steps[i - 1];

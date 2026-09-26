@@ -233,7 +233,7 @@ function SessionRow({
             const id = e.target.value as DrillId;
             onChange({ drill: id, aggression: defaultAggressionFor(id, preferred) });
           }}
-          className="h-9 min-w-0 flex-1 rounded-xl border border-line bg-surface px-2 text-[13px] text-ink focus:border-brand-blue/50 focus:outline-none"
+          className="h-9 min-w-[10rem] flex-1 rounded-xl border border-line bg-surface px-2 text-[13px] text-ink focus:border-brand-blue/50 focus:outline-none"
         >
           {CATEGORY_ORDER.map((category) => (
             <optgroup key={category} label={categoryMeta(category).label}>

@@ -51,10 +51,22 @@ export function careerSteps(state: GameState): StepItem[] {
 }
 
 /** Fixtures from today onwards, soonest first. */
+/**
+ * The player's own calendar: their sides' matches and their own training,
+ * camps and tests - not other teams' fixtures in the same competitions.
+ * Nothing once the career is over.
+ */
+function isForUser(state: GameState, fixture: Fixture, teams: Set<string>): boolean {
+  if (state.pro?.retirement.complete) return false;
+  if (fixture.kind !== 'MATCH' || fixture.involvesUser) return true;
+  return Boolean((fixture.homeTeamId && teams.has(fixture.homeTeamId)) || (fixture.awayTeamId && teams.has(fixture.awayTeamId)));
+}
+
 export function upcomingFixtures(state: GameState, limit = 5): Fixture[] {
   const today = state.season.currentDate;
+  const teams = new Set(Object.values(state.career.squads).map((p) => p.teamId));
   return Object.values(state.fixtures)
-    .filter((fixture) => !fixture.played && daysBetween(today, fixture.date) >= 0)
+    .filter((fixture) => !fixture.played && daysBetween(today, fixture.date) >= 0 && isForUser(state, fixture, teams))
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, limit);
 }

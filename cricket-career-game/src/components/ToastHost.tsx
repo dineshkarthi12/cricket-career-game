@@ -33,6 +33,7 @@ export function ToastHost() {
           <div
             key={toast.id}
             role={toast.tone === 'error' ? 'alert' : 'status'}
+            data-toast={toast.tone}
             className={cn('pointer-events-auto flex items-start gap-2.5 rounded-card border bg-surface px-3.5 py-3 shadow-card', tone.box)}
           >
             <tone.icon className={cn('mt-0.5 size-4 shrink-0', tone.iconClass)} aria-hidden />

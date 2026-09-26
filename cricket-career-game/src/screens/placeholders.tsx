@@ -4,49 +4,14 @@ import { fastForward, type FastForwardTarget } from '@/engine/dev/fastForward';
 import { simulatedStart } from '@/engine/career/careerSim';
 import type { GameState } from '@/types';
 import { useGameStore } from '@/store/gameStore';
-import Placeholder from './Placeholder';
 import SettingsPage from './settings/SettingsScreen';
-import { CaptaincyCard } from './stats/CaptaincyCard';
 
-/**
- * Every route outside Home, until its own phase builds it out. Contents come
- * straight from the screen list in GAME_SPEC.md §8.
- */
-
-
-export const StatsScreen = () => (
-  <>
-    <StatsCaptaincy />
-    <Placeholder
-      route="/stats"
-      phase="Phase 8"
-      description="Career and season figures, by format and by competition."
-      contents={[
-        'Batting, bowling and fielding records',
-        'Split by format and competition',
-        'Season-by-season charts',
-        'Records and personal bests',
-      ]}
-    />
-  </>
-);
-
+/** Settings, with the developer tools in development builds. */
 
 
 export const SettingsScreen = () => (
   <SettingsPage devTools={import.meta.env.DEV ? <DevTools /> : null} />
 );
-
-/** The captaincy record, above the rest of the Stats placeholder. */
-function StatsCaptaincy() {
-  const state = useGameStore((s) => s.state);
-  if (!state) return null;
-  return (
-    <div className="pb-4">
-      <CaptaincyCard state={state} />
-    </div>
-  );
-}
 
 /** A seed whose simulated career reaches India, the IPL, ICC events and the captaincy: good for QA. */
 const DEMO_PRO_SEED = 768144;

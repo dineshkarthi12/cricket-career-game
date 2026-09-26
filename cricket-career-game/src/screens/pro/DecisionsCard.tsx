@@ -16,7 +16,7 @@ export function DecisionsCard({ state }: { state: GameState }) {
       {offer ? (
         <div className="flex flex-wrap items-center gap-3">
           <Crown className="size-7 text-brand-gold" aria-hidden />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-[14rem] flex-1">
             <p className="text-[14px] font-semibold text-ink">Offer: {offer.role === 'CAPTAIN' ? 'captain' : 'vice-captain'} of {offer.teamName}</p>
             <p className="text-[12.5px] text-ink-muted">{offer.reason}</p>
           </div>
@@ -29,7 +29,7 @@ export function DecisionsCard({ state }: { state: GameState }) {
       {trade ? (
         <div className={`flex flex-wrap items-center gap-3 ${offer ? 'mt-3 border-t border-line pt-3' : ''}`}>
           <Repeat className="size-7 text-brand-blue" aria-hidden />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-[14rem] flex-1">
             <p className="text-[14px] font-semibold text-ink">IPL trade offer: {franchiseName(trade.franchiseId)}</p>
             <p className="text-[12.5px] text-ink-muted">They take over your contract ({formatLakh(trade.salary)}) and want you in their XI.</p>
           </div>

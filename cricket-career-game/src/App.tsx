@@ -25,7 +25,7 @@ const AwardsScreen = lazy(() => import('./screens/pro/AwardsScreen'));
 const LegacyScreen = lazy(() => import('./screens/pro/LegacyScreen'));
 const CommunityScreen = lazy(() => import('./screens/pro/CommunityScreen'));
 const SettingsScreen = lazy(() => import('./screens/placeholders').then((m) => ({ default: m.SettingsScreen })));
-const StatsScreen = lazy(() => import('./screens/placeholders').then((m) => ({ default: m.StatsScreen })));
+const StatsScreen = lazy(() => import('./screens/stats/StatsScreen'));
 
 export default function App() {
   const bootstrap = useGameStore((s) => s.bootstrap);

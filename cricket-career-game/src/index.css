@@ -7,6 +7,9 @@
  * ------------------------------------------------------------------ */
 @theme {
   /* Brand palette */
+  /* Between xl and 2xl: the width the dashboard design was drawn at (1360px). */
+  --breakpoint-wide: 85rem;
+
   --color-brand-blue: #1e5ef0;
   --color-brand-blue-soft: #e8effe;
   --color-brand-green: #22a45d;
@@ -23,7 +26,7 @@
   /* Text */
   --color-ink: #0f1b33;
   --color-ink-muted: #5b6577;
-  --color-ink-soft: #8a93a6;
+  --color-ink-soft: #6b7488;
 
   /* Typography */
   --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
@@ -213,4 +216,9 @@ html[data-reduce-motion='true'] *::after {
 }
 .skip-link:focus {
   top: 12px;
+}
+
+/* Grid items may shrink below their content (wide tables scroll inside their own wrapper instead of widening the page). */
+.grid > * {
+  min-width: 0;
 }

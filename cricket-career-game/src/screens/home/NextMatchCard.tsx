@@ -1,5 +1,5 @@
 import { MapPin, Play, Trophy, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, Crest } from '@/components';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { formatLongDate } from '@/lib/format';
@@ -15,9 +15,14 @@ export function NextMatchCard({ state, fixture }: { state: GameState; fixture: F
     return (
       <Card className="w-full">
         <h2 className="text-[18px] font-bold text-ink">Next Match</h2>
-        <p className="mt-3 text-[13.5px] text-ink-muted">
-          Nothing scheduled. Train, stay fit and wait for the selectors.
-        </p>
+        {state.pro?.retirement.complete ? (
+          <p className="mt-3 text-[13.5px] text-ink-muted">
+            The career is over.{' '}
+            <Link to="/legacy" className="font-semibold text-brand-blue">See the legacy</Link>
+          </p>
+        ) : (
+          <p className="mt-3 text-[13.5px] text-ink-muted">Nothing scheduled. Train, stay fit and wait for the selectors.</p>
+        )}
       </Card>
     );
   }
