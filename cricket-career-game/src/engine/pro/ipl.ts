@@ -31,7 +31,7 @@ export function isMegaSeason(seasonYear: number): boolean {
 export function contractEnd(seasonYear: number): number {
   let y = seasonYear + 1;
   while (!isMegaSeason(y)) y += 1;
-  return y - 1 >= seasonYear ? y : seasonYear;
+  return Math.max(seasonYear, y - 1);
 }
 
 export function iplYearLabel(seasonYear: number): string {

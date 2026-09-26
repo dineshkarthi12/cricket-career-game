@@ -37,7 +37,6 @@ export function thinMatch(match: Match, userId: string, tier: 'TRIM' | 'SUMMARY'
     archiveTier: tier,
     innings: match.innings.map((i) => trimInnings(i, userId, summary ? 0 : 4, summary ? 0 : 3)),
     fielders: [],
-    conditions: { ...match.conditions, ball: match.conditions.ball },
   };
 }
 
