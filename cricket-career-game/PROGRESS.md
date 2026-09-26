@@ -1074,7 +1074,52 @@ a leadership offer and retirement, and screenshots each screen at 1440, 820
 and 390 px (light mode) into `qa-screenshots/`, with console errors,
 horizontal overflow and fast-forward results in `qa-screenshots/console.txt`.
 
-QA_FIXES_PLACEHOLDER
+What the screenshots and logs showed, and the fixes:
+1. **Pages wider than the screen** on tablet and mobile (up to 1,277px on an
+   820px viewport): the career stepper's screen-reader labels are absolutely
+   positioned and escaped their unpositioned scroll container; grid items
+   would not shrink below wide tables. The stepper's scroller is now
+   positioned, and grid items may shrink (tables scroll inside their cards).
+2. **Dashboard vs the design at 1440px**: Next Match fell below the hero with
+   an empty half row, and the cards ran two to a row. Next Match now sits over
+   the hero and the cards run four to a row from 1360px (a `wide` breakpoint);
+   the hero's player and mottos no longer overlap; Recent Match names truncate
+   and scores never wrap.
+3. **Fonts never loaded** (Google Fonts unreachable; it would also fail on an
+   offline first launch): Poppins and Caveat are now bundled.
+4. **Training on mobile**: the drill picker collapsed to its arrow, hiding
+   the drill name.
+5. **Matches**: rows showed "C.." on mobile; "Still to play" listed every
+   unplayed fixture in the world - other teams' games with Play / Quick Sim
+   buttons - and results rendered a whole career (a 58,000px page). Now only
+   the player's fixtures, and results 30 at a time.
+6. **A stale "Match day" note** stayed on the Continue bar after the match
+   and even years later; it is now tied to its day and match. The bar hides
+   during a match or trial (its Sim button mid-match was a trap).
+7. **Home after retirement** still showed a Next Match (another team's WTC
+   final); the dashboard now shows only the player's own fixtures, and a
+   "career is over" state.
+8. **Leadership offer and journey cards** squeezed their text beside buttons
+   and chips on mobile, and pushed the progress block off the card on
+   desktop; both wrap now.
+9. **Real brands**: two media outlets used real names (Wisden, The Hindu);
+   both are fictional now.
+10. **Secondary text contrast**: `ink-soft` #8A93A6 (3.2:1) is now #6B7488
+    (4.7:1).
+11. **No error boundary**: a render error blanked the whole app (seen when a
+    QA step removed React-owned nodes); screens now fail to a Reload /
+    Dashboard card.
+12. **Dev fast-forward**: an "IPL auction" target never fired for a player
+    who joined a franchise without an auction lot; it now stops at the first
+    auction or contract.
+13. **After retirement** the journey card still showed "Not selected" chips
+    and "Next: an IPL contract"; it now says the journey is complete (fixed
+    after the final screenshot run, so 65-home-retired still shows the old
+    card).
+
+The final run: 66 screens × 3 widths, **no console errors or warnings, no
+horizontal overflow**. Mobile full-page screenshots show the fixed bottom tab
+bar mid-page - an artifact of full-page capture, not the layout.
 
 **3. Player experience**
 - First-time tutorial: five short tips (dashboard, training, match
@@ -1109,4 +1154,13 @@ must be `cricket-career-game`.
 **Tests** - new: the live impact substitute (AI, captain's choice, no
 substitute), legacy impact (All-Time Great without 150 caps, long modest
 career, what each part adds, no cameo greats), other nations' scorecards and
-rankings, difficulty (engine and selection), the v8 migration.
+rankings, difficulty (engine and selection), the v8 migration, the dev
+fast-forward. 524 tests pass; `npm run build` is clean.
+
+**Known limits**
+- The dev fast-forward runs on the main thread: a jump of many seasons
+  freezes the page for a few seconds (development builds only).
+- World rankings for other nations' players fill in from the first season
+  rollover after the national selectors start watching.
+- Full-page QA screenshots are about 25 MB per run; rerun `npm run qa` rather
+  than keeping old sets.

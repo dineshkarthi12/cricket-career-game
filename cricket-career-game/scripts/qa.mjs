@@ -65,7 +65,8 @@ async function snap(name) {
     await page.waitForTimeout(250);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     if (overflow > 1) log.push(`[${id}] horizontal overflow at ${w.width}px: ${overflow}px`);
-    await page.screenshot({ path: `${OUT}/${id}-${w.name}.png`, fullPage: true });
+    // JPEG keeps a full run around 25 MB instead of 80 MB of PNG.
+    await page.screenshot({ path: `${OUT}/${id}-${w.name}.jpg`, fullPage: true, type: 'jpeg', quality: 80 });
   }
   await page.setViewportSize(WIDTHS[0]);
   shots.push(id);
@@ -336,10 +337,10 @@ try {
 } catch (error) {
   log.push(`FAILED at ${step}: ${error.message}`);
   console.error(error);
-  await page.screenshot({ path: `${OUT}/zz-failure.png`, fullPage: true }).catch(() => {});
+  await page.screenshot({ path: `${OUT}/zz-failure.jpg`, fullPage: true, type: 'jpeg', quality: 80 }).catch(() => {});
 } finally {
   writeFileSync(`${OUT}/console.txt`, log.length ? log.join('\n') + '\n' : 'No console errors or warnings.\n');
-  writeFileSync(`${OUT}/index.txt`, shots.map((s) => `${s}: ${WIDTHS.map((w) => `${s}-${w.name}.png`).join(', ')}`).join('\n') + '\n');
+  writeFileSync(`${OUT}/index.txt`, shots.map((s) => `${s}: ${WIDTHS.map((w) => `${s}-${w.name}.jpg`).join(', ')}`).join('\n') + '\n');
   await browser.close();
   server.kill();
   console.log(`${shots.length} screens x ${WIDTHS.length} widths; ${log.length} console lines`);
