@@ -157,6 +157,42 @@ function seriesOf(state: GameState, t: TournamentState) {
 }
 
 function Series({ state }: { state: GameState }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <OwnSeries state={state} />
+      <AroundTheWorld state={state} />
+    </div>
+  );
+}
+
+/** Other nations' series this season: result, top scorers and wicket-takers. */
+function AroundTheWorld({ state }: { state: GameState }) {
+  const results = state.pro.worldResults ?? [];
+  if (results.length === 0) return null;
+  return (
+    <Card>
+      <CardHeader title="Around the world" subtitle="Other nations' matches this season - the top scorers and wicket-takers" className="mb-2" />
+      <ul className="grid gap-2 md:grid-cols-2">
+        {results.slice(0, 12).map((r, i) => (
+          <li key={`${r.date}-${i}`} className="rounded-tile bg-page px-3 py-2 text-[12.5px]">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="grey">{r.format === 'TEST' ? 'Test' : r.format}</Badge>
+              <span className="font-semibold text-ink">{r.home} v {r.away}</span>
+              <span className="ml-auto text-ink-muted">{formatLongDate(r.date)}</span>
+            </div>
+            <p className="mt-1 text-ink">{r.summary}</p>
+            <p className="mt-0.5 text-ink-muted">
+              {r.batting.map((b) => `${b.name} ${b.runs} (${b.balls})`).join(' · ')}
+              {r.bowling.length ? ` | ${r.bowling.map((b) => `${b.name} ${b.wickets}/${b.runs}`).join(' · ')}` : ''}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function OwnSeries({ state }: { state: GameState }) {
   const tournaments = state.season.tournaments.filter((t) => t.seasonYear === state.season.year && (t.tournamentId.startsWith('intl-') || t.tournamentId.startsWith('india-a')));
   if (tournaments.length === 0) return <Card><p className="text-[13px] text-ink-muted">No international or India A cricket in your calendar this season.</p></Card>;
   return (

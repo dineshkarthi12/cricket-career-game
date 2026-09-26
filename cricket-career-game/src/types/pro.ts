@@ -373,6 +373,19 @@ export interface ProState {
   timeline: CareerMilestone[];
   /** Open series, keyed by `${tournamentId}|${groupId}`, player id -> figures. */
   openSeries: Record<string, Record<string, SeriesLine>>;
+  /** Series between other nations: lightweight scorecards, newest first (missing on older saves). */
+  worldResults?: WorldResult[];
+}
+
+/** A match between two other nations, kept small: the result and who stood out. */
+export interface WorldResult {
+  date: string;
+  format: IntlFormat;
+  home: string;
+  away: string;
+  summary: string;
+  batting: { name: string; nation: string; runs: number; balls: number }[];
+  bowling: { name: string; nation: string; wickets: number; runs: number }[];
 }
 
 /** International competition ids by format (bilateral series). */

@@ -106,7 +106,7 @@ export function linesFromMatch(match: Match, quick?: Record<string, QuickPlayerL
 }
 
 /** AI players' season lines and form move with every match they play. */
-function applyToSquads(state: GameState, lines: MatchLine[]): GameState {
+export function applyToSquads(state: GameState, lines: MatchLine[]): GameState {
   const byTeam = new Map<string, MatchLine[]>();
   for (const l of lines) byTeam.set(l.teamId, [...(byTeam.get(l.teamId) ?? []), l]);
   let teams = state.teams;

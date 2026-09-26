@@ -12,6 +12,7 @@ import { isCaptainOf } from '../career/captaincy';
 import { decideSquad, rankGroup } from '../career/squads';
 import { formatOverall } from '../ratings';
 import { legacyRating } from './legacy';
+import { worldSeries } from './worldSeries';
 import { refreshProStages } from './stages';
 import { thinMatch } from '../calendar/compact';
 import { NATIONS_BY_NAME, nationTeamId } from '@/data/nations';
@@ -171,6 +172,20 @@ describe('rankings', () => {
     const list = rankingList(state, 'ODI', 'batting', 10);
     expect(list.length).toBeGreaterThan(0);
     for (let i = 1; i < list.length; i += 1) expect(list[i].rating).toBeLessThanOrEqual(list[i - 1].rating);
+  });
+
+  it('plays other nations\' series with lightweight scorecards and ranks their players', () => {
+    const state = worldSeries(proCareer(true), 2026, createRng(3));
+    const results = state.pro.worldResults ?? [];
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.home).not.toBe('India');
+      expect(r.away).not.toBe('India');
+      expect(r.batting.length).toBeGreaterThan(0);
+      for (const b of r.batting) expect([r.home, r.away]).toContain(b.nation);
+    }
+    const ranked = rankingList(state, 'ODI', 'batting', 20);
+    expect(ranked.some((e) => e.nation !== 'India')).toBe(true);
   });
 });
 

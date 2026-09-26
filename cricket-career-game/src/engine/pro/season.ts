@@ -29,7 +29,8 @@ import { mediaAfterMatch, mediaNewSeason } from './media';
 import { updateRecords } from './legacy';
 import { retirementReview } from './retirement';
 import { refreshProStages } from './stages';
-import { backgroundSeason, driftNations, pruneRankings, wtcStandings, expected } from './rankings';
+import { worldSeries } from './worldSeries';
+import { driftNations, pruneRankings, wtcStandings, expected } from './rankings';
 import { message, navigate, withInbox } from './common';
 import { AUCTION } from '../config';
 import { trialFor } from '../career/trials';
@@ -352,7 +353,7 @@ export function rolloverPro(state: GameState, year: number): GameState {
   let next: GameState = { ...state, pro: { ...s0, scouting: { ...s0.scouting, reputation, contacted: [] }, ipl } };
   next = mediaNewSeason(next);
   next = driftNations(next, rng);
-  next = backgroundSeason(next, year, rng);
+  next = worldSeries(next, year, rng);
   // The WTC cycle: two seasons, then the top two meet in a June final.
   const wtc = next.pro.wtc;
   if (year % 2 === 1 && year >= wtc.startYear + 2) {

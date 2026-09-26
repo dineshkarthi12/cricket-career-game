@@ -225,35 +225,6 @@ export function nationResult(state: GameState, r: CompactResult): { home: string
   return { home, away, winner, drawn: r.type === 'DRAW' || r.type === 'TIE' || r.type === 'NO_RESULT' };
 }
 
-/**
- * The rest of the world plays too: each season, series between other
- * nations are settled on their ratings (no scorecards), moving the team
- * rankings and the WTC table.
- */
-export function backgroundSeason(state: GameState, seasonYear: number, rng: Rng): GameState {
-  let next = state;
-  const others = NATIONS.filter((n) => n.name !== 'India');
-  for (const format of ['TEST', 'ODI', 'T20I'] as IntlFormat[]) {
-    const series = RANKINGS.backgroundSeries[format];
-    for (let s = 0; s < series; s += 1) {
-      const pool = format === 'TEST' ? others.filter((n) => n.tier !== 'ASSOCIATE') : others;
-      const home = rng.pick(pool);
-      const away = rng.pick(pool.filter((n) => n.name !== home.name));
-      const matches = format === 'TEST' ? rng.int(2, 3) : 3;
-      for (let m = 0; m < matches; m += 1) {
-        const ra = next.pro.nations[home.name].ratings[format];
-        const rb = next.pro.nations[away.name].ratings[format];
-        const pHome = expected(ra, rb, RANKINGS.homeAdvantage);
-        const drawn = format === 'TEST' && rng.chance(RANKINGS.testDraw);
-        const winner = drawn ? null : rng.chance(pHome) ? home.name : away.name;
-        next = rateTeams(next, format, home.name, away.name, winner, drawn, true);
-      }
-    }
-  }
-  void seasonYear;
-  return next;
-}
-
 /** Nations get stronger and weaker over time: their new players' potential drifts. */
 export function driftNations(state: GameState, rng: Rng): GameState {
   const nations = { ...state.pro.nations };
