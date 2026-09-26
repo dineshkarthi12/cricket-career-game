@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Database, Download, FolderOpen, Gauge, HardDrive, Lightbulb, Smartphone, Trash2, Upload } from 'lucide-react';
+import { Database, Download, FolderOpen, Gauge, HardDrive, Lightbulb, Smartphone, Trash2, Upload, Volume2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge, Card, CardHeader, ConfirmDialog, ProgressBar } from '@/components';
 import { DIFFICULTY } from '@/engine/config';
 import { storageUsage, type StorageUsage } from '@/save';
 import { readSaveFile } from '@/save/file';
 import { promptInstall, usePwa } from '@/lib/pwa';
+import { playSfx, speak, speechAvailable, unlockAudio } from '@/lib/audio/player';
+import { voiceLine } from '@/data/voiceLines';
 import { cn } from '@/lib/cn';
 import { useGameStore } from '@/store/gameStore';
 import { BALL_SPEEDS } from '@/store/matchStore';
@@ -147,6 +149,46 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
           <Row title="Reduce motion" hint="No ball-flight or pulsing animations. Also follows your system setting.">
             <Toggle label="Reduce motion" checked={app.reduceMotion} onChange={(v) => app.set({ reduceMotion: v })} />
           </Row>
+        </Card>
+
+        <Card>
+          <CardHeader title="Sound and commentary" subtitle="On this device" className="mb-1" />
+          <Row title="Sound effects" hint="Bat on ball, stumps, the crowd for fours, sixes and wickets">
+            <Toggle label="Sound effects" checked={app.soundEffects} onChange={(v) => app.set({ soundEffects: v })} />
+          </Row>
+          <Row title="Commentary voice" hint={speechAvailable() ? 'A commentator calls the sixes, fours, wickets, ducks, run outs and milestones' : 'This browser has no text-to-speech voice'}>
+            <Toggle label="Commentary voice" checked={app.commentaryVoice} disabled={!speechAvailable()} onChange={(v) => app.set({ commentaryVoice: v })} />
+          </Row>
+          <Row title="Crowd atmosphere" hint="A quiet crowd murmur while play is on">
+            <Toggle label="Crowd atmosphere" checked={app.crowdAmbience} disabled={!app.soundEffects} onChange={(v) => app.set({ crowdAmbience: v })} />
+          </Row>
+          <Row title="Button clicks" hint="A soft tick when you tap a button">
+            <Toggle label="Button clicks" checked={app.buttonClicks} disabled={!app.soundEffects} onChange={(v) => app.set({ buttonClicks: v })} />
+          </Row>
+          <Row title="Volume" hint={`${Math.round(app.volume * 100)}%`}>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round(app.volume * 100)}
+              aria-label="Volume"
+              onChange={(e) => app.set({ volume: Number(e.target.value) / 100 })}
+              className="w-40 accent-brand-blue"
+            />
+          </Row>
+          <button
+            type="button"
+            onClick={() => {
+              unlockAudio();
+              playSfx(['BAT_BIG', 'ROAR']);
+              speak(voiceLine('SIX', { batter: state ? state.player.firstName : 'you' }, String(Date.now())), 3, true);
+            }}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2 text-[12.5px] font-semibold text-ink"
+          >
+            <Volume2 className="size-3.5" aria-hidden />
+            Test the sound
+          </button>
         </Card>
 
         <Card>

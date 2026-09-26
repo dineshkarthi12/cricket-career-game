@@ -1164,3 +1164,21 @@ fast-forward. 524 tests pass; `npm run build` is clean.
   rollover after the national selectors start watching.
 - Full-page QA screenshots are about 25 MB per run; rerun `npm run qa` rather
   than keeping old sets.
+
+### Phase 8 addition - sound and spoken commentary
+
+- Match sound synthesised in the browser (no audio files): bat on ball,
+  stumps, appeal, the crowd for fours, sixes and wickets, a groan for ducks
+  and drops, applause for fifties, hundreds and five-fors, crowd murmur
+  during play, and the result.
+- A commentator speaks through the browser's text-to-speech, with a bank
+  of lines for sixes, fours, 3s, 2s, singles, dots and play-and-misses,
+  every kind of wicket, ducks and golden ducks, run outs, drops, fifties,
+  hundreds, five-fors, wides, no-balls and the result. Bigger moments cut
+  in; at speed only the big ones are spoken.
+- Settings: sound effects, commentary voice, crowd atmosphere, button
+  clicks, volume, and "Test the sound".
+- Tests: 6 new (the calls for sixes, fours, 1/2/3, ducks, golden ducks, run
+  outs of the non-striker, fifty / hundred / five-for, the result, and every
+  line filled without repeats). Checked in Chromium: lines are spoken for
+  the right moments with no console errors. 530 tests pass.
