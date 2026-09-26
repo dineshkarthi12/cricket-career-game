@@ -31,6 +31,27 @@ const SHOT_WORDS: Record<ShotType, string> = {
   RAMP: 'ramps it',
 };
 
+/** The verb for a shot that scored: a leave or a block that ran away is steered or nudged. */
+const SCORING_VERB: Record<ShotType, string> = {
+  DEFEND: 'pushes',
+  LEAVE: 'steers',
+  BLOCK: 'nudges',
+  DRIVE: 'drives',
+  CUT: 'cuts',
+  PULL: 'pulls',
+  HOOK: 'hooks',
+  SWEEP: 'sweeps',
+  REVERSE_SWEEP: 'reverse-sweeps',
+  FLICK: 'flicks',
+  LOFT: 'lofts',
+  RAMP: 'ramps',
+};
+
+/** Every sentence starts with a capital ("A full toss outside off", not "a full toss"). */
+function sentences(text: string): string {
+  return text.replace(/(^|[.!?]\s+)([a-z])/g, (_, lead: string, ch: string) => lead + ch.toUpperCase());
+}
+
 const LENGTH_WORDS: Record<string, string> = {
   FULL_TOSS: 'a full toss',
   YORKER: 'a yorker',
@@ -57,6 +78,10 @@ function pickBy(seed: string, options: string[]): string {
 }
 
 export function describeBall(input: CommentaryInput): string {
+  return sentences(describe(input));
+}
+
+function describe(input: CommentaryInput): string {
   const { context, kind } = input;
   const bowler = context.bowler.name;
   const batter = context.striker.name;
@@ -86,20 +111,20 @@ export function describeBall(input: CommentaryInput): string {
       return `Off the pad and away. ${input.runs} leg bye${input.runs === 1 ? '' : 's'}.`;
 
     case 'FOUR': {
-      const shot = input.shot ? SHOT_WORDS[input.shot] : 'drives';
+      const hit = input.shot ? SCORING_VERB[input.shot] : 'drives';
       return pickBy(key, [
-        `${length}${variation} and ${batter} ${shot} it beautifully — four runs.`,
-        `Short of the mark from ${bowler}. ${batter} ${shot} through the gap for four.`,
-        `${batter} ${shot} it, and that has beaten the sweeper. Four.`,
+        `${length}${variation} and ${batter} ${hit} it beautifully — four runs.`,
+        `Short of the mark from ${bowler}. ${batter} ${hit} it through the gap for four.`,
+        `${batter} ${hit} it, and that has beaten the sweeper. Four.`,
       ]);
     }
 
     case 'SIX': {
-      const shot = input.shot ? SHOT_WORDS[input.shot] : 'lofts it';
+      const hit = input.shot ? SCORING_VERB[input.shot] : 'lofts';
       return pickBy(key, [
-        `${batter} ${shot} — and that is out of the middle. Six!`,
-        `Into the stands! ${batter} ${shot} ${bowler} for six.`,
-        `${batter} gets under it and ${shot} it all the way. Six runs.`,
+        `${batter} ${hit} it — and that is out of the middle. Six!`,
+        `Into the stands! ${batter} ${hit} ${bowler} for six.`,
+        `${batter} gets under it and ${hit} it all the way. Six runs.`,
       ]);
     }
 
@@ -140,14 +165,15 @@ export function describeBall(input: CommentaryInput): string {
           `Tight from ${bowler}, ${batter} ${shot} to the fielder.`,
         ]);
       }
+      const hit = input.shot ? SCORING_VERB[input.shot] : 'works';
       if (runs === 1) {
         return pickBy(key, [
-          `${batter} ${shot} into the gap and takes a single.`,
+          `${batter} ${hit} it into the gap and takes a single.`,
           `Worked away off the hip for one.`,
-          `${batter} ${shot} to ${input.fielderName ?? 'the fielder'} and they scamper through for one.`,
+          `${batter} ${hit} it to ${input.fielderName ?? 'the fielder'} and they scamper through for one.`,
         ]);
       }
-      if (runs === 2) return `${batter} ${shot} into the outfield and comes back for the second.`;
+      if (runs === 2) return `${batter} ${hit} it into the outfield and comes back for the second.`;
       return `Into the gap, ${input.fielderName ?? 'the sweeper'} chases, and they run three.`;
     }
   }

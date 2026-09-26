@@ -3,7 +3,7 @@
  * the toss, the middle, an innings break, or the aftermath - and the clock
  * that plays the match on while the player is not needed.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Coins, Crown, Lightbulb, XCircle, CheckCircle2 } from 'lucide-react';
 import { Card, CardHeader } from '@/components';
@@ -19,6 +19,8 @@ import { PreMatch } from './PreMatch';
 import { QuestionModal } from './QuestionModal';
 import { PitchReport, WeatherReport } from './panels/MatchInfo';
 import { ANIMATION_FACTOR, useAppSettings, useReducedMotion } from '@/store/appSettings';
+import { useMatchAudio } from '@/lib/audio/useMatchAudio';
+import { isSpeaking } from '@/lib/audio/player';
 
 export default function MatchScreen() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
@@ -74,11 +76,34 @@ export default function MatchScreen() {
     !snap.question &&
     (autoPlay || watching);
   const tickMs = autoPlay ? BALL_SPEEDS[speed].ms : BALL_SPEEDS[WATCH_SPEED].ms;
+  const paceToVoice = useAppSettings((s) => s.commentaryVoice && s.commentaryStyle === 'FULL' && s.volume > 0);
   useEffect(() => {
     if (!ticking) return;
-    const timer = window.setTimeout(() => useMatchStore.getState().playBall(), tickMs);
+    // With full commentary on, the next ball waits for the commentator
+    // (up to a few seconds), the way a broadcast does.
+    let waited = 0;
+    let timer = window.setTimeout(function tick() {
+      if (paceToVoice && isSpeaking() && waited < 8000) {
+        waited += 200;
+        timer = window.setTimeout(tick, 200);
+        return;
+      }
+      useMatchStore.getState().playBall();
+    }, tickMs);
     return () => window.clearTimeout(timer);
-  }, [ticking, tickMs, snap]);
+  }, [ticking, tickMs, snap, paceToVoice]);
+
+  const teams = state?.teams;
+  const teamName = useCallback((id: string) => teams?.[id]?.name ?? 'they', [teams]);
+  useMatchAudio({
+    lastBall: store.lastBall,
+    snap,
+    playing: stage === 'PLAYING' && tossSeen,
+    userId: state?.player.id ?? null,
+    userTeamId: build?.userTeamId ?? null,
+    teamName,
+    ballMs: ticking ? tickMs : BALL_SPEEDS[speed].ms,
+  });
 
   if (!booted) return <Notice text="Loading…" />;
   if (!state) return <Notice text="No career loaded." />;

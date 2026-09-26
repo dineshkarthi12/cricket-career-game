@@ -1001,6 +1001,29 @@ and the tutorial tips seen. Settings also has storage usage, export, import
 (with a confirm), delete this career (with a confirm), install-app help and,
 in development builds, the fast-forward tools (`engine/dev/fastForward.ts`).
 
+### Sound and commentary (`lib/audio`, `data/voiceLines.ts`)
+Every effect is synthesised with the Web Audio API (no sound files): bat on
+ball (a bigger crack for a six), stumps and bails, an appeal, the crowd's
+cheer for a four and roar for a six or a wicket, a groan for a duck or a
+drop, applause for a fifty, hundred or five-for, and a quiet crowd murmur
+while play is on. `callForBall` turns each delivery into effects, a
+priority (0 routine to 3 wicket or milestone) and a commentary line from
+`VOICE_LINES` - sixes, fours, threes, twos, singles, dots, every kind of
+dismissal, ducks and golden ducks, run outs (naming whoever was out),
+drops, milestones and the result - spoken with the browser's
+text-to-speech (an Indian English voice when the device has one). Bigger
+moments interrupt smaller ones; at speed only priority 2+ is spoken, and
+routine balls get a word only now and then. Commentary style "Ball by ball"
+(the default) calls every delivery like a broadcast (`fullCommentary`):
+"Bowler to Batter" by surname - taken from the players in the match, so it
+is whatever name the player created - then the engine's own description,
+the excited call first on a boundary, wicket or milestone, "moves to 47, 3
+more for a fifty", and the score (and the chase) at the end of each over;
+auto-play waits for the commentator (up to 8 s a ball). "Highlights" keeps
+only the big moments. Device settings: sound effects,
+commentary voice, crowd atmosphere, button clicks, volume, and a test
+button. Audio unlocks on the first tap.
+
 ### Tutorial
 Five one-time tips (`components/TutorialTip.tsx`): dashboard, training,
 match controls, the aggression bar, selection. "Skip tutorial" hides all;
