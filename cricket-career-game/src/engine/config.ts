@@ -381,6 +381,8 @@ export const SQUAD_SELECTION = {
   prospectPerYear: 1.8,
   /** Professional selectors (IPL, zones, India A, India) discount senior cricket per level by this. */
   proLevelDiscount: 0.8,
+  /** Outside contenders multiply at professional levels (zones 8, India A 9, India 10). */
+  proPoolMultiplier: { 8: 3, 9: 3, 10: 4 } as Record<number, number>,
   /** ...and count last season's matches at this weight. */
   proLastSeason: 0.7,
   /** Past this age, professional selectors mark a player down per year. */
@@ -456,6 +458,17 @@ export const SAVE = {
    * only - a multi-day match is over a megabyte of deliveries.
    */
   ballByBallMatches: 2,
+  /** Seasons back (0: this one only) whose matches keep full scorecards. */
+  fullScorecardSeasons: 0,
+  /** Seasons back whose matches keep the top of the scorecard; older ones keep totals. */
+  trimmedScorecardSeasons: 3,
+  /** Filed seasons that keep full tables and leaders. */
+  fullHistorySeasons: 1,
+  /** Filed seasons older than this keep only the champion, the awards and the player's line. */
+  thinHistorySeasons: 4,
+  /** Seasons of history each AI cricketer keeps. */
+  rivalHistory: 3,
+  auctionsKept: 6,
 } as const;
 
 /* ------------------------------------------------------------------ *
@@ -1345,14 +1358,18 @@ export const LEADERSHIP = {
   minAge: { STATE: 23, IPL: 25, INDIA: 25 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
   /** Matches (caps for India) before a player is considered. */
   minMatches: { STATE: 15, IPL: 20, INDIA: 20 } as Record<'STATE' | 'IPL' | 'INDIA', number>,
+  /** The case needed, and the best rival leader's case in the side (mean). */
   thresholds: {
-    STATE: { vice: 60, captain: 66 },
-    IPL: { vice: 64, captain: 70 },
-    INDIA: { vice: 66, captain: 72 },
-  } as Record<'STATE' | 'IPL' | 'INDIA', { vice: number; captain: number }>,
+    STATE: { vice: 62, captain: 67, rival: 66 },
+    IPL: { vice: 64, captain: 68, rival: 67 },
+    INDIA: { vice: 68, captain: 72, rival: 71 },
+  } as Record<'STATE' | 'IPL' | 'INDIA', { vice: number; captain: number; rival: number }>,
+  rivalSpread: 6,
+  /** A captain must be this far ahead of the side's other leaders. */
+  captainOverRival: 3,
   /** Chance the post is free when the case is made. */
-  viceVacancy: 0.45,
-  captainVacancy: 0.35,
+  viceVacancy: 0.4,
+  captainVacancy: 0.3,
 } as const;
 
 /** The legacy rating. See `engine/pro/legacy.ts`. */

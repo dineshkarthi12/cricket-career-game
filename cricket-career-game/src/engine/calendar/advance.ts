@@ -28,6 +28,7 @@ import { tournamentHonours } from '../career/honours';
 import { applyVerdict, involvementFor, reviewSeason } from '../career/season';
 import { progressWorld, pruneIdleSquads } from '../world/progression';
 import { IN_SQUAD } from '../career/squads';
+import { compactCareer } from './compact';
 import { applyProSeason, isProEvent, proActiveTeamIds, rolloverPro, runProEvent } from '../pro/season';
 import type { WorldNews } from '../world/progression';
 import type {
@@ -487,7 +488,7 @@ export function startNewSeason(state: GameState, year: number): GameState {
   const withCalendar = applySeasonCalendar(next, year, start);
   // Sides with nothing to play this season keep their names, not their squads.
   const active = new Set<string>([...withCalendar.player.currentTeamIds, ...withCalendar.season.tournaments.flatMap((t) => t.groups.flatMap((g) => g.teamIds)), ...proActiveTeamIds(withCalendar)]);
-  const pruned: GameState = { ...withCalendar, teams: pruneIdleSquads(withCalendar.teams, active) };
+  const pruned: GameState = compactCareer({ ...withCalendar, teams: pruneIdleSquads(withCalendar.teams, active) }, year);
   return withInbox(pruned, [
     ...rivalDigest(start, world.news),
     message(start, {

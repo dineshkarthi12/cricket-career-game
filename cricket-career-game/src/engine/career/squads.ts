@@ -330,9 +330,10 @@ function saltOf(text: string): number {
  * (or the country) are in contention too. They are the same each time within
  * a season, and a little behind the squad on average.
  */
-export function outsideProbables(state: GameState, team: Team, group: RoleGroup): RivalPlayer[] {
+export function outsideProbables(state: GameState, team: Team, group: RoleGroup, level = 0): RivalPlayer[] {
   const profile = profileOf(team);
-  const count = SQUAD_SELECTION.outsidePool[group];
+  // Professional selectors pick from the whole country: the higher the level, the bigger the field.
+  const count = Math.round(SQUAD_SELECTION.outsidePool[group] * (SQUAD_SELECTION.proPoolMultiplier[level] ?? 1));
   if (!profile || count <= 0) return [];
   const year = state.season.year;
   const rng = createRng(deriveSeed(state.seed, saltOf(`probables-${team.id}-${year}-${group}`)));
@@ -346,7 +347,7 @@ export function outsideProbables(state: GameState, team: Team, group: RoleGroup)
       age: rng.int(profile.ages[0], profile.ages[1]),
       seasonStart: state.season.startDate,
       seasonYear: year,
-      potential: profile.potential[0] - SQUAD_SELECTION.outsideBehind + rng.spread() * profile.potential[1] * 1.6,
+      potential: profile.potential[0] + (team.potentialOffset ?? 0) - SQUAD_SELECTION.outsideBehind + rng.spread() * profile.potential[1] * 1.6,
       share: profile.share,
       rng,
       taken,
@@ -366,7 +367,7 @@ export function rankGroup(state: GameState, team: Team, tournamentIds: string[])
     format ? { ...c, overall: formatOverall(attributes, c.role, format) - ageDrag(c.age, level) } : c;
   const user = adjust(userCandidate(state, tournamentIds), state.player.attributes);
   const rivals = team.squad.map((p) => adjust(rivalCandidate(p, today), p.attributes)).filter((c) => c.group === user.group);
-  const outside = outsideProbables(state, team, user.group).map((p) => ({ ...adjust(rivalCandidate(p, today), p.attributes), outside: true }));
+  const outside = outsideProbables(state, team, user.group, level).map((p) => ({ ...adjust(rivalCandidate(p, today), p.attributes), outside: true }));
   const peers = [user, ...rivals, ...outside];
   return peers
     .filter((c) => !c.injured || c.isUser)

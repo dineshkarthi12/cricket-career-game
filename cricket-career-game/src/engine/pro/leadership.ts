@@ -64,8 +64,8 @@ function candidacies(state: GameState, level: LeadershipLevel): Candidacy[] {
   const out: Candidacy[] = [];
   const age = state.player.age;
   if (level === 'STATE') {
-    const place = state.career.squads['ranji-trophy'] ?? state.career.squads['vijay-hazare'] ?? state.career.squads['syed-mushtaq-ali'];
-    const team = place?.teamId ? state.teams[place.teamId] : undefined;
+    const place = ['ranji-trophy', 'vijay-hazare', 'syed-mushtaq-ali'].map((id) => state.career.squads[id]).find((p) => p && IN_SQUAD.includes(p.status));
+    const team = (place?.teamId ? state.teams[place.teamId] : undefined) ?? Object.values(state.teams).find((t) => t.isUserTeam && t.kind === 'STATE' && t.level === 'STATE_SENIOR');
     const matches = competitionMatches(state, ['ranji-trophy', 'vijay-hazare', 'syed-mushtaq-ali']);
     if (!team || !place || !IN_SQUAD.includes(place.status) || age < LEADERSHIP.minAge.STATE || matches < LEADERSHIP.minMatches.STATE) return out;
     const form = recentRating(state, ['ranji-trophy', 'vijay-hazare', 'syed-mushtaq-ali']);
@@ -106,9 +106,11 @@ export function leadershipReview(state: GameState, level: LeadershipLevel, date:
     const captain = holds(state, level, 'CAPTAIN', c.format);
     if (captain) continue;
     const t = LEADERSHIP.thresholds[level];
+    // The side has other leaders: the user's case must beat the best of them this season.
+    const rival = t.rival + rng.spread() * LEADERSHIP.rivalSpread;
     let role: LeadershipRole | null = null;
-    if (vc && c.score >= t.captain && rng.chance(LEADERSHIP.captainVacancy)) role = 'CAPTAIN';
-    else if (!vc && c.score >= t.vice && rng.chance(LEADERSHIP.viceVacancy)) role = 'VICE_CAPTAIN';
+    if (vc && c.score >= t.captain && c.score >= rival + LEADERSHIP.captainOverRival && rng.chance(LEADERSHIP.captainVacancy)) role = 'CAPTAIN';
+    else if (!vc && c.score >= t.vice && c.score >= rival && rng.chance(LEADERSHIP.viceVacancy)) role = 'VICE_CAPTAIN';
     if (!role) continue;
     return offer(state, { id: newId('offer'), level, role, teamId: c.teamId, teamName: c.teamName, format: c.format, date, reason: `Leadership ${state.player.attributes.mental.leadership}, temperament ${state.player.attributes.mental.temperament}, ${c.seniority}.` });
   }
