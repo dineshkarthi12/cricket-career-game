@@ -477,7 +477,8 @@ export function createDemoCareer(): GameState {
       lastName: '',
       displayName: 'DINESH',
       shirtNumber: 18,
-      dateOfBirth: '2010-04-12',
+      // Under 16 on the 1 September cut-off, 16 by the time the Vijay Merchant starts.
+      dateOfBirth: '2010-09-05',
       age: 16,
       hometown: 'Chennai',
       state: 'Tamil Nadu',
@@ -581,6 +582,26 @@ export function createDemoCareer(): GameState {
       relationships: {},
       mediaReputation: 30,
       aggression: { ...DEFAULT_AGGRESSION },
+      squads: {
+        'vijay-merchant': {
+          tournamentId: 'vijay-merchant',
+          teamId: 'team-tn-u16',
+          status: 'SQUAD',
+          reason: 'Named in the Tamil Nadu U-16 squad after the state trials.',
+          since: '2025-08-20',
+        },
+      },
+      path: [
+        { seasonYear: 2021, stageId: 'BEGINNER', teamName: 'Marina Cricket Club', status: 'PLAYED', outcome: 'STAY', note: 'First season of club cricket.' },
+        { seasonYear: 2022, stageId: 'BEGINNER', teamName: 'Marina Cricket Club', status: 'PLAYED', outcome: 'PROMOTE', note: 'Two hundreds in the club league - invited to the district trials.' },
+        { seasonYear: 2023, stageId: 'DISTRICT_AGE_GROUP', teamName: 'Chennai U-14', status: 'SQUAD', outcome: 'STAY', note: 'District probables, then the squad.' },
+        { seasonYear: 2024, stageId: 'DISTRICT_AGE_GROUP', teamName: 'Chennai U-14', status: 'SQUAD', outcome: 'PROMOTE', note: '84 in the final - district champions.' },
+        { seasonYear: 2025, stageId: 'STATE_U16', teamName: 'Tamil Nadu U-16', status: 'SQUAD', outcome: 'STAY', note: 'Through the state trials into the U-16 squad.' },
+      ],
+      seasonReviews: [],
+      pendingReview: null,
+      lowScores: 0,
+      drops: 0,
     },
     season: {
       year: SEASON_YEAR,

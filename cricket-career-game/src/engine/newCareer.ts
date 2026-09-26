@@ -168,6 +168,18 @@ export function createNewCareer(options: NewCareerOptions): GameState {
       relationships: {},
       mediaReputation: 30,
       aggression: { ...DEFAULT_AGGRESSION, batting: player.development.preferredAggression },
+      // Beginners just play: school and club cricket need no selectors.
+      squads: Object.fromEntries(
+        stage.tournamentIds.map((id) => [
+          id,
+          { tournamentId: id, teamId: '', status: 'SQUAD' as const, reason: 'Every beginner plays for the school and the club.', since: startDate },
+        ]),
+      ),
+      path: [],
+      seasonReviews: [],
+      pendingReview: null,
+      lowScores: 0,
+      drops: 0,
     },
     season: emptySeason(seasonYear, startStageId, startDate),
     seasonHistory: [],

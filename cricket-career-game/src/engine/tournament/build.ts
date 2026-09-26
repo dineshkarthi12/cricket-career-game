@@ -109,6 +109,7 @@ export function buildTournament(input: BuildTournamentInput): BuiltTournament {
       squad,
       strength: squadStrength(squad),
       isUserTeam: side.isUser,
+      sideKind: structure.side === 'CLUB' && input.userAge >= 15 ? 'SENIOR_CLUB' : structure.side,
     };
     teams.push(team);
     return team;

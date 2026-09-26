@@ -218,6 +218,96 @@ export interface CareerState {
    * Set by the player and kept until they change it.
    */
   aggression: AggressionLevels;
+  /** Squad places this season, by competition. */
+  squads: Record<string, SquadPlace>;
+  /** Every season, oldest first: where the player was and how it ended. */
+  path: PathEntry[];
+  seasonReviews: SeasonReview[];
+  /** A review the player has not opened yet. */
+  pendingReview: SeasonReview | null;
+  /** Consecutive low scores in the current squad (drop risk). */
+  lowScores: number;
+  /** Times dropped from a squad. */
+  drops: number;
+}
+
+/**
+ * Where the player stands with a competition's selectors this season. The
+ * match-day XI (playing XI, 12th man, bench) is decided fixture by fixture
+ * from the squad.
+ */
+export type SquadStatus =
+  | 'NOT_SELECTED'
+  | 'TRIAL_ONLY'
+  | 'PROBABLES'
+  | 'RESERVE'
+  | 'SQUAD'
+  | 'DROPPED'
+  | 'FAST_TRACK';
+
+export interface SquadPlace {
+  tournamentId: string;
+  teamId: string;
+  status: SquadStatus;
+  /** The selectors' reason, in a sentence. */
+  reason: string;
+  since: ISODate;
+}
+
+/** What a season's end means for the career. */
+export type SeasonOutcome = 'PROMOTE' | 'STAY' | 'BENCH' | 'DROPPED' | 'COMEBACK' | 'FAST_TRACK' | 'AGED_OUT';
+
+export interface SeasonStatLine {
+  matches: number;
+  runs: number;
+  innings: number;
+  notOuts: number;
+  average: number | null;
+  strikeRate: number | null;
+  highScore: number;
+  fifties: number;
+  hundreds: number;
+  wickets: number;
+  bowlingAverage: number | null;
+  economy: number | null;
+  catches: number;
+  averageRating: number;
+}
+
+export interface TargetCheck {
+  label: string;
+  met: boolean;
+  /** e.g. "312 / 300". */
+  progress: string;
+}
+
+/** The end-of-season verdict, shown on the Season Review screen. */
+export interface SeasonReview {
+  seasonYear: number;
+  label: string;
+  stageId: CareerStageId;
+  nextStageId: CareerStageId;
+  outcome: SeasonOutcome;
+  headline: string;
+  reasons: string[];
+  stats: SeasonStatLine;
+  targets: TargetCheck[];
+  awards: string[];
+  coachReport: string;
+  goals: string[];
+  squads: SquadPlace[];
+  overall: [number, number];
+  age: number;
+}
+
+/** One step of the path actually taken, for the Career Path screen. */
+export interface PathEntry {
+  seasonYear: number;
+  stageId: CareerStageId;
+  teamName: string;
+  status: SquadStatus | 'PLAYED';
+  outcome: SeasonOutcome | null;
+  note: string;
 }
 
 export interface AggressionLevels {

@@ -351,6 +351,26 @@ export const TOURNAMENT = {
   firstClass: { win: 6, tie: 3, drawLead: 3, drawTrail: 1, noResult: 1, loss: 0 },
 } as const;
 
+/** Squad selection weights (Phase 6), all on a 0-100 scale. */
+export const SQUAD_SELECTION = {
+  ability: 0.36,
+  form: 0.22,
+  season: 0.16,
+  trust: 0.1,
+  reputation: 0.06,
+  discipline: 0.06,
+  /** A failed fitness test this season. */
+  failedTestPenalty: 6,
+  /** Being in possession of a place counts for something. */
+  incumbentBonus: 2.5,
+  /** Consecutive low scores that put an incumbent's place at risk. */
+  lowScoresToDrop: 4,
+  /** A match rating below this is a low score. */
+  lowScoreRating: 4.6,
+  /** Club and lower-level figures count this much when there are none at the level. */
+  lowerLevelDiscount: 0.75,
+} as const;
+
 export const SAVE = {
   /** localStorage key prefix. */
   keyPrefix: 'cricket-career',
