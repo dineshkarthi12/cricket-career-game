@@ -15,7 +15,7 @@ import { IN_SQUAD } from './squads';
 import { answerLeadership } from '../pro/leadership';
 import { answerTrade } from '../pro/ipl';
 import { autoRetire } from '../pro/retirement';
-import { legacyRating } from '../pro/legacy';
+import { legacyInputs, legacyRating, type LegacyInputs } from '../pro/legacy';
 import { NATIONAL } from '../config';
 import { ageInYears } from '../development';
 import type { CreationRole } from '../development';
@@ -50,6 +50,8 @@ export interface SimulatedCareerRun {
   captain: { state: boolean; ipl: boolean; india: boolean };
   legacyTier: string;
   legacyScore: number;
+  /** What the legacy was judged on. */
+  legacyInputs: LegacyInputs;
   awards: number;
   /** The save's size at the end, bytes of JSON. */
   saveBytes: number;
@@ -95,21 +97,27 @@ function saltOf(text: string): number {
  * all cricket (or the hard stop in RETIREMENT); the sim retires them the way
  * players do (`autoRetire`).
  */
-export function simulateCareer(seed: number, endAge?: number): SimulatedCareerRun {
+/** The player a simulated career starts with: role, birthday and style from the seed. */
+export function simulatedStart(seed: number, name = { firstName: 'Sim', lastName: String(seed) }): GameState {
   const rng = createRng(seed);
   const role = rng.pick(ROLES);
   const month = rng.int(1, 12);
   const dob = `2016-${String(month).padStart(2, '0')}-${String(rng.int(1, 28)).padStart(2, '0')}`;
   const bowler = role === 'BOWLER' || role === 'ALLROUNDER';
-  let state = createNewCareer({
-    firstName: 'Sim',
-    lastName: String(seed),
+  return createNewCareer({
+    ...name,
     dateOfBirth: dob,
     creationRole: role,
     bowlingStyle: bowler ? rng.pick(['RIGHT_ARM_FAST', 'RIGHT_ARM_MEDIUM', 'OFF_SPIN', 'LEG_SPIN', 'LEFT_ARM_ORTHODOX'] as const) : 'RIGHT_ARM_MEDIUM',
     seed,
     startDate: '2026-06-01',
   });
+}
+
+export function simulateCareer(seed: number, endAge?: number): SimulatedCareerRun {
+  let state = simulatedStart(seed);
+  const role = createRng(seed).pick(ROLES);
+  const dob = state.player.dateOfBirth;
   const reachedAt: SimulatedCareerRun['reachedAt'] = {};
   const establishedAt: SimulatedCareerRun['establishedAt'] = {};
   const age = (date: string) => Math.floor(ageInYears(dob, date));
@@ -196,6 +204,7 @@ export function simulateCareer(seed: number, endAge?: number): SimulatedCareerRu
     },
     legacyTier: legacy.label,
     legacyScore: legacy.score,
+    legacyInputs: legacyInputs(state),
     awards: state.pro.awards.length,
     saveBytes,
     maxSaveBytes: Math.max(maxSave, saveBytes),

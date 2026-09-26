@@ -8,7 +8,7 @@ import { RECORDS, type RecordDef } from '@/data/records';
 import { emptyFormatRecord } from '../records';
 import { message, withInbox } from './common';
 import { addStory, spotlightMoment } from './media';
-import type { CareerRecordEntry, FormatRecord, GameState, LegacyTier, MatchFormat } from '@/types';
+import type { CareerRecordEntry, FormatRecord, GameState, IntlFormat, LegacyTier, MatchFormat } from '@/types';
 
 export type LevelKey = 'INTERNATIONAL' | 'IPL' | 'INDIA_A' | 'DOMESTIC' | 'JUNIOR';
 export type FormatKey = 'LONG' | 'ONE_DAY' | 'T20';
@@ -200,47 +200,147 @@ export interface LegacyRating {
   /** 0-100. */
   score: number;
   reasons: string[];
+  /** Where the score came from, 0-100 in all. */
+  parts: Record<LegacyPart, number>;
+}
+
+export type LegacyPart = 'output' | 'quality' | 'rank' | 'trophies' | 'captaincy' | 'honours' | 'longevity' | 'franchise';
+
+export const LEGACY_PART_LABEL: Record<LegacyPart, string> = {
+  output: 'Runs and wickets',
+  quality: 'Averages',
+  rank: 'World ranking',
+  trophies: 'ICC trophies',
+  captaincy: 'Captaincy',
+  honours: 'Awards and records',
+  longevity: 'Caps',
+  franchise: 'IPL and domestic',
+};
+
+const FORMAT_COMPETITIONS: Record<IntlFormat, string[]> = {
+  TEST: ['intl-test', 'world-test-championship'],
+  ODI: ['intl-odi', 'odi-world-cup', 'champions-trophy'],
+  T20I: ['intl-t20i', 't20-world-cup'],
+};
+const INTL_FORMATS: IntlFormat[] = ['TEST', 'ODI', 'T20I'];
+
+/** The raw career figures a legacy is judged on. */
+export interface LegacyInputs {
+  caps: Record<IntlFormat, number>;
+  runs: Record<IntlFormat, number>;
+  wickets: Record<IntlFormat, number>;
+  /** International batting and bowling averages (null below the qualifying innings / wickets). */
+  battingAverage: number | null;
+  bowlingAverage: number | null;
+  /** Best world ranking reached in any format and discipline (99: never ranked). */
+  bestRank: number;
+  bigAwards: number;
+  /** ICC events and WTC finals won with the player in the side. */
+  iccTitles: number;
+  captainedIndia: boolean;
+  indiaCaptainWins: number;
+  captainedIpl: boolean;
+  records: number;
+  iplMatches: number;
+  domesticMatches: number;
+  domesticRuns: number;
+  domesticWickets: number;
+}
+
+export function legacyInputs(state: GameState): LegacyInputs {
+  const caps = { TEST: 0, ODI: 0, T20I: 0 };
+  const runs = { TEST: 0, ODI: 0, T20I: 0 };
+  const wickets = { TEST: 0, ODI: 0, T20I: 0 };
+  const intl = competitionTotals(state, INTERNATIONAL);
+  for (const f of INTL_FORMATS) {
+    const t = competitionTotals(state, FORMAT_COMPETITIONS[f]);
+    caps[f] = t.batting.matches;
+    runs[f] = t.batting.runs;
+    wickets[f] = t.bowling.wickets;
+  }
+  const dismissals = intl.batting.innings - intl.batting.notOuts;
+  const dom = competitionTotals(state, DOMESTIC);
+  const indiaWon = state.pro.wtc.finals.filter((f) => f.userPlayed && f.winner === 'India').length;
+  const leadership = state.pro.leadership;
+  return {
+    caps,
+    runs,
+    wickets,
+    battingAverage: intl.batting.innings >= LEGACY.qualifyingInnings && dismissals > 0 ? intl.batting.runs / dismissals : null,
+    bowlingAverage: intl.bowling.wickets >= LEGACY.qualifyingWickets ? intl.bowling.runsConceded / intl.bowling.wickets : null,
+    bestRank: Math.min(99, ...INTL_FORMATS.flatMap((f) => [state.pro.rankings.best[f].batting ?? 99, state.pro.rankings.best[f].bowling ?? 99, state.pro.rankings.best[f].allRounder ?? 99])),
+    bigAwards: state.pro.awards.filter((a) => ['PLAYER_OF_YEAR', 'TEST_PLAYER_OF_YEAR', 'ODI_PLAYER_OF_YEAR', 'T20I_PLAYER_OF_YEAR', 'PLAYER_OF_TOURNAMENT'].includes(a.kind)).length,
+    iccTitles: state.pro.national.iccEvents.filter((e) => e.won).length + indiaWon,
+    captainedIndia: leadership.posts.some((p) => p.level === 'INDIA' && p.role === 'CAPTAIN'),
+    indiaCaptainWins: Object.entries(leadership.records).filter(([k]) => k.startsWith('INDIA|')).reduce((n, [, r]) => n + r.won, 0),
+    captainedIpl: leadership.posts.some((p) => p.level === 'IPL' && p.role === 'CAPTAIN'),
+    records: Object.values(state.pro.records.entries).filter((e) => e.broke).length,
+    iplMatches: competitionTotals(state, ['ipl']).batting.matches,
+    domesticMatches: dom.batting.matches,
+    domesticRuns: dom.batting.runs,
+    domesticWickets: dom.bowling.wickets,
+  };
+}
+
+/**
+ * Impact across the formats: runs and wickets (weighted per format), how
+ * good the averages were, the best world ranking, ICC trophies, captaincy,
+ * awards and records, with a little for longevity, the IPL and domestic
+ * cricket. No hard caps requirement: a shorter career of real impact can
+ * rank with a long one.
+ */
+export function scoreLegacy(x: LegacyInputs): { score: number; parts: Record<LegacyPart, number> } {
+  const L = LEGACY;
+  const clamp = (v: number, hi: number) => Math.max(0, Math.min(hi, v));
+  const output = clamp(INTL_FORMATS.reduce((n, f) => n + (x.runs[f] / 1000) * L.perThousandRuns[f] + (x.wickets[f] / 50) * L.perFiftyWickets[f], 0), L.outputCap);
+  const batQ = x.battingAverage === null ? 0 : clamp((x.battingAverage - L.averageFrom.batting) * L.perAveragePoint, L.qualityCap);
+  const bowlQ = x.bowlingAverage === null ? 0 : clamp((L.averageFrom.bowling - x.bowlingAverage) * L.perAveragePoint, L.qualityCap);
+  const quality = clamp(Math.max(batQ, bowlQ) + Math.min(batQ, bowlQ) * 0.5, L.qualityCap);
+  const rank = x.bestRank === 1 ? L.rank.one : x.bestRank <= 3 ? L.rank.top3 : x.bestRank <= 10 ? L.rank.top10 : x.bestRank <= 20 ? L.rank.top20 : 0;
+  const trophies = clamp(x.iccTitles * L.perIccTitle, L.iccCap);
+  const captaincy = (x.captainedIndia ? L.indiaCaptain + clamp(x.indiaCaptainWins * L.perCaptainWin, L.captainWinsCap) : 0) + (x.captainedIpl ? L.iplCaptain : 0);
+  const honours = clamp(x.bigAwards * L.perBigAward, L.awardsCap) + clamp(x.records * L.perRecord, L.recordsCap);
+  const caps = x.caps.TEST + x.caps.ODI + x.caps.T20I;
+  const longevity = clamp(caps * L.perCap, L.capsCap);
+  const franchise = clamp(x.iplMatches * L.perIplMatch, L.iplCap) + clamp(x.domesticMatches * L.perDomesticMatch, L.domesticCap);
+  const parts: Record<LegacyPart, number> = { output, quality, rank, trophies, captaincy, honours, longevity, franchise };
+  const score = Math.round(clamp(Object.values(parts).reduce((a, b) => a + b, 0), 100));
+  return { score, parts };
+}
+
+export function legacyTier(x: LegacyInputs, score: number): LegacyTier {
+  const L = LEGACY;
+  const caps = x.caps.TEST + x.caps.ODI + x.caps.T20I;
+  let tier: LegacyTier = 'CLUB_CRICKETER';
+  if (x.domesticMatches > 0 || caps > 0) tier = 'STATE_PLAYER';
+  if (x.domesticMatches >= L.stalwartMatches) tier = 'DOMESTIC_STALWART';
+  if (x.domesticMatches >= L.legendMatches && (x.domesticRuns >= L.legendRuns || x.domesticWickets >= L.legendWickets)) tier = 'DOMESTIC_LEGEND';
+  if (x.iplMatches >= L.iplRegularMatches && caps === 0 && tier !== 'DOMESTIC_LEGEND') tier = 'IPL_REGULAR';
+  if (caps >= 1) tier = 'INTERNATIONAL_CAP';
+  if (caps >= L.regularCaps) tier = 'INTERNATIONAL_REGULAR';
+  if (caps >= L.greatMinCaps && score >= L.greatScore) tier = 'INDIA_GREAT';
+  if (caps >= L.allTimeMinCaps && score >= L.allTimeScore) tier = 'ALL_TIME_GREAT';
+  return tier;
 }
 
 export function legacyRating(state: GameState): LegacyRating {
-  const intl = competitionTotals(state, INTERNATIONAL);
-  const dom = competitionTotals(state, DOMESTIC);
-  const ipl = competitionTotals(state, ['ipl']);
-  const caps = intl.batting.matches;
-  const awards = state.pro.awards;
-  const big = awards.filter((a) => ['PLAYER_OF_YEAR', 'TEST_PLAYER_OF_YEAR', 'ODI_PLAYER_OF_YEAR', 'T20I_PLAYER_OF_YEAR', 'PLAYER_OF_TOURNAMENT'].includes(a.kind)).length;
-  const iccTitles = state.pro.national.iccEvents.filter((e) => e.won).length;
-  const indiaCaptain = state.pro.leadership.posts.some((p) => p.level === 'INDIA' && p.role === 'CAPTAIN');
-  const records = Object.values(state.pro.records.entries).filter((e) => e.broke).length;
-  const bestRank = Math.min(...(['TEST', 'ODI', 'T20I'] as const).flatMap((f) => [state.pro.rankings.best[f].batting ?? 99, state.pro.rankings.best[f].bowling ?? 99]));
-  const L = LEGACY;
-  const score = Math.round(
-    Math.min(100,
-      Math.min(L.capsCap, caps * L.perCap) +
-      Math.min(L.outputCap, (intl.batting.runs / 1000) * L.perThousandRuns + (intl.bowling.wickets / 40) * L.perFortyWickets) +
-      big * L.perBigAward + iccTitles * L.perIccTitle + (indiaCaptain ? L.indiaCaptain : 0) + records * L.perRecord +
-      (bestRank === 1 ? L.numberOne : bestRank <= 10 ? L.topTen : 0) +
-      Math.min(L.iplCap, ipl.batting.matches * L.perIplMatch) +
-      Math.min(L.domesticCap, dom.batting.matches * L.perDomesticMatch)),
-  );
+  const x = legacyInputs(state);
+  const { score, parts } = scoreLegacy(x);
+  const caps = x.caps.TEST + x.caps.ODI + x.caps.T20I;
   const reasons: string[] = [];
-  if (caps) reasons.push(`${caps} international matches: ${intl.batting.runs} runs, ${intl.bowling.wickets} wickets`);
-  if (big) reasons.push(`${big} major individual award${big === 1 ? '' : 's'}`);
-  if (iccTitles) reasons.push(`${iccTitles} ICC title${iccTitles === 1 ? '' : 's'}`);
-  if (indiaCaptain) reasons.push('Captained India');
-  if (records) reasons.push(`${records} record${records === 1 ? '' : 's'} broken`);
-  if (bestRank <= 10) reasons.push(`Ranked ${bestRank === 1 ? 'No. 1 in the world' : `as high as No. ${bestRank}`}`);
-  if (ipl.batting.matches) reasons.push(`${ipl.batting.matches} IPL matches over ${state.pro.ipl.seasons.length} seasons`);
-  if (dom.batting.matches) reasons.push(`${dom.batting.matches} senior domestic matches`);
-
-  let tier: LegacyTier = 'CLUB_CRICKETER';
-  if (dom.batting.matches > 0 || caps > 0) tier = 'STATE_PLAYER';
-  if (dom.batting.matches >= L.stalwartMatches) tier = 'DOMESTIC_STALWART';
-  if (dom.batting.matches >= L.legendMatches && (dom.batting.runs >= L.legendRuns || dom.bowling.wickets >= L.legendWickets)) tier = 'DOMESTIC_LEGEND';
-  if (ipl.batting.matches >= L.iplRegularMatches && caps === 0 && tier !== 'DOMESTIC_LEGEND') tier = 'IPL_REGULAR';
-  if (caps >= 1) tier = 'INTERNATIONAL_CAP';
-  if (caps >= L.regularCaps) tier = 'INTERNATIONAL_REGULAR';
-  if (caps >= L.greatCaps && score >= L.greatScore) tier = 'INDIA_GREAT';
-  if (caps >= L.allTimeCaps && score >= L.allTimeScore) tier = 'ALL_TIME_GREAT';
-  return { tier, label: TIER_LABEL[tier], score, reasons };
+  if (caps) {
+    const byFormat = INTL_FORMATS.filter((f) => x.caps[f]).map((f) => `${x.caps[f]} ${f === 'TEST' ? 'Test' : f}${x.caps[f] === 1 ? '' : 's'}`).join(', ');
+    reasons.push(`${byFormat}: ${INTL_FORMATS.reduce((n, f) => n + x.runs[f], 0).toLocaleString('en-IN')} runs, ${INTL_FORMATS.reduce((n, f) => n + x.wickets[f], 0)} wickets`);
+  }
+  if (x.battingAverage !== null && x.battingAverage >= LEGACY.averageFrom.batting) reasons.push(`Batting average ${x.battingAverage.toFixed(1)}`);
+  if (x.bowlingAverage !== null && x.bowlingAverage <= LEGACY.averageFrom.bowling) reasons.push(`Bowling average ${x.bowlingAverage.toFixed(1)}`);
+  if (x.bestRank <= 20) reasons.push(`Ranked ${x.bestRank === 1 ? 'No. 1 in the world' : `as high as No. ${x.bestRank}`}`);
+  if (x.iccTitles) reasons.push(`${x.iccTitles} ICC title${x.iccTitles === 1 ? '' : 's'}`);
+  if (x.captainedIndia) reasons.push(`Captained India${x.indiaCaptainWins ? ` (${x.indiaCaptainWins} win${x.indiaCaptainWins === 1 ? '' : 's'})` : ''}`);
+  if (x.bigAwards) reasons.push(`${x.bigAwards} major individual award${x.bigAwards === 1 ? '' : 's'}`);
+  if (x.records) reasons.push(`${x.records} record${x.records === 1 ? '' : 's'} broken`);
+  if (x.iplMatches) reasons.push(`${x.iplMatches} IPL matches over ${state.pro.ipl.seasons.length} seasons${x.captainedIpl ? ', as captain' : ''}`);
+  if (x.domesticMatches) reasons.push(`${x.domesticMatches} senior domestic matches`);
+  const tier = legacyTier(x, score);
+  return { tier, label: TIER_LABEL[tier], score, reasons, parts };
 }

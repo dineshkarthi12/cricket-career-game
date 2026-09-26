@@ -1374,31 +1374,49 @@ export const LEADERSHIP = {
 
 /** The legacy rating. See `engine/pro/legacy.ts`. */
 export const LEGACY = {
+  /**
+   * Output: points per 1000 international runs and per 50 wickets, by format.
+   * Scaled to this game's calendar, where a long India career is 40-60 caps.
+   */
+  perThousandRuns: { TEST: 9, ODI: 8, T20I: 10 },
+  perFiftyWickets: { TEST: 9, ODI: 8, T20I: 9 },
+  outputCap: 40,
+  /** Quality: points per average point above the batting mark or below the bowling mark. */
+  qualifyingInnings: 20,
+  qualifyingWickets: 30,
+  averageFrom: { batting: 30, bowling: 34 },
+  perAveragePoint: 0.5,
+  qualityCap: 12,
+  /** Best world ranking reached. */
+  rank: { one: 10, top3: 7, top10: 4, top20: 2 },
+  perIccTitle: 6,
+  iccCap: 18,
+  indiaCaptain: 5,
+  perCaptainWin: 0.2,
+  captainWinsCap: 5,
+  iplCaptain: 2,
+  perBigAward: 2.5,
+  awardsCap: 12,
+  perRecord: 2,
+  recordsCap: 6,
+  /** Longevity: a little per cap. */
   perCap: 0.2,
-  capsCap: 30,
-  perThousandRuns: 2.2,
-  perFortyWickets: 2.2,
-  outputCap: 30,
-  perBigAward: 3,
-  perIccTitle: 5,
-  indiaCaptain: 6,
-  perRecord: 3,
-  numberOne: 8,
-  topTen: 3,
-  perIplMatch: 0.06,
-  iplCap: 8,
-  perDomesticMatch: 0.05,
-  domesticCap: 6,
+  capsCap: 10,
+  perIplMatch: 0.05,
+  iplCap: 6,
+  perDomesticMatch: 0.04,
+  domesticCap: 4,
   stalwartMatches: 60,
   legendMatches: 110,
   legendRuns: 6500,
   legendWickets: 320,
   iplRegularMatches: 40,
   regularCaps: 25,
-  greatCaps: 100,
-  greatScore: 60,
-  allTimeCaps: 150,
-  allTimeScore: 85,
+  /** The top tiers are decided by the impact score; the caps floor only rules out a cameo. */
+  greatMinCaps: 25,
+  greatScore: 50,
+  allTimeMinCaps: 30,
+  allTimeScore: 70,
 } as const;
 
 /** Retirement. See `engine/pro/retirement.ts`. */

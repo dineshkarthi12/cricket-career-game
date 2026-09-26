@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge, Card, CardHeader, Modal, ProgressBar, StatTile, Tabs } from '@/components';
 import { battingAverage, bowlingAverage, economy, strikeRate } from '@/engine/records';
-import { legacyRating, recordsBook, statsByLevel, competitionTotals } from '@/engine/pro/legacy';
+import { LEGACY_PART_LABEL, legacyRating, recordsBook, statsByLevel, competitionTotals, type LegacyPart } from '@/engine/pro/legacy';
 import { SCOPE_LABEL, retirableScopes } from '@/engine/pro/retirement';
 import { totalCaps } from '@/engine/pro/national';
 import { winPercent } from '@/engine/career/captaincy';
@@ -57,6 +57,13 @@ function Legacy({ state }: { state: GameState }) {
           </div>
         </div>
         {legacy.reasons.length ? <p className="mt-3 text-[13px] text-ink">{legacy.reasons.join(' · ')}</p> : <p className="mt-3 text-[13px] text-ink-muted">A career still being written.</p>}
+        {legacy.score > 0 ? (
+          <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Where the legacy score comes from">
+            {(Object.entries(legacy.parts) as [LegacyPart, number][]).filter(([, v]) => v >= 0.5).map(([k, v]) => (
+              <li key={k}><Badge tone="grey">{LEGACY_PART_LABEL[k]} +{Math.round(v)}</Badge></li>
+            ))}
+          </ul>
+        ) : null}
       </Card>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         <StatTile label="Matches" value={all.batting.matches} />

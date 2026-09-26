@@ -11,7 +11,7 @@ import { answerLeadership } from './leadership';
 import { isCaptainOf } from '../career/captaincy';
 import { decideSquad, rankGroup } from '../career/squads';
 import { formatOverall } from '../ratings';
-import { legacyRating } from './legacy';
+import { legacyRating, legacyTier, scoreLegacy, type LegacyInputs } from './legacy';
 import { worldSeries } from './worldSeries';
 import { refreshProStages } from './stages';
 import { thinMatch } from '../calendar/compact';
@@ -294,6 +294,41 @@ describe('retirement and legacy', () => {
     const capped = { ...state, player: { ...state.player, record: { ...state.player.record, byCompetition: { ...state.player.record.byCompetition, 'intl-test': { format: 'TEST' as const, batting: { matches: 30, innings: 50, notOuts: 4, runs: 2100, balls: 4000, highScore: 150, highScoreNotOut: false, fifties: 10, hundreds: 5, doubleHundreds: 0, fours: 200, sixes: 10, ducks: 3 }, bowling: { innings: 0, balls: 0, runsConceded: 0, wickets: 0, maidens: 0, fiveWicketHauls: 0, tenWicketMatches: 0, bestInnings: null }, fielding: { catches: 20, runOuts: 1, stumpings: 0 } } } } } };
     expect(legacyRating(capped).tier).toBe('INTERNATIONAL_REGULAR');
     expect(legacyRating(capped).score).toBeGreaterThan(legacyRating(state).score);
+  });
+});
+
+describe('legacy impact', () => {
+  const base: LegacyInputs = {
+    caps: { TEST: 0, ODI: 0, T20I: 0 }, runs: { TEST: 0, ODI: 0, T20I: 0 }, wickets: { TEST: 0, ODI: 0, T20I: 0 },
+    battingAverage: null, bowlingAverage: null, bestRank: 99, bigAwards: 0, iccTitles: 0, captainedIndia: false, indiaCaptainWins: 0,
+    captainedIpl: false, records: 0, iplMatches: 60, domesticMatches: 70, domesticRuns: 4000, domesticWickets: 20,
+  };
+  const rate = (x: LegacyInputs) => {
+    const { score } = scoreLegacy(x);
+    return { score, tier: legacyTier(x, score) };
+  };
+
+  it('makes a dominant all-format career an All-Time Great without 150 caps', () => {
+    const great = rate({ ...base, caps: { TEST: 30, ODI: 6, T20I: 18 }, runs: { TEST: 1500, ODI: 250, T20I: 300 }, wickets: { TEST: 80, ODI: 8, T20I: 20 }, battingAverage: 38, bowlingAverage: 22, bestRank: 1, iccTitles: 1, captainedIndia: true, indiaCaptainWins: 8, bigAwards: 2 });
+    expect(great.tier).toBe('ALL_TIME_GREAT');
+  });
+
+  it('keeps a long career of modest impact below the great tiers', () => {
+    const long = rate({ ...base, caps: { TEST: 60, ODI: 0, T20I: 0 }, runs: { TEST: 1800, ODI: 0, T20I: 0 }, battingAverage: 29, bestRank: 25 });
+    expect(long.tier).toBe('INTERNATIONAL_REGULAR');
+  });
+
+  it('rewards averages, rankings, trophies and captaincy on top of volume', () => {
+    const plain = { ...base, caps: { TEST: 30, ODI: 0, T20I: 0 }, runs: { TEST: 1400, ODI: 0, T20I: 0 }, battingAverage: 33 };
+    const a = rate(plain).score;
+    expect(rate({ ...plain, battingAverage: 50 }).score).toBeGreaterThan(a);
+    expect(rate({ ...plain, bestRank: 1 }).score).toBeGreaterThan(a);
+    expect(rate({ ...plain, iccTitles: 1 }).score).toBeGreaterThan(a);
+    expect(rate({ ...plain, captainedIndia: true }).score).toBeGreaterThan(a);
+  });
+
+  it('never makes a cameo great, whatever the numbers', () => {
+    expect(rate({ ...base, caps: { TEST: 5, ODI: 0, T20I: 0 }, runs: { TEST: 900, ODI: 0, T20I: 0 }, bestRank: 1, iccTitles: 3, captainedIndia: true }).tier).toBe('INTERNATIONAL_CAP');
   });
 });
 
