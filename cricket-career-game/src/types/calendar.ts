@@ -54,4 +54,6 @@ export interface CalendarState {
    * the week can go on.
    */
   pendingFixtureId: Id | null;
+  /** A trial the clock stopped for: the player attends it before going on. */
+  pendingTrialId?: Id | null;
 }

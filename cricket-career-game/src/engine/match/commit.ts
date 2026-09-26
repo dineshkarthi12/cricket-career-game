@@ -21,6 +21,10 @@ import type { MatchSelection } from '../career/selection';
 import { applyAftermath } from './aftermath';
 import { compactMatches } from './archive';
 import { recordInTournament } from '../tournament/live';
+import { matchMilestones, tournamentHonours } from '../career/honours';
+import { afterUserMatch } from '../career/squadFlow';
+import { stageCompetitions } from '../career/involvement';
+import { seniorDebut } from '../career/season';
 import { XP } from '../config';
 import { traitProduct } from '@/data/traits';
 import {
@@ -214,7 +218,20 @@ export function commitMatchDetailed(
   const scored = commitScorecard(state, match, options);
   // The result goes into its competition: table, leaders, bracket, rivals' seasons.
   const fixture = scored.fixtures[match.fixtureId];
-  const base = fixture ? recordInTournament(scored, fixture, scored.matches[match.id] ?? match) : scored;
+  let base = fixture ? recordInTournament(scored, fixture, scored.matches[match.id] ?? match) : scored;
+  base = tournamentHonours(scored, base);
+  // The selectors keep count, and a senior debut completes a stage on the spot.
+  if (options.userPlayed && match.userPerformance) {
+    const played = base.season.currentDate;
+    base = matchMilestones(base, match);
+    base = afterUserMatch(base, match.tournamentId, match.userPerformance.rating, played);
+    const stageId = base.career.currentStageId;
+    if (stageCompetitions(stageId).includes(match.tournamentId)) {
+      const progress = base.career.stages[stageId];
+      base = { ...base, career: { ...base.career, stages: { ...base.career.stages, [stageId]: { ...progress, matchesPlayed: progress.matchesPlayed + 1 } } } };
+    }
+    base = seniorDebut(base, match.tournamentId, played);
+  }
   const userTeamId = match.userIsHome ? match.homeTeamId : match.awayTeamId;
   const opponentId = match.userIsHome ? match.awayTeamId : match.homeTeamId;
   const result = resultFor(match, userTeamId);

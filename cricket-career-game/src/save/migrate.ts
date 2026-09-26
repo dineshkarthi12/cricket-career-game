@@ -4,6 +4,7 @@ import type {
   BowlingAttributes,
   DrillId,
   GameState,
+  RivalPlayer,
   SaveResult,
   TrainingIntensity,
   TrainingPlan,
@@ -24,6 +25,8 @@ import {
 import { createRng } from '@/engine/match/rng';
 import { compactMatches } from '@/engine/match/archive';
 import { regionOf } from '@/data/places';
+import { openingSquads } from '@/engine/career/season';
+import { emptySeasonLine } from '@/engine/world/players';
 import { fail, ok } from './storage';
 
 /**
@@ -94,6 +97,13 @@ const MIGRATIONS: Record<number, (state: GameState) => GameState> = {
    * studies), the session-based training plan, and the season calendar.
    */
   4: (state) => migrateToV5(state),
+  /**
+   * v6 (Phase 6): squad places, the career path, season reviews and trials;
+   * AI cricketers carry a date of birth, a season line and a history instead
+   * of a full record; tournaments carry groups, tables and brackets. The
+   * season in progress carries on as it was scheduled.
+   */
+  5: (state) => migrateToV6(state),
   /** v4: the player's own 1-5 batting and bowling aggression. */
   3: (state) => ({
     ...state,
@@ -212,6 +222,59 @@ function migrateToV5(state: GameState): GameState {
   };
   // The rest of this season, after anything the save already has scheduled.
   return applySeasonCalendar(upgraded, seasonYear, addDays(latestFixture, 1));
+}
+
+/** An AI cricketer from an older save, in today's shape. */
+function migrateRival(rival: RivalPlayer, seasonYear: number, region: string): RivalPlayer {
+  if (rival.season && Array.isArray(rival.history) && rival.dateOfBirth) return rival;
+  const { record: _record, ...rest } = rival as RivalPlayer & { record?: unknown };
+  void _record;
+  const age = numberOr(rival.age, 24);
+  return {
+    ...rest,
+    age,
+    dateOfBirth: rival.dateOfBirth ?? `${seasonYear - age}-01-01`,
+    region: rival.region ?? region,
+    season: rival.season ?? emptySeasonLine(seasonYear),
+    history: Array.isArray(rival.history) ? rival.history : [],
+    injuredUntil: rival.injuredUntil ?? null,
+  };
+}
+
+function migrateToV6(state: GameState): GameState {
+  const today = state.season?.currentDate ?? '2026-06-01';
+  const seasonYear = numberOr(state.season?.year, seasonYearOf(today));
+  const stageId = state.career.currentStageId;
+  const career = state.career as Partial<GameState['career']> & GameState['career'];
+  // A career in progress was playing its stage's competitions: it keeps those places.
+  const squads =
+    career.squads && Object.keys(career.squads).length
+      ? career.squads
+      : openingSquads(stageId, today, {}, { status: 'SQUAD', reason: 'In the {name} squad.' });
+  return {
+    ...state,
+    version: 6,
+    career: {
+      ...state.career,
+      squads,
+      path: career.path ?? [],
+      seasonReviews: career.seasonReviews ?? [],
+      pendingReview: career.pendingReview ?? null,
+      lowScores: numberOr(career.lowScores, 0),
+      drops: numberOr(career.drops, 0),
+      trials: career.trials ?? [],
+    },
+    teams: Object.fromEntries(
+      Object.entries(state.teams ?? {}).map(([id, team]) => [
+        id,
+        { ...team, squad: (team.squad ?? []).map((r) => migrateRival(r, seasonYear, state.player.state)) },
+      ]),
+    ),
+    // Old tournament records without tables are dropped; next season builds full ones.
+    season: { ...state.season, tournaments: (state.season.tournaments ?? []).filter((t) => Array.isArray(t.groups)) },
+    seasonHistory: (state.seasonHistory ?? []).map((s) => ({ ...s, tournaments: (s.tournaments ?? []).filter((t) => Array.isArray(t.groups)) })),
+    calendar: { ...state.calendar, pendingTrialId: null },
+  };
 }
 
 function level(value: unknown): number {

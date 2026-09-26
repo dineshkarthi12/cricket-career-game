@@ -602,6 +602,7 @@ export function createDemoCareer(): GameState {
       pendingReview: null,
       lowScores: 0,
       drops: 0,
+      trials: [],
     },
     season: {
       year: SEASON_YEAR,

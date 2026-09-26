@@ -21,9 +21,18 @@ import {
 } from '../development';
 import { buildSeasonCalendar, seasonEnd, seasonStart } from './season';
 import { playAiFixtures } from '../tournament/live';
+import { resolveClashes, extraCompetitions, stageCompetitions } from '../career/involvement';
+import { ensureDecisions, selectionMeeting } from '../career/squadFlow';
+import { trialFor } from '../career/trials';
+import { tournamentHonours } from '../career/honours';
+import { applyVerdict, involvementFor, reviewSeason } from '../career/season';
+import { progressWorld, pruneIdleSquads } from '../world/progression';
+import { IN_SQUAD } from '../career/squads';
+import type { WorldNews } from '../world/progression';
 import type {
   CareerEvent,
   Fixture,
+  TournamentState,
   GameState,
   InboxMessage,
   Season,
@@ -35,6 +44,8 @@ export interface AdvanceResult {
   state: GameState;
   /** The match the clock stopped for, if any. */
   stoppedFor: Fixture | null;
+  /** A trial the clock stopped for: the player attends it before going on. */
+  trial: Fixture | null;
   /** Days actually advanced. */
   days: number;
 }
@@ -46,6 +57,14 @@ const LEVEL_RANK = ['SCHOOL', 'CLUB', 'DISTRICT', 'STATE_AGE_GROUP', 'STATE_SENI
 /** A match the clock is waiting on, if it has not been played yet. */
 export function pendingMatch(state: GameState): Fixture | null {
   const id = state.calendar?.pendingFixtureId;
+  if (!id) return null;
+  const fixture = state.fixtures[id];
+  return fixture && !fixture.played ? fixture : null;
+}
+
+/** A trial the clock is waiting on, if it has not been attended yet. */
+export function pendingTrial(state: GameState): Fixture | null {
+  const id = state.calendar?.pendingTrialId;
   if (!id) return null;
   const fixture = state.fixtures[id];
   return fixture && !fixture.played ? fixture : null;
@@ -141,9 +160,23 @@ function runEvent(state: GameState, fixture: Fixture): GameState {
       );
       break;
     }
-    case 'TRIAL':
-    case 'SELECTION_CAMP':
     case 'SELECTION_MEETING': {
+      const before = next.career.squads;
+      next = selectionMeeting(next, fixture);
+      if (next.career.squads === before) {
+        const places = stageCompetitions(next.career.currentStageId).map((id) => next.career.squads[id]).filter(Boolean);
+        const inIt = places.some((p) => IN_SQUAD.includes(p.status));
+        out.push(message(date, { sender: 'SELECTOR', senderName: 'Selectors', subject: `${fixture.title}: no change`, body: inIt ? 'You keep your place. Keep performing.' : 'No call-up this time. The selectors are watching the runs and wickets.', category: 'SELECTION', important: false }, fixture.id));
+      }
+      break;
+    }
+    case 'TRIAL':
+    case 'SELECTION_CAMP': {
+      const plan = trialFor(next, fixture);
+      if (plan && !plan.invited) {
+        out.push(message(date, { sender: 'SELECTOR', senderName: 'Selectors', subject: `${fixture.title}: not invited`, body: plan.note, category: 'SELECTION', important: false }, fixture.id));
+        break;
+      }
       const verdict = trialVerdict(next, fixture);
       const player = next.player;
       next = { ...next, player: { ...player, condition: { ...player.condition, selectorTrust: clamp(player.condition.selectorTrust + verdict.trust, 0, 100) } } };
@@ -200,25 +233,40 @@ function examBetween(state: GameState, from: string, to: string): boolean {
 export function advanceWeek(input: GameState): AdvanceResult {
   let state = input;
   const waiting = pendingMatch(state);
-  if (waiting) return { state, stoppedFor: waiting, days: 0 };
-  if (state.calendar.pendingFixtureId) state = { ...state, calendar: { ...state.calendar, pendingFixtureId: null } };
+  if (waiting) return { state, stoppedFor: waiting, trial: null, days: 0 };
+  const attending = pendingTrial(state);
+  if (attending) return { state, stoppedFor: null, trial: attending, days: 0 };
+  if (state.calendar.pendingFixtureId || state.calendar.pendingTrialId) {
+    state = { ...state, calendar: { ...state.calendar, pendingFixtureId: null, pendingTrialId: null } };
+  }
 
   const start = state.season.currentDate;
+  // A match on the day a trial held the clock up is still to be played.
+  const leftToday = fixturesOn(state, start).find((f) => f.kind === 'MATCH');
+  if (leftToday) {
+    return { state: { ...state, calendar: { ...state.calendar, pendingFixtureId: leftToday.id } }, stoppedFor: leftToday, trial: null, days: 0 };
+  }
   let day = start;
   let days = 0;
   let stoppedFor: Fixture | null = null;
+  let trial: Fixture | null = null;
 
   for (let i = 1; i <= 7; i += 1) {
     const next = addDays(start, i);
     if (next > state.season.endDate) state = startNewSeason(state, state.season.year + 1);
 
-    // Every other match in the user's competitions that day, on the fast sim.
+    // Squad decisions due today, then every other match that day on the fast sim.
+    state = ensureDecisions(resolveClashes(state), next);
+    const before = state;
     state = playAiFixtures(state, next);
+    state = tournamentHonours(before, state);
     const todays = fixturesOn(state, next);
     const match = todays.find((f) => f.kind === 'MATCH');
-    for (const fixture of todays.filter((f) => f.kind !== 'MATCH')) state = runEvent(state, fixture);
-    if (match) {
-      stoppedFor = match;
+    const trialToday = todays.find((f) => trialFor(state, f)?.invited);
+    for (const fixture of todays.filter((f) => f.kind !== 'MATCH' && f !== trialToday)) state = runEvent(state, fixture);
+    if (trialToday || match) {
+      trial = trialToday ?? null;
+      stoppedFor = trialToday ? null : (match ?? null);
       day = next;
       break;
     }
@@ -266,9 +314,10 @@ export function advanceWeek(input: GameState): AdvanceResult {
       ...state.calendar,
       weeksPlayed: state.calendar.weeksPlayed + (days > 0 ? 1 : 0),
       pendingFixtureId: stoppedFor?.id ?? null,
+      pendingTrialId: trial?.id ?? null,
     },
   };
-  return { state, stoppedFor, days };
+  return { state, stoppedFor, trial, days };
 }
 
 /** Put a season's calendar into the save: windows, fixtures, teams, venues. */
@@ -282,6 +331,8 @@ export function applySeasonCalendar(state: GameState, seasonYear: number, from: 
     seed: state.seed,
     from,
     existingTeams: state.teams,
+    involvement: involvementFor(state.career.currentStageId, state.career.squads ?? {}),
+    extraTournamentIds: [...stageCompetitions(state.career.currentStageId), ...extraCompetitions(state.career.currentStageId)],
   });
 
   const fixtures = { ...state.fixtures };
@@ -300,11 +351,19 @@ export function applySeasonCalendar(state: GameState, seasonYear: number, from: 
     .sort((a, b) => LEVEL_RANK.indexOf(b.level) - LEVEL_RANK.indexOf(a.level))
     .map((t) => t.id);
 
-  return {
+  // Squad places learn which side they are for.
+  const squads = { ...(state.career.squads ?? {}) };
+  for (const t of calendar.tournaments) {
+    const place = squads[t.tournamentId];
+    if (place && !place.teamId && t.userTeamId) squads[t.tournamentId] = { ...place, teamId: t.userTeamId };
+  }
+
+  const applied: GameState = {
     ...state,
     fixtures,
     teams,
     venues,
+    career: { ...state.career, squads },
     player: {
       ...state.player,
       currentTeamIds: userTeamIds.length ? userTeamIds : state.player.currentTeamIds,
@@ -324,8 +383,10 @@ export function applySeasonCalendar(state: GameState, seasonYear: number, from: 
       region: regionOf(state.player.state),
       weeksPlayed: state.calendar?.weeksPlayed ?? 0,
       pendingFixtureId: state.calendar?.pendingFixtureId ?? null,
+      pendingTrialId: state.calendar?.pendingTrialId ?? null,
     },
   };
+  return resolveClashes(applied);
 }
 
 export function emptySeason(year: number, stageId: string, currentDate = seasonStart(year)): Season {
@@ -358,22 +419,71 @@ export function emptySeason(year: number, stageId: string, currentDate = seasonS
   };
 }
 
-/** 1 June: file the old season and draw up the new one. */
+/**
+ * A finished competition as the season history keeps it: the table, the
+ * bracket, the awards, the user's side's results and the leading players.
+ */
+export function compactTournament(t: TournamentState, userPlayerId: string): TournamentState {
+  const lines = Object.values(t.stats);
+  const keep = new Set<string>([userPlayerId]);
+  [...lines].sort((a, b) => b.runs - a.runs).slice(0, 10).forEach((l) => keep.add(l.playerId));
+  [...lines].sort((a, b) => b.wickets - a.wickets).slice(0, 10).forEach((l) => keep.add(l.playerId));
+  return {
+    ...t,
+    fixtureIds: [],
+    results: Object.fromEntries(Object.entries(t.results).filter(([, r]) => r.homeTeamId === t.userTeamId || r.awayTeamId === t.userTeamId || r.stage !== 'GROUP')),
+    stats: Object.fromEntries(Object.entries(t.stats).filter(([id]) => keep.has(id))),
+  };
+}
+
+/** Rival news for the player's own sides, as one inbox digest. */
+function rivalDigest(date: string, news: WorldNews[]): InboxMessage[] {
+  if (news.length === 0) return [];
+  const lines = news.slice(0, 8).map((n) => n.text);
+  return [
+    message(date, {
+      sender: 'MEDIA',
+      senderName: 'Local press',
+      subject: `Squad news: ${news.length} change${news.length === 1 ? '' : 's'} around you`,
+      body: lines.join(' '),
+      category: 'NEWS',
+      important: false,
+    }, 'rival-news'),
+  ];
+}
+
+/**
+ * 1 June: the season review, a year for every AI cricketer, the old season
+ * filed away, and the new calendar drawn up for wherever the player now is.
+ */
 export function startNewSeason(state: GameState, year: number): GameState {
   const start = seasonStart(year);
+  // The verdict on the season just finished.
+  const verdict = reviewSeason(state);
+  const reviewed = applyVerdict(state, verdict);
+
+  // A year passes for everyone else.
+  const world = progressWorld(reviewed, year, new Set(state.player.currentTeamIds), createRng(deriveSeed(state.seed, year * 13 + 5)));
+
   // Old, unplayed non-match entries are dropped; played matches stay for the scorecards.
   const fixtures = Object.fromEntries(
-    Object.entries(state.fixtures).filter(([, f]) => f.endDate >= start || (f.kind === 'MATCH' && f.matchId)),
+    Object.entries(reviewed.fixtures).filter(([, f]) => f.endDate >= start || (f.kind === 'MATCH' && f.matchId)),
   );
+  const filed = { ...reviewed.season, complete: true, tournaments: reviewed.season.tournaments.map((t) => compactTournament(t, state.player.id)) };
   const next: GameState = {
-    ...state,
+    ...reviewed,
     fixtures,
-    seasonHistory: [...state.seasonHistory, { ...state.season, complete: true }],
-    season: emptySeason(year, state.career.currentStageId, addDays(start, -1)),
-    calendar: { ...state.calendar, pendingFixtureId: null },
+    teams: world.teams,
+    seasonHistory: [...reviewed.seasonHistory, filed],
+    season: emptySeason(year, reviewed.career.currentStageId, addDays(start, -1)),
+    calendar: { ...reviewed.calendar, pendingFixtureId: null, pendingTrialId: null },
   };
   const withCalendar = applySeasonCalendar(next, year, start);
-  return withInbox(withCalendar, [
+  // Sides with nothing to play this season keep their names, not their squads.
+  const active = new Set<string>([...withCalendar.player.currentTeamIds, ...withCalendar.season.tournaments.flatMap((t) => t.groups.flatMap((g) => g.teamIds))]);
+  const pruned: GameState = { ...withCalendar, teams: pruneIdleSquads(withCalendar.teams, active) };
+  return withInbox(pruned, [
+    ...rivalDigest(start, world.news),
     message(start, {
       sender: 'SYSTEM',
       senderName: 'Career',

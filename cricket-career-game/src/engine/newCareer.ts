@@ -1,4 +1,5 @@
 import { emptyCaptaincy } from './career/captaincy';
+import { openingSquads } from './career/season';
 import { DEFAULT_AGGRESSION, SAVE_VERSION } from '@/types';
 import { CAREER_STAGES, getStage } from '@/data/stages';
 import { createTrophyCabinet } from '@/data/trophies';
@@ -169,17 +170,14 @@ export function createNewCareer(options: NewCareerOptions): GameState {
       mediaReputation: 30,
       aggression: { ...DEFAULT_AGGRESSION, batting: player.development.preferredAggression },
       // Beginners just play: school and club cricket need no selectors.
-      squads: Object.fromEntries(
-        stage.tournamentIds.map((id) => [
-          id,
-          { tournamentId: id, teamId: '', status: 'SQUAD' as const, reason: 'Every beginner plays for the school and the club.', since: startDate },
-        ]),
-      ),
+      // A career started further up the path starts in that level's squads.
+      squads: openingSquads(startStageId, startDate, {}, stage.order === 1 ? null : { status: 'SQUAD', reason: 'Starting in the {name} squad.' }),
       path: [],
       seasonReviews: [],
       pendingReview: null,
       lowScores: 0,
       drops: 0,
+      trials: [],
     },
     season: emptySeason(seasonYear, startStageId, startDate),
     seasonHistory: [],

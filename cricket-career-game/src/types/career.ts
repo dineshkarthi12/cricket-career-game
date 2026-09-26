@@ -229,6 +229,33 @@ export interface CareerState {
   lowScores: number;
   /** Times dropped from a squad. */
   drops: number;
+  /** Trials and camps attended, newest first. */
+  trials: TrialRecord[];
+}
+
+/** How the player goes about the nets session at a trial. */
+export type NetsApproach = 'SOLID' | 'POSITIVE' | 'SHOWY';
+/** How hard they push in the trial's fitness test. */
+export type FitnessEffort = 'STEADY' | 'ALL_OUT';
+
+/** One trial or selection camp: nets, a fitness test, a practice match. */
+export interface TrialRecord {
+  fixtureId: Id;
+  date: ISODate;
+  seasonYear: number;
+  title: string;
+  /** SQUAD picks this season's squads; NEXT_LEVEL feeds the season review. */
+  purpose: 'SQUAD' | 'NEXT_LEVEL';
+  /** The stage whose selectors are watching. */
+  stageId: CareerStageId;
+  nets: { approach: NetsApproach; score: number; note: string };
+  fitness: { passed: boolean; yoyo: number; yoyoTarget: number; sprint: number; sprintTarget: number; effort: FitnessEffort };
+  practice: { runs: number; balls: number; wickets: number; ballsBowled: number; runsConceded: number; rating: number; summary: string };
+  /** What the trial is worth to the selectors, -10 to 10. */
+  bonus: number;
+  verdict: string;
+  /** Squad decisions made on the day. */
+  decisions: { tournamentId: string; status: SquadStatus; reason: string }[];
 }
 
 /**

@@ -9,9 +9,12 @@
  */
 import { SQUAD_SELECTION } from '../config';
 import { computeOverall } from '../ratings';
-import { eligibleForStage } from './eligibility';
+import { eligibleForStage, levelOfCompetition } from './eligibility';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { daysBetweenDates } from '../development/dates';
+import { createRng, deriveSeed } from '../match/rng';
+import { generateWorldPlayer } from '../world/players';
+import { profileOf } from '../world/progression';
 import type {
   CareerStageId,
   GameState,
@@ -54,9 +57,11 @@ export const ROLE_GROUP_LABEL: Record<RoleGroup, string> = {
 /** Places per role group in the XI and in a 17-man squad. */
 export const XI_PLACES: Record<RoleGroup, number> = { BATTER: 4, KEEPER: 1, ALLROUNDER: 2, PACE: 2, SPIN: 2 };
 export const SQUAD_PLACES: Record<RoleGroup, number> = { BATTER: 6, KEEPER: 2, ALLROUNDER: 3, PACE: 4, SPIN: 3 };
+/** Where a newcomer must rank to break into the match squad: the XI places and one cover. */
+export const SQUAD_CUT: Record<RoleGroup, number> = { BATTER: 5, KEEPER: 1, ALLROUNDER: 3, PACE: 3, SPIN: 3 };
 
-/** Statuses that put the player in contention for match-day XIs. */
-export const IN_SQUAD: SquadStatus[] = ['SQUAD', 'PROBABLES', 'FAST_TRACK'];
+/** Statuses that put the player in contention for match-day XIs. Probables wait outside. */
+export const IN_SQUAD: SquadStatus[] = ['SQUAD', 'FAST_TRACK'];
 
 export const STATUS_LABEL: Record<SquadStatus, string> = {
   NOT_SELECTED: 'Not selected',
@@ -85,6 +90,10 @@ export interface Candidate {
   discipline: number;
   injured: boolean;
   failedFitnessTest: boolean;
+  /** A probable from outside the squad. */
+  outside?: boolean;
+  /** Has figures at this level this season (lower-level figures do not count). */
+  seasonAtLevel: boolean;
 }
 
 /** Recency-weighted form from the last eight ratings, 0-100 (50 with none). */
@@ -105,11 +114,11 @@ const avg = (runs: number, outs: number) => (outs > 0 ? runs / outs : runs > 0 ?
 
 /** How the season's figures compare with the peers in the same role, 0-100. */
 function seasonIndex(c: Candidate, peers: Candidate[]): number {
-  if (c.season.matches === 0) return 45;
+  if (!c.seasonAtLevel || c.season.matches === 0) return 45;
   const bat = (x: Candidate) => avg(x.season.runs, x.season.innings - x.season.notOuts) * 0.7 + (x.season.balls > 0 ? (x.season.runs / x.season.balls) * 100 : 0) * 0.15;
   const bowl = (x: Candidate) => (x.season.wickets / Math.max(1, x.season.matches)) * 12 - (x.season.ballsBowled > 0 ? (x.season.runsConceded / x.season.ballsBowled) * 6 : 6) * 1.5;
   const measure = c.group === 'PACE' || c.group === 'SPIN' ? bowl : c.group === 'ALLROUNDER' ? (x: Candidate) => bat(x) * 0.5 + bowl(x) * 1.2 : bat;
-  const values = peers.filter((p) => p.season.matches > 0).map(measure).sort((a, b) => a - b);
+  const values = peers.filter((p) => p.seasonAtLevel && p.season.matches > 0).map(measure).sort((a, b) => a - b);
   const median = values.length ? values[Math.floor(values.length / 2)] : measure(c);
   const spread = Math.max(4, Math.abs(median) * 0.6);
   return Math.max(0, Math.min(100, 50 + ((measure(c) - median) / spread) * 25));
@@ -139,8 +148,10 @@ function rivalCandidate(p: RivalPlayer, today: string): Candidate {
     group: roleGroup(p.role),
     overall: p.overall,
     age: p.age,
-    ratings: p.season.ratings,
+    // Last season's form carries over until they have played this season.
+    ratings: p.season.ratings.length ? p.season.ratings : p.condition.recentRatings,
     season: p.season,
+    seasonAtLevel: p.season.matches > 0,
     fitness: p.condition.fitness,
     trust: p.selectorFavour,
     reputation: p.condition.reputation,
@@ -202,14 +213,43 @@ export function userSeasonStats(state: GameState, tournamentIds: string[] | null
   };
 }
 
+/** The player's recent matches, newest last, reaching back into last season if needed. */
+function recentUserMatches(state: GameState, count: number): Match[] {
+  const ids = [...(state.seasonHistory[state.seasonHistory.length - 1]?.matchIds ?? []), ...state.season.matchIds];
+  return ids
+    .map((id) => state.matches[id])
+    .filter((m): m is Match => Boolean(m?.userPerformance))
+    .slice(-count);
+}
+
 function userCandidate(state: GameState, tournamentIds: string[]): Candidate {
   const p = state.player;
-  // Their figures in this competition; club cricket counts, at a discount, when there are none.
-  let s = userSeasonStats(state, tournamentIds);
-  let discount = 1;
-  if (s.matches === 0) {
-    s = userSeasonStats(state, null);
-    discount = SQUAD_SELECTION.lowerLevelDiscount;
+  // Cricket below the level counts for less, level by level.
+  const level = Math.max(...tournamentIds.map(levelOfCompetition));
+  const weight = (tournamentId: string) => {
+    if (tournamentIds.includes(tournamentId)) return 1;
+    const below = level - levelOfCompetition(tournamentId);
+    return below <= 0 ? 1 : SQUAD_SELECTION.lowerLevelDiscount ** below;
+  };
+  const ratings = recentUserMatches(state, 8).map((m) => 5 + (m.userPerformance!.rating - 5) * weight(m.tournamentId));
+  const season = { matches: 0, runs: 0, innings: 0, notOuts: 0, balls: 0, wickets: 0, ballsBowled: 0, runsConceded: 0 };
+  let atLevel = 0;
+  for (const id of state.season.matchIds) {
+    const m = state.matches[id];
+    const perf = m?.userPerformance;
+    if (!m || !perf) continue;
+    const w = weight(m.tournamentId);
+    if (w >= 1) atLevel += 1;
+    const batted = perf.ballsFaced > 0 || !perf.notOut;
+    const bowled = Math.floor(perf.oversBowled) * 6 + Math.round((perf.oversBowled % 1) * 10);
+    season.matches += 1;
+    season.runs += perf.runs * w;
+    season.balls += perf.ballsFaced;
+    if (batted) season.innings += 1;
+    if (batted && perf.notOut) season.notOuts += 1;
+    season.wickets += perf.wickets * w;
+    season.ballsBowled += bowled;
+    season.runsConceded += perf.runsConceded / Math.max(0.25, w);
   }
   const tests = p.development.fitnessTests.filter((t) => t.date >= state.season.startDate);
   return {
@@ -220,17 +260,9 @@ function userCandidate(state: GameState, tournamentIds: string[]): Candidate {
     group: roleGroup(p.role),
     overall: computeOverall(p.attributes, p.role),
     age: p.age,
-    ratings: p.condition.recentRatings.map((r) => 5 + (r - 5) * discount),
-    season: {
-      matches: s.matches,
-      runs: Math.round(s.runs * discount),
-      innings: s.innings,
-      notOuts: s.notOuts,
-      balls: s.strikeRate ? Math.round((s.runs / s.strikeRate) * 100) : 0,
-      wickets: Math.round(s.wickets * discount),
-      ballsBowled: s.economy ? Math.round((s.bowlingAverage ?? 0) * s.wickets / Math.max(0.1, s.economy) * 6) : 0,
-      runsConceded: s.bowlingAverage ? Math.round(s.bowlingAverage * s.wickets) : 0,
-    },
+    ratings,
+    season: { ...season, runs: Math.round(season.runs), wickets: Math.round(season.wickets), runsConceded: Math.round(season.runsConceded) },
+    seasonAtLevel: atLevel > 0,
     fitness: p.condition.fitness,
     trust: p.condition.selectorTrust,
     reputation: p.condition.reputation,
@@ -245,12 +277,61 @@ export interface Ranked {
   score: number;
 }
 
+const GROUP_ROLES: Record<RoleGroup, PlayerRole[]> = {
+  BATTER: ['OPENING_BATTER', 'BATTER'],
+  KEEPER: ['WICKET_KEEPER_BATTER'],
+  ALLROUNDER: ['BATTING_ALLROUNDER', 'BOWLING_ALLROUNDER'],
+  PACE: ['PACE_BOWLER'],
+  SPIN: ['SPIN_BOWLER'],
+};
+
+function saltOf(text: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * The squad is not the whole field: probables from the rest of the state
+ * (or the country) are in contention too. They are the same each time within
+ * a season, and a little behind the squad on average.
+ */
+export function outsideProbables(state: GameState, team: Team, group: RoleGroup): RivalPlayer[] {
+  const profile = profileOf(team);
+  const count = SQUAD_SELECTION.outsidePool[group];
+  if (!profile || count <= 0) return [];
+  const year = state.season.year;
+  const rng = createRng(deriveSeed(state.seed, saltOf(`probables-${team.id}-${year}-${group}`)));
+  const taken = new Set(team.squad.map((p) => p.name));
+  const out: RivalPlayer[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const player = generateWorldPlayer({
+      teamId: `probables-${team.id}`,
+      region: team.squad[0]?.region ?? state.player.state,
+      role: rng.pick(GROUP_ROLES[group]),
+      age: rng.int(profile.ages[0], profile.ages[1]),
+      seasonStart: state.season.startDate,
+      seasonYear: year,
+      potential: profile.potential[0] - SQUAD_SELECTION.outsideBehind + rng.spread() * profile.potential[1] * 1.6,
+      share: profile.share,
+      rng,
+      taken,
+    });
+    out.push({ ...player, id: `probable-${team.id}-${group}-${i}` });
+  }
+  return out;
+}
+
 /** Everyone in the user's role group for a side, best first, with the user in it. */
 export function rankGroup(state: GameState, team: Team, tournamentIds: string[]): Ranked[] {
   const today = state.season.currentDate;
   const user = userCandidate(state, tournamentIds);
   const rivals = team.squad.map((p) => rivalCandidate(p, today)).filter((c) => c.group === user.group);
-  const peers = [user, ...rivals];
+  const outside = outsideProbables(state, team, user.group).map((p) => ({ ...rivalCandidate(p, today), outside: true }));
+  const peers = [user, ...rivals, ...outside];
   return peers
     .filter((c) => !c.injured || c.isUser)
     .map((candidate) => ({ candidate, score: candidateScore(candidate, peers) }))
@@ -301,7 +382,7 @@ export function decideSquad(
   }
   const ranked = rankGroup(state, team, [tournamentId]);
   const userIndex = ranked.findIndex((r) => r.candidate.isUser);
-  const bonus = (options.incumbent ? SQUAD_SELECTION.incumbentBonus : 0) + (options.trialBonus ?? 0);
+  const bonus = (options.incumbent ? SQUAD_SELECTION.incumbentBonus : 0) + (options.trialBonus ?? 0) * SQUAD_SELECTION.trialWeight;
   const userScore = ranked[userIndex].score + bonus;
   const rivals = ranked.filter((r) => !r.candidate.isUser);
   const ahead = rivals.filter((r) => r.score > userScore);
@@ -314,31 +395,47 @@ export function decideSquad(
   if (user.injured) {
     return { status: 'RESERVE', reason: `Injured - the selectors will look again once you are fit.`, rank, rivalName: null };
   }
-  if (rank <= SQUAD_PLACES[group]) {
+  const cut = SQUAD_CUT[group];
+  const wide = SQUAD_PLACES[group];
+  const blocker = ahead[ahead.length - 1]?.candidate;
+  const lowRun = state.career.lowScores >= SQUAD_SELECTION.lowScoresToDrop;
+  // Newcomers must break into the match squad; a player in possession keeps
+  // the place while they stay in the wider group and the runs keep coming.
+  if (rank <= cut || (options.incumbent && rank <= wide && !lowRun)) {
     const xi = rank <= XI_PLACES[group];
     const vs = nextBehind ? ` - picked ahead of ${nextBehind.candidate.name} for ${compareReason(user, nextBehind.candidate)}` : '';
-    const status: SquadStatus = options.incumbent ? 'SQUAD' : rank <= XI_PLACES[group] ? 'SQUAD' : 'PROBABLES';
     return {
-      status,
-      reason: xi ? `In the ${name} squad as a first-choice ${label}${vs}.` : `In the ${name} squad; ${ahead.slice(0, XI_PLACES[group]).map((r) => r.candidate.name).join(' and ')} hold the ${label} places for now.`,
+      status: 'SQUAD',
+      reason: xi
+        ? `In the ${name} squad as a first-choice ${label}${vs}.`
+        : `In the ${name} squad as cover; ${ahead.slice(0, XI_PLACES[group]).map((r) => r.candidate.name).join(' and ')} hold the ${label} places for now.`,
       rank,
       rivalName: nextBehind?.candidate.name ?? ahead[0]?.candidate.name ?? null,
     };
   }
-  const blocker = ahead[ahead.length - 1]?.candidate;
-  if (options.incumbent && state.career.lowScores >= SQUAD_SELECTION.lowScoresToDrop) {
+  if (options.incumbent) {
     return {
       status: 'DROPPED',
-      reason: `Dropped from the ${name} squad after ${state.career.lowScores} low scores; ${blocker?.name ?? 'a rival'} comes in.`,
+      reason: lowRun
+        ? `Dropped from the ${name} squad after ${state.career.lowScores} low scores; ${blocker?.name ?? 'a rival'} comes in.`
+        : `Dropped from the ${name} squad: ${blocker?.name ?? 'a rival'} has overtaken you as a ${label}.`,
       rank,
       rivalName: blocker?.name ?? null,
     };
   }
-  if (rank === SQUAD_PLACES[group] + 1) {
-    return { status: 'RESERVE', reason: `Reserve for the ${name}: next in line behind ${blocker?.name ?? 'the squad'}.`, rank, rivalName: blocker?.name ?? null };
+  if (rank <= wide) {
+    return {
+      status: 'PROBABLES',
+      reason: `In the ${name} probables, stuck behind ${ahead.slice(-2).map((r) => r.candidate.name).join(' and ')}; a call-up needs runs and wickets in club cricket or an injury ahead of you.`,
+      rank,
+      rivalName: blocker?.name ?? null,
+    };
+  }
+  if (rank === wide + 1) {
+    return { status: 'RESERVE', reason: `Reserve for the ${name}: next in line behind ${blocker?.name ?? 'the probables'}.`, rank, rivalName: blocker?.name ?? null };
   }
   return {
-    status: options.incumbent ? 'DROPPED' : 'NOT_SELECTED',
+    status: 'NOT_SELECTED',
     reason: `${ahead.slice(0, 3).map((r) => r.candidate.name).join(', ')} are ahead of you as ${label}s for the ${name}.`,
     rank,
     rivalName: blocker?.name ?? null,
@@ -351,7 +448,7 @@ export function competitionForPlaces(state: GameState, teamId: string, tournamen
   if (!team) return [];
   const ranked = rankGroup(state, team, tournamentIds);
   const group = ranked.find((r) => r.candidate.isUser)?.candidate.group ?? 'BATTER';
-  return ranked.map((r, i) => ({ ...r, holdsSpot: i < XI_PLACES[group], inSquad: i < SQUAD_PLACES[group] }));
+  return ranked.map((r, i) => ({ ...r, holdsSpot: i < XI_PLACES[group], inSquad: i < SQUAD_CUT[group] }));
 }
 
 /** The squad place for a competition, or a default when there is none. */

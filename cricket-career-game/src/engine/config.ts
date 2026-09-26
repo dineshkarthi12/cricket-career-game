@@ -353,22 +353,76 @@ export const TOURNAMENT = {
 
 /** Squad selection weights (Phase 6), all on a 0-100 scale. */
 export const SQUAD_SELECTION = {
-  ability: 0.36,
-  form: 0.22,
-  season: 0.16,
-  trust: 0.1,
-  reputation: 0.06,
-  discipline: 0.06,
+  ability: 0.6,
+  form: 0.14,
+  season: 0.14,
+  trust: 0.04,
+  reputation: 0.01,
+  discipline: 0.03,
+  /** Probables from outside the squad in contention, per role group. */
+  outsidePool: { BATTER: 3, KEEPER: 1, ALLROUNDER: 2, PACE: 2, SPIN: 2 },
+  /** How far (in potential) the outside probables are behind the squad on average. */
+  outsideBehind: 2,
+  /** Selection points per point of trial bonus (-10..10). */
+  trialWeight: 0.3,
   /** A failed fitness test this season. */
   failedTestPenalty: 6,
   /** Being in possession of a place counts for something. */
-  incumbentBonus: 2.5,
+  incumbentBonus: 2,
   /** Consecutive low scores that put an incumbent's place at risk. */
   lowScoresToDrop: 4,
   /** A match rating below this is a low score. */
   lowScoreRating: 4.6,
-  /** Club and lower-level figures count this much when there are none at the level. */
-  lowerLevelDiscount: 0.75,
+  /** Form and figures from cricket one level down count this much (per level). */
+  lowerLevelDiscount: 0.5,
+} as const;
+
+/** Trials and selection camps. */
+export const TRIALS = {
+  /** End-of-season trials invite players at this share of their target. */
+  inviteRatio: 0.7,
+  /** The next level's bar is this much above the current squad's. */
+  nextLevelStep: 5,
+  /** Fallback level bar (overall) by stage order, when there is no squad to compare with. */
+  stageBar: { 1: 34, 2: 44, 3: 51, 4: 57, 5: 62, 6: 62, 7: 66, 8: 68, 9: 68, 10: 68 } as Record<number, number>,
+  netsWeight: 0.9,
+  practiceWeight: 1.1,
+  fitnessPass: 1.5,
+  fitnessFail: -4,
+  /** Pushing flat out in the fitness test: better numbers, more tired. */
+  allOutYoyo: 0.4,
+  allOutSprint: 0.03,
+  allOutFatigue: 12,
+  /** Selector trust per point of trial bonus. */
+  trustPerBonus: 0.6,
+} as const;
+
+/** The end-of-season verdict. */
+export const SEASON_REVIEW = {
+  /** Chance of promotion with the target met, before the adjustments. */
+  metChance: 0.72,
+  /** Chance with the target nearly met (>= nearRatio). */
+  nearChance: 0.18,
+  nearRatio: 0.8,
+  /** Per point of next-level trial bonus. */
+  trialPerPoint: 0.035,
+  /** Per point of selector trust above 50. */
+  trustPerPoint: 0.004,
+  /** Per point of overall above the next level's bar. */
+  abilityPerPoint: 0.02,
+  failedFitness: -0.2,
+  notInSquad: -0.25,
+  /** Fast-track: this share of the target, and this much above the next level's bar. */
+  fastTrackRatio: 1.6,
+  fastTrackEdge: 3,
+  fastTrackChance: 0.55,
+  /** Skip a whole level with this share of the target. */
+  skipRatio: 2.1,
+  /** A season in the squad with fewer than this share of the side's matches is "on the bench". */
+  benchShare: 0.4,
+  /** Matches (as a share of the target) that count as established at a senior level. */
+  minChance: 0.04,
+  maxChance: 0.95,
 } as const;
 
 export const SAVE = {

@@ -3,6 +3,7 @@
  * they are under 16 on 1 September of the year the season starts.
  */
 import { STAGE_AGE_LIMIT } from '@/data/stageTargets';
+import { CAREER_STAGES } from '@/data/stages';
 import type { CareerStageId } from '@/types';
 
 export const CUTOFF_MONTH_DAY = '09-01';
@@ -31,3 +32,13 @@ export function eligibleForStage(dateOfBirth: string, seasonYear: number, stageI
 
 /** Minimum age to be considered for senior state cricket. */
 export const SENIOR_MIN_AGE = 17;
+
+/** The stage whose age limit (and level) a competition belongs to. */
+export function stageOfCompetition(tournamentId: string): CareerStageId {
+  return CAREER_STAGES.find((s) => s.tournamentIds.includes(tournamentId))?.id ?? 'SENIOR_STATE';
+}
+
+/** A competition's place on the path, 1 (school, club) to 7 (senior state). */
+export function levelOfCompetition(tournamentId: string): number {
+  return CAREER_STAGES.find((s) => s.tournamentIds.includes(tournamentId))?.order ?? 7;
+}
