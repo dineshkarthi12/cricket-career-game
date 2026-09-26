@@ -339,6 +339,17 @@ export function buildMatch(
 
   const homeXi = buildSide(homeTeamId);
   const awayXi = buildSide(awayTeamId);
+  // The impact-player rule: each side's bench, for one substitute at the break.
+  const benchFor = (teamId: Id, xi: SimPlayer[]): SimPlayer[] => {
+    const team = state.teams[teamId];
+    const inXi = new Set(xi.map((p) => p.id));
+    const overseasFull = xi.filter((p) => p.overseas).length >= IPL_RULES.maxOverseasXi;
+    return squadFor(state, teamId).filter((p) => {
+      const rival = team?.squad.find((r) => r.id === p.id);
+      return !inXi.has(p.id) && !(rival?.injuredUntil && rival.injuredUntil >= fixture.date) && !(overseasFull && p.overseas);
+    });
+  };
+  const impact = fixture.tournamentId === 'ipl' && IPL_RULES.impactPlayer ? { homeBench: benchFor(homeTeamId, homeXi), awayBench: benchFor(awayTeamId, awayXi) } : undefined;
   const venue =
     (fixture.venueId ? state.venues[fixture.venueId] : null) ??
     state.venues[state.teams[homeTeamId]?.homeVenueId ?? ''] ??
@@ -364,6 +375,7 @@ export function buildMatch(
     underLights: Boolean(venue?.floodlights) && isLimitedOvers(format) && format !== 'MULTI_DAY',
     seed: deriveSeed(state.seed, saltOf(fixture.id)),
     bowlerTrust: options.bowlerTrust,
+    impact,
     teamNames: {
       [homeTeamId]: state.teams[homeTeamId]?.shortName ?? homeTeamId,
       [awayTeamId]: state.teams[awayTeamId]?.shortName ?? awayTeamId,

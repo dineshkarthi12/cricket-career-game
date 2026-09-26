@@ -280,6 +280,7 @@ export default function MatchScreen() {
         onContinue={store.startNextInnings}
         onSimulateRest={store.simulateRest}
         onFollowOn={store.chooseFollowOn}
+        onImpact={store.chooseImpact}
       />
     );
   }

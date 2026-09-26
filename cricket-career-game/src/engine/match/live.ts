@@ -8,6 +8,7 @@
  * Pure TypeScript - no React, no DOM. The screen reads `snapshot()` after each
  * call and draws whatever it finds.
  */
+import { impactSwap } from '../sim/quickMatch';
 import { MATCH, MATCH_FORMATS } from '../config';
 import { newId } from '../id';
 import { createPitch, createWeather, newBall } from './conditions';
@@ -85,6 +86,25 @@ export interface LiveMatchSetup {
   bowlerTrust?: Record<string, number>;
   /** Captaincy calls the player has handed to the AI vice-captain. */
   delegate?: CaptainDelegation;
+  /**
+   * The impact-player rule (IPL): each side may swap one player at the
+   * innings break - a bowler in for the side that batted, a batter in for
+   * the chasers. The AI decides; the player decides for their side when
+   * captain.
+   */
+  impact?: { homeBench: SimPlayer[]; awayBench: SimPlayer[] };
+}
+
+/** The impact substitution open to the player's side at the innings break. */
+export interface ImpactChoice {
+  teamId: string;
+  job: 'BAT' | 'BOWL';
+  bench: SimPlayer[];
+  xi: SimPlayer[];
+  /** What the vice-captain would do (null: no change worth making). */
+  suggestion: { inId: string; outId: string } | null;
+  /** The player's call so far (undefined: not made yet; null: no substitute). */
+  chosen?: { inId: string; outId: string } | null;
 }
 
 /** How good the player's timing was on a catch or run-out, 0 (awful) to 1. */
@@ -172,6 +192,10 @@ export interface LiveSnapshot {
   canDeclare: boolean;
   /** The user's side has earned the follow-on and must say whether to enforce it. */
   followOnChoice: { lead: number } | null;
+  /** At the first innings break of an impact-player match, the player's call when captain. */
+  impactChoice: ImpactChoice | null;
+  /** Impact substitutions made. */
+  impactsUsed: { teamId: string; inId: string; outId: string }[];
 }
 
 export interface LiveAlert {
@@ -232,6 +256,8 @@ export interface LiveMatch {
   suggestBowler(): SimPlayer | null;
   /** Play the rest of the innings out. */
   toEndOfInnings(overrides?: BallOverrides): Ball[];
+  /** The captain's impact substitution for the next innings (nulls: none). */
+  chooseImpact(inId: string | null, outId: string | null): void;
   /**
    * Play the whole match out. Overrides - the player's own aggression, say -
    * apply to every ball, exactly as they would one ball at a time.
@@ -268,6 +294,11 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   const rates = MATCH_FORMATS[setup.format] ?? MATCH_FORMATS.ODI;
   const limited = isLimitedOvers(setup.format);
   const allPlayers = [...setup.homeXi, ...setup.awayXi];
+  /** The XIs after an impact substitution. */
+  const xiOverride: Record<string, SimPlayer[]> = {};
+  const impactsUsed: { teamId: string; inId: string; outId: string }[] = [];
+  /** The player's impact call, when they make it. */
+  let userImpact: { inId: string; outId: string } | null | undefined;
 
   const baseConditions: MatchConditions = {
     pitch,
@@ -319,7 +350,46 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   const dayLosses: { overs: number; cause: 'RAIN' | 'BAD_LIGHT' }[] = [];
   let announcedDay = 1;
 
-  const xiOf = (teamId: string) => (teamId === setup.homeTeamId ? setup.homeXi : setup.awayXi);
+  const xiOf = (teamId: string) => xiOverride[teamId] ?? (teamId === setup.homeTeamId ? setup.homeXi : setup.awayXi);
+  const benchOf = (teamId: string) => (setup.impact ? (teamId === setup.homeTeamId ? setup.impact.homeBench : setup.impact.awayBench) : []);
+  /** The side that batted first brings on a bowler; the chasers a batter. */
+  const impactJob = (teamId: string): 'BAT' | 'BOWL' => (teamId === battingFirstTeamId ? 'BOWL' : 'BAT');
+  const impactOpen = () => Boolean(setup.impact) && limited && completed.length === 1 && impactsUsed.length === 0 && pending !== null && !pending.superOver;
+
+  /** Make the impact substitutions as the second innings opens. */
+  function applyImpacts() {
+    if (!impactOpen()) return;
+    for (const teamId of [setup.homeTeamId, setup.awayTeamId]) {
+      const xi = xiOf(teamId);
+      let swap: { inId: string; outId: string } | null;
+      if (teamId === setup.userTeamId && captainCalls('battingOrder') && userImpact !== undefined) swap = userImpact;
+      else {
+        const s = impactSwap(xi, benchOf(teamId), impactJob(teamId));
+        const out = s.sub ? xi.find((p) => !s.xi.some((q) => q.id === p.id)) : undefined;
+        swap = s.sub && out ? { inId: s.sub.id, outId: out.id } : null;
+      }
+      if (!swap) continue;
+      const incoming = benchOf(teamId).find((p) => p.id === swap!.inId);
+      const outgoing = xi.find((p) => p.id === swap!.outId);
+      if (!incoming || !outgoing || incoming.isUser) continue;
+      xiOverride[teamId] = xi.map((p) => (p.id === outgoing.id ? { ...incoming, battingPosition: outgoing.battingPosition } : p));
+      allPlayers.push(incoming);
+      impactsUsed.push({ teamId, inId: incoming.id, outId: outgoing.id });
+      addAlert('INNINGS', `Impact player: ${incoming.name} replaces ${outgoing.name} for ${setup.teamNames?.[teamId] ?? teamId}.`);
+    }
+  }
+
+  function impactChoice(): ImpactChoice | null {
+    if (!impactOpen() || !captainCalls('battingOrder')) return null;
+    const teamId = setup.userTeamId;
+    const xi = xiOf(teamId);
+    const bench = benchOf(teamId).filter((p) => !p.isUser);
+    if (bench.length === 0) return null;
+    const job = impactJob(teamId);
+    const s = impactSwap(xi, bench, job);
+    const out = s.sub ? xi.find((p) => !s.xi.some((q) => q.id === p.id)) : undefined;
+    return { teamId, job, bench, xi, suggestion: s.sub && out ? { inId: s.sub.id, outId: out.id } : null, chosen: userImpact };
+  }
   const other = (teamId: string) =>
     teamId === setup.homeTeamId ? setup.awayTeamId : setup.homeTeamId;
 
@@ -393,6 +463,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   let current: PendingInnings | null = null;
 
   function openInnings(p: PendingInnings) {
+    if (p.number === 2 && !p.superOver) applyImpacts();
     inningsRng = createRng(deriveSeed(setup.seed, p.superOver ? 90 + p.number : p.number));
     state = createInningsState(buildSetup(p));
     current = p;
@@ -1004,6 +1075,8 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         Boolean(current) &&
         !current?.superOver,
       followOnChoice: awaitingFollowOn ? { lead: firstInningsLead } : null,
+      impactChoice: phase === 'INNINGS_BREAK' ? impactChoice() : null,
+      impactsUsed: [...impactsUsed],
     };
   }
 
@@ -1200,6 +1273,10 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         else this.toEndOfInnings(overrides);
         guard += 1;
       }
+    },
+
+    chooseImpact(inId, outId) {
+      userImpact = inId && outId ? { inId, outId } : null;
     },
 
     startNextInnings() {

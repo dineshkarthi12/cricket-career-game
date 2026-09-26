@@ -152,6 +152,8 @@ interface MatchStore {
   answer: (response: { timing?: number; review?: boolean }) => void;
   declare: () => void;
   chooseFollowOn: (enforce: boolean) => void;
+  /** The captain's impact substitute at the innings break (nulls: none). */
+  chooseImpact: (inId: string | null, outId: string | null) => void;
   answerPress: (answers: Record<string, string>) => void;
   quickSim: (state: GameState, fixture: Fixture) => Match | null;
 
@@ -527,6 +529,12 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         tactics.declared = true;
         sync(null);
       }
+    },
+
+    chooseImpact: (inId, outId) => {
+      if (!live) return;
+      live.chooseImpact(inId, outId);
+      sync(null);
     },
 
     chooseFollowOn: (enforce) => {
