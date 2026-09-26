@@ -24,6 +24,8 @@ export interface SimulatedCareerRun {
   reachedAt: Partial<Record<CareerStageId, number>>;
   /** Senior formats established in (stages 8-10), with the age. */
   establishedAt: Partial<Record<CareerStageId, number>>;
+  /** Age each stage was entered (became current), if it was. */
+  enteredAt: Partial<Record<CareerStageId, number>>;
   outcomes: SeasonOutcome[];
   drops: number;
   comebacks: number;
@@ -90,12 +92,18 @@ export function simulateCareer(seed: number, endAge = 30): SimulatedCareerRun {
     }
   }
   const matches = Object.values(state.player.record.byFormat).reduce((sum, r) => sum + (r?.batting.matches ?? 0), 0);
+  const enteredAt: SimulatedCareerRun['enteredAt'] = {};
+  for (const s of CAREER_STAGES) {
+    const on = state.career.stages[s.id]?.enteredOn;
+    if (on) enteredAt[s.id] = age(on);
+  }
   return {
     seed,
     role,
     hiddenPotential: state.player.development.hiddenPotential,
     reachedAt,
     establishedAt,
+    enteredAt,
     outcomes: state.career.seasonReviews.map((r) => r.outcome),
     drops: state.career.drops,
     comebacks: state.career.comebacks,

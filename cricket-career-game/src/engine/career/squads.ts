@@ -124,11 +124,23 @@ function seasonIndex(c: Candidate, peers: Candidate[]): number {
   return Math.max(0, Math.min(100, 50 + ((measure(c) - median) / spread) * 25));
 }
 
-/** The selectors' score. */
-export function candidateScore(c: Candidate, peers: Candidate[]): number {
+/**
+ * Senior and U-23 selectors back a young player on the way up: every year
+ * under `prospectAge` is worth `prospectPerYear` points of ability, for the
+ * user and the AI alike. A 20-year-old at 72 is judged like a 26-year-old
+ * at about 77 - they will be.
+ */
+export function prospectCredit(age: number, level: number): number {
+  const w = SQUAD_SELECTION;
+  if (level < w.prospectFromLevel) return 0;
+  return Math.max(0, w.prospectAge - age) * w.prospectPerYear;
+}
+
+/** The selectors' score. `level` is the competition's place on the path (1-20). */
+export function candidateScore(c: Candidate, peers: Candidate[], level = 0): number {
   const w = SQUAD_SELECTION;
   let score =
-    w.ability * c.overall +
+    w.ability * (c.overall + prospectCredit(c.age, level)) +
     w.form * weightedForm(c.ratings) +
     w.season * seasonIndex(c, peers) +
     w.trust * c.trust +
@@ -332,9 +344,10 @@ export function rankGroup(state: GameState, team: Team, tournamentIds: string[])
   const rivals = team.squad.map((p) => rivalCandidate(p, today)).filter((c) => c.group === user.group);
   const outside = outsideProbables(state, team, user.group).map((p) => ({ ...rivalCandidate(p, today), outside: true }));
   const peers = [user, ...rivals, ...outside];
+  const level = Math.max(...tournamentIds.map(levelOfCompetition));
   return peers
     .filter((c) => !c.injured || c.isUser)
-    .map((candidate) => ({ candidate, score: candidateScore(candidate, peers) }))
+    .map((candidate) => ({ candidate, score: candidateScore(candidate, peers, level) }))
     .sort((a, b) => b.score - a.score);
 }
 

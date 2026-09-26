@@ -13,7 +13,7 @@ import { computeOverall } from '../ratings';
 import { newId } from '../id';
 import { eligibleForStage } from './eligibility';
 import { CLUB_COMPETITION, SENIOR_COMPETITIONS, extraCompetitions, isSeniorStage, stageCompetitions } from './involvement';
-import { IN_SQUAD, STATUS_LABEL, userSeasonStats } from './squads';
+import { IN_SQUAD, STATUS_LABEL, prospectCredit, userSeasonStats } from './squads';
 import { ageOutStage, evaluateTargets, nextStageFor } from './targets';
 import type {
   CareerStageId,
@@ -62,6 +62,7 @@ export function openingSquads(
   since: string,
   carry: Record<string, SquadStatus>,
   fresh: { status: SquadStatus; reason: string } | null,
+  ctx?: { dob: string; seasonYear: number },
 ): Record<string, SquadPlace> {
   const out: Record<string, SquadPlace> = {};
   const stage = getStage(stageId);
@@ -79,17 +80,23 @@ export function openingSquads(
       out[id] = place(id, 'TRIAL_ONLY', `Invited to the ${name} trials.`, since);
     }
   }
-  for (const id of extraCompetitions(stageId)) {
+  for (const id of extraCompetitions(stageId, ctx)) {
     out[id] =
       id === CLUB_COMPETITION
         ? place(id, 'SQUAD', 'Club cricket, whenever there is no squad to play for.', since)
-        : place(id, 'SQUAD', 'India U-19 players are picked for their state as well.', since);
+        : stageId === 'SENIOR_STATE'
+          ? place(id, 'SQUAD', 'Senior probables still play U-23 cricket while they are young enough.', since)
+          : place(id, 'SQUAD', 'India U-19 players are picked for their state as well.', since);
   }
   return out;
 }
 
 /** Which competitions' fixtures are the player's own at the start of a season. */
-export function involvementFor(stageId: CareerStageId, squads: Record<string, SquadPlace>): Record<string, boolean> {
+export function involvementFor(
+  stageId: CareerStageId,
+  squads: Record<string, SquadPlace>,
+  ctx?: { dob: string; seasonYear: number },
+): Record<string, boolean> {
   const out: Record<string, boolean> = {};
   const stageIds = stageCompetitions(stageId);
   let anyIn = false;
@@ -101,8 +108,23 @@ export function involvementFor(stageId: CareerStageId, squads: Record<string, Sq
   }
   // Juniors play club cricket alongside; seniors only when there is no squad for them.
   const junior = getStage(stageId).order <= 6;
-  for (const id of extraCompetitions(stageId)) out[id] = id === CLUB_COMPETITION ? junior || !anyIn : true;
+  for (const id of extraCompetitions(stageId, ctx)) out[id] = id === CLUB_COMPETITION ? junior || !anyIn : (squads[id] ? IN_SQUAD.includes(squads[id].status) : true);
   return out;
+}
+
+/**
+ * A strong age-group season can bring a senior call-up straight away: the
+ * state's senior selectors back a young player who is already close to
+ * their standard. The player still has to win a senior squad place.
+ */
+function seniorCallUp(state: GameState, order: number, progress: { met: boolean; ratio: number }, overall: number, roll: number): boolean {
+  const c = SEASON_REVIEW.seniorCallUp;
+  if (order < c.fromOrder || order > 6 || !progress.met || progress.ratio < c.ratio) return false;
+  const age = state.player.age + 1;
+  if (age < c.minAge) return false;
+  const edge = overall + prospectCredit(age, 7) - stageBar('SENIOR_STATE');
+  if (edge < c.edge) return false;
+  return roll < Math.min(c.maxChance, c.chance + (edge - c.edge) * c.perPoint);
 }
 
 function reviewLabel(outcome: SeasonOutcome): string {
@@ -192,7 +214,7 @@ export function reviewSeason(state: GameState): SeasonVerdict {
           base +
           (trial?.bonus ?? 0) * SEASON_REVIEW.trialPerPoint +
           (trust - 50) * SEASON_REVIEW.trustPerPoint +
-          Math.max(-SEASON_REVIEW.abilityCap, Math.min(SEASON_REVIEW.abilityCap, (overall - stageBar(next)) * SEASON_REVIEW.abilityPerPoint)) +
+          Math.max(-SEASON_REVIEW.abilityCap, Math.min(SEASON_REVIEW.abilityCap, (overall + prospectCredit(state.player.age, getStage(next).order) - stageBar(next)) * SEASON_REVIEW.abilityPerPoint)) +
           (progress.fitness === 'FAILED' ? SEASON_REVIEW.failedFitness : 0) +
           (!reached ? SEASON_REVIEW.notInSquad : 0);
         chance = Math.max(SEASON_REVIEW.minChance, Math.min(SEASON_REVIEW.maxChance, chance));
@@ -200,6 +222,9 @@ export function reviewSeason(state: GameState): SeasonVerdict {
     }
     const roll = rng.next();
     const fastRoll = rng.next();
+    // A senior call-up beats a move to U-23 cricket; India U-19 comes first.
+    const callUp = seniorCallUp(state, stage.order, progress, overall, rng.next());
+    const callUpFirst = callUp && next !== 'INDIA_U19';
     if (next && progress.met && progress.ratio >= SEASON_REVIEW.fastTrackRatio && overall >= stageBar(next) + SEASON_REVIEW.fastTrackEdge && fastRoll < SEASON_REVIEW.fastTrackChance) {
       outcome = 'FAST_TRACK';
       const leap = stage.fastTrackStageIds.find((id) => eligibleForStage(dob, nextYear, id) && getStage(id).order <= 7);
@@ -213,12 +238,19 @@ export function reviewSeason(state: GameState): SeasonVerdict {
       }
       completed.push(stageId);
       reasons.push(`${Math.round(progress.ratio * 100)}% of the target - the selectors could not ignore it.`);
-    } else if (next && roll < chance) {
+    } else if (next && roll < chance && !callUpFirst) {
       outcome = 'PROMOTE';
       nextStageId = next;
       completed.push(stageId);
       fresh = { status: 'TRIAL_ONLY', reason: 'Promoted: invited to the {name} trials.' };
       reasons.push(progress.met ? 'Targets met - the selectors want a closer look at the next level.' : 'Just short of the target, but the selectors took a chance.');
+    } else if (callUp) {
+      outcome = 'FAST_TRACK';
+      nextStageId = 'SENIOR_STATE';
+      for (const s of CAREER_STAGES) if (s.order > stage.order && s.order < 7 && state.career.stages[s.id]?.status !== 'COMPLETED') skipped.push(s.id);
+      completed.push(stageId);
+      fresh = { status: 'TRIAL_ONLY', reason: 'Called up to the senior {name} probables - the selectors want to see you against men.' };
+      reasons.push(`Called up to the senior state probables: ${Math.round(progress.ratio * 100)}% of the target, and ability the senior selectors can build on.`);
     } else if (!eligibleStay) {
       outcome = 'AGED_OUT';
       nextStageId = ageOutStage(stageId, dob, nextYear);
@@ -240,7 +272,7 @@ export function reviewSeason(state: GameState): SeasonVerdict {
   if (progress.fitness === 'FAILED') reasons.push('Failed the fitness test - it counted against you.');
   if (trial) reasons.push(`${trial.title}: ${trial.verdict}`);
 
-  const nextSquads = openingSquads(nextStageId, nextStart, nextStageId === stageId ? carry : {}, nextStageId === stageId ? null : fresh);
+  const nextSquads = openingSquads(nextStageId, nextStart, nextStageId === stageId ? carry : {}, nextStageId === stageId ? null : fresh, { dob, seasonYear: nextYear });
   const stats = userSeasonStats(state, null);
   const history = state.player.development.overallHistory ?? [];
   const startOverall = history.find((h) => h.date >= since)?.overall ?? overall;

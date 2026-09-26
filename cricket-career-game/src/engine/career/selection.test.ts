@@ -140,3 +140,13 @@ describe('the captain’s XI goes to the selectors', () => {
     expect(review.xiIds).toEqual(reversed);
   });
 });
+
+describe('prospect credit (Phase 7 step 0)', () => {
+  it('backs young players only at senior level, fading to nothing at 25', async () => {
+    const { prospectCredit } = await import('./squads');
+    expect(prospectCredit(20, 7)).toBeGreaterThan(prospectCredit(23, 7));
+    expect(prospectCredit(25, 7)).toBe(0);
+    expect(prospectCredit(30, 7)).toBe(0);
+    expect(prospectCredit(20, 6)).toBe(0);
+  });
+});

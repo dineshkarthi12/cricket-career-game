@@ -8,6 +8,7 @@ import { getStage } from '@/data/stages';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { newId } from '../id';
 import { IN_SQUAD, STATUS_LABEL } from './squads';
+import { eligibleForStage } from './eligibility';
 import type { CareerStageId, GameState, InboxMessage, SelectionStatus, SquadPlace, SquadStatus } from '@/types';
 
 export const SENIOR_COMPETITIONS = ['ranji-trophy', 'vijay-hazare', 'syed-mushtaq-ali'];
@@ -27,13 +28,14 @@ export function stageCompetitions(stageId: CareerStageId): string[] {
 
 /**
  * Competitions played on top of the stage's own: club cricket as the
- * fallback from stage 2 on, and the state U-19 competitions for an India
- * U-19 player.
+ * fallback from stage 2 on, the state U-19 competitions for an India U-19
+ * player, and U-23 cricket for a senior probable still young enough for it.
  */
-export function extraCompetitions(stageId: CareerStageId): string[] {
+export function extraCompetitions(stageId: CareerStageId, ctx?: { dob: string; seasonYear: number }): string[] {
   const order = getStage(stageId).order;
   const extras: string[] = [];
   if (stageId === 'INDIA_U19') extras.push('vinoo-mankad', 'cooch-behar');
+  if (stageId === 'SENIOR_STATE' && ctx && eligibleForStage(ctx.dob, ctx.seasonYear, 'U23_EMERGING')) extras.push('ck-nayudu', 'u23-state-a');
   if (order >= 2 && order <= 13) extras.push(CLUB_COMPETITION);
   return extras;
 }

@@ -331,8 +331,8 @@ export function applySeasonCalendar(state: GameState, seasonYear: number, from: 
     seed: state.seed,
     from,
     existingTeams: state.teams,
-    involvement: involvementFor(state.career.currentStageId, state.career.squads ?? {}),
-    extraTournamentIds: [...stageCompetitions(state.career.currentStageId), ...extraCompetitions(state.career.currentStageId)],
+    involvement: involvementFor(state.career.currentStageId, state.career.squads ?? {}, { dob: state.player.dateOfBirth, seasonYear }),
+    extraTournamentIds: [...stageCompetitions(state.career.currentStageId), ...extraCompetitions(state.career.currentStageId, { dob: state.player.dateOfBirth, seasonYear })],
   });
 
   const fixtures = { ...state.fixtures };

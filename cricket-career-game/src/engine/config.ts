@@ -375,6 +375,10 @@ export const SQUAD_SELECTION = {
   lowScoreRating: 4.6,
   /** Form and figures from cricket one level down count this much (per level). */
   lowerLevelDiscount: 0.5,
+  /** Prospect credit: senior selectors back young players on the way up. */
+  prospectFromLevel: 7,
+  prospectAge: 25,
+  prospectPerYear: 1.8,
 } as const;
 
 /** Trials and selection camps. */
@@ -424,6 +428,12 @@ export const SEASON_REVIEW = {
   /** Matches (as a share of the target) that count as established at a senior level. */
   minChance: 0.04,
   maxChance: 0.95,
+  /**
+   * Senior call-up from U-19, India U-19 or U-23: the target met at this
+   * share, old enough, and (overall + prospect credit) this far above the
+   * senior bar.
+   */
+  seniorCallUp: { fromOrder: 4, ratio: 1.1, minAge: 18, edge: 0, chance: 0.45, perPoint: 0.05, maxChance: 0.85 },
 } as const;
 
 export const SAVE = {
