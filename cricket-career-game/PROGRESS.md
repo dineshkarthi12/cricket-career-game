@@ -1247,3 +1247,27 @@ shrinkage.
 their senior debut (around 2036-38) most of today's players have aged or
 retired and generated players have taken their places; the youngest real
 players are still there.
+
+### Phase 9 follow-up - logo and real roles
+
+- **Logo**: the Cricket 26 badge (`design/logo-cricket-26.png`) is the app
+  icon (192/512, maskable, Apple touch), the favicon and the badge in the
+  sidebar, icon rail and start screen; `npm run icons` renders every size
+  from it in Chromium. The old crown SVG icons are gone.
+- **Real roles checked**: every national and IPL squad player (460) and the
+  well-known state players were checked against their real roles, batting
+  hands and bowling styles. 262 player corrections and 12 name matches went
+  into `playerOverrides.json` → `manual`, then the data was regenerated.
+  Examples: Shivam Dube, Riyan Parag, Venkatesh Iyer, Rahul Tewatia, Deepak
+  Hooda → all-rounders; Robin Minz, Vishnu Vinod, Tejasvi Dahiya, Aryan
+  Juyal, Lhuan-dre Pretorius → keepers; Tristan Stubbs, Devon Conway →
+  batters; Shaheen Afridi left-arm fast, Abrar Ahmed and Shadab Khan
+  leg-spin, Kumar Kartikeya left-arm wrist spin; Shams Mulani, Tanush
+  Kotian, Jalaj Saxena, Shreyas Gopal → bowling all-rounders. Duplicates
+  merged: Umesh Yadav, Vaibhav Suryavanshi, KC Cariappa, Raj Bawa, Ankeet
+  Bawne, Ramakrishna Ghosh, Sushant Mishra, Tejasvi Dahiya, BR Sharath;
+  Haryana's Rohit Sharma is no longer matched to India's. Listed names now
+  matched to figures: 1,133 of 1,794. State players unknown to me keep the
+  converter's role and stay flagged in the file.
+- A test pins the real roles and styles of 37 well-known players. 572 tests
+  pass; build clean.

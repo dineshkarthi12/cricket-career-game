@@ -1,4 +1,3 @@
-import { Crown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 interface LogoProps {
@@ -8,13 +7,13 @@ interface LogoProps {
   className?: string;
 }
 
-/** Crown + CRICKET / CAREER wordmark, used in the sidebar and bottom banner. */
+/** The game badge (`public/assets/logo.webp`, from `design/logo-cricket-26.png`) + CRICKET / CAREER wordmark, used in the sidebar and banners. */
 export function Logo({ variant = 'dark', showTagline = false, className }: LogoProps) {
   const ink = variant === 'dark' ? 'text-brand-navy' : 'text-white';
   return (
     <div className={cn('select-none', className)}>
       <div className="flex items-center gap-2">
-        <Crown className="size-6 shrink-0 fill-brand-gold text-brand-gold" strokeWidth={1.5} />
+        <img src="/assets/logo.webp" alt="" width={40} height={40} className="size-10 shrink-0 rounded-[9px] shadow-sm" />
         <div className="leading-none">
           <p className={cn('text-[19px] leading-none font-extrabold tracking-[0.04em]', ink)}>
             CRICKET

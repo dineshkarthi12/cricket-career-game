@@ -307,3 +307,29 @@ describe('saves from before the real players', () => {
     expect(seedRealSquads(rebuilt)).toBe(rebuilt);
   });
 });
+
+describe('real roles', () => {
+  /** Well-known players and what they are in real cricket (role code, bowling style). */
+  const KNOWN: [string, string, string?][] = [
+    ['Virat Kohli', 'BA'], ['Jasprit Bumrah', 'PB', 'RIGHT_ARM_FAST'], ['Hardik Pandya', 'AR'], ['Ravindra Jadeja', 'BR', 'LEFT_ARM_ORTHODOX'],
+    ['KL Rahul', 'WK'], ['Sanju Samson', 'WK'], ['Rishabh Pant', 'WK'], ['MS Dhoni', 'WK'], ['Kuldeep Yadav', 'SB', 'LEFT_ARM_WRIST_SPIN'],
+    ['Shivam Dube', 'AR'], ['Riyan Parag', 'AR'], ['Venkatesh Iyer', 'AR'], ['Axar Patel', 'BR'], ['Varun Chakravarthy', 'SB', 'LEG_SPIN'],
+    ['Pat Cummins', 'PB'], ['Mitchell Starc', 'PB', 'LEFT_ARM_FAST'], ['Travis Head', 'OB'], ['Glenn Maxwell', 'AR'], ['Nathan Lyon', 'SB', 'OFF_SPIN'],
+    ['Joe Root', 'BA'], ['Ben Stokes', 'AR'], ['Jos Buttler', 'WK'], ['Adil Rashid', 'SB', 'LEG_SPIN'], ['Kagiso Rabada', 'PB'], ['Quinton de Kock', 'WK'],
+    ['Tristan Stubbs', 'BA'], ['Devon Conway', 'OB'], ['Mitchell Santner', 'BR', 'LEFT_ARM_ORTHODOX'], ['Shaheen Shah Afridi', 'PB', 'LEFT_ARM_FAST'],
+    ['Mohammad Rizwan', 'WK'], ['Rashid Khan', 'SB', 'LEG_SPIN'], ['Sunil Narine', 'BR'], ['Andre Russell', 'BR'], ['Heinrich Klaasen', 'WK'],
+    ['Robin Minz', 'WK'], ['Umesh Yadav', 'PB'], ['Wanindu Hasaranga', 'BR', 'LEG_SPIN'],
+  ];
+  it('match real cricket for well-known players', () => {
+    const data = realData()!;
+    const all = [...data.international.players, ...data.ipl.players, ...data.domestic.players];
+    for (const [name, role, style] of KNOWN) {
+      const recs = all.filter((p) => p.n === name);
+      expect(recs.length, name).toBeGreaterThan(0);
+      for (const rec of recs) {
+        expect(rec.r, name).toBe(role);
+        if (style) expect(rec.bw, name).toBe(style);
+      }
+    }
+  });
+});

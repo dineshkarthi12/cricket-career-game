@@ -6,8 +6,33 @@
     "Then run npm run import:players again."
   ],
   "manual": {
-    "matches": {},
+    "matches": {
+      "Vidarbha|Umesh Yadav": "cc1e8c68",
+      "Bihar|Vaibhav Sooryavanshi": "470f446b",
+      "Bihar|Vaibhav Survanshi": "470f446b",
+      "Karnataka|BR Sharath": "c2dd89ea",
+      "Maharashtra|Ankeet Bawane": "afe3355a",
+      "Maharashtra|Ramakrishna Ghosh": "u-maharashtra-ramakrishna-ghosh",
+      "Jharkhand|Sushant Mishra": "u-jharkhand-sushant-mishra",
+      "Assam|Pallavkumar Das": "c2294408",
+      "Mizoram|KC Cariappa": "edb3d4f8",
+      "Chandigarh|Rajangad Bawa": "ba6b2f91",
+      "Haryana|Rohit Sharma": "none",
+      "Delhi|Tejasvi Dahiya": "f12fe2a1"
+    },
     "players": {
+      "12314277": {
+        "role": "BR"
+      },
+      "25228673": {
+        "role": "BR"
+      },
+      "72147266": {
+        "role": "AR"
+      },
+      "81049310": {
+        "role": "BR"
+      },
       "efc04be7": {
         "country": "Afghanistan"
       },
@@ -20,6 +45,940 @@
       },
       "5f547c8b": {
         "country": "Afghanistan"
+      },
+      "a4e37e47": {
+        "role": "AR"
+      },
+      "752f7486": {
+        "bowl": "NONE"
+      },
+      "12b610c2": {
+        "role": "OB"
+      },
+      "fa433be6": {
+        "name": "Marnus Labuschagne",
+        "bowl": "LEG_SPIN"
+      },
+      "218d4d78": {
+        "name": "Matt Renshaw",
+        "role": "OB",
+        "bat": "L",
+        "bowl": "OFF_SPIN"
+      },
+      "3d8feaf8": {
+        "role": "AR",
+        "bowl": "RIGHT_ARM_FAST_MEDIUM"
+      },
+      "fe366f34": {
+        "role": "AR"
+      },
+      "a90e53ec": {
+        "role": "OB"
+      },
+      "7b953689": {
+        "name": "Matthew Kuhnemann",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "56b93d46": {
+        "name": "Beau Webster",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "e1b9f3a9": {
+        "name": "Ben Dwarshuis",
+        "bowl": "LEFT_ARM_FAST_MEDIUM",
+        "bat": "L"
+      },
+      "f2c936d7": {
+        "role": "OB",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "96a6a7ad": {
+        "name": "Nathan Lyon"
+      },
+      "3c55c703": {
+        "role": "AR"
+      },
+      "5f26f677": {
+        "bat": "L"
+      },
+      "4a461c24": {
+        "name": "Liam Dawson",
+        "role": "BR",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "c834c290": {
+        "name": "Jamie Smith"
+      },
+      "1f1b4c89": {
+        "name": "Josh Tongue",
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "59559bc2": {
+        "role": "BR"
+      },
+      "cad40f5e": {
+        "name": "Brydon Carse",
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "70d57519": {
+        "name": "Gus Atkinson",
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "922e1b19": {
+        "name": "Zak Crawley"
+      },
+      "ff154ecd": {
+        "name": "Jordan Cox"
+      },
+      "aa710a58": {
+        "name": "Emilio Gay",
+        "bat": "L"
+      },
+      "e94915e6": {
+        "name": "Sam Curran"
+      },
+      "172dff15": {
+        "role": "BR"
+      },
+      "6a26221c": {
+        "role": "OB"
+      },
+      "85b3fab2": {
+        "role": "BA"
+      },
+      "d3a1c63d": {
+        "name": "Tony de Zorzi",
+        "role": "OB",
+        "bat": "L"
+      },
+      "9c821d2e": {
+        "name": "Rubin Hermann",
+        "bat": "L"
+      },
+      "60aa2db3": {
+        "role": "WK"
+      },
+      "91cd48e0": {
+        "name": "Jason Smith",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "ef9acbcc": {
+        "name": "Connor Esterhuizen"
+      },
+      "7ec9711d": {
+        "name": "Prenelan Subrayen"
+      },
+      "9a2fc964": {
+        "name": "Bjorn Fortuin",
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "e87aeca2": {
+        "name": "Jordan Hermann",
+        "bat": "L",
+        "bowl": "NONE"
+      },
+      "c96f6ac5": {
+        "name": "Wiaan Mulder",
+        "bowl": "RIGHT_ARM_FAST_MEDIUM"
+      },
+      "f834dcfc": {
+        "name": "Lungi Ngidi"
+      },
+      "ba5e1069": {
+        "role": "AR"
+      },
+      "df5a6881": {
+        "role": "OB",
+        "bowl": "NONE"
+      },
+      "7fa12533": {
+        "name": "Mark Chapman",
+        "bat": "L",
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "e824e6ee": {
+        "name": "Tom Latham",
+        "bat": "L"
+      },
+      "9a46c4e5": {
+        "role": "AR"
+      },
+      "05b1aef8": {
+        "name": "Nathan Smith"
+      },
+      "8afe73e2": {
+        "name": "Will Young"
+      },
+      "30f92334": {
+        "name": "Zak Foulkes"
+      },
+      "03521fd3": {
+        "name": "Henry Nicholls",
+        "bat": "L"
+      },
+      "5d664346": {
+        "name": "Tim Robinson"
+      },
+      "e1891e00": {
+        "name": "Ben Sears"
+      },
+      "97f437ed": {
+        "name": "Nick Kelly",
+        "bat": "L"
+      },
+      "641ac5ff": {
+        "name": "Ish Sodhi"
+      },
+      "9219eff0": {
+        "name": "Jimmy Neesham"
+      },
+      "89c16049": {
+        "name": "Salman Agha",
+        "role": "AR",
+        "bowl": "OFF_SPIN"
+      },
+      "8a75e999": {
+        "bowl": "OFF_SPIN"
+      },
+      "45a7e761": {
+        "bowl": "LEFT_ARM_FAST",
+        "bat": "L"
+      },
+      "abb7c76c": {
+        "bowl": "LEG_SPIN"
+      },
+      "33609a8c": {
+        "role": "OB",
+        "bat": "L",
+        "bowl": "OFF_SPIN"
+      },
+      "bd4ea627": {
+        "role": "BR",
+        "bat": "L"
+      },
+      "3086f7a4": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "1777c020": {
+        "role": "OB",
+        "bat": "L",
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "9de62878": {
+        "bowl": "LEG_SPIN"
+      },
+      "24bb1c2f": {
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "d07c1b2f": {
+        "bat": "L",
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "6843a783": {
+        "role": "OB",
+        "bat": "L",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "9c9af282": {
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "89f1d2d6": {
+        "bat": "L"
+      },
+      "40c041ea": {
+        "bat": "L",
+        "bowl": "NONE"
+      },
+      "7ab1eab7": {
+        "bowl": "LEFT_ARM_FAST_MEDIUM"
+      },
+      "8ee36b18": {
+        "name": "Pathum Nissanka"
+      },
+      "5d1e7582": {
+        "name": "Kusal Mendis"
+      },
+      "08548b13": {
+        "name": "Kamindu Mendis",
+        "role": "AR"
+      },
+      "3ff033bb": {
+        "role": "AR",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "732c038e": {
+        "name": "Charith Asalanka",
+        "bat": "L",
+        "bowl": "OFF_SPIN"
+      },
+      "65cebd5d": {
+        "name": "Kamil Mishara",
+        "bat": "L",
+        "bowl": "NONE"
+      },
+      "84212ffb": {
+        "name": "Janith Liyanage",
+        "role": "AR",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "de3d549a": {
+        "name": "Asitha Fernando"
+      },
+      "c1fdfb46": {
+        "name": "Pavan Rathnayake"
+      },
+      "736123bb": {
+        "name": "Dunith Wellalage",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "7d608e12": {
+        "name": "Dhananjaya de Silva"
+      },
+      "5750bcb4": {
+        "name": "Eshan Malinga"
+      },
+      "f21043a5": {
+        "name": "Kusal Perera"
+      },
+      "8dd02a98": {
+        "name": "Dinesh Chandimal"
+      },
+      "07b6c3c1": {
+        "name": "Lahiru Udara",
+        "role": "WK"
+      },
+      "127bc5ca": {
+        "name": "Prabath Jayasuriya",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "d2a2bb1a": {
+        "name": "Nuwanidu Fernando"
+      },
+      "de7d833e": {
+        "name": "Dilshan Madushanka",
+        "bowl": "LEFT_ARM_FAST_MEDIUM"
+      },
+      "3feda4fa": {
+        "name": "Roston Chase"
+      },
+      "7fca84b7": {
+        "name": "Brandon King"
+      },
+      "ded9ff1e": {
+        "name": "Jayden Seales",
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "97bdec3d": {
+        "name": "Gudakesh Motie",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "74d12124": {
+        "name": "Justin Greaves",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "83d17bbc": {
+        "name": "Matthew Forde"
+      },
+      "6020a3c6": {
+        "name": "Keacy Carty"
+      },
+      "88626ed2": {
+        "name": "Amir Jangoo"
+      },
+      "6fd0c8e1": {
+        "name": "John Campbell",
+        "bat": "L",
+        "bowl": "NONE"
+      },
+      "58c2fac4": {
+        "name": "Alick Athanaze",
+        "bat": "L",
+        "bowl": "OFF_SPIN"
+      },
+      "49dc9cb4": {
+        "name": "Kavem Hodge",
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "a61bcb94": {
+        "name": "Khary Pierre",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "80fe764d": {
+        "bat": "L"
+      },
+      "9e52a414": {
+        "bowl": "NONE"
+      },
+      "ef18b66e": {
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "1274d7ab": {
+        "bat": "L",
+        "bowl": "OFF_SPIN"
+      },
+      "5935d694": {
+        "bowl": "LEG_SPIN"
+      },
+      "5318ee68": {
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "bb34fd31": {
+        "bowl": "LEFT_ARM_FAST_MEDIUM",
+        "bat": "L"
+      },
+      "489aaf0a": {
+        "bat": "L"
+      },
+      "711249d1": {
+        "bat": "L",
+        "bowl": "OFF_SPIN"
+      },
+      "9dad0f2e": {
+        "role": "BR"
+      },
+      "de0a3209": {
+        "bat": "L",
+        "bowl": "LEFT_ARM_WRIST_SPIN"
+      },
+      "9d1d34bd": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "246d11a2": {
+        "bat": "L"
+      },
+      "4d9f9686": {
+        "role": "AR",
+        "bat": "L",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "3979b5e0": {
+        "name": "Lorcan Tucker"
+      },
+      "59ea70a4": {
+        "name": "Harry Tector"
+      },
+      "2c54c49b": {
+        "name": "Matthew Humphreys",
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "99cddc5e": {
+        "name": "George Dockrell",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "cf494ffe": {
+        "name": "Paul Stirling"
+      },
+      "33b3d2df": {
+        "name": "Gareth Delany",
+        "bowl": "LEG_SPIN"
+      },
+      "478a63e7": {
+        "name": "Curtis Campher",
+        "bowl": "RIGHT_ARM_MEDIUM"
+      },
+      "fc55ec67": {
+        "name": "Mark Adair",
+        "role": "BR"
+      },
+      "3766056b": {
+        "name": "Barry McCarthy"
+      },
+      "4ec96094": {
+        "name": "Ross Adair"
+      },
+      "6ef13460": {
+        "name": "Andrew Balbirnie",
+        "bowl": "OFF_SPIN"
+      },
+      "e957b38f": {
+        "name": "Andy McBrine",
+        "bat": "L"
+      },
+      "bd0a4a7d": {
+        "name": "Craig Young"
+      },
+      "8eb2e2e6": {
+        "name": "Liam McCarthy"
+      },
+      "0348f9a5": {
+        "name": "Tim Tector"
+      },
+      "f3b158d9": {
+        "name": "Cade Carmichael"
+      },
+      "25550d06": {
+        "name": "Graham Hume"
+      },
+      "9aedf23b": {
+        "name": "Tom Mayes"
+      },
+      "1a448be0": {
+        "name": "Ben White",
+        "bowl": "LEG_SPIN"
+      },
+      "4992d6f6": {
+        "name": "Stephen Doheny"
+      },
+      "24ad97e7": {
+        "name": "Ben Calitz"
+      },
+      "eaa36b2a": {
+        "name": "Brian Bennett",
+        "bowl": "OFF_SPIN"
+      },
+      "e7e86505": {
+        "name": "Brad Evans"
+      },
+      "b08252b8": {
+        "name": "Ryan Burl",
+        "role": "AR",
+        "bowl": "LEG_SPIN",
+        "bat": "L"
+      },
+      "6e3f5a5c": {
+        "name": "Richard Ngarava",
+        "bowl": "LEFT_ARM_FAST_MEDIUM",
+        "bat": "L"
+      },
+      "3d5d51a5": {
+        "name": "Tadiwanashe Marumani",
+        "bat": "L"
+      },
+      "a879b92c": {
+        "name": "Wessly Madhevere",
+        "role": "AR"
+      },
+      "4bc0a378": {
+        "name": "Wellington Masakadza",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "1786a21b": {
+        "name": "Ben Curran",
+        "bat": "L"
+      },
+      "06fc82b8": {
+        "name": "Tashinga Musekiwa"
+      },
+      "d96165b5": {
+        "name": "Dion Myers"
+      },
+      "fbcfa528": {
+        "name": "Tony Munyonga"
+      },
+      "943ca0cd": {
+        "name": "Newman Nyamhuri"
+      },
+      "c96311d4": {
+        "name": "Craig Ervine",
+        "bat": "L"
+      },
+      "53597be1": {
+        "name": "Brendan Taylor"
+      },
+      "5feead83": {
+        "name": "Tinotenda Maposa"
+      },
+      "3560a786": {
+        "name": "Clive Madande",
+        "role": "WK"
+      },
+      "afe57f7a": {
+        "name": "Sean Williams",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "5ad8c974": {
+        "name": "Innocent Kaia"
+      },
+      "d1d83db3": {
+        "name": "Trevor Gwandu"
+      },
+      "a1dcb5b9": {
+        "name": "Tafadzwa Tsiga"
+      },
+      "7b679de5": {
+        "role": "WK"
+      },
+      "e148e6bd": {
+        "role": "AR"
+      },
+      "dee07622": {
+        "name": "Ramakrishna Ghosh",
+        "role": "BR"
+      },
+      "fffa744b": {
+        "role": "AR"
+      },
+      "1abb78f8": {
+        "role": "BR"
+      },
+      "ba6b2f91": {
+        "role": "AR",
+        "name": "Raj Bawa"
+      },
+      "5b615e7c": {
+        "role": "SB",
+        "bowl": "LEG_SPIN"
+      },
+      "bafd0398": {
+        "role": "WK"
+      },
+      "a24be938": {
+        "role": "AR"
+      },
+      "be24ead0": {
+        "role": "AR"
+      },
+      "e4cdf230": {
+        "role": "BR"
+      },
+      "f12fe2a1": {
+        "name": "Tejasvi Dahiya",
+        "role": "WK"
+      },
+      "fb2d1dda": {
+        "bowl": "OFF_SPIN"
+      },
+      "51ec3919": {
+        "role": "SB",
+        "bowl": "OFF_SPIN"
+      },
+      "970ddd24": {
+        "role": "AR"
+      },
+      "c05edf8e": {
+        "role": "BR"
+      },
+      "0494fa6e": {
+        "role": "WK",
+        "bowl": "NONE"
+      },
+      "bcf325d2": {
+        "bowl": "NONE"
+      },
+      "04a418e8": {
+        "role": "AR"
+      },
+      "f0af99a7": {
+        "role": "WK"
+      },
+      "92500ad5": {
+        "name": "Sushant Mishra",
+        "bowl": "LEFT_ARM_FAST",
+        "bat": "L"
+      },
+      "d7423da1": {
+        "role": "WK"
+      },
+      "c1e53c3f": {
+        "bat": "L"
+      },
+      "39a2dfa8": {
+        "role": "AR"
+      },
+      "3cea23da": {
+        "role": "AR",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "2d140b79": {
+        "role": "AR"
+      },
+      "cc1e8c68": {
+        "name": "Umesh Yadav",
+        "role": "PB"
+      },
+      "c2dd89ea": {
+        "name": "BR Sharath"
+      },
+      "afe3355a": {
+        "name": "Ankeet Bawne",
+        "role": "BA"
+      },
+      "edb3d4f8": {
+        "name": "KC Cariappa"
+      },
+      "c2294408": {
+        "role": "OB"
+      },
+      "u-tamil-nadu-c-andre-siddarth": {
+        "role": "BA",
+        "bowl": "NONE"
+      },
+      "33ffc3dd": {
+        "name": "Sanjay Yadav",
+        "role": "AR",
+        "bat": "L"
+      },
+      "9d704f6f": {
+        "role": "BR",
+        "bat": "L"
+      },
+      "5724e517": {
+        "role": "BR"
+      },
+      "d621b427": {
+        "role": "AR"
+      },
+      "9601c534": {
+        "role": "BA"
+      },
+      "4ed49d3d": {
+        "bat": "L",
+        "bowl": "NONE"
+      },
+      "d6cd318e": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "u-mumbai-sylvester-dsouza": {
+        "role": "PB",
+        "bowl": "LEFT_ARM_FAST_MEDIUM"
+      },
+      "baaae738": {
+        "bowl": "LEFT_ARM_FAST_MEDIUM",
+        "bat": "L"
+      },
+      "u-mumbai-juned-khan": {
+        "role": "PB"
+      },
+      "4a15018a": {
+        "role": "SB",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "10b58586": {
+        "role": "OB"
+      },
+      "24e3f53e": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "7a8bd078": {
+        "role": "BR"
+      },
+      "90de905a": {
+        "role": "BR"
+      },
+      "4fc7fc34": {
+        "role": "BR",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "4ae89f36": {
+        "role": "WK"
+      },
+      "5b627626": {
+        "role": "AR",
+        "bowl": "OFF_SPIN"
+      },
+      "u-kerala-basil-np": {
+        "role": "PB",
+        "bowl": "RIGHT_ARM_FAST_MEDIUM"
+      },
+      "537d02f3": {
+        "role": "BR",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "de33074a": {
+        "role": "BR",
+        "bowl": "OFF_SPIN"
+      },
+      "f6d8a7ab": {
+        "bowl": "LEFT_ARM_WRIST_SPIN"
+      },
+      "u-madhya-pradesh-himanshu-mantri": {
+        "role": "WK",
+        "bowl": "NONE"
+      },
+      "u-madhya-pradesh-yash-dubey": {
+        "role": "OB",
+        "bowl": "NONE"
+      },
+      "249abedf": {
+        "role": "BR"
+      },
+      "u-maharashtra-vicky-ostwal": {
+        "role": "SB",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "09a71776": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "ccae927b": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "u-punjab-harnoor-singh": {
+        "role": "OB",
+        "bat": "L",
+        "bowl": "NONE"
+      },
+      "u-punjab-uday-saharan": {
+        "role": "BA",
+        "bowl": "NONE"
+      },
+      "b0f2baf4": {
+        "role": "AR"
+      },
+      "da934ee8": {
+        "role": "AR"
+      },
+      "73ad96ed": {
+        "role": "AR"
+      },
+      "2795b0f6": {
+        "bowl": "LEFT_ARM_FAST_MEDIUM",
+        "bat": "L"
+      },
+      "d330f9b9": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "09a3f653": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "01ada0ed": {
+        "bowl": "LEFT_ARM_FAST_MEDIUM",
+        "bat": "L"
+      },
+      "ebf25cf2": {
+        "bowl": "NONE"
+      },
+      "8053c798": {
+        "role": "OB",
+        "bat": "L"
+      },
+      "224fe44d": {
+        "role": "WK"
+      },
+      "a457cfb5": {
+        "role": "BR",
+        "bat": "L"
+      },
+      "7b5b6311": {
+        "name": "CV Milind",
+        "bowl": "LEFT_ARM_FAST_MEDIUM",
+        "bat": "L"
+      },
+      "f1809c03": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "b10e8c85": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "31ee319e": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "8996a9a0": {
+        "role": "BR",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "9dc27cf0": {
+        "role": "SB",
+        "bowl": "OFF_SPIN"
+      },
+      "12f75dbd": {
+        "role": "SB",
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "5f2732f7": {
+        "role": "WK",
+        "bowl": "NONE"
+      },
+      "3b63b5cc": {
+        "role": "SB",
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "4125d931": {
+        "role": "BR",
+        "bat": "L"
+      },
+      "de00b96c": {
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "9e6032fa": {
+        "role": "BA",
+        "bowl": "NONE"
+      },
+      "17196bf7": {
+        "role": "SB",
+        "bowl": "LEFT_ARM_ORTHODOX"
+      },
+      "ad427b5c": {
+        "role": "AR"
+      },
+      "ce2b42ae": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "44aac2f0": {
+        "role": "BR"
+      },
+      "4312e8f9": {
+        "role": "AR"
+      },
+      "1c29d51f": {
+        "role": "SB",
+        "bowl": "OFF_SPIN"
+      },
+      "8f607eea": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "2e802011": {
+        "role": "BA"
+      },
+      "4948a916": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "145c2a1f": {
+        "role": "BA",
+        "bowl": "NONE"
+      },
+      "8db0c0e1": {
+        "bowl": "LEFT_ARM_ORTHODOX",
+        "bat": "L"
+      },
+      "0994d0ae": {
+        "role": "AR",
+        "bowl": "RIGHT_ARM_FAST_MEDIUM"
+      },
+      "0a3d54b9": {
+        "bowl": "RIGHT_ARM_FAST"
+      },
+      "u-andhra-pradosh-ranjan-paul": {
+        "role": "BA",
+        "bat": "L",
+        "bowl": "NONE"
+      },
+      "u-tamil-nadu-pradosh-ranjan-paul": {
+        "role": "BA",
+        "bat": "L",
+        "bowl": "NONE"
+      },
+      "470f446b": {
+        "name": "Vaibhav Suryavanshi"
       }
     }
   },
@@ -28,12 +987,12 @@
     "matchesRead": "TEST 895, ODI 2576, T20I 3798, IPL 1243, SMAT 695",
     "latestSeasons": "TEST 2026, ODI 2026, T20I 2026, IPL 2026, SMAT 2024",
     "listedNames": 1794,
-    "listedNamesMatched": 1120,
-    "listedNamesUnmatched": 671,
+    "listedNamesMatched": 1133,
+    "listedNamesUnmatched": 658,
     "listedNamesAmbiguous": 3,
-    "playersInGame": 1312,
-    "playersWithFigures": 1019,
-    "playersWithoutFigures": 293
+    "playersInGame": 1303,
+    "playersWithFigures": 1018,
+    "playersWithoutFigures": 285
   },
   "unmatched": [
     {
@@ -189,11 +1148,6 @@
     {
       "team": "Bihar",
       "list": "ranji",
-      "name": "Vaibhav Sooryavanshi"
-    },
-    {
-      "team": "Bihar",
-      "list": "ranji",
       "name": "Arnav Kishor"
     },
     {
@@ -250,11 +1204,6 @@
       "team": "Chandigarh",
       "list": "ranji",
       "name": "Arjun Azad"
-    },
-    {
-      "team": "Chandigarh",
-      "list": "ranji",
-      "name": "Rajangad Bawa"
     },
     {
       "team": "Chandigarh",
@@ -335,11 +1284,6 @@
       "team": "Delhi",
       "list": "ranji",
       "name": "Rahul Dagar"
-    },
-    {
-      "team": "Delhi",
-      "list": "ranji",
-      "name": "Tejasvi Dahiya"
     },
     {
       "team": "Delhi",
@@ -559,11 +1503,6 @@
     {
       "team": "Jharkhand",
       "list": "ranji",
-      "name": "Sushant Mishra"
-    },
-    {
-      "team": "Jharkhand",
-      "list": "ranji",
       "name": "Manishi"
     },
     {
@@ -674,11 +1613,6 @@
     {
       "team": "Maharashtra",
       "list": "ranji",
-      "name": "Ankeet Bawane"
-    },
-    {
-      "team": "Maharashtra",
-      "list": "ranji",
       "name": "Siddhesh Veer"
     },
     {
@@ -695,11 +1629,6 @@
       "team": "Maharashtra",
       "list": "ranji",
       "name": "Vicky Ostwal"
-    },
-    {
-      "team": "Maharashtra",
-      "list": "ranji",
-      "name": "Ramakrishna Ghosh"
     },
     {
       "team": "Maharashtra",
@@ -785,11 +1714,6 @@
       "team": "Meghalaya",
       "list": "ranji",
       "name": "Bamanbha Shangpliang"
-    },
-    {
-      "team": "Mizoram",
-      "list": "ranji",
-      "name": "KC Cariappa"
     },
     {
       "team": "Mizoram",
@@ -1354,11 +2278,6 @@
     {
       "team": "Assam",
       "list": "vht",
-      "name": "Pallavkumar Das"
-    },
-    {
-      "team": "Assam",
-      "list": "vht",
       "name": "Sunil Lachit"
     },
     {
@@ -1630,11 +2549,6 @@
       "team": "Bihar",
       "list": "vht",
       "name": "Gajendra Singh"
-    },
-    {
-      "team": "Bihar",
-      "list": "vht",
-      "name": "Vaibhav Survanshi"
     },
     {
       "team": "Bihar",
@@ -1919,6 +2833,11 @@
     {
       "team": "Haryana",
       "list": "vht",
+      "name": "Rohit Sharma"
+    },
+    {
+      "team": "Haryana",
+      "list": "vht",
       "name": "Amit Rana"
     },
     {
@@ -2094,11 +3013,6 @@
     {
       "team": "Jharkhand",
       "list": "vht",
-      "name": "Sushant Mishra"
-    },
-    {
-      "team": "Jharkhand",
-      "list": "vht",
       "name": "Ashish Kumar"
     },
     {
@@ -2140,11 +3054,6 @@
       "team": "Jharkhand",
       "list": "vht",
       "name": "Ravi Kumar Yadav"
-    },
-    {
-      "team": "Karnataka",
-      "list": "vht",
-      "name": "BR Sharath"
     },
     {
       "team": "Karnataka",
@@ -2330,11 +3239,6 @@
       "team": "Maharashtra",
       "list": "vht",
       "name": "Pavan Shah"
-    },
-    {
-      "team": "Maharashtra",
-      "list": "vht",
-      "name": "Ramakrishna Ghosh"
     },
     {
       "team": "Maharashtra",
@@ -2590,11 +3494,6 @@
       "team": "Mizoram",
       "list": "vht",
       "name": "F Khawlhring"
-    },
-    {
-      "team": "Mizoram",
-      "list": "vht",
-      "name": "KC Cariappa"
     },
     {
       "team": "Mumbai",
@@ -3384,11 +4283,6 @@
     {
       "team": "Vidarbha",
       "list": "vht",
-      "name": "Umesh Yadav"
-    },
-    {
-      "team": "Vidarbha",
-      "list": "vht",
       "name": "Yash Kadam"
     }
   ],
@@ -4061,25 +4955,25 @@
       "id": "u-andhra-pradosh-ranjan-paul",
       "name": "Pradosh Ranjan Paul",
       "team": "Andhra",
-      "guessedRole": "AR"
+      "guessedRole": "BA"
     },
     {
       "id": "u-andhra-cv-achyuth",
       "name": "CV Achyuth",
       "team": "Andhra",
-      "guessedRole": "BR"
+      "guessedRole": "AR"
     },
     {
       "id": "u-andhra-ajitesh-guruswamy",
       "name": "Ajitesh Guruswamy",
       "team": "Andhra",
-      "guessedRole": "OB"
+      "guessedRole": "BR"
     },
     {
       "id": "u-andhra-chengalpet-gnaneshwar",
       "name": "Chengalpet Gnaneshwar",
       "team": "Andhra",
-      "guessedRole": "WK"
+      "guessedRole": "OB"
     },
     {
       "id": "u-arunachal-pradesh-abhinav-singh",
@@ -4145,35 +5039,29 @@
       "id": "u-assam-bhargab-lahkar",
       "name": "Bhargab Lahkar",
       "team": "Assam",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-assam-ayushman-malakar",
       "name": "Ayushman Malakar",
       "team": "Assam",
-      "guessedRole": "BR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-assam-parvej-musaraf",
       "name": "Parvej Musaraf",
       "team": "Assam",
-      "guessedRole": "SB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-assam-darshan-rajbongshi",
       "name": "Darshan Rajbongshi",
       "team": "Assam",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-assam-pradyun-saikia",
       "name": "Pradyun Saikia",
-      "team": "Assam",
-      "guessedRole": "BR"
-    },
-    {
-      "id": "u-assam-pallavkumar-das",
-      "name": "Pallavkumar Das",
       "team": "Assam",
       "guessedRole": "SB"
     },
@@ -4187,19 +5075,19 @@
       "id": "u-baroda-sukirt-pandey",
       "name": "Sukirt Pandey",
       "team": "Baroda",
-      "guessedRole": "SB"
+      "guessedRole": "WK"
     },
     {
       "id": "u-baroda-akshay-more",
       "name": "Akshay More",
       "team": "Baroda",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-baroda-raj-limbani",
       "name": "Raj Limbani",
       "team": "Baroda",
-      "guessedRole": "BR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-bengal-saurabh-kumar-singh",
@@ -4211,25 +5099,25 @@
       "id": "u-bengal-vishal-bhati",
       "name": "Vishal Bhati",
       "team": "Bengal",
-      "guessedRole": "AR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-bengal-suraj-sindhu-jaiswal",
       "name": "Suraj Sindhu Jaiswal",
       "team": "Bengal",
-      "guessedRole": "OB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-bengal-kazi-junaid-saifi",
       "name": "Kazi Junaid Saifi",
       "team": "Bengal",
-      "guessedRole": "SB"
+      "guessedRole": "OB"
     },
     {
       "id": "u-bengal-rahul-prasad",
       "name": "Rahul Prasad",
       "team": "Bengal",
-      "guessedRole": "AR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-bengal-sumit-mohanta",
@@ -4244,40 +5132,34 @@
       "guessedRole": "WK"
     },
     {
-      "id": "u-bihar-vaibhav-sooryavanshi",
-      "name": "Vaibhav Sooryavanshi",
-      "team": "Bihar",
-      "guessedRole": "AR"
-    },
-    {
       "id": "u-bihar-arnav-kishor",
       "name": "Arnav Kishor",
       "team": "Bihar",
-      "guessedRole": "SB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-bihar-ayush-loharuka",
       "name": "Ayush Loharuka",
       "team": "Bihar",
-      "guessedRole": "WK"
+      "guessedRole": "SB"
     },
     {
       "id": "u-bihar-nawaz-khan",
       "name": "Nawaz Khan",
       "team": "Bihar",
-      "guessedRole": "AR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-bihar-himanshu-singh",
       "name": "Himanshu Singh",
       "team": "Bihar",
-      "guessedRole": "SB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-bihar-khalid-alam",
       "name": "Khalid Alam",
       "team": "Bihar",
-      "guessedRole": "OB"
+      "guessedRole": "SB"
     },
     {
       "id": "u-bihar-apurva-anand",
@@ -4298,20 +5180,8 @@
       "guessedRole": "AR"
     },
     {
-      "id": "u-bihar-harsh-singh",
-      "name": "Harsh Singh",
-      "team": "Bihar",
-      "guessedRole": "BR"
-    },
-    {
       "id": "u-chandigarh-arjun-azad",
       "name": "Arjun Azad",
-      "team": "Chandigarh",
-      "guessedRole": "AR"
-    },
-    {
-      "id": "u-chandigarh-rajangad-bawa",
-      "name": "Rajangad Bawa",
       "team": "Chandigarh",
       "guessedRole": "SB"
     },
@@ -4379,25 +5249,25 @@
       "id": "u-chhattisgarh-ashish-chouhan",
       "name": "Ashish Chouhan",
       "team": "Chhattisgarh",
-      "guessedRole": "BR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-chhattisgarh-anuj-tiwary",
       "name": "Anuj Tiwary",
       "team": "Chhattisgarh",
-      "guessedRole": "OB"
+      "guessedRole": "SB"
     },
     {
       "id": "u-chhattisgarh-vashudev-bareth",
       "name": "Vashudev Bareth",
       "team": "Chhattisgarh",
-      "guessedRole": "SB"
+      "guessedRole": "OB"
     },
     {
       "id": "u-chhattisgarh-prateek-yadav",
       "name": "Prateek Yadav",
       "team": "Chhattisgarh",
-      "guessedRole": "OB"
+      "guessedRole": "WK"
     },
     {
       "id": "u-delhi-arpit-rana",
@@ -4409,7 +5279,7 @@
       "id": "u-delhi-sanat-sangwan",
       "name": "Sanat Sangwan",
       "team": "Delhi",
-      "guessedRole": "WK"
+      "guessedRole": "BR"
     },
     {
       "id": "u-delhi-sumit-mathur",
@@ -4454,16 +5324,10 @@
       "guessedRole": "BR"
     },
     {
-      "id": "u-delhi-tejasvi-dahiya",
-      "name": "Tejasvi Dahiya",
-      "team": "Delhi",
-      "guessedRole": "OB"
-    },
-    {
       "id": "u-delhi-vaibhav-kandpal",
       "name": "Vaibhav Kandpal",
       "team": "Delhi",
-      "guessedRole": "WK"
+      "guessedRole": "OB"
     },
     {
       "id": "u-goa-manthan-khutkar",
@@ -4481,19 +5345,19 @@
       "id": "u-gujarat-siddharth-desai",
       "name": "Siddharth Desai",
       "team": "Gujarat",
-      "guessedRole": "OB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-gujarat-abhishek-desai",
       "name": "Abhishek Desai",
       "team": "Gujarat",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-gujarat-jaymeet-patel",
       "name": "Jaymeet Patel",
       "team": "Gujarat",
-      "guessedRole": "BR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-gujarat-rinkesh-vaghela",
@@ -4505,25 +5369,25 @@
       "id": "u-gujarat-drushant-soni",
       "name": "Drushant Soni",
       "team": "Gujarat",
-      "guessedRole": "OB"
+      "guessedRole": "WK"
     },
     {
       "id": "u-haryana-parth-vats",
       "name": "Parth Vats",
       "team": "Haryana",
-      "guessedRole": "AR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-haryana-anuj-thakral",
       "name": "Anuj Thakral",
       "team": "Haryana",
-      "guessedRole": "WK"
+      "guessedRole": "OB"
     },
     {
       "id": "u-haryana-lakshay-dalal",
       "name": "Lakshay Dalal",
       "team": "Haryana",
-      "guessedRole": "AR"
+      "guessedRole": "PB"
     },
     {
       "id": "u-haryana-dheeru-singh",
@@ -4535,35 +5399,41 @@
       "id": "u-haryana-kapil-hooda",
       "name": "Kapil Hooda",
       "team": "Haryana",
-      "guessedRole": "PB"
+      "guessedRole": "BA"
     },
     {
       "id": "u-haryana-nikhil-kashyap",
       "name": "Nikhil Kashyap",
       "team": "Haryana",
-      "guessedRole": "OB"
+      "guessedRole": "WK"
     },
     {
       "id": "u-haryana-bhuwan-rohilla",
       "name": "Bhuwan Rohilla",
       "team": "Haryana",
-      "guessedRole": "WK"
+      "guessedRole": "AR"
     },
     {
       "id": "u-haryana-mayank-shandilya",
       "name": "Mayank Shandilya",
       "team": "Haryana",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-haryana-yashvardhan-dalal",
       "name": "Yashvardhan Dalal",
       "team": "Haryana",
-      "guessedRole": "BR"
+      "guessedRole": "PB"
     },
     {
       "id": "u-haryana-sanjay-pahal",
       "name": "Sanjay Pahal",
+      "team": "Haryana",
+      "guessedRole": "SB"
+    },
+    {
+      "id": "u-haryana-rohit-sharma",
+      "name": "Rohit Sharma",
       "team": "Haryana",
       "guessedRole": "PB"
     },
@@ -4577,19 +5447,19 @@
       "id": "u-himachal-pradesh-innesh-mahajan",
       "name": "Innesh Mahajan",
       "team": "Himachal Pradesh",
-      "guessedRole": "WK"
+      "guessedRole": "SB"
     },
     {
       "id": "u-himachal-pradesh-arpit-guleria",
       "name": "Arpit Guleria",
       "team": "Himachal Pradesh",
-      "guessedRole": "AR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-himachal-pradesh-divesh-sharma",
       "name": "Divesh Sharma",
       "team": "Himachal Pradesh",
-      "guessedRole": "BR"
+      "guessedRole": "AR"
     },
     {
       "id": "u-himachal-pradesh-sidhant-purohit",
@@ -4724,40 +5594,34 @@
       "guessedRole": "OB"
     },
     {
-      "id": "u-jharkhand-sushant-mishra",
-      "name": "Sushant Mishra",
-      "team": "Jharkhand",
-      "guessedRole": "AR"
-    },
-    {
       "id": "u-jharkhand-manishi",
       "name": "Manishi",
       "team": "Jharkhand",
-      "guessedRole": "BR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-jharkhand-shikhar-mohan",
       "name": "Shikhar Mohan",
       "team": "Jharkhand",
-      "guessedRole": "OB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-jharkhand-jatin-pandey",
       "name": "Jatin Pandey",
       "team": "Jharkhand",
-      "guessedRole": "SB"
+      "guessedRole": "OB"
     },
     {
       "id": "u-jharkhand-sahil-raj",
       "name": "Sahil Raj",
       "team": "Jharkhand",
-      "guessedRole": "OB"
+      "guessedRole": "SB"
     },
     {
       "id": "u-jharkhand-aryaman-sen",
       "name": "Aryaman Sen",
       "team": "Jharkhand",
-      "guessedRole": "WK"
+      "guessedRole": "OB"
     },
     {
       "id": "u-jharkhand-vikas-kumar",
@@ -4781,13 +5645,13 @@
       "id": "u-karnataka-kv-aneesh",
       "name": "KV Aneesh",
       "team": "Karnataka",
-      "guessedRole": "BR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-karnataka-nikin-jose",
       "name": "Nikin Jose",
       "team": "Karnataka",
-      "guessedRole": "OB"
+      "guessedRole": "SB"
     },
     {
       "id": "u-karnataka-m-venkatesh",
@@ -4799,13 +5663,13 @@
       "id": "u-karnataka-abhilash-shetty",
       "name": "Abhilash Shetty",
       "team": "Karnataka",
-      "guessedRole": "BR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-karnataka-kruthik-krishna",
       "name": "Kruthik Krishna",
       "team": "Karnataka",
-      "guessedRole": "OB"
+      "guessedRole": "SB"
     },
     {
       "id": "u-karnataka-shikhar-shetty",
@@ -4814,46 +5678,40 @@
       "guessedRole": "OB"
     },
     {
-      "id": "u-karnataka-br-sharath",
-      "name": "BR Sharath",
-      "team": "Karnataka",
-      "guessedRole": "AR"
-    },
-    {
       "id": "u-kerala-vathsal-govind-sharma",
       "name": "Vathsal Govind Sharma",
       "team": "Kerala",
-      "guessedRole": "AR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-kerala-basil-np",
       "name": "Basil NP",
       "team": "Kerala",
-      "guessedRole": "BR"
+      "guessedRole": "PB"
     },
     {
       "id": "u-kerala-edhen-apple-tom",
       "name": "Edhen Apple Tom",
       "team": "Kerala",
-      "guessedRole": "SB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-kerala-ahammed-imran",
       "name": "Ahammed Imran",
       "team": "Kerala",
-      "guessedRole": "WK"
+      "guessedRole": "BR"
     },
     {
       "id": "u-kerala-shoun-roger",
       "name": "Shoun Roger",
       "team": "Kerala",
-      "guessedRole": "AR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-kerala-abhishek-p-nair",
       "name": "Abhishek P Nair",
       "team": "Kerala",
-      "guessedRole": "BR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-kerala-anand-krishnan",
@@ -4865,25 +5723,25 @@
       "id": "u-kerala-krishna-prasad",
       "name": "Krishna Prasad",
       "team": "Kerala",
-      "guessedRole": "SB"
+      "guessedRole": "BA"
     },
     {
       "id": "u-kerala-aditya-anand-sarvate",
       "name": "Aditya Anand Sarvate",
       "team": "Kerala",
-      "guessedRole": "OB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-kerala-sharafuddeen-nm",
       "name": "Sharafuddeen NM",
       "team": "Kerala",
-      "guessedRole": "WK"
+      "guessedRole": "BR"
     },
     {
       "id": "u-kerala-ajnas-m",
       "name": "Ajnas M",
       "team": "Kerala",
-      "guessedRole": "AR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-madhya-pradesh-adheer-pratap-singh",
@@ -4895,37 +5753,31 @@
       "id": "u-madhya-pradesh-anubhav-agarwal",
       "name": "Anubhav Agarwal",
       "team": "Madhya Pradesh",
-      "guessedRole": "WK"
+      "guessedRole": "SB"
     },
     {
       "id": "u-madhya-pradesh-yash-dubey",
       "name": "Yash Dubey",
       "team": "Madhya Pradesh",
-      "guessedRole": "AR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-madhya-pradesh-himanshu-mantri",
       "name": "Himanshu Mantri",
       "team": "Madhya Pradesh",
-      "guessedRole": "BR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-madhya-pradesh-aryan-pandey",
       "name": "Aryan Pandey",
       "team": "Madhya Pradesh",
-      "guessedRole": "SB"
-    },
-    {
-      "id": "u-maharashtra-ankeet-bawane",
-      "name": "Ankeet Bawane",
-      "team": "Maharashtra",
-      "guessedRole": "BR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-maharashtra-siddhesh-veer",
       "name": "Siddhesh Veer",
       "team": "Maharashtra",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-maharashtra-saurabh-nawale",
@@ -4943,37 +5795,31 @@
       "id": "u-maharashtra-vicky-ostwal",
       "name": "Vicky Ostwal",
       "team": "Maharashtra",
-      "guessedRole": "BR"
-    },
-    {
-      "id": "u-maharashtra-ramakrishna-ghosh",
-      "name": "Ramakrishna Ghosh",
-      "team": "Maharashtra",
-      "guessedRole": "OB"
+      "guessedRole": "SB"
     },
     {
       "id": "u-maharashtra-siddharth-mhatre",
       "name": "Siddharth Mhatre",
       "team": "Maharashtra",
-      "guessedRole": "BA"
+      "guessedRole": "OB"
     },
     {
       "id": "u-maharashtra-harshal-kate",
       "name": "Harshal Kate",
       "team": "Maharashtra",
-      "guessedRole": "WK"
+      "guessedRole": "OB"
     },
     {
       "id": "u-maharashtra-rushabh-rathod",
       "name": "Rushabh Rathod",
       "team": "Maharashtra",
-      "guessedRole": "AR"
+      "guessedRole": "BA"
     },
     {
       "id": "u-maharashtra-yash-kshirsagar",
       "name": "Yash Kshirsagar",
       "team": "Maharashtra",
-      "guessedRole": "BR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-manipur-ulenyai-khwairakpam",
@@ -5102,40 +5948,34 @@
       "guessedRole": "PB"
     },
     {
-      "id": "u-mizoram-kc-cariappa",
-      "name": "KC Cariappa",
-      "team": "Mizoram",
-      "guessedRole": "WK"
-    },
-    {
       "id": "u-mizoram-marty-lalrinhlua",
       "name": "Marty Lalrinhlua",
       "team": "Mizoram",
-      "guessedRole": "BR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-mizoram-sahil-reza",
       "name": "Sahil Reza",
       "team": "Mizoram",
-      "guessedRole": "OB"
+      "guessedRole": "BR"
     },
     {
       "id": "u-mizoram-khiangte-vanrotlinga",
       "name": "Khiangte Vanrotlinga",
       "team": "Mizoram",
-      "guessedRole": "SB"
+      "guessedRole": "OB"
     },
     {
       "id": "u-mizoram-c-lalrinsanga",
       "name": "C Lalrinsanga",
       "team": "Mizoram",
-      "guessedRole": "WK"
+      "guessedRole": "SB"
     },
     {
       "id": "u-mizoram-moses-ramhlunmawia",
       "name": "Moses Ramhlunmawia",
       "team": "Mizoram",
-      "guessedRole": "AR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-mumbai-akash-anand",
@@ -5147,31 +5987,31 @@
       "id": "u-mumbai-sylvester-dsouza",
       "name": "Sylvester D'Souza",
       "team": "Mumbai",
-      "guessedRole": "AR"
+      "guessedRole": "PB"
     },
     {
       "id": "u-mumbai-irfan-umair",
       "name": "Irfan Umair",
       "team": "Mumbai",
-      "guessedRole": "BR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-mumbai-juned-khan",
       "name": "Juned Khan",
       "team": "Mumbai",
-      "guessedRole": "AR"
+      "guessedRole": "PB"
     },
     {
       "id": "u-mumbai-harsh-tanna",
       "name": "Harsh Tanna",
       "team": "Mumbai",
-      "guessedRole": "BR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-mumbai-vinayak-bhoir",
       "name": "Vinayak Bhoir",
       "team": "Mumbai",
-      "guessedRole": "PB"
+      "guessedRole": "SB"
     },
     {
       "id": "u-nagaland-dip-borah",
@@ -5219,7 +6059,7 @@
       "id": "u-odisha-sambit-baral",
       "name": "Sambit Baral",
       "team": "Odisha",
-      "guessedRole": "BA"
+      "guessedRole": "AR"
     },
     {
       "id": "u-odisha-sumit-sharma",
@@ -5273,55 +6113,55 @@
       "id": "u-puducherry-siddhant-addhatrao",
       "name": "Siddhant Addhatrao",
       "team": "Puducherry",
-      "guessedRole": "BR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-puducherry-vedant-bhardwaj",
       "name": "Vedant Bhardwaj",
       "team": "Puducherry",
-      "guessedRole": "WK"
+      "guessedRole": "AR"
     },
     {
       "id": "u-puducherry-paras-ratnaparkhe",
       "name": "Paras Ratnaparkhe",
       "team": "Puducherry",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-puducherry-sidak-singh",
       "name": "Sidak Singh",
       "team": "Puducherry",
-      "guessedRole": "BR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-puducherry-murugaiyan-sivamurugan",
       "name": "Murugaiyan Sivamurugan",
       "team": "Puducherry",
-      "guessedRole": "OB"
+      "guessedRole": "WK"
     },
     {
       "id": "u-punjab-harnoor-singh",
       "name": "Harnoor Singh",
       "team": "Punjab",
-      "guessedRole": "AR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-punjab-uday-saharan",
       "name": "Uday Saharan",
       "team": "Punjab",
-      "guessedRole": "BR"
+      "guessedRole": "BA"
     },
     {
       "id": "u-punjab-ayush-goyal",
       "name": "Ayush Goyal",
       "team": "Punjab",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-punjab-harjas-singh",
       "name": "Harjas Singh",
       "team": "Punjab",
-      "guessedRole": "BR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-punjab-jaskaranvir-singh-paul",
@@ -5357,13 +6197,13 @@
       "id": "u-rajasthan-sumit-godara",
       "name": "Sumit Godara",
       "team": "Rajasthan",
-      "guessedRole": "WK"
+      "guessedRole": "BR"
     },
     {
       "id": "u-rajasthan-arafat-khan",
       "name": "Arafat Khan",
       "team": "Rajasthan",
-      "guessedRole": "AR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-rajasthan-ramnivas-golada",
@@ -5375,7 +6215,7 @@
       "id": "u-rajasthan-shubham-garhwal",
       "name": "Shubham Garhwal",
       "team": "Rajasthan",
-      "guessedRole": "WK"
+      "guessedRole": "OB"
     },
     {
       "id": "u-saurashtra-yuvrajsinh-dodiya",
@@ -5417,61 +6257,61 @@
       "id": "u-services-irfan-khan",
       "name": "Irfan Khan",
       "team": "Services",
-      "guessedRole": "SB"
+      "guessedRole": "WK"
     },
     {
       "id": "u-services-aditya-kumar",
       "name": "Aditya Kumar",
       "team": "Services",
-      "guessedRole": "WK"
+      "guessedRole": "AR"
     },
     {
       "id": "u-services-amit-shukla",
       "name": "Amit Shukla",
       "team": "Services",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-services-kunwar-pathak",
       "name": "Kunwar Pathak",
       "team": "Services",
-      "guessedRole": "BR"
+      "guessedRole": "OB"
     },
     {
       "id": "u-services-raj-bahadur",
       "name": "Raj Bahadur",
       "team": "Services",
-      "guessedRole": "OB"
+      "guessedRole": "PB"
     },
     {
       "id": "u-services-abhishek-tiwari",
       "name": "Abhishek Tiwari",
       "team": "Services",
-      "guessedRole": "SB"
+      "guessedRole": "OB"
     },
     {
       "id": "u-services-poonam-poonia",
       "name": "Poonam Poonia",
       "team": "Services",
-      "guessedRole": "OB"
+      "guessedRole": "WK"
     },
     {
       "id": "u-services-gaurav-sharma",
       "name": "Gaurav Sharma",
       "team": "Services",
-      "guessedRole": "WK"
+      "guessedRole": "AR"
     },
     {
       "id": "u-services-lovekesh-bansal",
       "name": "Lovekesh Bansal",
       "team": "Services",
-      "guessedRole": "AR"
+      "guessedRole": "BR"
     },
     {
       "id": "u-services-vineet-dhankhar",
       "name": "Vineet Dhankhar",
       "team": "Services",
-      "guessedRole": "BR"
+      "guessedRole": "PB"
     },
     {
       "id": "u-sikkim-ankur-malik",
@@ -5585,55 +6425,55 @@
       "id": "u-tamil-nadu-pradosh-ranjan-paul",
       "name": "Pradosh Ranjan Paul",
       "team": "Tamil Nadu",
-      "guessedRole": "WK"
+      "guessedRole": "BA"
     },
     {
       "id": "u-tamil-nadu-c-andre-siddarth",
       "name": "C Andre Siddarth",
       "team": "Tamil Nadu",
-      "guessedRole": "AR"
+      "guessedRole": "BA"
     },
     {
       "id": "u-tamil-nadu-vimal-khumar",
       "name": "Vimal Khumar",
       "team": "Tamil Nadu",
-      "guessedRole": "BR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-tamil-nadu-rs-ambrish",
       "name": "RS Ambrish",
       "team": "Tamil Nadu",
-      "guessedRole": "OB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-tamil-nadu-dt-chandrasekar",
       "name": "DT Chandrasekar",
       "team": "Tamil Nadu",
-      "guessedRole": "SB"
+      "guessedRole": "BR"
     },
     {
       "id": "u-tamil-nadu-trilok-nag",
       "name": "Trilok Nag",
       "team": "Tamil Nadu",
-      "guessedRole": "BA"
+      "guessedRole": "OB"
     },
     {
       "id": "u-tamil-nadu-cv-achyuth",
       "name": "CV Achyuth",
       "team": "Tamil Nadu",
-      "guessedRole": "PB"
+      "guessedRole": "SB"
     },
     {
       "id": "u-tamil-nadu-jeganathan-hemchudeshan",
       "name": "Jeganathan Hemchudeshan",
       "team": "Tamil Nadu",
-      "guessedRole": "OB"
+      "guessedRole": "PB"
     },
     {
       "id": "u-tamil-nadu-p-vidyuth",
       "name": "P Vidyuth",
       "team": "Tamil Nadu",
-      "guessedRole": "BA"
+      "guessedRole": "OB"
     },
     {
       "id": "u-tamil-nadu-boopathi-vaishna-kumar",
@@ -5687,7 +6527,7 @@
       "id": "u-tripura-babul-dey",
       "name": "Babul Dey",
       "team": "Tripura",
-      "guessedRole": "AR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-uttar-pradesh-aaditya-sharma",
@@ -5699,31 +6539,31 @@
       "id": "u-uttar-pradesh-aaradhya-yadav",
       "name": "Aaradhya Yadav",
       "team": "Uttar Pradesh",
-      "guessedRole": "WK"
+      "guessedRole": "BR"
     },
     {
       "id": "u-uttar-pradesh-vaibhav-chaudhary",
       "name": "Vaibhav Chaudhary",
       "team": "Uttar Pradesh",
-      "guessedRole": "AR"
+      "guessedRole": "BA"
     },
     {
       "id": "u-uttar-pradesh-kunal-tyagi",
       "name": "Kunal Tyagi",
       "team": "Uttar Pradesh",
-      "guessedRole": "BR"
+      "guessedRole": "WK"
     },
     {
       "id": "u-uttar-pradesh-siddarth-yadav",
       "name": "Siddarth Yadav",
       "team": "Uttar Pradesh",
-      "guessedRole": "SB"
+      "guessedRole": "AR"
     },
     {
       "id": "u-uttar-pradesh-vijay-kumar",
       "name": "Vijay Kumar",
       "team": "Uttar Pradesh",
-      "guessedRole": "WK"
+      "guessedRole": "BR"
     },
     {
       "id": "u-uttarakhand-bhupen-lalwani",
@@ -5765,7 +6605,7 @@
       "id": "u-uttarakhand-sagar-rawat",
       "name": "Sagar Rawat",
       "team": "Uttarakhand",
-      "guessedRole": "BR"
+      "guessedRole": "SB"
     },
     {
       "id": "u-uttarakhand-aanjaneya-suryavanshi",
@@ -5801,273 +6641,146 @@
       "id": "u-vidarbha-shubham-kapse",
       "name": "Shubham Kapse",
       "team": "Vidarbha",
-      "guessedRole": "BR"
-    },
-    {
-      "id": "u-vidarbha-umesh-yadav",
-      "name": "Umesh Yadav",
-      "team": "Vidarbha",
       "guessedRole": "OB"
     }
   ],
   "styleGuesses": [
     {
-      "id": "752f7486",
-      "name": "Ishan Kishan",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "fa433be6",
-      "name": "M Labuschagne",
+      "name": "Marnus Labuschagne",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "218d4d78",
-      "name": "MT Renshaw",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "7b953689",
-      "name": "MP Kuhnemann",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (4 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "56b93d46",
-      "name": "BJ Webster",
+      "name": "Beau Webster",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "e1b9f3a9",
-      "name": "BJ Dwarshuis",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "f2c936d7",
-      "name": "Mitchell Owen",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "96a6a7ad",
-      "name": "NM Lyon",
+      "name": "Nathan Lyon",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (30 stumped off their bowling)"
     },
     {
-      "id": "5f26f677",
-      "name": "Ben Duckett",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "4a461c24",
-      "name": "LA Dawson",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
-    },
-    {
       "id": "c834c290",
-      "name": "JL Smith",
+      "name": "Jamie Smith",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "1f1b4c89",
-      "name": "JC Tongue",
+      "name": "Josh Tongue",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "cad40f5e",
-      "name": "BA Carse",
+      "name": "Brydon Carse",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "70d57519",
-      "name": "AAP Atkinson",
+      "name": "Gus Atkinson",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "922e1b19",
-      "name": "Z Crawley",
+      "name": "Zak Crawley",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "ff154ecd",
-      "name": "JM Cox",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "aa710a58",
-      "name": "EN Gay",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "d3a1c63d",
-      "name": "T de Zorzi",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "9c821d2e",
-      "name": "RA Herman",
+      "name": "Jordan Cox",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "91cd48e0",
-      "name": "JF Smith",
+      "name": "Jason Smith",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "ef9acbcc",
-      "name": "C Esterhuizen",
+      "name": "Connor Esterhuizen",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "7ec9711d",
-      "name": "P Subrayen",
+      "name": "Prenelan Subrayen",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "9a2fc964",
-      "name": "BC Fortuin",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (6 stumped off their bowling)"
-    },
-    {
-      "id": "e87aeca2",
-      "name": "J Hermann",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "7fa12533",
-      "name": "MS Chapman",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "e824e6ee",
-      "name": "TWM Latham",
+      "name": "Bjorn Fortuin",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "05b1aef8",
-      "name": "NG Smith",
+      "name": "Nathan Smith",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "8afe73e2",
-      "name": "WA Young",
+      "name": "Will Young",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "30f92334",
-      "name": "ZGF Foulkes",
+      "name": "Zak Foulkes",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "03521fd3",
-      "name": "HM Nicholls",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
       "id": "5d664346",
-      "name": "TB Robinson",
+      "name": "Tim Robinson",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "e1891e00",
-      "name": "BV Sears",
+      "name": "Ben Sears",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "97f437ed",
-      "name": "NF Kelly",
+      "id": "89c16049",
+      "name": "Salman Agha",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "89c16049",
-      "name": "Agha Salman",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "8a75e999",
       "name": "Babar Azam",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "45a7e761",
-      "name": "Shaheen Shah Afridi",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "abb7c76c",
       "name": "Abrar Ahmed",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (4 stumped off their bowling)"
-    },
-    {
-      "id": "33609a8c",
-      "name": "Saim Ayub",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "bd4ea627",
       "name": "Faheem Ashraf",
-      "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "1aba45cd",
@@ -6076,58 +6789,28 @@
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "3086f7a4",
-      "name": "Mohammad Nawaz",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (8 stumped off their bowling)"
-    },
-    {
       "id": "2f26ac1a",
       "name": "Mohammad Rizwan",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "1777c020",
-      "name": "Fakhar Zaman",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "9de62878",
       "name": "Shadab Khan",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (13 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "24bb1c2f",
       "name": "Haris Rauf",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "bafb9238",
       "name": "Usman Khan",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "d07c1b2f",
-      "name": "Saud Shakeel",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "6843a783",
-      "name": "Shan Masood",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "26a8b2fe",
@@ -6139,27 +6822,13 @@
       "id": "9c9af282",
       "name": "Naseem Shah",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "ff3f6fc1",
       "name": "Mohammad Haris",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "89f1d2d6",
-      "name": "Azan Awais",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "40c041ea",
-      "name": "Imam-ul-Haq",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "fc2fffb5",
@@ -6171,80 +6840,50 @@
       "id": "7ab1eab7",
       "name": "Salman Mirza",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "732c038e",
-      "name": "KIC Asalanka",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
-    },
-    {
-      "id": "65cebd5d",
-      "name": "K Mishara",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "84212ffb",
-      "name": "J Liyanage",
+      "name": "Janith Liyanage",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "de3d549a",
-      "name": "AM Fernando",
+      "name": "Asitha Fernando",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "c1fdfb46",
-      "name": "P Rathnayake",
+      "name": "Pavan Rathnayake",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "736123bb",
-      "name": "DN Wellalage",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (4 stumped off their bowling)"
-    },
-    {
       "id": "7d608e12",
-      "name": "DM de Silva",
+      "name": "Dhananjaya de Silva",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (3 stumped off their bowling)"
     },
     {
       "id": "8dd02a98",
-      "name": "LD Chandimal",
+      "name": "Dinesh Chandimal",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "07b6c3c1",
-      "name": "LU Igalagamage",
+      "name": "Lahiru Udara",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "127bc5ca",
-      "name": "NGRP Jayasuriya",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (6 stumped off their bowling)"
-    },
-    {
       "id": "d2a2bb1a",
-      "name": "KNM Fernando",
+      "name": "Nuwanidu Fernando",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
@@ -6257,64 +6896,48 @@
     },
     {
       "id": "3feda4fa",
-      "name": "RL Chase",
+      "name": "Roston Chase",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (3 stumped off their bowling)"
     },
     {
       "id": "7fca84b7",
-      "name": "BA King",
+      "name": "Brandon King",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "ded9ff1e",
-      "name": "JNT Seales",
+      "name": "Jayden Seales",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "97bdec3d",
-      "name": "G Motie",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (4 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "74d12124",
-      "name": "JP Greaves",
+      "name": "Justin Greaves",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "83d17bbc",
-      "name": "MW Forde",
+      "name": "Matthew Forde",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "6020a3c6",
-      "name": "KU Carty",
+      "name": "Keacy Carty",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "88626ed2",
-      "name": "AA Jangoo",
+      "name": "Amir Jangoo",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "6fd0c8e1",
-      "name": "JD Campbell",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "4b167ede",
@@ -6324,29 +6947,8 @@
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "58c2fac4",
-      "name": "A Athanaze",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "49dc9cb4",
-      "name": "KAR Hodge",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "a61bcb94",
-      "name": "K Pierre",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
-    },
-    {
-      "id": "80fe764d",
-      "name": "Tanzid Hasan",
+      "name": "Kavem Hodge",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
@@ -6354,22 +6956,13 @@
       "id": "9e52a414",
       "name": "Towhid Hridoy",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "ef18b66e",
       "name": "Taskin Ahmed",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "1274d7ab",
-      "name": "Nazmul Hossain Shanto",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "c58b0108",
@@ -6382,8 +6975,7 @@
       "id": "5935d694",
       "name": "Rishad Hossain",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (5 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "bb95564b",
@@ -6396,28 +6988,7 @@
       "id": "5318ee68",
       "name": "Nahid Rana",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "bb34fd31",
-      "name": "Shoriful Islam",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "489aaf0a",
-      "name": "Parvez Hossain Emon",
-      "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "711249d1",
-      "name": "Shamim Hossain",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "cd56a813",
@@ -6446,33 +7017,6 @@
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "de0a3209",
-      "name": "Mominul Haque",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (2 stumped off their bowling)"
-    },
-    {
-      "id": "9d1d34bd",
-      "name": "Taijul Islam",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (13 stumped off their bowling)"
-    },
-    {
-      "id": "246d11a2",
-      "name": "Shadman Islam",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "4d9f9686",
-      "name": "Soumya Sarkar",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "80ad39ac",
       "name": "Hasan Mahmud",
       "bat": "R",
@@ -6481,283 +7025,223 @@
     },
     {
       "id": "3979b5e0",
-      "name": "L Tucker",
+      "name": "Lorcan Tucker",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "59ea70a4",
-      "name": "HT Tector",
+      "name": "Harry Tector",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "2c54c49b",
-      "name": "MJ Humphreys",
+      "name": "Matthew Humphreys",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (3 stumped off their bowling)"
-    },
-    {
-      "id": "99cddc5e",
-      "name": "GH Dockrell",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (14 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "cf494ffe",
-      "name": "PR Stirling",
+      "name": "Paul Stirling",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (4 stumped off their bowling)"
     },
     {
       "id": "33b3d2df",
-      "name": "GJ Delany",
+      "name": "Gareth Delany",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (2 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "478a63e7",
-      "name": "C Campher",
+      "name": "Curtis Campher",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "fc55ec67",
-      "name": "MR Adair",
+      "name": "Mark Adair",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "3766056b",
-      "name": "BJ McCarthy",
+      "name": "Barry McCarthy",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "4ec96094",
-      "name": "GR Adair",
+      "name": "Ross Adair",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "24ad97e7",
-      "name": "BF Calitz",
+      "name": "Ben Calitz",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "6ef13460",
-      "name": "A Balbirnie",
+      "name": "Andrew Balbirnie",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "e957b38f",
-      "name": "AR McBrine",
-      "bat": "R",
+      "name": "Andy McBrine",
       "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (8 stumped off their bowling)"
+      "basis": "off-spin (8 stumped off their bowling)"
     },
     {
       "id": "bd0a4a7d",
-      "name": "CA Young",
+      "name": "Craig Young",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "8eb2e2e6",
-      "name": "L McCarthy",
+      "name": "Liam McCarthy",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "0348f9a5",
-      "name": "TH Tector",
+      "name": "Tim Tector",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "f3b158d9",
-      "name": "C Carmichael",
+      "name": "Cade Carmichael",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "25550d06",
-      "name": "GI Hume",
+      "name": "Graham Hume",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "9aedf23b",
-      "name": "T Mayes",
+      "name": "Tom Mayes",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "1a448be0",
-      "name": "B White",
+      "name": "Ben White",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (2 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "4992d6f6",
-      "name": "ST Doheny",
+      "name": "Stephen Doheny",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "eaa36b2a",
-      "name": "BJ Bennett",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "e7e86505",
-      "name": "B Evans",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "b08252b8",
-      "name": "RP Burl",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
-    },
-    {
-      "id": "6e3f5a5c",
-      "name": "R Ngarava",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "3d5d51a5",
-      "name": "T Marumani",
+      "name": "Brian Bennett",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
+      "id": "e7e86505",
+      "name": "Brad Evans",
+      "bat": "R",
+      "bowl": "RIGHT_ARM_FAST_MEDIUM",
+      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+    },
+    {
       "id": "a879b92c",
-      "name": "W Madhevere",
+      "name": "Wessly Madhevere",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (2 stumped off their bowling)"
     },
     {
-      "id": "4bc0a378",
-      "name": "WP Masakadza",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (3 stumped off their bowling)"
-    },
-    {
-      "id": "1786a21b",
-      "name": "BJ Curran",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
       "id": "06fc82b8",
-      "name": "T Musekiwa",
+      "name": "Tashinga Musekiwa",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "d96165b5",
-      "name": "D Myers",
+      "name": "Dion Myers",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "fbcfa528",
-      "name": "T Munyonga",
+      "name": "Tony Munyonga",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "943ca0cd",
-      "name": "NT Nyamhuri",
+      "name": "Newman Nyamhuri",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "c96311d4",
-      "name": "CR Ervine",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
       "id": "53597be1",
-      "name": "BRM Taylor",
+      "name": "Brendan Taylor",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "5feead83",
-      "name": "TT Maposa",
+      "name": "Tinotenda Maposa",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "3560a786",
-      "name": "C Madande",
+      "name": "Clive Madande",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "afe57f7a",
-      "name": "SC Williams",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (7 stumped off their bowling)"
-    },
-    {
       "id": "5ad8c974",
-      "name": "I Kaia",
+      "name": "Innocent Kaia",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "d1d83db3",
-      "name": "T Gwandu",
+      "name": "Trevor Gwandu",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "a1dcb5b9",
-      "name": "TE Tsiga",
+      "name": "Tafadzwa Tsiga",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
     {
       "id": "dee07622",
-      "name": "RS Ghosh",
+      "name": "Ramakrishna Ghosh",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
@@ -6766,8 +7250,7 @@
       "id": "5b615e7c",
       "name": "Raghu Sharma",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "11061889",
@@ -6778,7 +7261,7 @@
     },
     {
       "id": "f12fe2a1",
-      "name": "T Dahiya",
+      "name": "Tejasvi Dahiya",
       "bat": "R",
       "basis": "right-handed (no style data)"
     },
@@ -6786,46 +7269,13 @@
       "id": "51ec3919",
       "name": "Tripurana Vijay",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "0494fa6e",
-      "name": "Vishnu Vinod",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "bcf325d2",
-      "name": "Dhruv Jurel",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "92500ad5",
-      "name": "SS Mishra",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "548516a6",
       "name": "Ravi Singh",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "c1e53c3f",
-      "name": "Ravichandran Smaran",
-      "bat": "R",
-      "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "3cea23da",
-      "name": "Nishant Sindhu",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "d8d67045",
@@ -7130,6 +7580,13 @@
       "basis": "right-handed (no style data)"
     },
     {
+      "id": "c2294408",
+      "name": "Pallavkumar Das",
+      "bat": "R",
+      "bowl": "RIGHT_ARM_FAST_MEDIUM",
+      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+    },
+    {
       "id": "a454fa21",
       "name": "Saahil Jain",
       "bat": "R",
@@ -7189,13 +7646,6 @@
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "c2294408",
-      "name": "Pallav Kumar Das",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "b32b1661",
       "name": "Jyotsnil Singh",
       "bat": "R",
@@ -7225,15 +7675,7 @@
       "id": "1c29d51f",
       "name": "Mahesh Pithiya",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "8f607eea",
-      "name": "Ninad Rathva",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (4 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "2e802011",
@@ -7367,13 +7809,6 @@
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "24e3f53e",
-      "name": "Pradipta Pramanik",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
-    },
-    {
       "id": "baec2e62",
       "name": "Ranjot Khaira",
       "bat": "R",
@@ -7449,13 +7884,6 @@
     {
       "id": "b76b2d25",
       "name": "Sachin Kumar",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (3 stumped off their bowling)"
-    },
-    {
-      "id": "4948a916",
-      "name": "Ashutosh Aman",
       "bat": "R",
       "bowl": "OFF_SPIN",
       "basis": "right-handed (no style data); off-spin (3 stumped off their bowling)"
@@ -7600,20 +8028,6 @@
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "31ee319e",
-      "name": "Ajay Mandal",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (3 stumped off their bowling)"
-    },
-    {
-      "id": "8996a9a0",
-      "name": "Aditya Sarwate",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "6c6cc94c",
       "name": "Amandeep Khare",
       "bat": "R",
@@ -7708,13 +8122,6 @@
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "4a15018a",
-      "name": "Harsh Tyagi",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "3a922344",
       "name": "Shivank Vashisht",
       "bat": "R",
@@ -7740,13 +8147,6 @@
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "ce2b42ae",
-      "name": "Darshan Misal",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "aa39eaa3",
@@ -7855,9 +8255,8 @@
     {
       "id": "8053c798",
       "name": "Aarya Desai",
-      "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "9309e81f",
@@ -7868,13 +8267,6 @@
     {
       "id": "63bfb5fc",
       "name": "Chintan Gaja",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "01ada0ed",
-      "name": "Arzan Nagwaswalla",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
@@ -7915,8 +8307,7 @@
       "id": "ebf25cf2",
       "name": "Priyank Panchal",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "35eb75af",
@@ -8080,24 +8471,10 @@
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "7b5b6311",
-      "name": "C.V. Milind",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "e6e9b619",
       "name": "Tanmay Agarwal",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "f1809c03",
-      "name": "Tanay Thyagarajan",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (2 stumped off their bowling)"
     },
     {
       "id": "b4587494",
@@ -8203,13 +8580,6 @@
       "name": "Qamran Iqbal",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "b10e8c85",
-      "name": "Abid Mushtaq",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (2 stumped off their bowling)"
     },
     {
       "id": "f5c9b42c",
@@ -8357,13 +8727,6 @@
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "4fc7fc34",
-      "name": "Shubhang Hegde",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
-    },
-    {
       "id": "30fc60b5",
       "name": "Vidyadhar Patil",
       "bat": "R",
@@ -8399,8 +8762,7 @@
       "id": "5b627626",
       "name": "Baba Aparajith",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "a6004ded",
@@ -8424,13 +8786,6 @@
     {
       "id": "96513a65",
       "name": "Nidheesh MD",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "537d02f3",
-      "name": "Sijomon Joseph",
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
@@ -8480,8 +8835,7 @@
       "id": "de33074a",
       "name": "Saransh Jain",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "d1f8b722",
@@ -8571,13 +8925,6 @@
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "09a71776",
-      "name": "Satyajeet Bachhav",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (5 stumped off their bowling)"
-    },
-    {
       "id": "cb461421",
       "name": "Divyang Himganekar",
       "bat": "R",
@@ -8590,13 +8937,6 @@
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "ccae927b",
-      "name": "Azim Kazi",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "77a5e823",
@@ -8995,13 +9335,6 @@
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "64e78590",
-      "name": "B Lalnunfela",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "21527bc1",
       "name": "Lalhriatrenga",
       "bat": "R",
@@ -9033,20 +9366,6 @@
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "4ed49d3d",
-      "name": "Akhil Herwadkar",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "baaae738",
-      "name": "Royston Dias",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "f079e8fe",
       "name": "Jay Bista",
       "bat": "R",
@@ -9058,13 +9377,6 @@
       "name": "Prasad Pawar",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "d6cd318e",
-      "name": "Atharva Ankolekar",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
       "id": "7e83cef2",
@@ -9191,8 +9503,7 @@
       "id": "145c2a1f",
       "name": "Govinda Poddar",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "48cc6100",
@@ -9298,13 +9609,6 @@
       "name": "Anurag Sarangi",
       "bat": "R",
       "basis": "right-handed (no style data)"
-    },
-    {
-      "id": "8db0c0e1",
-      "name": "Sagar Udeshi",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (2 stumped off their bowling)"
     },
     {
       "id": "c07799c6",
@@ -9598,13 +9902,6 @@
       "basis": "right-handed (no style data)"
     },
     {
-      "id": "2795b0f6",
-      "name": "Tanveer Ul-Haq",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "ad5cdffc",
       "name": "Samarpit Joshi",
       "bat": "R",
@@ -9635,20 +9932,6 @@
       "bat": "R",
       "bowl": "RIGHT_ARM_FAST_MEDIUM",
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
-      "id": "d330f9b9",
-      "name": "Dharmendrasinh Jadeja",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (2 stumped off their bowling)"
-    },
-    {
-      "id": "09a3f653",
-      "name": "Parth Bhut",
-      "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
     },
     {
       "id": "ba19f1be",
@@ -9752,8 +10035,7 @@
       "id": "9dc27cf0",
       "name": "Pulkit Narang",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "f7ce1f24",
@@ -9765,8 +10047,7 @@
       "id": "12f75dbd",
       "name": "Arjun Sharma",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "fa73f373",
@@ -10063,13 +10344,6 @@
       "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
     },
     {
-      "id": "3b63b5cc",
-      "name": "Shiva Singh",
-      "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
-    },
-    {
       "id": "a7e1f127",
       "name": "Jasmer Dhankar",
       "bat": "R",
@@ -10100,8 +10374,7 @@
       "id": "de00b96c",
       "name": "Mayank Mishra",
       "bat": "R",
-      "bowl": "OFF_SPIN",
-      "basis": "right-handed (no style data); off-spin (1 stumped off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "481dd6dc",
@@ -10238,8 +10511,7 @@
       "id": "17196bf7",
       "name": "Parth Rekhade",
       "bat": "R",
-      "bowl": "RIGHT_ARM_FAST_MEDIUM",
-      "basis": "right-handed (no style data); right-arm seam (no stumpings off their bowling)"
+      "basis": "right-handed (no style data)"
     },
     {
       "id": "e1e7f950",
@@ -10297,27 +10569,21 @@
       "basis": "no figures; the Andhra squad was short of this role"
     },
     {
-      "id": "u-andhra-pradosh-ranjan-paul",
-      "name": "Pradosh Ranjan Paul",
-      "role": "AR",
-      "basis": "no figures; the Andhra squad was short of this role"
-    },
-    {
       "id": "u-andhra-cv-achyuth",
       "name": "CV Achyuth",
-      "role": "BR",
+      "role": "AR",
       "basis": "no figures; the Andhra squad was short of this role"
     },
     {
       "id": "u-andhra-ajitesh-guruswamy",
       "name": "Ajitesh Guruswamy",
-      "role": "OB",
+      "role": "BR",
       "basis": "no figures; the Andhra squad was short of this role"
     },
     {
       "id": "u-andhra-chengalpet-gnaneshwar",
       "name": "Chengalpet Gnaneshwar",
-      "role": "WK",
+      "role": "OB",
       "basis": "no figures; the Andhra squad was short of this role"
     },
     {
@@ -10383,36 +10649,30 @@
     {
       "id": "u-assam-bhargab-lahkar",
       "name": "Bhargab Lahkar",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Assam squad was short of this role"
     },
     {
       "id": "u-assam-ayushman-malakar",
       "name": "Ayushman Malakar",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Assam squad was short of this role"
     },
     {
       "id": "u-assam-parvej-musaraf",
       "name": "Parvej Musaraf",
-      "role": "SB",
+      "role": "AR",
       "basis": "no figures; the Assam squad was short of this role"
     },
     {
       "id": "u-assam-darshan-rajbongshi",
       "name": "Darshan Rajbongshi",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Assam squad was short of this role"
     },
     {
       "id": "u-assam-pradyun-saikia",
       "name": "Pradyun Saikia",
-      "role": "BR",
-      "basis": "no figures; the Assam squad was short of this role"
-    },
-    {
-      "id": "u-assam-pallavkumar-das",
-      "name": "Pallavkumar Das",
       "role": "SB",
       "basis": "no figures; the Assam squad was short of this role"
     },
@@ -10425,19 +10685,19 @@
     {
       "id": "u-baroda-sukirt-pandey",
       "name": "Sukirt Pandey",
-      "role": "SB",
+      "role": "WK",
       "basis": "no figures; the Baroda squad was short of this role"
     },
     {
       "id": "u-baroda-akshay-more",
       "name": "Akshay More",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Baroda squad was short of this role"
     },
     {
       "id": "u-baroda-raj-limbani",
       "name": "Raj Limbani",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Baroda squad was short of this role"
     },
     {
@@ -10449,25 +10709,25 @@
     {
       "id": "u-bengal-vishal-bhati",
       "name": "Vishal Bhati",
-      "role": "AR",
+      "role": "SB",
       "basis": "no figures; the Bengal squad was short of this role"
     },
     {
       "id": "u-bengal-suraj-sindhu-jaiswal",
       "name": "Suraj Sindhu Jaiswal",
-      "role": "OB",
+      "role": "AR",
       "basis": "no figures; the Bengal squad was short of this role"
     },
     {
       "id": "u-bengal-kazi-junaid-saifi",
       "name": "Kazi Junaid Saifi",
-      "role": "SB",
+      "role": "OB",
       "basis": "no figures; the Bengal squad was short of this role"
     },
     {
       "id": "u-bengal-rahul-prasad",
       "name": "Rahul Prasad",
-      "role": "AR",
+      "role": "SB",
       "basis": "no figures; the Bengal squad was short of this role"
     },
     {
@@ -10483,39 +10743,33 @@
       "basis": "no figures; the Bihar squad was short of this role"
     },
     {
-      "id": "u-bihar-vaibhav-sooryavanshi",
-      "name": "Vaibhav Sooryavanshi",
-      "role": "AR",
-      "basis": "no figures; the Bihar squad was short of this role"
-    },
-    {
       "id": "u-bihar-arnav-kishor",
       "name": "Arnav Kishor",
-      "role": "SB",
+      "role": "AR",
       "basis": "no figures; the Bihar squad was short of this role"
     },
     {
       "id": "u-bihar-ayush-loharuka",
       "name": "Ayush Loharuka",
-      "role": "WK",
+      "role": "SB",
       "basis": "no figures; the Bihar squad was short of this role"
     },
     {
       "id": "u-bihar-nawaz-khan",
       "name": "Nawaz Khan",
-      "role": "AR",
+      "role": "WK",
       "basis": "no figures; the Bihar squad was short of this role"
     },
     {
       "id": "u-bihar-himanshu-singh",
       "name": "Himanshu Singh",
-      "role": "SB",
+      "role": "AR",
       "basis": "no figures; the Bihar squad was short of this role"
     },
     {
       "id": "u-bihar-khalid-alam",
       "name": "Khalid Alam",
-      "role": "OB",
+      "role": "SB",
       "basis": "no figures; the Bihar squad was short of this role"
     },
     {
@@ -10537,20 +10791,8 @@
       "basis": "no figures; the Bihar squad was short of this role"
     },
     {
-      "id": "u-bihar-harsh-singh",
-      "name": "Harsh Singh",
-      "role": "BR",
-      "basis": "no figures; the Bihar squad was short of this role"
-    },
-    {
       "id": "u-chandigarh-arjun-azad",
       "name": "Arjun Azad",
-      "role": "AR",
-      "basis": "no figures; the Chandigarh squad was short of this role"
-    },
-    {
-      "id": "u-chandigarh-rajangad-bawa",
-      "name": "Rajangad Bawa",
       "role": "SB",
       "basis": "no figures; the Chandigarh squad was short of this role"
     },
@@ -10617,25 +10859,25 @@
     {
       "id": "u-chhattisgarh-ashish-chouhan",
       "name": "Ashish Chouhan",
-      "role": "BR",
+      "role": "OB",
       "basis": "no figures; the Chhattisgarh squad was short of this role"
     },
     {
       "id": "u-chhattisgarh-anuj-tiwary",
       "name": "Anuj Tiwary",
-      "role": "OB",
+      "role": "SB",
       "basis": "no figures; the Chhattisgarh squad was short of this role"
     },
     {
       "id": "u-chhattisgarh-vashudev-bareth",
       "name": "Vashudev Bareth",
-      "role": "SB",
+      "role": "OB",
       "basis": "no figures; the Chhattisgarh squad was short of this role"
     },
     {
       "id": "u-chhattisgarh-prateek-yadav",
       "name": "Prateek Yadav",
-      "role": "OB",
+      "role": "WK",
       "basis": "no figures; the Chhattisgarh squad was short of this role"
     },
     {
@@ -10647,7 +10889,7 @@
     {
       "id": "u-delhi-sanat-sangwan",
       "name": "Sanat Sangwan",
-      "role": "WK",
+      "role": "BR",
       "basis": "no figures; the Delhi squad was short of this role"
     },
     {
@@ -10693,15 +10935,9 @@
       "basis": "no figures; the Delhi squad was short of this role"
     },
     {
-      "id": "u-delhi-tejasvi-dahiya",
-      "name": "Tejasvi Dahiya",
-      "role": "OB",
-      "basis": "no figures; the Delhi squad was short of this role"
-    },
-    {
       "id": "u-delhi-vaibhav-kandpal",
       "name": "Vaibhav Kandpal",
-      "role": "WK",
+      "role": "OB",
       "basis": "no figures; the Delhi squad was short of this role"
     },
     {
@@ -10719,19 +10955,19 @@
     {
       "id": "u-gujarat-siddharth-desai",
       "name": "Siddharth Desai",
-      "role": "OB",
+      "role": "AR",
       "basis": "no figures; the Gujarat squad was short of this role"
     },
     {
       "id": "u-gujarat-abhishek-desai",
       "name": "Abhishek Desai",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Gujarat squad was short of this role"
     },
     {
       "id": "u-gujarat-jaymeet-patel",
       "name": "Jaymeet Patel",
-      "role": "BR",
+      "role": "OB",
       "basis": "no figures; the Gujarat squad was short of this role"
     },
     {
@@ -10743,25 +10979,25 @@
     {
       "id": "u-gujarat-drushant-soni",
       "name": "Drushant Soni",
-      "role": "OB",
+      "role": "WK",
       "basis": "no figures; the Gujarat squad was short of this role"
     },
     {
       "id": "u-haryana-parth-vats",
       "name": "Parth Vats",
-      "role": "AR",
+      "role": "OB",
       "basis": "no figures; the Haryana squad was short of this role"
     },
     {
       "id": "u-haryana-anuj-thakral",
       "name": "Anuj Thakral",
-      "role": "WK",
+      "role": "OB",
       "basis": "no figures; the Haryana squad was short of this role"
     },
     {
       "id": "u-haryana-lakshay-dalal",
       "name": "Lakshay Dalal",
-      "role": "AR",
+      "role": "PB",
       "basis": "no figures; the Haryana squad was short of this role"
     },
     {
@@ -10773,36 +11009,42 @@
     {
       "id": "u-haryana-kapil-hooda",
       "name": "Kapil Hooda",
-      "role": "PB",
+      "role": "BA",
       "basis": "no figures; the Haryana squad was short of this role"
     },
     {
       "id": "u-haryana-nikhil-kashyap",
       "name": "Nikhil Kashyap",
-      "role": "OB",
+      "role": "WK",
       "basis": "no figures; the Haryana squad was short of this role"
     },
     {
       "id": "u-haryana-bhuwan-rohilla",
       "name": "Bhuwan Rohilla",
-      "role": "WK",
+      "role": "AR",
       "basis": "no figures; the Haryana squad was short of this role"
     },
     {
       "id": "u-haryana-mayank-shandilya",
       "name": "Mayank Shandilya",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Haryana squad was short of this role"
     },
     {
       "id": "u-haryana-yashvardhan-dalal",
       "name": "Yashvardhan Dalal",
-      "role": "BR",
+      "role": "PB",
       "basis": "no figures; the Haryana squad was short of this role"
     },
     {
       "id": "u-haryana-sanjay-pahal",
       "name": "Sanjay Pahal",
+      "role": "SB",
+      "basis": "no figures; the Haryana squad was short of this role"
+    },
+    {
+      "id": "u-haryana-rohit-sharma",
+      "name": "Rohit Sharma",
       "role": "PB",
       "basis": "no figures; the Haryana squad was short of this role"
     },
@@ -10815,19 +11057,19 @@
     {
       "id": "u-himachal-pradesh-innesh-mahajan",
       "name": "Innesh Mahajan",
-      "role": "WK",
+      "role": "SB",
       "basis": "no figures; the Himachal Pradesh squad was short of this role"
     },
     {
       "id": "u-himachal-pradesh-arpit-guleria",
       "name": "Arpit Guleria",
-      "role": "AR",
+      "role": "WK",
       "basis": "no figures; the Himachal Pradesh squad was short of this role"
     },
     {
       "id": "u-himachal-pradesh-divesh-sharma",
       "name": "Divesh Sharma",
-      "role": "BR",
+      "role": "AR",
       "basis": "no figures; the Himachal Pradesh squad was short of this role"
     },
     {
@@ -10951,39 +11193,33 @@
       "basis": "no figures; the Jharkhand squad was short of this role"
     },
     {
-      "id": "u-jharkhand-sushant-mishra",
-      "name": "Sushant Mishra",
-      "role": "AR",
-      "basis": "no figures; the Jharkhand squad was short of this role"
-    },
-    {
       "id": "u-jharkhand-manishi",
       "name": "Manishi",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Jharkhand squad was short of this role"
     },
     {
       "id": "u-jharkhand-shikhar-mohan",
       "name": "Shikhar Mohan",
-      "role": "OB",
+      "role": "AR",
       "basis": "no figures; the Jharkhand squad was short of this role"
     },
     {
       "id": "u-jharkhand-jatin-pandey",
       "name": "Jatin Pandey",
-      "role": "SB",
+      "role": "OB",
       "basis": "no figures; the Jharkhand squad was short of this role"
     },
     {
       "id": "u-jharkhand-sahil-raj",
       "name": "Sahil Raj",
-      "role": "OB",
+      "role": "SB",
       "basis": "no figures; the Jharkhand squad was short of this role"
     },
     {
       "id": "u-jharkhand-aryaman-sen",
       "name": "Aryaman Sen",
-      "role": "WK",
+      "role": "OB",
       "basis": "no figures; the Jharkhand squad was short of this role"
     },
     {
@@ -11007,13 +11243,13 @@
     {
       "id": "u-karnataka-kv-aneesh",
       "name": "KV Aneesh",
-      "role": "BR",
+      "role": "OB",
       "basis": "no figures; the Karnataka squad was short of this role"
     },
     {
       "id": "u-karnataka-nikin-jose",
       "name": "Nikin Jose",
-      "role": "OB",
+      "role": "SB",
       "basis": "no figures; the Karnataka squad was short of this role"
     },
     {
@@ -11025,13 +11261,13 @@
     {
       "id": "u-karnataka-abhilash-shetty",
       "name": "Abhilash Shetty",
-      "role": "BR",
+      "role": "OB",
       "basis": "no figures; the Karnataka squad was short of this role"
     },
     {
       "id": "u-karnataka-kruthik-krishna",
       "name": "Kruthik Krishna",
-      "role": "OB",
+      "role": "SB",
       "basis": "no figures; the Karnataka squad was short of this role"
     },
     {
@@ -11041,45 +11277,33 @@
       "basis": "no figures; the Karnataka squad was short of this role"
     },
     {
-      "id": "u-karnataka-br-sharath",
-      "name": "BR Sharath",
-      "role": "AR",
-      "basis": "no figures; the Karnataka squad was short of this role"
-    },
-    {
       "id": "u-kerala-vathsal-govind-sharma",
       "name": "Vathsal Govind Sharma",
-      "role": "AR",
-      "basis": "no figures; the Kerala squad was short of this role"
-    },
-    {
-      "id": "u-kerala-basil-np",
-      "name": "Basil NP",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
       "id": "u-kerala-edhen-apple-tom",
       "name": "Edhen Apple Tom",
-      "role": "SB",
+      "role": "AR",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
       "id": "u-kerala-ahammed-imran",
       "name": "Ahammed Imran",
-      "role": "WK",
+      "role": "BR",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
       "id": "u-kerala-shoun-roger",
       "name": "Shoun Roger",
-      "role": "AR",
+      "role": "OB",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
       "id": "u-kerala-abhishek-p-nair",
       "name": "Abhishek P Nair",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
@@ -11091,25 +11315,25 @@
     {
       "id": "u-kerala-krishna-prasad",
       "name": "Krishna Prasad",
-      "role": "SB",
+      "role": "BA",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
       "id": "u-kerala-aditya-anand-sarvate",
       "name": "Aditya Anand Sarvate",
-      "role": "OB",
+      "role": "AR",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
       "id": "u-kerala-sharafuddeen-nm",
       "name": "Sharafuddeen NM",
-      "role": "WK",
+      "role": "BR",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
       "id": "u-kerala-ajnas-m",
       "name": "Ajnas M",
-      "role": "AR",
+      "role": "SB",
       "basis": "no figures; the Kerala squad was short of this role"
     },
     {
@@ -11121,73 +11345,43 @@
     {
       "id": "u-madhya-pradesh-anubhav-agarwal",
       "name": "Anubhav Agarwal",
-      "role": "WK",
-      "basis": "no figures; the Madhya Pradesh squad was short of this role"
-    },
-    {
-      "id": "u-madhya-pradesh-yash-dubey",
-      "name": "Yash Dubey",
-      "role": "AR",
-      "basis": "no figures; the Madhya Pradesh squad was short of this role"
-    },
-    {
-      "id": "u-madhya-pradesh-himanshu-mantri",
-      "name": "Himanshu Mantri",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Madhya Pradesh squad was short of this role"
     },
     {
       "id": "u-madhya-pradesh-aryan-pandey",
       "name": "Aryan Pandey",
-      "role": "SB",
+      "role": "WK",
       "basis": "no figures; the Madhya Pradesh squad was short of this role"
-    },
-    {
-      "id": "u-maharashtra-ankeet-bawane",
-      "name": "Ankeet Bawane",
-      "role": "BR",
-      "basis": "no figures; the Maharashtra squad was short of this role"
     },
     {
       "id": "u-maharashtra-siddhesh-veer",
       "name": "Siddhesh Veer",
-      "role": "AR",
-      "basis": "no figures; the Maharashtra squad was short of this role"
-    },
-    {
-      "id": "u-maharashtra-vicky-ostwal",
-      "name": "Vicky Ostwal",
       "role": "BR",
-      "basis": "no figures; the Maharashtra squad was short of this role"
-    },
-    {
-      "id": "u-maharashtra-ramakrishna-ghosh",
-      "name": "Ramakrishna Ghosh",
-      "role": "OB",
       "basis": "no figures; the Maharashtra squad was short of this role"
     },
     {
       "id": "u-maharashtra-siddharth-mhatre",
       "name": "Siddharth Mhatre",
-      "role": "BA",
+      "role": "OB",
       "basis": "no figures; the Maharashtra squad was short of this role"
     },
     {
       "id": "u-maharashtra-harshal-kate",
       "name": "Harshal Kate",
-      "role": "WK",
+      "role": "OB",
       "basis": "no figures; the Maharashtra squad was short of this role"
     },
     {
       "id": "u-maharashtra-rushabh-rathod",
       "name": "Rushabh Rathod",
-      "role": "AR",
+      "role": "BA",
       "basis": "no figures; the Maharashtra squad was short of this role"
     },
     {
       "id": "u-maharashtra-yash-kshirsagar",
       "name": "Yash Kshirsagar",
-      "role": "BR",
+      "role": "WK",
       "basis": "no figures; the Maharashtra squad was short of this role"
     },
     {
@@ -11317,69 +11511,51 @@
       "basis": "no figures; the Meghalaya squad was short of this role"
     },
     {
-      "id": "u-mizoram-kc-cariappa",
-      "name": "KC Cariappa",
-      "role": "WK",
-      "basis": "no figures; the Mizoram squad was short of this role"
-    },
-    {
       "id": "u-mizoram-marty-lalrinhlua",
       "name": "Marty Lalrinhlua",
-      "role": "BR",
+      "role": "WK",
       "basis": "no figures; the Mizoram squad was short of this role"
     },
     {
       "id": "u-mizoram-sahil-reza",
       "name": "Sahil Reza",
-      "role": "OB",
+      "role": "BR",
       "basis": "no figures; the Mizoram squad was short of this role"
     },
     {
       "id": "u-mizoram-khiangte-vanrotlinga",
       "name": "Khiangte Vanrotlinga",
-      "role": "SB",
+      "role": "OB",
       "basis": "no figures; the Mizoram squad was short of this role"
     },
     {
       "id": "u-mizoram-c-lalrinsanga",
       "name": "C Lalrinsanga",
-      "role": "WK",
+      "role": "SB",
       "basis": "no figures; the Mizoram squad was short of this role"
     },
     {
       "id": "u-mizoram-moses-ramhlunmawia",
       "name": "Moses Ramhlunmawia",
-      "role": "AR",
+      "role": "WK",
       "basis": "no figures; the Mizoram squad was short of this role"
-    },
-    {
-      "id": "u-mumbai-sylvester-dsouza",
-      "name": "Sylvester D'Souza",
-      "role": "AR",
-      "basis": "no figures; the Mumbai squad was short of this role"
     },
     {
       "id": "u-mumbai-irfan-umair",
       "name": "Irfan Umair",
-      "role": "BR",
-      "basis": "no figures; the Mumbai squad was short of this role"
-    },
-    {
-      "id": "u-mumbai-juned-khan",
-      "name": "Juned Khan",
-      "role": "AR",
+      "role": "SB",
       "basis": "no figures; the Mumbai squad was short of this role"
     },
     {
       "id": "u-mumbai-harsh-tanna",
       "name": "Harsh Tanna",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Mumbai squad was short of this role"
     },
     {
       "id": "u-mumbai-vinayak-bhoir",
       "name": "Vinayak Bhoir",
-      "role": "PB",
+      "role": "SB",
       "basis": "no figures; the Mumbai squad was short of this role"
     },
     {
@@ -11427,7 +11603,7 @@
     {
       "id": "u-odisha-sambit-baral",
       "name": "Sambit Baral",
-      "role": "BA",
+      "role": "AR",
       "basis": "no figures; the Odisha squad was short of this role"
     },
     {
@@ -11481,55 +11657,43 @@
     {
       "id": "u-puducherry-siddhant-addhatrao",
       "name": "Siddhant Addhatrao",
-      "role": "BR",
+      "role": "WK",
       "basis": "no figures; the Puducherry squad was short of this role"
     },
     {
       "id": "u-puducherry-vedant-bhardwaj",
       "name": "Vedant Bhardwaj",
-      "role": "WK",
+      "role": "AR",
       "basis": "no figures; the Puducherry squad was short of this role"
     },
     {
       "id": "u-puducherry-paras-ratnaparkhe",
       "name": "Paras Ratnaparkhe",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Puducherry squad was short of this role"
     },
     {
       "id": "u-puducherry-sidak-singh",
       "name": "Sidak Singh",
-      "role": "BR",
+      "role": "OB",
       "basis": "no figures; the Puducherry squad was short of this role"
     },
     {
       "id": "u-puducherry-murugaiyan-sivamurugan",
       "name": "Murugaiyan Sivamurugan",
-      "role": "OB",
+      "role": "WK",
       "basis": "no figures; the Puducherry squad was short of this role"
-    },
-    {
-      "id": "u-punjab-harnoor-singh",
-      "name": "Harnoor Singh",
-      "role": "AR",
-      "basis": "no figures; the Punjab squad was short of this role"
-    },
-    {
-      "id": "u-punjab-uday-saharan",
-      "name": "Uday Saharan",
-      "role": "BR",
-      "basis": "no figures; the Punjab squad was short of this role"
     },
     {
       "id": "u-punjab-ayush-goyal",
       "name": "Ayush Goyal",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Punjab squad was short of this role"
     },
     {
       "id": "u-punjab-harjas-singh",
       "name": "Harjas Singh",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Punjab squad was short of this role"
     },
     {
@@ -11565,13 +11729,13 @@
     {
       "id": "u-rajasthan-sumit-godara",
       "name": "Sumit Godara",
-      "role": "WK",
+      "role": "BR",
       "basis": "no figures; the Rajasthan squad was short of this role"
     },
     {
       "id": "u-rajasthan-arafat-khan",
       "name": "Arafat Khan",
-      "role": "AR",
+      "role": "WK",
       "basis": "no figures; the Rajasthan squad was short of this role"
     },
     {
@@ -11583,7 +11747,7 @@
     {
       "id": "u-rajasthan-shubham-garhwal",
       "name": "Shubham Garhwal",
-      "role": "WK",
+      "role": "OB",
       "basis": "no figures; the Rajasthan squad was short of this role"
     },
     {
@@ -11625,61 +11789,61 @@
     {
       "id": "u-services-irfan-khan",
       "name": "Irfan Khan",
-      "role": "SB",
+      "role": "WK",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-aditya-kumar",
       "name": "Aditya Kumar",
-      "role": "WK",
+      "role": "AR",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-amit-shukla",
       "name": "Amit Shukla",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-kunwar-pathak",
       "name": "Kunwar Pathak",
-      "role": "BR",
+      "role": "OB",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-raj-bahadur",
       "name": "Raj Bahadur",
-      "role": "OB",
+      "role": "PB",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-abhishek-tiwari",
       "name": "Abhishek Tiwari",
-      "role": "SB",
+      "role": "OB",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-poonam-poonia",
       "name": "Poonam Poonia",
-      "role": "OB",
+      "role": "WK",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-gaurav-sharma",
       "name": "Gaurav Sharma",
-      "role": "WK",
+      "role": "AR",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-lovekesh-bansal",
       "name": "Lovekesh Bansal",
-      "role": "AR",
+      "role": "BR",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
       "id": "u-services-vineet-dhankhar",
       "name": "Vineet Dhankhar",
-      "role": "BR",
+      "role": "PB",
       "basis": "no figures; the Services squad was short of this role"
     },
     {
@@ -11791,57 +11955,45 @@
       "basis": "no figures; the Sikkim squad was short of this role"
     },
     {
-      "id": "u-tamil-nadu-pradosh-ranjan-paul",
-      "name": "Pradosh Ranjan Paul",
-      "role": "WK",
-      "basis": "no figures; the Tamil Nadu squad was short of this role"
-    },
-    {
-      "id": "u-tamil-nadu-c-andre-siddarth",
-      "name": "C Andre Siddarth",
-      "role": "AR",
-      "basis": "no figures; the Tamil Nadu squad was short of this role"
-    },
-    {
       "id": "u-tamil-nadu-vimal-khumar",
       "name": "Vimal Khumar",
-      "role": "BR",
+      "role": "WK",
       "basis": "no figures; the Tamil Nadu squad was short of this role"
     },
     {
       "id": "u-tamil-nadu-rs-ambrish",
       "name": "RS Ambrish",
-      "role": "OB",
+      "role": "AR",
       "basis": "no figures; the Tamil Nadu squad was short of this role"
     },
     {
       "id": "u-tamil-nadu-dt-chandrasekar",
       "name": "DT Chandrasekar",
-      "role": "SB",
+      "role": "BR",
       "basis": "no figures; the Tamil Nadu squad was short of this role"
     },
     {
       "id": "u-tamil-nadu-trilok-nag",
       "name": "Trilok Nag",
-      "role": "BA",
+      "role": "OB",
       "basis": "no figures; the Tamil Nadu squad was short of this role"
     },
     {
       "id": "u-tamil-nadu-cv-achyuth",
       "name": "CV Achyuth",
-      "role": "PB",
+      "role": "SB",
       "basis": "no figures; the Tamil Nadu squad was short of this role"
     },
     {
       "id": "u-tamil-nadu-jeganathan-hemchudeshan",
       "name": "Jeganathan Hemchudeshan",
-      "role": "OB",
+      "role": "PB",
       "basis": "no figures; the Tamil Nadu squad was short of this role"
     },
     {
       "id": "u-tamil-nadu-p-vidyuth",
       "name": "P Vidyuth",
-      "role": "BA",
+      "role": "OB",
       "basis": "no figures; the Tamil Nadu squad was short of this role"
     },
     {
@@ -11895,7 +12047,7 @@
     {
       "id": "u-tripura-babul-dey",
       "name": "Babul Dey",
-      "role": "AR",
+      "role": "SB",
       "basis": "no figures; the Tripura squad was short of this role"
     },
     {
@@ -11907,31 +12059,31 @@
     {
       "id": "u-uttar-pradesh-aaradhya-yadav",
       "name": "Aaradhya Yadav",
-      "role": "WK",
+      "role": "BR",
       "basis": "no figures; the Uttar Pradesh squad was short of this role"
     },
     {
       "id": "u-uttar-pradesh-vaibhav-chaudhary",
       "name": "Vaibhav Chaudhary",
-      "role": "AR",
+      "role": "BA",
       "basis": "no figures; the Uttar Pradesh squad was short of this role"
     },
     {
       "id": "u-uttar-pradesh-kunal-tyagi",
       "name": "Kunal Tyagi",
-      "role": "BR",
+      "role": "WK",
       "basis": "no figures; the Uttar Pradesh squad was short of this role"
     },
     {
       "id": "u-uttar-pradesh-siddarth-yadav",
       "name": "Siddarth Yadav",
-      "role": "SB",
+      "role": "AR",
       "basis": "no figures; the Uttar Pradesh squad was short of this role"
     },
     {
       "id": "u-uttar-pradesh-vijay-kumar",
       "name": "Vijay Kumar",
-      "role": "WK",
+      "role": "BR",
       "basis": "no figures; the Uttar Pradesh squad was short of this role"
     },
     {
@@ -11973,7 +12125,7 @@
     {
       "id": "u-uttarakhand-sagar-rawat",
       "name": "Sagar Rawat",
-      "role": "BR",
+      "role": "SB",
       "basis": "no figures; the Uttarakhand squad was short of this role"
     },
     {
@@ -12009,12 +12161,6 @@
     {
       "id": "u-vidarbha-shubham-kapse",
       "name": "Shubham Kapse",
-      "role": "BR",
-      "basis": "no figures; the Vidarbha squad was short of this role"
-    },
-    {
-      "id": "u-vidarbha-umesh-yadav",
-      "name": "Umesh Yadav",
       "role": "OB",
       "basis": "no figures; the Vidarbha squad was short of this role"
     }
@@ -12190,13 +12336,13 @@
     },
     {
       "id": "fa433be6",
-      "name": "M Labuschagne",
+      "name": "Marnus Labuschagne",
       "birthYear": 1997,
       "basis": "first recorded match 2018-10-07 (debut taken as 21)"
     },
     {
       "id": "218d4d78",
-      "name": "MT Renshaw",
+      "name": "Matt Renshaw",
       "birthYear": 1995,
       "basis": "first recorded match 2016-11-24 (debut taken as 21)"
     },
@@ -12250,7 +12396,7 @@
     },
     {
       "id": "7b953689",
-      "name": "MP Kuhnemann",
+      "name": "Matthew Kuhnemann",
       "birthYear": 2001,
       "basis": "first recorded match 2022-06-16 (debut taken as 21)"
     },
@@ -12262,13 +12408,13 @@
     },
     {
       "id": "56b93d46",
-      "name": "BJ Webster",
+      "name": "Beau Webster",
       "birthYear": 2004,
       "basis": "first recorded match 2025-01-03 (debut taken as 21)"
     },
     {
       "id": "e1b9f3a9",
-      "name": "BJ Dwarshuis",
+      "name": "Ben Dwarshuis",
       "birthYear": 2001,
       "basis": "first recorded match 2022-04-05 (debut taken as 21)"
     },
@@ -12280,7 +12426,7 @@
     },
     {
       "id": "96a6a7ad",
-      "name": "NM Lyon",
+      "name": "Nathan Lyon",
       "birthYear": 1990,
       "basis": "first recorded match 2011-08-31 (debut taken as 21)"
     },
@@ -12334,19 +12480,19 @@
     },
     {
       "id": "4a461c24",
-      "name": "LA Dawson",
+      "name": "Liam Dawson",
       "birthYear": 1995,
       "basis": "first recorded match 2016-07-05 (debut taken as 21)"
     },
     {
       "id": "e94915e6",
-      "name": "Samuel Curran",
+      "name": "Sam Curran",
       "birthYear": 1997,
       "basis": "first recorded match 2018-06-01 (debut taken as 21)"
     },
     {
       "id": "c834c290",
-      "name": "JL Smith",
+      "name": "Jamie Smith",
       "birthYear": 2002,
       "basis": "first recorded match 2023-09-23 (debut taken as 21)"
     },
@@ -12364,7 +12510,7 @@
     },
     {
       "id": "1f1b4c89",
-      "name": "JC Tongue",
+      "name": "Josh Tongue",
       "birthYear": 2002,
       "basis": "first recorded match 2023-06-01 (debut taken as 21)"
     },
@@ -12376,13 +12522,13 @@
     },
     {
       "id": "cad40f5e",
-      "name": "BA Carse",
+      "name": "Brydon Carse",
       "birthYear": 2000,
       "basis": "first recorded match 2021-07-08 (debut taken as 21)"
     },
     {
       "id": "70d57519",
-      "name": "AAP Atkinson",
+      "name": "Gus Atkinson",
       "birthYear": 2002,
       "basis": "first recorded match 2023-09-01 (debut taken as 21)"
     },
@@ -12394,19 +12540,19 @@
     },
     {
       "id": "922e1b19",
-      "name": "Z Crawley",
+      "name": "Zak Crawley",
       "birthYear": 1998,
       "basis": "first recorded match 2019-11-29 (debut taken as 21)"
     },
     {
       "id": "ff154ecd",
-      "name": "JM Cox",
+      "name": "Jordan Cox",
       "birthYear": 2003,
       "basis": "first recorded match 2024-09-11 (debut taken as 21)"
     },
     {
       "id": "aa710a58",
-      "name": "EN Gay",
+      "name": "Emilio Gay",
       "birthYear": 2004,
       "basis": "first recorded match 2025-07-05 (debut taken as 21)"
     },
@@ -12454,13 +12600,13 @@
     },
     {
       "id": "f834dcfc",
-      "name": "Lungisani Ngidi",
+      "name": "Lungi Ngidi",
       "birthYear": 1996,
       "basis": "first recorded match 2017-01-20 (debut taken as 21)"
     },
     {
       "id": "d3a1c63d",
-      "name": "T de Zorzi",
+      "name": "Tony de Zorzi",
       "birthYear": 2002,
       "basis": "first recorded match 2023-02-28 (debut taken as 21)"
     },
@@ -12490,7 +12636,7 @@
     },
     {
       "id": "9c821d2e",
-      "name": "RA Herman",
+      "name": "Rubin Hermann",
       "birthYear": 2004,
       "basis": "first recorded match 2025-07-14 (debut taken as 21)"
     },
@@ -12502,7 +12648,7 @@
     },
     {
       "id": "c96f6ac5",
-      "name": "PWA Mulder",
+      "name": "Wiaan Mulder",
       "birthYear": 1996,
       "basis": "first recorded match 2017-10-22 (debut taken as 21)"
     },
@@ -12514,19 +12660,19 @@
     },
     {
       "id": "91cd48e0",
-      "name": "JF Smith",
+      "name": "Jason Smith",
       "birthYear": 2003,
       "basis": "first recorded match 2024-08-27 (debut taken as 21)"
     },
     {
       "id": "ef9acbcc",
-      "name": "C Esterhuizen",
+      "name": "Connor Esterhuizen",
       "birthYear": 2005,
       "basis": "first recorded match 2026-03-15 (debut taken as 21)"
     },
     {
       "id": "7ec9711d",
-      "name": "P Subrayen",
+      "name": "Prenelan Subrayen",
       "birthYear": 2004,
       "basis": "first recorded match 2025-07-06 (debut taken as 21)"
     },
@@ -12538,13 +12684,13 @@
     },
     {
       "id": "9a2fc964",
-      "name": "BC Fortuin",
+      "name": "Bjorn Fortuin",
       "birthYear": 1998,
       "basis": "first recorded match 2019-09-18 (debut taken as 21)"
     },
     {
       "id": "e87aeca2",
-      "name": "J Hermann",
+      "name": "Jordan Hermann",
       "birthYear": 2005,
       "basis": "first recorded match 2026-03-15 (debut taken as 21)"
     },
@@ -12586,13 +12732,13 @@
     },
     {
       "id": "7fa12533",
-      "name": "MS Chapman",
+      "name": "Mark Chapman",
       "birthYear": 1992,
       "basis": "first recorded match 2013-11-15 (debut taken as 21)"
     },
     {
       "id": "e824e6ee",
-      "name": "TWM Latham",
+      "name": "Tom Latham",
       "birthYear": 1991,
       "basis": "first recorded match 2012-02-03 (debut taken as 21)"
     },
@@ -12616,19 +12762,19 @@
     },
     {
       "id": "05b1aef8",
-      "name": "NG Smith",
+      "name": "Nathan Smith",
       "birthYear": 2003,
       "basis": "first recorded match 2024-11-13 (debut taken as 21)"
     },
     {
       "id": "8afe73e2",
-      "name": "WA Young",
+      "name": "Will Young",
       "birthYear": 1999,
       "basis": "first recorded match 2020-12-03 (debut taken as 21)"
     },
     {
       "id": "30f92334",
-      "name": "ZGF Foulkes",
+      "name": "Zak Foulkes",
       "birthYear": 2003,
       "basis": "first recorded match 2024-04-21 (debut taken as 21)"
     },
@@ -12646,43 +12792,43 @@
     },
     {
       "id": "03521fd3",
-      "name": "HM Nicholls",
+      "name": "Henry Nicholls",
       "birthYear": 1994,
       "basis": "first recorded match 2015-12-26 (debut taken as 21)"
     },
     {
       "id": "9219eff0",
-      "name": "James Neesham",
+      "name": "Jimmy Neesham",
       "birthYear": 1991,
       "basis": "first recorded match 2012-12-21 (debut taken as 21)"
     },
     {
       "id": "641ac5ff",
-      "name": "Inderbir Sodhi",
+      "name": "Ish Sodhi",
       "birthYear": 1992,
       "basis": "first recorded match 2013-10-09 (debut taken as 21)"
     },
     {
       "id": "5d664346",
-      "name": "TB Robinson",
+      "name": "Tim Robinson",
       "birthYear": 2003,
       "basis": "first recorded match 2024-04-18 (debut taken as 21)"
     },
     {
       "id": "e1891e00",
-      "name": "BV Sears",
+      "name": "Ben Sears",
       "birthYear": 2000,
       "basis": "first recorded match 2021-09-03 (debut taken as 21)"
     },
     {
       "id": "97f437ed",
-      "name": "NF Kelly",
+      "name": "Nick Kelly",
       "birthYear": 2004,
       "basis": "first recorded match 2025-03-29 (debut taken as 21)"
     },
     {
       "id": "89c16049",
-      "name": "Agha Salman",
+      "name": "Salman Agha",
       "birthYear": 2001,
       "basis": "first recorded match 2022-07-16 (debut taken as 21)"
     },
@@ -12814,19 +12960,19 @@
     },
     {
       "id": "8ee36b18",
-      "name": "P Nissanka",
+      "name": "Pathum Nissanka",
       "birthYear": 2000,
       "basis": "first recorded match 2021-03-03 (debut taken as 21)"
     },
     {
       "id": "5d1e7582",
-      "name": "BKG Mendis",
+      "name": "Kusal Mendis",
       "birthYear": 1994,
       "basis": "first recorded match 2015-10-22 (debut taken as 21)"
     },
     {
       "id": "08548b13",
-      "name": "PHKD Mendis",
+      "name": "Kamindu Mendis",
       "birthYear": 1997,
       "basis": "first recorded match 2018-10-27 (debut taken as 21)"
     },
@@ -12844,13 +12990,13 @@
     },
     {
       "id": "732c038e",
-      "name": "KIC Asalanka",
+      "name": "Charith Asalanka",
       "birthYear": 2000,
       "basis": "first recorded match 2021-06-29 (debut taken as 21)"
     },
     {
       "id": "65cebd5d",
-      "name": "K Mishara",
+      "name": "Kamil Mishara",
       "birthYear": 2001,
       "basis": "first recorded match 2022-02-20 (debut taken as 21)"
     },
@@ -12868,55 +13014,55 @@
     },
     {
       "id": "84212ffb",
-      "name": "J Liyanage",
+      "name": "Janith Liyanage",
       "birthYear": 2001,
       "basis": "first recorded match 2022-02-20 (debut taken as 21)"
     },
     {
       "id": "de3d549a",
-      "name": "AM Fernando",
+      "name": "Asitha Fernando",
       "birthYear": 1996,
       "basis": "first recorded match 2017-07-08 (debut taken as 21)"
     },
     {
       "id": "c1fdfb46",
-      "name": "P Rathnayake",
+      "name": "Pavan Rathnayake",
       "birthYear": 2004,
       "basis": "first recorded match 2025-11-16 (debut taken as 21)"
     },
     {
       "id": "736123bb",
-      "name": "DN Wellalage",
+      "name": "Dunith Wellalage",
       "birthYear": 2001,
       "basis": "first recorded match 2022-06-14 (debut taken as 21)"
     },
     {
       "id": "7d608e12",
-      "name": "DM de Silva",
+      "name": "Dhananjaya de Silva",
       "birthYear": 1994,
       "basis": "first recorded match 2015-07-30 (debut taken as 21)"
     },
     {
       "id": "5750bcb4",
-      "name": "E Malinga",
+      "name": "Eshan Malinga",
       "birthYear": 2004,
       "basis": "first recorded match 2025-01-05 (debut taken as 21)"
     },
     {
       "id": "f21043a5",
-      "name": "MDKJ Perera",
+      "name": "Kusal Perera",
       "birthYear": 1992,
       "basis": "first recorded match 2013-01-13 (debut taken as 21)"
     },
     {
       "id": "8dd02a98",
-      "name": "LD Chandimal",
+      "name": "Dinesh Chandimal",
       "birthYear": 1989,
       "basis": "first recorded match 2010-04-30 (debut taken as 21)"
     },
     {
       "id": "07b6c3c1",
-      "name": "LU Igalagamage",
+      "name": "Lahiru Udara",
       "birthYear": 2004,
       "basis": "first recorded match 2025-06-17 (debut taken as 21)"
     },
@@ -12928,13 +13074,13 @@
     },
     {
       "id": "127bc5ca",
-      "name": "NGRP Jayasuriya",
+      "name": "Prabath Jayasuriya",
       "birthYear": 1997,
       "basis": "first recorded match 2018-08-01 (debut taken as 21)"
     },
     {
       "id": "d2a2bb1a",
-      "name": "KNM Fernando",
+      "name": "Nuwanidu Fernando",
       "birthYear": 2002,
       "basis": "first recorded match 2023-03-17 (debut taken as 21)"
     },
@@ -12952,13 +13098,13 @@
     },
     {
       "id": "3feda4fa",
-      "name": "RL Chase",
+      "name": "Roston Chase",
       "birthYear": 1995,
       "basis": "first recorded match 2016-07-21 (debut taken as 21)"
     },
     {
       "id": "7fca84b7",
-      "name": "BA King",
+      "name": "Brandon King",
       "birthYear": 1998,
       "basis": "first recorded match 2019-12-06 (debut taken as 21)"
     },
@@ -12970,13 +13116,13 @@
     },
     {
       "id": "ded9ff1e",
-      "name": "JNT Seales",
+      "name": "Jayden Seales",
       "birthYear": 2000,
       "basis": "first recorded match 2021-06-10 (debut taken as 21)"
     },
     {
       "id": "97bdec3d",
-      "name": "G Motie",
+      "name": "Gudakesh Motie",
       "birthYear": 2000,
       "basis": "first recorded match 2021-12-16 (debut taken as 21)"
     },
@@ -12988,7 +13134,7 @@
     },
     {
       "id": "74d12124",
-      "name": "JP Greaves",
+      "name": "Justin Greaves",
       "birthYear": 2001,
       "basis": "first recorded match 2022-01-08 (debut taken as 21)"
     },
@@ -13000,7 +13146,7 @@
     },
     {
       "id": "83d17bbc",
-      "name": "MW Forde",
+      "name": "Matthew Forde",
       "birthYear": 2002,
       "basis": "first recorded match 2023-12-09 (debut taken as 21)"
     },
@@ -13024,7 +13170,7 @@
     },
     {
       "id": "6020a3c6",
-      "name": "KU Carty",
+      "name": "Keacy Carty",
       "birthYear": 2001,
       "basis": "first recorded match 2022-05-31 (debut taken as 21)"
     },
@@ -13042,13 +13188,13 @@
     },
     {
       "id": "88626ed2",
-      "name": "AA Jangoo",
+      "name": "Amir Jangoo",
       "birthYear": 2003,
       "basis": "first recorded match 2024-12-12 (debut taken as 21)"
     },
     {
       "id": "6fd0c8e1",
-      "name": "JD Campbell",
+      "name": "John Campbell",
       "birthYear": 1998,
       "basis": "first recorded match 2019-01-23 (debut taken as 21)"
     },
@@ -13060,19 +13206,19 @@
     },
     {
       "id": "58c2fac4",
-      "name": "A Athanaze",
+      "name": "Alick Athanaze",
       "birthYear": 2002,
       "basis": "first recorded match 2023-06-09 (debut taken as 21)"
     },
     {
       "id": "49dc9cb4",
-      "name": "KAR Hodge",
+      "name": "Kavem Hodge",
       "birthYear": 2002,
       "basis": "first recorded match 2023-06-04 (debut taken as 21)"
     },
     {
       "id": "a61bcb94",
-      "name": "K Pierre",
+      "name": "Khary Pierre",
       "birthYear": 1997,
       "basis": "first recorded match 2018-11-04 (debut taken as 21)"
     },
@@ -13210,67 +13356,67 @@
     },
     {
       "id": "3979b5e0",
-      "name": "L Tucker",
+      "name": "Lorcan Tucker",
       "birthYear": 1995,
       "basis": "first recorded match 2016-09-05 (debut taken as 21)"
     },
     {
       "id": "59ea70a4",
-      "name": "HT Tector",
+      "name": "Harry Tector",
       "birthYear": 1998,
       "basis": "first recorded match 2019-09-17 (debut taken as 21)"
     },
     {
       "id": "2c54c49b",
-      "name": "MJ Humphreys",
+      "name": "Matthew Humphreys",
       "birthYear": 2002,
       "basis": "first recorded match 2023-03-20 (debut taken as 21)"
     },
     {
       "id": "99cddc5e",
-      "name": "GH Dockrell",
+      "name": "George Dockrell",
       "birthYear": 1989,
       "basis": "first recorded match 2010-02-11 (debut taken as 21)"
     },
     {
       "id": "cf494ffe",
-      "name": "PR Stirling",
+      "name": "Paul Stirling",
       "birthYear": 1987,
       "basis": "first recorded match 2008-08-25 (debut taken as 21)"
     },
     {
       "id": "33b3d2df",
-      "name": "GJ Delany",
+      "name": "Gareth Delany",
       "birthYear": 1998,
       "basis": "first recorded match 2019-07-12 (debut taken as 21)"
     },
     {
       "id": "478a63e7",
-      "name": "C Campher",
+      "name": "Curtis Campher",
       "birthYear": 1999,
       "basis": "first recorded match 2020-07-30 (debut taken as 21)"
     },
     {
       "id": "fc55ec67",
-      "name": "MR Adair",
+      "name": "Mark Adair",
       "birthYear": 1998,
       "basis": "first recorded match 2019-05-03 (debut taken as 21)"
     },
     {
       "id": "3766056b",
-      "name": "BJ McCarthy",
+      "name": "Barry McCarthy",
       "birthYear": 1995,
       "basis": "first recorded match 2016-06-18 (debut taken as 21)"
     },
     {
       "id": "4ec96094",
-      "name": "GR Adair",
+      "name": "Ross Adair",
       "birthYear": 2002,
       "basis": "first recorded match 2023-01-12 (debut taken as 21)"
     },
     {
       "id": "24ad97e7",
-      "name": "BF Calitz",
+      "name": "Ben Calitz",
       "birthYear": 2004,
       "basis": "first recorded match 2025-09-21 (debut taken as 21)"
     },
@@ -13282,67 +13428,67 @@
     },
     {
       "id": "6ef13460",
-      "name": "A Balbirnie",
+      "name": "Andrew Balbirnie",
       "birthYear": 1989,
       "basis": "first recorded match 2010-07-07 (debut taken as 21)"
     },
     {
       "id": "e957b38f",
-      "name": "AR McBrine",
+      "name": "Andy McBrine",
       "birthYear": 1993,
       "basis": "first recorded match 2014-03-17 (debut taken as 21)"
     },
     {
       "id": "bd0a4a7d",
-      "name": "CA Young",
+      "name": "Craig Young",
       "birthYear": 1993,
       "basis": "first recorded match 2014-09-08 (debut taken as 21)"
     },
     {
       "id": "8eb2e2e6",
-      "name": "L McCarthy",
+      "name": "Liam McCarthy",
       "birthYear": 2004,
       "basis": "first recorded match 2025-05-21 (debut taken as 21)"
     },
     {
       "id": "0348f9a5",
-      "name": "TH Tector",
+      "name": "Tim Tector",
       "birthYear": 2004,
       "basis": "first recorded match 2025-02-25 (debut taken as 21)"
     },
     {
       "id": "f3b158d9",
-      "name": "C Carmichael",
+      "name": "Cade Carmichael",
       "birthYear": 2004,
       "basis": "first recorded match 2025-05-21 (debut taken as 21)"
     },
     {
       "id": "25550d06",
-      "name": "GI Hume",
+      "name": "Graham Hume",
       "birthYear": 2001,
       "basis": "first recorded match 2022-07-15 (debut taken as 21)"
     },
     {
       "id": "9aedf23b",
-      "name": "T Mayes",
+      "name": "Tom Mayes",
       "birthYear": 2004,
       "basis": "first recorded match 2025-05-21 (debut taken as 21)"
     },
     {
       "id": "1a448be0",
-      "name": "B White",
+      "name": "Ben White",
       "birthYear": 2000,
       "basis": "first recorded match 2021-07-24 (debut taken as 21)"
     },
     {
       "id": "4992d6f6",
-      "name": "ST Doheny",
+      "name": "Stephen Doheny",
       "birthYear": 2002,
       "basis": "first recorded match 2023-01-12 (debut taken as 21)"
     },
     {
       "id": "eaa36b2a",
-      "name": "BJ Bennett",
+      "name": "Brian Bennett",
       "birthYear": 2002,
       "basis": "first recorded match 2023-12-07 (debut taken as 21)"
     },
@@ -13360,115 +13506,115 @@
     },
     {
       "id": "e7e86505",
-      "name": "B Evans",
+      "name": "Brad Evans",
       "birthYear": 2001,
       "basis": "first recorded match 2022-05-21 (debut taken as 21)"
     },
     {
       "id": "b08252b8",
-      "name": "RP Burl",
+      "name": "Ryan Burl",
       "birthYear": 1996,
       "basis": "first recorded match 2017-06-15 (debut taken as 21)"
     },
     {
       "id": "6e3f5a5c",
-      "name": "R Ngarava",
+      "name": "Richard Ngarava",
       "birthYear": 1996,
       "basis": "first recorded match 2017-06-15 (debut taken as 21)"
     },
     {
       "id": "3d5d51a5",
-      "name": "T Marumani",
+      "name": "Tadiwanashe Marumani",
       "birthYear": 2000,
       "basis": "first recorded match 2021-04-21 (debut taken as 21)"
     },
     {
       "id": "a879b92c",
-      "name": "W Madhevere",
+      "name": "Wessly Madhevere",
       "birthYear": 1999,
       "basis": "first recorded match 2020-03-01 (debut taken as 21)"
     },
     {
       "id": "4bc0a378",
-      "name": "WP Masakadza",
+      "name": "Wellington Masakadza",
       "birthYear": 1994,
       "basis": "first recorded match 2015-10-09 (debut taken as 21)"
     },
     {
       "id": "1786a21b",
-      "name": "BJ Curran",
+      "name": "Ben Curran",
       "birthYear": 2004,
       "basis": "first recorded match 2025-02-06 (debut taken as 21)"
     },
     {
       "id": "06fc82b8",
-      "name": "T Musekiwa",
+      "name": "Tashinga Musekiwa",
       "birthYear": 2003,
       "basis": "first recorded match 2024-03-17 (debut taken as 21)"
     },
     {
       "id": "d96165b5",
-      "name": "D Myers",
+      "name": "Dion Myers",
       "birthYear": 2000,
       "basis": "first recorded match 2021-07-07 (debut taken as 21)"
     },
     {
       "id": "fbcfa528",
-      "name": "T Munyonga",
+      "name": "Tony Munyonga",
       "birthYear": 1998,
       "basis": "first recorded match 2019-09-13 (debut taken as 21)"
     },
     {
       "id": "943ca0cd",
-      "name": "NT Nyamhuri",
+      "name": "Newman Nyamhuri",
       "birthYear": 2004,
       "basis": "first recorded match 2025-02-06 (debut taken as 21)"
     },
     {
       "id": "c96311d4",
-      "name": "CR Ervine",
+      "name": "Craig Ervine",
       "birthYear": 1989,
       "basis": "first recorded match 2010-05-03 (debut taken as 21)"
     },
     {
       "id": "53597be1",
-      "name": "BRM Taylor",
+      "name": "Brendan Taylor",
       "birthYear": 1983,
       "basis": "first recorded match 2004-04-20 (debut taken as 21)"
     },
     {
       "id": "5feead83",
-      "name": "TT Maposa",
+      "name": "Tinotenda Maposa",
       "birthYear": 2003,
       "basis": "first recorded match 2024-12-05 (debut taken as 21)"
     },
     {
       "id": "3560a786",
-      "name": "C Madande",
+      "name": "Clive Madande",
       "birthYear": 2001,
       "basis": "first recorded match 2022-08-10 (debut taken as 21)"
     },
     {
       "id": "afe57f7a",
-      "name": "SC Williams",
+      "name": "Sean Williams",
       "birthYear": 1984,
       "basis": "first recorded match 2005-02-25 (debut taken as 21)"
     },
     {
       "id": "5ad8c974",
-      "name": "I Kaia",
+      "name": "Innocent Kaia",
       "birthYear": 2000,
       "basis": "first recorded match 2021-09-17 (debut taken as 21)"
     },
     {
       "id": "d1d83db3",
-      "name": "T Gwandu",
+      "name": "Trevor Gwandu",
       "birthYear": 2002,
       "basis": "first recorded match 2023-12-07 (debut taken as 21)"
     },
     {
       "id": "a1dcb5b9",
-      "name": "TE Tsiga",
+      "name": "Tafadzwa Tsiga",
       "birthYear": 2002,
       "basis": "first recorded match 2023-02-04 (debut taken as 21)"
     },
@@ -13552,7 +13698,7 @@
     },
     {
       "id": "dee07622",
-      "name": "RS Ghosh",
+      "name": "Ramakrishna Ghosh",
       "birthYear": 2005,
       "basis": "first recorded match 2026-05-02 (debut taken as 21)"
     },
@@ -13792,7 +13938,7 @@
     },
     {
       "id": "f12fe2a1",
-      "name": "T Dahiya",
+      "name": "Tejasvi Dahiya",
       "birthYear": 2005,
       "basis": "first recorded match 2026-05-20 (debut taken as 21)"
     },
@@ -14044,7 +14190,7 @@
     },
     {
       "id": "92500ad5",
-      "name": "SS Mishra",
+      "name": "Sushant Mishra",
       "birthYear": 2005,
       "basis": "first recorded match 2026-05-19 (debut taken as 21)"
     },
@@ -14140,7 +14286,7 @@
     },
     {
       "id": "de7d833e",
-      "name": "D Madushanka",
+      "name": "Dilshan Madushanka",
       "birthYear": 2001,
       "basis": "first recorded match 2022-09-01 (debut taken as 21)"
     },
@@ -14649,6 +14795,12 @@
       "basis": "first recorded match 2018-01-10 (debut taken as 21)"
     },
     {
+      "id": "c2294408",
+      "name": "Pallavkumar Das",
+      "birthYear": 1995,
+      "basis": "first recorded match 2016-01-04 (debut taken as 21)"
+    },
+    {
       "id": "a454fa21",
       "name": "Saahil Jain",
       "birthYear": 1995,
@@ -14701,12 +14853,6 @@
       "name": "Saurav Dey",
       "birthYear": 2002,
       "basis": "first recorded match 2023-10-31 (debut taken as 21)"
-    },
-    {
-      "id": "c2294408",
-      "name": "Pallav Kumar Das",
-      "birthYear": 1995,
-      "basis": "first recorded match 2016-01-04 (debut taken as 21)"
     },
     {
       "id": "b32b1661",
@@ -15694,7 +15840,7 @@
     },
     {
       "id": "7b5b6311",
-      "name": "C.V. Milind",
+      "name": "CV Milind",
       "birthYear": 1995,
       "basis": "first recorded match 2016-01-02 (debut taken as 21)"
     },
@@ -16023,6 +16169,12 @@
       "basis": "first recorded match 2019-02-24 (debut taken as 21)"
     },
     {
+      "id": "c2dd89ea",
+      "name": "BR Sharath",
+      "birthYear": 1997,
+      "basis": "first recorded match 2018-01-24 (debut taken as 21)"
+    },
+    {
       "id": "a689af4b",
       "name": "Luvnith Sisodia",
       "birthYear": 1998,
@@ -16033,12 +16185,6 @@
       "name": "LR Chethan",
       "birthYear": 2001,
       "basis": "first recorded match 2022-11-01 (debut taken as 21)"
-    },
-    {
-      "id": "c2dd89ea",
-      "name": "Belur Sharath",
-      "birthYear": 1997,
-      "basis": "first recorded match 2018-01-24 (debut taken as 21)"
     },
     {
       "id": "4ae89f36",
@@ -16233,6 +16379,12 @@
       "basis": "first recorded match 2019-11-18 (debut taken as 21)"
     },
     {
+      "id": "afe3355a",
+      "name": "Ankeet Bawne",
+      "birthYear": 1995,
+      "basis": "first recorded match 2016-01-02 (debut taken as 21)"
+    },
+    {
       "id": "8b3e9c7c",
       "name": "Prithvi Shaw",
       "birthYear": 1997,
@@ -16261,12 +16413,6 @@
       "name": "Rajneesh Gurbani",
       "birthYear": 1995,
       "basis": "first recorded match 2016-01-03 (debut taken as 21)"
-    },
-    {
-      "id": "afe3355a",
-      "name": "Ankit Bawne",
-      "birthYear": 1995,
-      "basis": "first recorded match 2016-01-02 (debut taken as 21)"
     },
     {
       "id": "09a71776",
@@ -16575,6 +16721,12 @@
       "basis": "first recorded match 2021-11-04 (debut taken as 21)"
     },
     {
+      "id": "edb3d4f8",
+      "name": "KC Cariappa",
+      "birthYear": 1994,
+      "basis": "first recorded match 2015-04-11 (debut taken as 21)"
+    },
+    {
       "id": "33001741",
       "name": "Jehu Anderson",
       "birthYear": 2002,
@@ -16659,12 +16811,6 @@
       "basis": "first recorded match 2021-11-04 (debut taken as 21)"
     },
     {
-      "id": "64e78590",
-      "name": "B Lalnunfela",
-      "birthYear": 2000,
-      "basis": "first recorded match 2021-11-09 (debut taken as 21)"
-    },
-    {
       "id": "21527bc1",
       "name": "Lalhriatrenga",
       "birthYear": 2002,
@@ -16687,12 +16833,6 @@
       "name": "TC Vanlalremruata",
       "birthYear": 2002,
       "basis": "first recorded match 2023-10-21 (debut taken as 21)"
-    },
-    {
-      "id": "edb3d4f8",
-      "name": "Konganda Cariappa",
-      "birthYear": 1994,
-      "basis": "first recorded match 2015-04-11 (debut taken as 21)"
     },
     {
       "id": "3082eac3",
@@ -17674,7 +17814,7 @@
     },
     {
       "id": "33ffc3dd",
-      "name": "Ramsingh Sanjay Yadav",
+      "name": "Sanjay Yadav",
       "birthYear": 1997,
       "basis": "first recorded match 2018-01-08 (debut taken as 21)"
     },
@@ -18117,16 +18257,16 @@
       "basis": "first recorded match 2021-01-11 (debut taken as 21)"
     },
     {
+      "id": "cc1e8c68",
+      "name": "Umesh Yadav",
+      "birthYear": 1989,
+      "basis": "first recorded match 2010-03-19 (debut taken as 21)"
+    },
+    {
       "id": "5708d0b6",
       "name": "AV Wankhade",
       "birthYear": 1995,
       "basis": "first recorded match 2016-01-03 (debut taken as 21)"
-    },
-    {
-      "id": "cc1e8c68",
-      "name": "Umeshkumar Yadav",
-      "birthYear": 1989,
-      "basis": "first recorded match 2010-03-19 (debut taken as 21)"
     },
     {
       "id": "eaf3f338",
@@ -18255,12 +18395,6 @@
       "basis": "no figures - assumed 24"
     },
     {
-      "id": "u-assam-pallavkumar-das",
-      "name": "Pallavkumar Das",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
       "id": "u-baroda-nitya-pandya",
       "name": "Nitya Pandya",
       "birthYear": 2002,
@@ -18327,12 +18461,6 @@
       "basis": "no figures - assumed 24"
     },
     {
-      "id": "u-bihar-vaibhav-sooryavanshi",
-      "name": "Vaibhav Sooryavanshi",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
       "id": "u-bihar-arnav-kishor",
       "name": "Arnav Kishor",
       "birthYear": 2002,
@@ -18381,20 +18509,8 @@
       "basis": "no figures - assumed 24"
     },
     {
-      "id": "u-bihar-harsh-singh",
-      "name": "Harsh Singh",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
       "id": "u-chandigarh-arjun-azad",
       "name": "Arjun Azad",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
-      "id": "u-chandigarh-rajangad-bawa",
-      "name": "Rajangad Bawa",
       "birthYear": 2002,
       "basis": "no figures - assumed 24"
     },
@@ -18537,12 +18653,6 @@
       "basis": "no figures - assumed 24"
     },
     {
-      "id": "u-delhi-tejasvi-dahiya",
-      "name": "Tejasvi Dahiya",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
       "id": "u-delhi-vaibhav-kandpal",
       "name": "Vaibhav Kandpal",
       "birthYear": 2002,
@@ -18647,6 +18757,12 @@
     {
       "id": "u-haryana-sanjay-pahal",
       "name": "Sanjay Pahal",
+      "birthYear": 2002,
+      "basis": "no figures - assumed 24"
+    },
+    {
+      "id": "u-haryana-rohit-sharma",
+      "name": "Rohit Sharma",
       "birthYear": 2002,
       "basis": "no figures - assumed 24"
     },
@@ -18807,12 +18923,6 @@
       "basis": "no figures - assumed 24"
     },
     {
-      "id": "u-jharkhand-sushant-mishra",
-      "name": "Sushant Mishra",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
       "id": "u-jharkhand-manishi",
       "name": "Manishi",
       "birthYear": 2002,
@@ -18893,12 +19003,6 @@
     {
       "id": "u-karnataka-shikhar-shetty",
       "name": "Shikhar Shetty",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
-      "id": "u-karnataka-br-sharath",
-      "name": "BR Sharath",
       "birthYear": 2002,
       "basis": "no figures - assumed 24"
     },
@@ -18999,12 +19103,6 @@
       "basis": "no figures - assumed 24"
     },
     {
-      "id": "u-maharashtra-ankeet-bawane",
-      "name": "Ankeet Bawane",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
       "id": "u-maharashtra-siddhesh-veer",
       "name": "Siddhesh Veer",
       "birthYear": 2002,
@@ -19025,12 +19123,6 @@
     {
       "id": "u-maharashtra-vicky-ostwal",
       "name": "Vicky Ostwal",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
-      "id": "u-maharashtra-ramakrishna-ghosh",
-      "name": "Ramakrishna Ghosh",
       "birthYear": 2002,
       "basis": "no figures - assumed 24"
     },
@@ -19181,12 +19273,6 @@
     {
       "id": "u-meghalaya-nafees-siddique",
       "name": "Nafees Siddique",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
-    },
-    {
-      "id": "u-mizoram-kc-cariappa",
-      "name": "KC Cariappa",
       "birthYear": 2002,
       "basis": "no figures - assumed 24"
     },
@@ -19885,18 +19971,12 @@
       "name": "Shubham Kapse",
       "birthYear": 2002,
       "basis": "no figures - assumed 24"
-    },
-    {
-      "id": "u-vidarbha-umesh-yadav",
-      "name": "Umesh Yadav",
-      "birthYear": 2002,
-      "basis": "no figures - assumed 24"
     }
   ],
   "countryGuesses": [
     {
       "id": "dee07622",
-      "name": "RS Ghosh",
+      "name": "Ramakrishna Ghosh",
       "country": "India",
       "basis": "IPL only, no internationals and no SMAT in the data - assumed Indian (uncapped)"
     },
@@ -19909,12 +19989,6 @@
     {
       "id": "11061889",
       "name": "SR Dubey",
-      "country": "India",
-      "basis": "IPL only, no internationals and no SMAT in the data - assumed Indian (uncapped)"
-    },
-    {
-      "id": "f12fe2a1",
-      "name": "T Dahiya",
       "country": "India",
       "basis": "IPL only, no internationals and no SMAT in the data - assumed Indian (uncapped)"
     },
@@ -19944,7 +20018,7 @@
     },
     {
       "id": "92500ad5",
-      "name": "SS Mishra",
+      "name": "Sushant Mishra",
       "country": "India",
       "basis": "IPL only, no internationals and no SMAT in the data - assumed Indian (uncapped)"
     },
@@ -20081,6 +20155,7 @@
       "team": "Bihar",
       "list": "VHT",
       "dropped": [
+        "Harsh Singh",
         "Hirshi Raj",
         "Baljeet Bihari",
         "Shishir Saket",
@@ -20097,7 +20172,6 @@
         "Imran Najir",
         "Murari Kumar",
         "Gajendra Singh",
-        "Vaibhav Survanshi",
         "Vipul Krishna",
         "Yashpal Yadav",
         "Mayank Choudhary",
@@ -20361,6 +20435,7 @@
       "team": "Mizoram",
       "list": "VHT",
       "dropped": [
+        "B Lalnunfela",
         "Zothanzuala",
         "Lalrinchhana",
         "Naveen Gurung",
@@ -20370,8 +20445,7 @@
         "Marty Lalrinhlua",
         "Lal Rin Fela",
         "Khiangte Vanrotlinga",
-        "F Khawlhring",
-        "KC Cariappa"
+        "F Khawlhring"
       ]
     },
     {
