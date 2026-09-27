@@ -310,8 +310,12 @@ export const QUICK_SIM = {
    * e^(spread x this), so upsets happen as often as in the full engine.
    */
   dayVariance: { T20: 0.66, ODI: 0.5, MULTI_DAY: 0.3 },
+  /** How a competition's scoring profile moves the fast sim's averages and strike rates. */
+  profileK: { four: 0.45, six: 0.2, dot: 0.3, wicket: 1 },
+  /** A Test is played faster than first-class cricket (about 3.4 an over against 3.0). */
+  testTempo: { average: 1.12, strikeRate: 1.13 },
   T20: {
-    average: 27.5,
+    average: 28.8,
     strikeRate: 146,
     position: [1, 1, 1, 1, 0.95, 0.85, 0.6, 0.42, 0.3, 0.2, 0.16],
     extras: 8,
@@ -319,15 +323,15 @@ export const QUICK_SIM = {
     sixShare: 0.2,
   },
   ODI: {
-    average: 37,
+    average: 39.5,
     strikeRate: 97,
-    position: [1, 1, 1, 1, 0.95, 0.88, 0.68, 0.5, 0.36, 0.25, 0.18],
+    position: [1, 1, 1, 1, 0.95, 0.9, 0.72, 0.55, 0.4, 0.28, 0.2],
     extras: 14,
     fourShare: 0.4,
     sixShare: 0.1,
   },
   MULTI_DAY: {
-    average: 28.5,
+    average: 30,
     strikeRate: 58,
     position: [1, 1, 1, 1, 0.97, 0.94, 0.86, 0.68, 0.52, 0.4, 0.3],
     extras: 22,
@@ -504,12 +508,50 @@ export interface FormatRates {
   defaultIntent: number;
 }
 
+/**
+ * How a competition scores against its format's base rates. The modern game:
+ * the IPL (impact player, flat decks, short boundaries) is the highest
+ * scoring T20 there is; international one-dayers put up 350 far more often
+ * than domestic ones; Tests are played quicker than first-class cricket and
+ * far fewer are drawn. Multipliers on the four and six chances, the wicket
+ * chance and the weight of a dot ball.
+ */
+export interface ScoringProfile {
+  four: number;
+  six: number;
+  wicket: number;
+  dot: number;
+}
+
+export const NEUTRAL_SCORING: ScoringProfile = { four: 1, six: 1, wicket: 1, dot: 1 };
+
+export const COMPETITION_SCORING: Record<string, ScoringProfile> = {
+  ipl: { four: 1.1, six: 1.22, wicket: 0.97, dot: 0.92 },
+  'intl-t20i': { four: 1.02, six: 1.05, wicket: 1, dot: 0.98 },
+  't20-world-cup': { four: 1.0, six: 1.02, wicket: 1.02, dot: 1 },
+  'vijay-hazare': { four: 1.03, six: 1.05, wicket: 1, dot: 0.98 },
+  'intl-odi': { four: 1.06, six: 1.12, wicket: 0.98, dot: 0.96 },
+  'intl-bilateral': { four: 1.06, six: 1.12, wicket: 0.98, dot: 0.96 },
+  'odi-world-cup': { four: 1.05, six: 1.1, wicket: 0.99, dot: 0.97 },
+  'champions-trophy': { four: 1.05, six: 1.1, wicket: 0.99, dot: 0.97 },
+};
+
+/** Days a multi-day match lasts: five for a Test, four for first-class cricket. */
+export function matchDaysFor(format: string): number {
+  return format === 'TEST' ? MATCH.multiDay.testDays : MATCH.multiDay.days;
+}
+
+/** The scoring profile for a competition. */
+export function scoringProfile(tournamentId: string | null | undefined): ScoringProfile {
+  return (tournamentId && COMPETITION_SCORING[tournamentId]) || NEUTRAL_SCORING;
+}
+
 export const MATCH_FORMATS: Record<string, FormatRates> = {
   T20: {
     overs: 20,
     wicket: 0.0420,
-    four: 0.1300,
-    six: 0.0460,
+    four: 0.1270,
+    six: 0.0450,
     dotWeight: 0.5000,
     twoWeight: 0.19,
     threeWeight: 0.022,
@@ -518,9 +560,9 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ODI: {
     overs: 50,
-    wicket: 0.0225,
-    four: 0.0660,
-    six: 0.0110,
+    wicket: 0.0245,
+    four: 0.0700,
+    six: 0.0118,
     dotWeight: 1.1500,
     twoWeight: 0.20,
     threeWeight: 0.018,
@@ -551,10 +593,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   TEST: {
     overs: null,
-    wicket: 0.0157,
-    four: 0.0392,
-    six: 0.0025,
-    dotWeight: 3.6000,
+    wicket: 0.0172,
+    four: 0.0460,
+    six: 0.0042,
+    dotWeight: 3.1000,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -988,7 +1030,7 @@ export const MATCH = {
    * a bowler's normal game, and every multiplier is 1 there.
    */
   bowlingAggression: {
-    wicket: [0.55, 0.78, 1, 1.25, 1.6],
+    wicket: [0.45, 0.74, 1, 1.12, 1.3],
     boundary: [0.58, 0.78, 1, 1.35, 1.9],
     dot: [1.4, 1.17, 1, 0.85, 0.68],
     wide: [0.6, 0.8, 1, 1.2, 1.55],
@@ -1139,7 +1181,9 @@ export const MATCH = {
 
   /** Multi-day structure. */
   multiDay: {
+    /** First-class matches (Ranji, Duleep...) are four days; Tests are five. */
     days: 4,
+    testDays: 5,
     oversPerDay: 90,
     sessionsPerDay: 3,
     oversPerSession: 30,

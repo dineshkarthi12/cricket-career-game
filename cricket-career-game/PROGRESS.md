@@ -1413,3 +1413,47 @@ Fixes:
 - `npm run qa` typed the player's name before the form was ready (the
   name was lost and the run stopped at "Start career"); it waits and types
   now, and closes the selection-news walk-through.
+
+### The modern game, by competition - and the bowler's and all-rounder's side
+
+**Scoring by competition** (`COMPETITION_SCORING` / `scoringProfile` in
+`config.ts`, passed to every delivery through `InningsSetup.tournamentId`).
+Evenly matched sides, first innings:
+
+| | average | big totals | run rate | bowling |
+|---|---|---|---|---|
+| IPL | 191 | 200+ in 48%, 250+ in 8% | 9.7 | econ 9.7, avg 30 |
+| Mushtaq Ali / T20I | 178-180 | 200+ in ~32% | 9.0 | econ 9.0, avg 27 |
+| ODI | 287 | 350+ in 22%, 400+ in 5% | 6.1 | econ 6.0, avg 39 |
+| Vijay Hazare | 274 | 350+ in 11% | 5.8 | econ 5.7 |
+| Test | 301 | 450+ in 15% | 3.4 | avg 33, SR 61; 7-14% draws |
+| Ranji | 289 | 450+ in 9% | 3.0 | avg 30, SR 63; 35% draws |
+
+- Bug: Tests were played over four days (the first-class length). They are
+  five now (`matchDaysFor`), with a modern Test tempo (faster scoring, more
+  wickets) - draws went from 50% to about 10%.
+- The fast sim (AI-vs-AI matches) follows the same profiles (`quickTempo`)
+  and stays within ~5% of the engine in every competition.
+
+**The bowler's side.** Bowling aggression 5 used to be the best at
+everything (Ranji: average 22 at level 5 against 31 at level 3), so there
+was no reason to pick anything else. Now it is a trade - a T20 seamer:
+level 1 economy 5.8 / SR 27, level 3 7.9 / 18, level 5 11.0 / 14, and the
+average is no better at level 5 (`bowlingAggression.wicket`).
+
+**Highlights for bowlers and all-rounders.**
+- Commentary: THREE-FOR and MAIDEN moments, the bowler's figures on every
+  end-of-over strip (e.g. "Starc 3-0-24-1", yours in gold), and the
+  ALL-ROUND SHOW banner when a player has 50 runs and 3 wickets in the match
+  (counting earlier innings). Your moments carry a YOU tag; the ground
+  banner shows your maidens too.
+- A **Match highlights** reel on the post-match screen and every scorecard:
+  fifties and hundreds (with SR), three-fors and five-fors, tight spells,
+  hat-tricks, the all-round double (or 30 runs + 2 wickets), and your line
+  always; filters All / Batting / Bowling / Yours. Built from the
+  scorecards, so archived matches have it too.
+- The scouts' report judges batters on runs, bowlers on wickets, average
+  and economy, and all-rounders on both.
+
+Tests: 7 new (competition scoring, Test length, the bowling trade-off,
+maidens / three-fors / all-round doubles); 592 pass.

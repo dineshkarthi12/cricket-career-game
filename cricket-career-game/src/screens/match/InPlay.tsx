@@ -28,6 +28,7 @@ import { CommentaryFeed } from './panels/CommentaryFeed';
 import { Manhattan, OverByOver, WagonWheelPanel, Worm, chartInnings } from './panels/MatchCharts';
 import { MatchInfo } from './panels/MatchInfo';
 import { MomentBanner } from './panels/MomentBanner';
+import { matchTally } from '@/lib/highlights';
 import { Scorecard } from './panels/Scorecard';
 import { ScoreStrip } from './panels/ScoreStrip';
 
@@ -85,6 +86,7 @@ export function InPlay(props: InPlayProps) {
   const wide = useMediaQuery('(min-width: 1280px)');
   const box = useMemo(() => groundBox(venue), [venue]);
   const cur = snap.current;
+  const prior = useMemo(() => matchTally(snap.completed), [snap.completed]);
 
   if (!cur) return null;
 
@@ -150,7 +152,7 @@ export function InPlay(props: InPlayProps) {
   const groundCard = (
     <Card flush className="overflow-hidden">
       <div className="relative">
-        <MomentBanner ball={props.lastBall} innings={cur.innings} battingTeam={battingTeam} userId={props.userId} />
+        <MomentBanner ball={props.lastBall} innings={cur.innings} battingTeam={battingTeam} userId={props.userId} prior={prior} />
         <GroundView
           venue={venue}
           conditions={cur.conditions}
@@ -268,7 +270,7 @@ export function InPlay(props: InPlayProps) {
           />
         );
       case 'commentary':
-        return <CommentaryFeed deliveries={cur.deliveries} innings={cur.innings} battingTeam={battingTeam} />;
+        return <CommentaryFeed deliveries={cur.deliveries} innings={cur.innings} battingTeam={battingTeam} earlier={snap.completed} userId={props.userId} />;
       case 'charts':
         return (
           <div className="flex flex-col gap-4">

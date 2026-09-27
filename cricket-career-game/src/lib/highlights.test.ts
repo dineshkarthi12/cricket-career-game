@@ -49,6 +49,23 @@ describe('commentary highlights', () => {
   it('summarises each completed over', () => {
     const balls = [1, 2, 3, 4, 5, 6].map((b) => ball({ over: 0, ballInOver: b, runsOffBat: b === 3 ? 4 : 1, isBoundaryFour: b === 3 }));
     const summary = overSummaries(balls).get(balls[5].id);
-    expect(summary).toEqual({ over: 1, runs: 9, wickets: 0, total: 9, totalWickets: 0 });
+    expect(summary).toEqual({ over: 1, runs: 9, wickets: 0, total: 9, totalWickets: 0, bowlerId: 'bowler', figures: '1-0-9-0' });
+  });
+
+  it('marks a maiden, a three-for and the all-round double', () => {
+    const out = { type: 'CAUGHT' as const, bowlerId: 'bowler', fielderId: 'f' };
+    const maiden = [1, 2, 3, 4, 5, 6].map((b) => ball({ over: 3, ballInOver: b }));
+    const h = inningsHighlights(maiden, names, 'Kerala');
+    expect(h.get(maiden[5].id)?.map((x) => x.kind)).toContain('MAIDEN');
+    expect(overSummaries(maiden).get(maiden[5].id)?.figures).toBe('1-1-0-0');
+
+    // The bowler made 55 earlier in the match; the third wicket brings the double.
+    const spell = [ball({ over: 5, wicket: out }), ball({ over: 5, wicket: out }), ball({ over: 5, wicket: out })];
+    const prior = new Map([['bowler', { runs: 55, wickets: 0 }]]);
+    const hs = inningsHighlights(spell, names, 'Kerala', prior);
+    const kinds = hs.get(spell[2].id)!.map((x) => x.kind);
+    expect(kinds).toContain('THREE_FOR');
+    expect(kinds).toContain('ALL_ROUND');
+    expect(hs.get(spell[2].id)!.find((x) => x.kind === 'ALL_ROUND')?.playerId).toBe('bowler');
   });
 });

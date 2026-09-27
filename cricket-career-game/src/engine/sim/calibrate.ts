@@ -49,7 +49,7 @@ function summarise(matches: { match: Match; strongerId: string }[]): Calibration
 }
 
 /** Run both sims on the same pairs of XIs (one side `gap` stronger). */
-export function calibrate(format: MatchFormat, count: number, gap: number, seed = 777): { engine: CalibrationRow; quick: CalibrationRow } {
+export function calibrate(format: MatchFormat, count: number, gap: number, seed = 777, tournamentId = 'cal'): { engine: CalibrationRow; quick: CalibrationRow } {
   const venue: Venue = VENUES_BY_ID['venue-chepauk'];
   const rng = createRng(seed);
   const engine: { match: Match; strongerId: string }[] = [];
@@ -60,7 +60,7 @@ export function calibrate(format: MatchFormat, count: number, gap: number, seed 
     const awayXi = generateXi('away', base, createRng(seed + i * 13));
     const common = {
       fixtureId: `fx-${i}`,
-      tournamentId: 'cal',
+      tournamentId,
       seasonYear: 2026,
       format,
       stage: 'League',
@@ -74,7 +74,7 @@ export function calibrate(format: MatchFormat, count: number, gap: number, seed 
       seed: seed + i,
     };
     engine.push({ match: simulateMatch(common).match, strongerId: 'home' });
-    quick.push({ match: quickMatch({ ...common, days: format === 'MULTI_DAY' ? 4 : 1 }).match, strongerId: 'home' });
+    quick.push({ match: quickMatch({ ...common, days: format === 'TEST' ? 5 : format === 'MULTI_DAY' ? 4 : 1 }).match, strongerId: 'home' });
   }
   return { engine: summarise(engine), quick: summarise(quick) };
 }

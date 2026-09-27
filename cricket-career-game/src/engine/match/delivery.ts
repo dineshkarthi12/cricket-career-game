@@ -389,7 +389,7 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   );
 
   // --- Wicket -------------------------------------------------------------
-  let pWicket = wicketChance(context, threat, f);
+  let pWicket = wicketChance(context, threat, f) * (context.scoring?.wicket ?? 1);
 
   // --- Boundaries ---------------------------------------------------------
   const power = batterPower(context.striker);
@@ -416,14 +416,14 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     (context.rotate ? cfg.rotate.boundary : 1) *
     cfg.bowlingAggression.boundary[bowlingIndex];
 
-  let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76));
+  let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76) * (context.scoring?.four ?? 1));
   // Ground size matters: a short square boundary turns a mis-hit pull into
   // six, a long straight one keeps the same shot in the ground.
   const meanBoundary = (context.boundaries.straight + context.boundaries.square) / 2;
   const groundSize = clamp01(1 + (68 - meanBoundary) / 40);
 
   let pSix = clamp01(
-    rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1) * (0.6 + groundSize * 0.8),
+    rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1) * (0.6 + groundSize * 0.8) * (context.scoring?.six ?? 1),
   );
 
   // Nothing can be more likely than the total probability space allows.
@@ -872,6 +872,7 @@ function resolvePlacedShot(
   const dotWeight = Math.max(
     0.02,
     rates.dotWeight *
+      (context.scoring?.dot ?? 1) *
       input.phaseDot *
       cfg.intent.dot[intentIndex] *
       (input.cluster > 0 ? cfg.momentum.collapseDot : 1) *

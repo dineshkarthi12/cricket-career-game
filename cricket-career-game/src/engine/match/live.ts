@@ -9,7 +9,7 @@
  * call and draws whatever it finds.
  */
 import { impactSwap } from '../sim/quickMatch';
-import { MATCH, MATCH_FORMATS } from '../config';
+import { MATCH, MATCH_FORMATS, matchDaysFor } from '../config';
 import { newId } from '../id';
 import { createPitch, createWeather, newBall } from './conditions';
 import { hasResult, revisedTarget } from './dls';
@@ -428,6 +428,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         batting: xiOf(p.battingTeamId),
         bowling: xiOf(bowlingTeamId),
         format: setup.format,
+        tournamentId: setup.tournamentId,
         venue: setup.venue,
         conditions,
         oversAvailable: p.oversAvailable,
@@ -446,6 +447,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       batting: xiOf(p.battingTeamId),
       bowling: xiOf(bowlingTeamId),
       format: setup.format,
+      tournamentId: setup.tournamentId,
       venue: setup.venue,
       conditions,
       basePitch: pitch,
@@ -512,7 +514,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
 
     // Multi-day bookkeeping, exactly as the batch simulator keeps it.
     ballsUsed += finished.innings.balls;
-    day = Math.min(cfg.days, 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
+    day = Math.min(matchDaysFor(setup.format), 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
     afterMultiDayInnings();
   }
 
@@ -798,7 +800,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       format: setup.format,
       stage: setup.stage,
       date: setup.date,
-      days: limited ? 1 : MATCH.multiDay.days,
+      days: limited ? 1 : matchDaysFor(setup.format),
       venueId: setup.venue.id,
       homeTeamId: setup.homeTeamId,
       awayTeamId: setup.awayTeamId,
@@ -911,7 +913,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     const ballsToday = cfg.oversPerDay * 6;
     const played = ballsUsed + state.legalBalls;
     return {
-      day: Math.min(cfg.days, 1 + Math.floor(played / ballsToday)),
+      day: Math.min(matchDaysFor(setup.format), 1 + Math.floor(played / ballsToday)),
       session: Math.min(
         cfg.sessionsPerDay,
         1 + Math.floor((played % ballsToday) / (cfg.oversPerSession * 6)),
@@ -1114,8 +1116,8 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
 
       // A four-day match almost never gets four full days: slow over rates,
       // bad light and the weather all take time away.
-      let oversLost = cfg.days * cfg.slowOverRatePerDay;
-      for (let d = 1; d <= cfg.days; d += 1) {
+      let oversLost = matchDaysFor(setup.format) * cfg.slowOverRatePerDay;
+      for (let d = 1; d <= matchDaysFor(setup.format); d += 1) {
         const wet = weather.rainRisk / 100;
         if (rng.chance(cfg.washoutChance + wet * 0.35)) {
           const lost = cfg.oversPerDay * rng.range(0.55, 1);
@@ -1138,7 +1140,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       }
       maxMatchBalls = Math.max(
         cfg.oversPerDay * 6,
-        Math.floor((cfg.days * cfg.oversPerDay - oversLost) * 6),
+        Math.floor((matchDaysFor(setup.format) * cfg.oversPerDay - oversLost) * 6),
       );
 
       // The side batting first declares once it has enough, or has used too

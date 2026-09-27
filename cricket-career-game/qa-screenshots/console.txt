@@ -1,13 +1,14 @@
 [fast-forward demo-pro] This slot now holds the demo professional career, aged 10.
-[fast-forward Senior state debut] Fast-forwarded 572 weeks: Senior State Team, age 19.
-[fast-forward IPL auction or contract] Stopped after 269 weeks: a decision is waiting in the inbox.
-[fast-forward IPL auction or contract] Fast-forwarded 117 weeks: International Star, age 25.
-[fast-forward India cap] Stopped after 17 weeks: a decision is waiting in the inbox.
-[fast-forward India cap] Fast-forwarded 45 weeks: International Star, age 26.
-[fast-forward ICC event] Stopped after 16 weeks: a decision is waiting in the inbox.
-[fast-forward ICC event] Fast-forwarded 34 weeks: International Star, age 26.
+[fast-forward Senior state debut] Fast-forwarded 575 weeks: Senior State Team, age 19.
+[fast-forward IPL auction or contract] Fast-forwarded 162 weeks: Establish India Career, age 21.
+[fast-forward India cap] Fast-forwarded 42 weeks: ICC Tournaments, age 22.
+[fast-forward ICC event] Stopped after 55 weeks: a decision is waiting in the inbox.
+[fast-forward ICC event] Stopped after 186 weeks: a decision is waiting in the inbox.
+[fast-forward ICC event] Fast-forwarded 31 weeks: International Star, age 26.
 [fast-forward Leadership offer] Fast-forwarded 39 weeks: International Star, age 27.
-[fast-forward Age 36] Stopped after 67 weeks: a decision is waiting in the inbox.
-[fast-forward Age 36] Stopped after 41 weeks: a decision is waiting in the inbox.
-[fast-forward Age 36] Stopped after 152 weeks: a decision is waiting in the inbox.
-[fast-forward Age 36] Fast-forwarded 292 weeks: International Star, age 36.
+[fast-forward Age 36] Stopped after 253 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Stopped after 62 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Stopped after 40 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Stopped after 22 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Stopped after 44 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Fast-forwarded 116 weeks: International Star, age 36.

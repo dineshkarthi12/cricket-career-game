@@ -7,7 +7,7 @@
  * over `stepBall`; the live controller calls it one ball at a time and can
  * feed in the player's own decisions through `BallOverrides`.
  */
-import { MATCH, MATCH_FORMATS } from '../config';
+import { MATCH, MATCH_FORMATS, scoringProfile } from '../config';
 import { newId } from '../id';
 import { ageBall, deterioratePitch, dewLevel, phaseFor } from './conditions';
 import { chooseApproach, chooseBowler, choosePlan, runRatePressure, type Situation } from './ai';
@@ -55,6 +55,8 @@ export interface InningsSetup {
   batting: SimPlayer[];
   bowling: SimPlayer[];
   format: MatchFormat;
+  /** The competition, for its scoring profile (the IPL scores more than a Ranji side). */
+  tournamentId?: string;
   venue: Venue;
   conditions: MatchConditions;
   /** Overs available, or null for unlimited. */
@@ -681,6 +683,7 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
       strikerRuns: situation.strikerRuns,
       farmingStrike,
       feedingStrike,
+      scoring: scoringProfile(setup.tournamentId),
       recentWickets: state.wicketBalls.filter((b) => state.legalBalls - b <= MATCH.momentum.window)
         .length,
       partnershipBalls: state.partnershipBalls,
@@ -781,6 +784,7 @@ export function estimateRisk(
     consecutiveDots: state.dotStreak[striker.id] ?? 0,
     strikerRuns: state.battingLines.get(striker.id)?.runs ?? 0,
     farmingStrike: false,
+    scoring: scoringProfile(setup.tournamentId),
     partnershipBalls: state.partnershipBalls,
     spellOvers: state.spellOvers[bowler.id] ?? 1,
     oversBowled: overNumber,

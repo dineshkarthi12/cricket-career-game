@@ -76,11 +76,13 @@ function scoutReport(state: GameState): string {
   const player = state.player;
   const all = userSeasonStats(state, null);
   const bowler = player.role === 'PACE_BOWLER' || player.role === 'SPIN_BOWLER';
-  const figures = all.matches
-    ? bowler
-      ? `${all.wickets} wicket${all.wickets === 1 ? '' : 's'} in ${all.matches} match${all.matches === 1 ? '' : 'es'}`
-      : `${all.runs} runs in ${all.matches} match${all.matches === 1 ? '' : 'es'}${all.fifties + all.hundreds ? ` (${all.hundreds ? `${all.hundreds} hundred${all.hundreds === 1 ? '' : 's'}, ` : ''}${all.fifties} fift${all.fifties === 1 ? 'y' : 'ies'})` : ''}`
-    : 'no matches yet this season';
+  const allRounder = player.role === 'BATTING_ALLROUNDER' || player.role === 'BOWLING_ALLROUNDER';
+  const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+  const batting = `${all.runs} runs${all.average !== null ? ` at ${all.average.toFixed(1)}` : ''}${all.fifties + all.hundreds ? ` (${all.hundreds ? `${plural(all.hundreds, 'hundred')}, ` : ''}${plural(all.fifties, 'fifty', 'fifties')})` : ''}`;
+  const bowling = `${plural(all.wickets, 'wicket')}${all.bowlingAverage !== null ? ` at ${all.bowlingAverage.toFixed(1)}` : ''}${all.economy !== null ? `, economy ${all.economy.toFixed(2)}` : ''}`;
+  // Batters are judged on runs, bowlers on wickets and economy, all-rounders on both.
+  const line = bowler ? bowling : allRounder ? `${batting}; ${bowling}` : batting;
+  const figures = all.matches ? `${line} in ${plural(all.matches, 'match', 'matches')}` : 'no matches yet this season';
   const form = weightedForm(player.condition.recentRatings ?? []);
   const trust = Math.round(player.condition.selectorTrust);
   return `Scout report: ${figures}; form ${formLabel(form)} (${form.toFixed(1)}); selectors' trust ${trust}/100; OVR ${player.overall}.`;

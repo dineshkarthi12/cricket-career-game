@@ -7,7 +7,7 @@
  */
 import { memo, useMemo, useState } from 'react';
 import { Star } from 'lucide-react';
-import { MILESTONE_KINDS, inningsHighlights, overSummaries, type Highlight } from '@/lib/highlights';
+import { MILESTONE_KINDS, inningsHighlights, matchTally, overSummaries, type Highlight } from '@/lib/highlights';
 import { cn } from '@/lib/cn';
 import type { Ball, Innings } from '@/types';
 
@@ -41,6 +41,8 @@ const BANNER_TONE: Partial<Record<Highlight['kind'], string>> = {
   HAT_TRICK: 'bg-brand-red text-white',
   TEAM: 'bg-brand-navy text-white',
   PARTNERSHIP: 'bg-brand-green text-white',
+  THREE_FOR: 'bg-brand-red/85 text-white',
+  ALL_ROUND: 'bg-brand-gold text-brand-navy',
 };
 
 const FILTERS = [
@@ -52,6 +54,8 @@ export const CommentaryFeed = memo(function CommentaryFeed({
   deliveries,
   innings,
   battingTeam,
+  earlier,
+  userId,
   limit = 60,
   className,
 }: {
@@ -59,6 +63,10 @@ export const CommentaryFeed = memo(function CommentaryFeed({
   /** The innings the balls belong to, for player names in the banners. */
   innings?: Pick<Innings, 'batting' | 'bowling'>;
   battingTeam?: string;
+  /** The match's innings before this one, for all-round doubles. */
+  earlier?: Pick<Innings, 'batting' | 'bowling'>[];
+  /** The career player: their moments are marked. */
+  userId?: string;
   limit?: number;
   className?: string;
 }) {
@@ -70,9 +78,10 @@ export const CommentaryFeed = memo(function CommentaryFeed({
     for (const line of innings?.bowling ?? []) map.set(line.playerId, line.name);
     return map;
   }, [innings]);
+  const prior = useMemo(() => matchTally(earlier ?? []), [earlier]);
   const highlights = useMemo(
-    () => inningsHighlights(deliveries, (id) => names.get(id) ?? '', battingTeam),
-    [deliveries, names, battingTeam],
+    () => inningsHighlights(deliveries, (id) => names.get(id) ?? '', battingTeam, prior),
+    [deliveries, names, battingTeam, prior],
   );
   const overs = useMemo(() => overSummaries(deliveries), [deliveries]);
 
@@ -111,7 +120,13 @@ export const CommentaryFeed = memo(function CommentaryFeed({
               <li key={ball.id} className="flex flex-col gap-1.5">
                 {over ? (
                   <div className="flex items-center justify-between rounded-lg bg-brand-navy/90 px-2.5 py-1 text-[11.5px] font-semibold text-white">
-                    <span>End of over {over.over}</span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      End of over {over.over}
+                      {over.runs === 0 ? <span className="rounded bg-white/20 px-1 text-[10px]">MAIDEN</span> : null}
+                      <span className={cn('truncate font-normal opacity-85', over.bowlerId === userId && 'font-bold text-brand-gold opacity-100')}>
+                        · {names.get(over.bowlerId) ?? 'Bowler'} {over.figures}
+                      </span>
+                    </span>
                     <span className="tabular-nums">
                       {over.runs} run{over.runs === 1 ? '' : 's'}
                       {over.wickets ? `, ${over.wickets} wkt${over.wickets === 1 ? '' : 's'}` : ''} · {over.total}/{over.totalWickets}
@@ -126,6 +141,7 @@ export const CommentaryFeed = memo(function CommentaryFeed({
                     <Star className="size-3.5 shrink-0 fill-current" aria-hidden />
                     <span className="rounded bg-white/25 px-1.5 text-[11px] tabular-nums">{m.label}</span>
                     <span className="min-w-0">{m.text}</span>
+                    {userId && m.playerId === userId ? <span className="ml-auto shrink-0 rounded bg-white/30 px-1.5 text-[10px] tracking-wide">YOU</span> : null}
                   </div>
                 ))}
                 <div className={cn('flex items-start gap-2.5 rounded-lg border-l-2 py-1.5 pr-2 pl-2.5', toneOf(ball))}>

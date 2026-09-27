@@ -3,7 +3,7 @@
  * a fifty, a hundred, a five-for. Your own moments are gold-rimmed.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { headlineOf, inningsHighlights, type Highlight } from '@/lib/highlights';
+import { headlineOf, inningsHighlights, type Highlight, type MatchTally } from '@/lib/highlights';
 import { cn } from '@/lib/cn';
 import type { Ball, Innings } from '@/types';
 
@@ -19,6 +19,9 @@ const TONE: Record<Highlight['kind'], string> = {
   TEAM: 'bg-brand-navy text-white',
   PARTNERSHIP: 'bg-brand-green text-white',
   DROP: 'bg-brand-orange text-white',
+  THREE_FOR: 'bg-brand-red text-white',
+  MAIDEN: 'bg-brand-navy text-white',
+  ALL_ROUND: 'bg-brand-gold text-brand-navy',
 };
 
 const TITLE: Record<Highlight['kind'], string> = {
@@ -33,6 +36,9 @@ const TITLE: Record<Highlight['kind'], string> = {
   TEAM: 'MILESTONE',
   PARTNERSHIP: 'PARTNERSHIP',
   DROP: 'DROPPED!',
+  THREE_FOR: 'THREE WICKETS!',
+  MAIDEN: 'MAIDEN!',
+  ALL_ROUND: 'ALL-ROUND SHOW!',
 };
 
 /** How long the banner stays up. */
@@ -43,19 +49,24 @@ export function MomentBanner({
   innings,
   battingTeam,
   userId,
+  prior,
 }: {
   ball: Ball | null;
   innings: Pick<Innings, 'batting' | 'bowling' | 'deliveries'>;
   battingTeam: string;
   userId: string;
+  /** Earlier innings' runs and wickets, for the all-round double. */
+  prior?: MatchTally;
 }) {
   const moment = useMemo(() => {
     if (!ball || !innings.deliveries.some((d) => d.id === ball.id)) return null;
     const names = new Map<string, string>();
     for (const line of [...innings.batting, ...innings.bowling]) names.set(line.playerId, line.name);
-    const all = inningsHighlights(innings.deliveries, (id) => names.get(id) ?? '', battingTeam);
-    return headlineOf(all.get(ball.id));
-  }, [ball, innings, battingTeam]);
+    const all = inningsHighlights(innings.deliveries, (id) => names.get(id) ?? '', battingTeam, prior);
+    // A maiden is only worth a banner when it is yours.
+    const list = (all.get(ball.id) ?? []).filter((h) => h.kind !== 'MAIDEN' || h.playerId === userId);
+    return headlineOf(list);
+  }, [ball, innings, battingTeam, prior, userId]);
 
   const [hiddenFor, setHiddenFor] = useState<string | null>(null);
   useEffect(() => {
@@ -65,7 +76,7 @@ export function MomentBanner({
   }, [ball, moment]);
 
   if (!ball || !moment || hiddenFor === ball.id) return null;
-  const mine = ball.strikerId === userId || ball.bowlerId === userId;
+  const mine = moment.playerId ? moment.playerId === userId : ball.strikerId === userId || ball.bowlerId === userId;
 
   return (
     <div
@@ -77,6 +88,7 @@ export function MomentBanner({
         mine && 'ring-4 ring-brand-gold',
       )}
     >
+      {mine ? <span className="mb-0.5 text-[10px] font-bold tracking-[0.2em] uppercase opacity-90">You</span> : null}
       <span className="text-[22px] leading-none font-black tracking-wide sm:text-[28px]">{TITLE[moment.kind]}</span>
       {moment.kind !== 'FOUR' && moment.kind !== 'SIX' ? (
         <span className="mt-1 text-[11.5px] leading-snug font-semibold opacity-95">{moment.text}</span>
