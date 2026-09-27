@@ -17,14 +17,14 @@ import type { Ball, MatchFormat } from '@/types';
 
 const venue = VENUES_BY_ID['venue-chepauk'];
 
-function setupFor(seed: number, format: MatchFormat): InningsSetup {
+function setupFor(seed: number, format: MatchFormat, strengths: [number, number] = [62, 62]): InningsSetup {
   const rng = createRng(seed);
   return {
     number: 1,
     battingTeamId: 'bat',
     bowlingTeamId: 'bowl',
-    batting: generateXi('bat', 62, createRng(seed ^ 0x11)),
-    bowling: generateXi('bowl', 62, createRng(seed ^ 0x22)),
+    batting: generateXi('bat', strengths[0], createRng(seed ^ 0x11)),
+    bowling: generateXi('bowl', strengths[1], createRng(seed ^ 0x22)),
     format,
     venue,
     conditions: {
@@ -53,14 +53,14 @@ interface Rates {
 }
 
 /** Every batter (or bowler) in the innings plays at the given level. */
-function measure(format: MatchFormat, overrides: BallOverrides, innings = 40): Rates {
+function measure(format: MatchFormat, overrides: BallOverrides, innings = 40, strengths?: [number, number]): Rates {
   let runs = 0;
   let balls = 0;
   let boundaries = 0;
   let wickets = 0;
   let falseShots = 0;
   for (let i = 0; i < innings; i += 1) {
-    const state = createInningsState(setupFor(100 + i, format));
+    const state = createInningsState(setupFor(100 + i, format, strengths));
     const rng = createRng(900 + i);
     const all: Ball[] = [];
     let guard = 0;
@@ -121,6 +121,18 @@ describe('batting aggression', () => {
       expect(byLevel[i].falseShotShare).toBeGreaterThan(byLevel[i - 1].falseShotShare);
     }
   }, 60_000);
+});
+
+describe('batting aggression for a weaker batter against better bowling', () => {
+  // Where the situation already makes getting out likely, levels 4 and 5 used
+  // to hit the same ceiling: 4 was as risky as 5 and scored less.
+  const hard = [3, 4, 5].map((level) => measure('T20', { intentLevel: level }, 40, [48, 72]));
+  it('keeps every step distinct: 4 scores faster than 3, and 5 is clearly riskier than 4', () => {
+    expect(hard[1].runsPerBall).toBeGreaterThan(hard[0].runsPerBall * 1.08);
+    expect(hard[2].runsPerBall).toBeGreaterThan(hard[1].runsPerBall);
+    expect(hard[1].wicketShare).toBeGreaterThan(hard[0].wicketShare);
+    expect(hard[2].wicketShare).toBeGreaterThan(hard[1].wicketShare * 1.3);
+  });
 });
 
 describe('bowling aggression', () => {

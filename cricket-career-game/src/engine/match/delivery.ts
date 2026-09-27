@@ -260,10 +260,12 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
   const raw = cfg.intent.wicket[index] / cfg.intent.wicket[defaultIndex];
   const intentWicket = raw > 1 ? 1 + (raw - 1) * aggressionRiskScale(context, f) : raw;
 
-  const p =
+  // The situation first (capped), then the batter's own aggression on top of it,
+  // so a step up in aggression always adds risk - even for a batter already at
+  // the cap, which is where levels 4 and 5 used to become the same.
+  const situation =
     rates.wicket *
     (0.55 + 0.9 * threat) *
-    intentWicket *
     (1 - f.edge * cfg.edge.wicket) *
     f.phaseMod.wicket *
     (1 + f.bite * cfg.pressure.wicketAtMax) *
@@ -276,9 +278,12 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
     (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2) *
     (context.rotate ? cfg.rotate.wicket : 1) *
     cfg.bowlingAggression.wicket[bowlingIndex];
-  return clamp01(
-    Math.max(rates.wicket * cfg.limits.wicketFloor, Math.min(rates.wicket * cfg.limits.wicketCeiling, p)),
-  );
+  const floor = rates.wicket * cfg.limits.wicketFloor;
+  const ceiling = rates.wicket * cfg.limits.wicketCeiling;
+  // Defending (levels 1-2, and the normal game) works inside the usual limits.
+  if (intentWicket <= 1) return clamp01(Math.max(floor, Math.min(ceiling, situation * intentWicket)));
+  const capped = Math.max(floor, Math.min(ceiling, situation));
+  return clamp01(Math.min(rates.wicket * cfg.limits.intentCeiling, capped * intentWicket));
 }
 
 /**

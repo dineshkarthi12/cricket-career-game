@@ -1297,3 +1297,33 @@ on strike. Now:
   badge between them, instead of swapping the rows.
 - `engine/match/strike.test.ts` locks the rule in, for simulated matches and
   ball by ball in a live match with the player batting.
+
+### Fixes - aggression levels and getting out of club cricket
+
+**Batting aggression 1-5.** For the user's own player, levels 4 and 5 were
+the same: a batter already at the wicket-chance ceiling (not yet in, better
+bowlers) hit it at both, so 4 got out as often as 5 and scored less, and 2
+barely scored more than 1. The situation is now capped first and the level
+multiplies on top of it for attacking levels; 2 and 4 were retuned (2
+defensive but scoring, 4 positive but manageable). A state player in T20:
+level 1 SR 42, out every ~80 balls; 2 SR 106 / 44; 3 SR 140 / 28; 4 SR 171 /
+15-19; 5 SR 205 / 7-8 (was 4: SR 173 / 10, 5: SR 209 / 10). Defensive levels
+and the AI's normal game keep the old limits, so the match balance tests are
+unchanged. New test: a weaker batter against better bowling keeps every step
+distinct.
+
+**Stuck in club cricket.** Careers were ageing into the U-19 and U-23 stages
+but never picked, so from about 14 every match was the Chennai club league:
+state age-group squads are the state's best kids (potential ~84) while a new
+player averaged ~72, and club figures counted 1/8 for the U-19 selectors and
+1/64 for the senior ones (half per level down). Now club/district form
+counts 65% per level for at most two levels, and the user's hidden potential
+is 66-96 (average ~79). 32 simulated careers from age 10 to 24: state U-16
+88% (median age 15), U-19 81% (17), senior state debut 38% (21, was ~17%),
+Ranji 34%, Vijay Hazare 28%, SMAT 19%, IPL 6% - the talented usually get
+there, nothing is guaranteed.
+
+Tests: 577 pass. Two test adjustments: the development test compares
+potential 84+ with 74- (the old "68 or less" group no longer exists), and the
+fast-sim check for even first-class sides allows 0.2 (only ~55 of 80 matches
+are decided).

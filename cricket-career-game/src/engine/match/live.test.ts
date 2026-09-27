@@ -105,8 +105,9 @@ describe('live match controller', () => {
     live.doToss();
     const balls = live.toNextWicket();
     const last = balls[balls.length - 1];
-    // Either a wicket fell or the innings ran out of balls entirely.
-    if (live.snapshot().phase === 'IN_PLAY') expect(last.wicket).toBeTruthy();
+    // Either a wicket fell, the innings ran out of balls, or a question (a review) stopped play.
+    const snap = live.snapshot();
+    if (snap.phase === 'IN_PLAY' && !snap.question) expect(last.wicket).toBeTruthy();
   });
 
   it('breaks between innings and only resumes when told to', () => {

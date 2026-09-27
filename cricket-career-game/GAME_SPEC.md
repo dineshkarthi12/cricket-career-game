@@ -130,7 +130,7 @@ bowler is not judged on their cover drive:
 | Pace bowler | 0.10 | 0.58 | 0.10 | 0.14 | 0.08 |
 | Spin bowler | 0.10 | 0.60 | 0.10 | 0.10 | 0.10 |
 
-**Growth (Phase 5).** Every player has a hidden potential (60-95) for their
+**Growth (Phase 5).** Every player has a hidden potential (66-96) for their
 overall; per-attribute ceilings (`Player.potential`) are shaped by role,
 bowling type, batting approach and traits, then shifted as a whole so their
 role-weighted overall lands on the hidden potential. Training and growing up
@@ -254,8 +254,10 @@ score = 0.60 × overall
       + trial bonus × 0.3, + 2 for a player in possession
 ```
 
-Figures and ratings from cricket below the competition's level count half per
-level down (club runs barely move the U-19 selectors).
+Figures and ratings from cricket below the competition's level count 65% per
+level down, for at most two levels (`lowerLevelDiscount`, `lowerLevelMaxSteps`):
+a dominant club or district season still registers with the U-19 and senior
+selectors.
 
 - **Hard gates.** Age-group cut-offs by date of birth: under X on 1 September
   of the season year (`engine/career/eligibility.ts`). A long injury → `RESERVE`.
@@ -531,6 +533,12 @@ per bowler (`batterLevels`, `bowlerLevels`); anyone without one is the AI.
   context with a neutral plan and no random numbers and returns the wicket
   chance and ratio to the format's base rate; Low below 0.6, Medium below
   1.2, High below 2.1, else Very High (`MATCH.aggression.riskLabels`).
+- Wicket risk: the situation is capped first (`limits.wicketCeiling`, 3.4×
+  the format's rate); an attacking level (4-5) then multiplies the capped
+  value (up to `limits.intentCeiling`, 6.5×), so each step up always adds
+  risk. Before this, a batter already at the cap found 4 as risky as 5.
+  Levels, T20, a state player against state bowling: 1 SR ~42 / out every
+  ~80 balls, 2 ~105 / 44, 3 ~140 / 28, 4 ~170 / 15-19, 5 ~205 / 7-8.
 - Stats: `Ball.intent` records the batting level and `Ball.bowlingAggression`
   the bowling level when it is not 3; `src/lib/aggressionStats.ts` builds the
   post-match per-level tables.
@@ -564,7 +572,8 @@ with the same seed the career will use. Roles map onto the engine's roles
 (an anchor batter opens, a spin bowler is a `SPIN_BOWLER`, ...).
 
 `engine/development/creation.ts`: hidden potential is the mean of three
-uniforms stretched to 60-95 (most players low 70s). Ceilings = potential +
+uniforms stretched to 66-96 (most players high 70s - the user's player is a
+prospect worth following; nothing is certain). Ceilings = potential +
 role/style/approach/trait offsets + noise, calibrated to the potential.
 Starting attributes = `reachable(ceiling, age) × U(0.66, 0.84)`.
 

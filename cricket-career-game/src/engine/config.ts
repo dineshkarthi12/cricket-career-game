@@ -100,7 +100,9 @@ export const PROGRESSION = {
 
 export const DEVELOPMENT = {
   /** Hidden potential range for a new player's overall. */
-  potentialRange: [60, 95] as [number, number],
+  // The player the user creates is a prospect worth following: most can reach
+  // state cricket with good seasons, some go much further, nothing is certain.
+  potentialRange: [66, 96] as [number, number],
   /**
    * Share of an attribute's ceiling a body and mind of this age can reach,
    * whatever the training. Growth tracks this up to about 24.
@@ -373,8 +375,10 @@ export const SQUAD_SELECTION = {
   lowScoresToDrop: 4,
   /** A match rating below this is a low score. */
   lowScoreRating: 4.6,
-  /** Form and figures from cricket one level down count this much (per level). */
-  lowerLevelDiscount: 0.5,
+  /** Form and figures from cricket one level down count this much (per level)... */
+  lowerLevelDiscount: 0.65,
+  /** ...for at most this many levels, so a dominant club or district season always registers. */
+  lowerLevelMaxSteps: 2,
   /** Prospect credit: senior selectors back young players on the way up. */
   prospectFromLevel: 7,
   prospectAge: 25,
@@ -576,9 +580,11 @@ export const MATCH = {
    * rates above always describe a batter playing their normal game.
    */
   intent: {
-    wicket: [0.3, 0.62, 1.0, 1.62, 2.8],
-    boundary: [0.08, 0.48, 1.0, 1.8, 2.9],
-    dot: [2.0, 1.25, 1.0, 0.82, 0.62],
+    // Evenly spaced steps: 2 is defensive but still scores, 4 is positive
+    // but manageable, 5 is all-out (see engine/match/aggression.test.ts).
+    wicket: [0.3, 0.7, 1.0, 1.4, 2.4],
+    boundary: [0.08, 0.62, 1.0, 1.65, 2.7],
+    dot: [2.0, 1.15, 1.0, 0.85, 0.64],
     /** Chance the batter attempts a risky second/third run. */
     running: [0.6, 0.82, 1.0, 1.18, 1.32],
   },
@@ -732,8 +738,13 @@ export const MATCH = {
   limits: {
     /** pWicket may not fall below this fraction of the format's base rate. */
     wicketFloor: 0.54,
-    /** ...nor rise above this multiple of it. */
+    /** ...nor rise above this multiple of it (the situation, before the batter's aggression). */
     wicketCeiling: 3.4,
+    /**
+     * Attacking (levels 4-5) multiplies the capped situation, so each level up
+     * adds risk even in a hard spot; this caps the product.
+     */
+    intentCeiling: 6.5,
     /** Cap on the combined boundary multiplier. */
     boundaryCeiling: 2.5,
   },
@@ -892,7 +903,7 @@ export const MATCH = {
      * Quality of contact by level, relative to the default: attacking means
      * more false shots - edges, miscues, plays and misses.
      */
-    contact: [0.07, 0.035, 0, -0.05, -0.11],
+    contact: [0.07, 0.025, 0, -0.03, -0.09],
     /** Chance a batter shoulders arms to a ball outside off, by level. */
     leaveOutsideOff: [0.7, 0.2, 0, 0, 0],
     /**
