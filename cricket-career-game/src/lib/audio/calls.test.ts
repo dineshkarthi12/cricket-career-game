@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { callForBall, callForResult, fullCommentary, speakable, surname } from './calls';
-import { VOICE_LINES, voiceLine, type VoiceMoment } from '@/data/voiceLines';
+import { sfxForBall, sfxForResult } from './calls';
 import type { Ball, BatterInningsLine, BowlerInningsLine, Innings } from '@/types';
 
 function ball(p: Partial<Ball>): Ball {
@@ -12,111 +11,42 @@ function ball(p: Partial<Ball>): Ball {
     ...p,
   } as Ball;
 }
-const bat = (playerId: string, name: string, runs: number, balls: number, out = false): BatterInningsLine => ({ playerId, name, battingPosition: 1, runs, balls, fours: 0, sixes: 0, strikeRate: 0, out, dismissal: null, dismissalText: '' });
-const bowl = (wickets: number): BowlerInningsLine => ({ playerId: 'bw', name: 'Sanjay Pillai', overs: 3, balls: 18, maidens: 0, runsConceded: 20, wickets, wides: 0, noBalls: 0, economy: 6 });
+const bat = (playerId: string, runs: number, balls: number, out = false): BatterInningsLine => ({ playerId, name: playerId, battingPosition: 1, runs, balls, fours: 0, sixes: 0, strikeRate: 0, out, dismissal: null, dismissalText: '' });
+const bowl = (wickets: number): BowlerInningsLine => ({ playerId: 'bw', name: 'Bowler', overs: 3, balls: 18, maidens: 0, runsConceded: 20, wickets, wides: 0, noBalls: 0, economy: 6 });
 const lines = (batting: BatterInningsLine[], wickets = 0, fow: Innings['fallOfWickets'] = []) => ({ batting, bowling: [bowl(wickets)], fallOfWickets: fow });
 
-describe('match sound calls', () => {
-  it('roars for a six and names the batter', () => {
-    const call = callForBall(ball({ runsOffBat: 6, isBoundarySix: true }), lines([bat('me', 'Arjun Varadan', 26, 14)]), 'me');
-    expect(call.moment).toBe('SIX');
-    expect(call.priority).toBe(3);
-    expect(call.sfx).toEqual(['BAT_BIG', 'ROAR']);
-    expect(call.mine).toBe(true);
-    expect(call.line).not.toMatch(/\{/);
+describe('match sound effects', () => {
+  it('cracks and roars for a six, cheers a four', () => {
+    expect(sfxForBall(ball({ runsOffBat: 6, isBoundarySix: true }), lines([bat('me', 20, 12)]), 'me')).toEqual(['BAT_BIG', 'ROAR']);
+    expect(sfxForBall(ball({ runsOffBat: 4, isBoundaryFour: true }), lines([bat('me', 8, 5)]), 'me')).toEqual(['BAT', 'CHEER']);
   });
 
-  it('cheers a four, and calls ones, twos and threes', () => {
-    expect(callForBall(ball({ runsOffBat: 4, isBoundaryFour: true }), lines([bat('me', 'A', 8, 5)]), 'me').moment).toBe('FOUR');
-    expect(callForBall(ball({ runsOffBat: 1 }), lines([bat('me', 'A', 5, 5)]), 'me').moment).toBe('SINGLE');
-    expect(callForBall(ball({ runsOffBat: 2 }), lines([bat('me', 'A', 6, 5)]), 'me').moment).toBe('TWO');
-    expect(callForBall(ball({ runsOffBat: 3 }), lines([bat('me', 'A', 7, 5)]), 'me').moment).toBe('THREE');
+  it('plays the bat for ones and twos, and a clap for three', () => {
+    expect(sfxForBall(ball({ runsOffBat: 1 }), lines([bat('me', 5, 5)]), 'me')).toEqual(['BAT']);
+    expect(sfxForBall(ball({ runsOffBat: 2 }), lines([bat('me', 6, 5)]), 'me')).toEqual(['BAT']);
+    expect(sfxForBall(ball({ runsOffBat: 3 }), lines([bat('me', 7, 5)]), 'me')).toEqual(['BAT', 'LIGHT_CLAP']);
+    expect(sfxForBall(ball({ shot: null, shotAngle: null }), lines([bat('me', 7, 5)]), 'me')).toEqual([]);
   });
 
-  it('knows a duck, a golden duck and a run out of the non-striker', () => {
-    const out = (runs: number, balls: number) => lines([bat('me', 'Arjun Varadan', runs, balls, true)], 1, [{ wicketNumber: 1, runs: 10, over: 2, playerId: 'me' }]);
-    const bowled = ball({ wicket: { type: 'BOWLED', bowlerId: 'bw', fielderId: null } });
-    expect(callForBall(bowled, out(0, 4), 'me').moment).toBe('DUCK');
-    expect(callForBall(bowled, out(0, 1), 'me').moment).toBe('GOLDEN_DUCK');
-    const duck = callForBall(bowled, out(0, 4), 'me');
-    expect(duck.sfx).toContain('STUMPS');
-    expect(duck.sfx).toContain('GROAN');
-    const runOut = callForBall(
-      ball({ strikerId: 'st', wicket: { type: 'RUN_OUT', bowlerId: null, fielderId: 'f' } }),
-      lines([bat('st', 'Striker', 12, 10), bat('me', 'Arjun Varadan', 30, 20, true)], 0, [{ wicketNumber: 1, runs: 50, over: 8, playerId: 'me' }]),
-      'me',
-    );
-    expect(runOut.moment).toBe('RUN_OUT');
-    expect(runOut.mine).toBe(true);
-    expect(runOut.line).not.toContain('Striker');
+  it('rattles the stumps and groans for a duck or the player out; roars for an opponent', () => {
+    const bowled = ball({ strikerId: 'x', wicket: { type: 'BOWLED', bowlerId: 'bw', fielderId: null } });
+    expect(sfxForBall(bowled, lines([bat('x', 0, 3, true)], 1, [{ wicketNumber: 1, runs: 4, over: 1, playerId: 'x' }]), 'me')).toEqual(['STUMPS', 'GROAN']);
+    expect(sfxForBall(bowled, lines([bat('x', 23, 20, true)], 1, [{ wicketNumber: 1, runs: 40, over: 6, playerId: 'x' }]), 'me')).toEqual(['STUMPS', 'ROAR']);
+    const runOut = ball({ strikerId: 'st', wicket: { type: 'RUN_OUT', bowlerId: null, fielderId: 'f' } });
+    expect(sfxForBall(runOut, lines([bat('st', 5, 5), bat('me', 30, 20, true)], 0, [{ wicketNumber: 1, runs: 50, over: 8, playerId: 'me' }]), 'me')).toEqual(['STUMPS', 'GROAN']);
+    expect(sfxForBall(ball({ wicket: { type: 'LBW', bowlerId: 'bw', fielderId: null }, strikerId: 'x' }), lines([bat('x', 12, 9, true)], 1, [{ wicketNumber: 1, runs: 20, over: 3, playerId: 'x' }]), 'me')[0]).toBe('APPEAL');
   });
 
-  it('marks a fifty, a hundred and a five-for over the shot itself', () => {
-    expect(callForBall(ball({ runsOffBat: 4, isBoundaryFour: true }), lines([bat('me', 'A', 52, 40)]), 'me').moment).toBe('FIFTY');
-    expect(callForBall(ball({ runsOffBat: 1 }), lines([bat('me', 'A', 100, 90)]), 'me').moment).toBe('HUNDRED');
-    const five = callForBall(ball({ strikerId: 'x', bowlerId: 'bw', wicket: { type: 'CAUGHT', bowlerId: 'bw', fielderId: 'f' } }), lines([bat('x', 'X', 20, 15, true)], 5, [{ wicketNumber: 5, runs: 90, over: 15, playerId: 'x' }]), 'bw');
-    expect(five.moment).toBe('FIVE_FOR');
-    expect(five.priority).toBe(3);
+  it('applauds a fifty, a hundred and a five-for', () => {
+    expect(sfxForBall(ball({ runsOffBat: 4, isBoundaryFour: true }), lines([bat('me', 52, 40)]), 'me')).toContain('APPLAUSE');
+    expect(sfxForBall(ball({ runsOffBat: 1 }), lines([bat('me', 100, 90)]), 'me')).toContain('APPLAUSE');
+    const five = ball({ strikerId: 'x', wicket: { type: 'CAUGHT', bowlerId: 'bw', fielderId: 'f' } });
+    expect(sfxForBall(five, lines([bat('x', 20, 15, true)], 5, [{ wicketNumber: 5, runs: 90, over: 15, playerId: 'x' }]), 'bw')).toContain('APPLAUSE');
   });
 
-  it('calls the result for the player side', () => {
+  it('cheers a win and claps politely otherwise', () => {
     const r = { type: 'WIN_BY_RUNS', winningTeamId: 'tn', summary: 'Won by 20 runs', marginRuns: 20, marginWickets: null, manOfTheMatchId: null } as never;
-    expect(callForResult(r, 'tn', () => 'Tamil Nadu').moment).toBe('WIN');
-    expect(callForResult(r, 'ka', () => 'Tamil Nadu').line).toContain('Tamil Nadu');
-  });
-
-  it('fills every line and never repeats the same line twice running', () => {
-    for (const moment of Object.keys(VOICE_LINES) as VoiceMoment[]) {
-      for (let i = 0; i < 20; i += 1) {
-        const line = voiceLine(moment, { batter: 'A', bowler: 'B', fielder: 'C', team: 'D' }, `seed-${i}`);
-        expect(line).not.toMatch(/\{|\}/);
-        if (VOICE_LINES[moment].length > 1) expect(voiceLine(moment, { batter: 'A', bowler: 'B', fielder: 'C', team: 'D' }, `seed-${i}`, line)).not.toBe(line);
-      }
-    }
-  });
-
-  it('uses the names the players really have, by surname', () => {
-    expect(surname('Kavya Ramanathan')).toBe('Ramanathan');
-    expect(surname('Dinesh')).toBe('Dinesh');
-    const call = callForBall(ball({ runsOffBat: 6, isBoundarySix: true }), lines([bat('me', 'Kavya Ramanathan', 30, 20)]), 'me');
-    expect(call.line).toContain('Ramanathan');
-    expect(call.line).not.toContain('Arjun');
-  });
-
-  it('makes the written line speakable', () => {
-    expect(speakable('Short from Sanjay Pillai — Kavya Ramanathan is BOWLED!', ['Sanjay Pillai', 'Kavya Ramanathan'])).toBe('Short from Pillai, Ramanathan is Bowled!');
-  });
-});
-
-describe('full ball-by-ball commentary', () => {
-  const inn = lines([bat('me', 'Kavya Ramanathan', 12, 9)]);
-  const state = { battingTeam: 'Tamil Nadu', runs: 88, wickets: 3, target: 150, requiredRate: 7.75, legalBalls: 72 };
-
-  it('calls every ball: bowler to batter, then what happened', () => {
-    const b = ball({ runsOffBat: 1, ballInOver: 3, commentary: 'Kavya Ramanathan clips it away into the gap and takes a single.' });
-    const out = fullCommentary(b, callForBall(b, inn, 'me'), inn, state);
-    expect(out[0].text).toBe('Pillai to Ramanathan. Ramanathan clips it away into the gap and takes a single.');
-    expect(out).toHaveLength(1);
-  });
-
-  it('gives a big moment the excited call first, then the description', () => {
-    const b = ball({ runsOffBat: 6, isBoundarySix: true, ballInOver: 2, commentary: 'Into the stands! Kavya Ramanathan lofts it Sanjay Pillai for six.' });
-    const out = fullCommentary(b, callForBall(b, lines([bat('me', 'Kavya Ramanathan', 18, 10)]), 'me'), inn, state);
-    expect(out[0].excited).toBe(true);
-    expect(out[1].queue).toBe(true);
-    expect(out[1].text).toContain('Pillai');
-  });
-
-  it('closes an over with the score and the chase', () => {
-    const b = ball({ runsOffBat: 0, ballInOver: 6, commentary: 'Dot ball.' });
-    const out = fullCommentary(b, callForBall(b, inn, 'me'), inn, state);
-    expect(out.at(-1)?.text).toBe('End of the over. Tamil Nadu 88 for 3 after 12 overs. They need 62 from 48 balls.');
-  });
-
-  it('notices a batter closing in on a fifty', () => {
-    const near = lines([bat('me', 'Kavya Ramanathan', 47, 40)]);
-    const b = ball({ runsOffBat: 4, isBoundaryFour: true, ballInOver: 2, commentary: 'Four.' });
-    const out = fullCommentary(b, callForBall(b, near, 'me'), near, state);
-    expect(out.some((l) => l.text === 'Ramanathan moves to 47. 3 more for a fifty.')).toBe(true);
+    expect(sfxForResult(r, 'tn')).toEqual(['APPLAUSE', 'ROAR']);
+    expect(sfxForResult(r, 'ka')).toEqual(['LIGHT_CLAP']);
   });
 });

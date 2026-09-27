@@ -6,8 +6,7 @@ import { DIFFICULTY } from '@/engine/config';
 import { storageUsage, type StorageUsage } from '@/save';
 import { readSaveFile } from '@/save/file';
 import { promptInstall, usePwa } from '@/lib/pwa';
-import { playSfx, speak, speechAvailable, unlockAudio } from '@/lib/audio/player';
-import { voiceLine } from '@/data/voiceLines';
+import { playSfx, unlockAudio } from '@/lib/audio/player';
 import { cn } from '@/lib/cn';
 import { useGameStore } from '@/store/gameStore';
 import { BALL_SPEEDS } from '@/store/matchStore';
@@ -152,21 +151,9 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
         </Card>
 
         <Card>
-          <CardHeader title="Sound and commentary" subtitle="On this device" className="mb-1" />
+          <CardHeader title="Sound" subtitle="On this device - the commentary is written on screen" className="mb-1" />
           <Row title="Sound effects" hint="Bat on ball, stumps, the crowd for fours, sixes and wickets">
             <Toggle label="Sound effects" checked={app.soundEffects} onChange={(v) => app.set({ soundEffects: v })} />
-          </Row>
-          <Row title="Commentary voice" hint={speechAvailable() ? 'A commentator calls the sixes, fours, wickets, ducks, run outs and milestones' : 'This browser has no text-to-speech voice'}>
-            <Toggle label="Commentary voice" checked={app.commentaryVoice} disabled={!speechAvailable()} onChange={(v) => app.set({ commentaryVoice: v })} />
-          </Row>
-          <Row title="Commentary style" hint={app.commentaryStyle === 'FULL' ? 'Every ball, like a broadcast: bowler to batter, the shot, the score each over. Auto-play waits for the commentator.' : 'Only the big moments: boundaries, wickets, ducks, run outs, milestones.'}>
-            <Choice
-              label="Commentary style"
-              value={app.commentaryStyle}
-              options={[{ id: 'FULL', label: 'Ball by ball' }, { id: 'HIGHLIGHTS', label: 'Highlights' }]}
-              disabled={!app.commentaryVoice}
-              onChange={(v) => app.set({ commentaryStyle: v })}
-            />
           </Row>
           <Row title="Crowd atmosphere" hint="A quiet crowd murmur while play is on">
             <Toggle label="Crowd atmosphere" checked={app.crowdAmbience} disabled={!app.soundEffects} onChange={(v) => app.set({ crowdAmbience: v })} />
@@ -191,7 +178,6 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
             onClick={() => {
               unlockAudio();
               playSfx(['BAT_BIG', 'ROAR']);
-              speak(voiceLine('SIX', { batter: state ? state.player.firstName : 'you' }, String(Date.now())), 3, true);
             }}
             className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2 text-[12.5px] font-semibold text-ink"
           >

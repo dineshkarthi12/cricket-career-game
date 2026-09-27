@@ -10,7 +10,7 @@ export function setupAudio(): void {
   if (typeof window === 'undefined') return;
   const apply = () => {
     const s = useAppSettings.getState();
-    setAudioPrefs({ effects: s.soundEffects, voice: s.commentaryVoice, ambience: s.crowdAmbience, volume: s.volume });
+    setAudioPrefs({ effects: s.soundEffects, ambience: s.crowdAmbience, volume: s.volume });
   };
   apply();
   useAppSettings.subscribe(apply);
