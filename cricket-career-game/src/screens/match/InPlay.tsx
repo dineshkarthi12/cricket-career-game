@@ -156,7 +156,7 @@ export function InPlay(props: InPlayProps) {
         leftHanded={leftHanded}
         userId={props.userId}
         bowlerId={cur.bowlerId}
-        userOnStrike={snap.involvement.onStrike}
+        batters={{ strikerId: cur.strikerId, nonStrikerId: cur.nonStrikerId, labelOf: (id) => surnameOf(playerById(id)?.name ?? '') }}
         leftArmBowler={leftArmBowler}
         durationMs={props.ballMs}
         reduceMotion={props.reduceMotion}
@@ -389,4 +389,10 @@ function ChartBlock({ title, children }: { title: string; children: React.ReactN
       {children}
     </div>
   );
+}
+
+/** The name a scoreboard would print: the surname (or the whole name if it is one word). */
+function surnameOf(name: string): string {
+  const words = name.trim().split(/\s+/);
+  return words[words.length - 1] ?? name;
 }
