@@ -1,15 +1,13 @@
 /**
  * Match sound, made in the browser: every effect is synthesised with the
- * Web Audio API (no sound files to load or license), and the commentator
- * speaks through the browser's own text-to-speech. Browsers only start
+ * Web Audio API (no sound files to load or license). Browsers only start
  * audio after a tap, so the context is created on the first gesture.
  * Everything here fails quietly - a game without sound is still a game.
  */
-import type { BallCall, Sfx } from './calls';
+import type { Sfx } from './calls';
 
 export interface AudioPrefs {
   effects: boolean;
-  voice: boolean;
   ambience: boolean;
   /** 0-1. */
   volume: number;
@@ -19,20 +17,12 @@ let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let noiseBuffer: AudioBuffer | null = null;
 let ambience: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
-let prefs: AudioPrefs = { effects: true, voice: true, ambience: true, volume: 0.8 };
-let lastLine: string | null = null;
-let speakingPriority = -1;
+let prefs: AudioPrefs = { effects: true, ambience: true, volume: 0.8 };
 
 export function setAudioPrefs(next: AudioPrefs): void {
   prefs = next;
   if (master) master.gain.value = next.volume;
   if (!next.ambience || !next.effects || next.volume === 0) stopAmbience();
-  if (!next.voice) stopSpeech();
-}
-
-/** The last commentary line spoken, so the next one can differ. */
-export function lastSpokenLine(): string | null {
-  return lastLine;
 }
 
 function audio(): AudioContext | null {
@@ -189,91 +179,4 @@ export function stopAmbience(): void {
   } catch {
     // Already stopped.
   }
-}
-
-// --- The commentator ----------------------------------------------------------------------
-
-let voice: SpeechSynthesisVoice | null | undefined;
-
-function pickVoice(): SpeechSynthesisVoice | null {
-  if (voice !== undefined && voice !== null) return voice;
-  const voices = window.speechSynthesis?.getVoices() ?? [];
-  if (voices.length === 0) return null;
-  // An Indian English voice if the device has one, then British, then any English.
-  voice = voices.find((v) => v.lang === 'en-IN') ?? voices.find((v) => v.lang === 'en-GB') ?? voices.find((v) => v.lang.startsWith('en')) ?? null;
-  return voice;
-}
-
-export function speechAvailable(): boolean {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
-}
-
-export function stopSpeech(): void {
-  if (!speechAvailable()) return;
-  try {
-    window.speechSynthesis.cancel();
-  } catch {
-    // Nothing to stop.
-  }
-  speakingPriority = -1;
-}
-
-export type SpeakMode = 'polite' | 'interrupt' | 'queue';
-
-/** Something is being said (or waiting to be). */
-export function isSpeaking(): boolean {
-  return speechAvailable() && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
-}
-
-/**
- * Say a line. `polite` (highlights): a bigger moment interrupts a smaller
- * one and a smaller one is dropped while something bigger is being said,
- * so the voice never falls behind. `interrupt`: the next ball cuts in (the
- * player tapped ahead). `queue`: follows what is being said.
- */
-export function speak(text: string, priority: number, excited = false, mode: SpeakMode = 'polite'): void {
-  if (!prefs.voice || prefs.volume === 0 || !speechAvailable()) return;
-  const synth = window.speechSynthesis;
-  if (mode === 'interrupt') {
-    if (synth.speaking || synth.pending) synth.cancel();
-  } else if (mode === 'polite' && synth.speaking) {
-    if (priority < speakingPriority || (priority === speakingPriority && priority < 2)) return;
-    synth.cancel();
-  }
-  try {
-    const u = new SpeechSynthesisUtterance(text);
-    const v = pickVoice();
-    if (v) u.voice = v;
-    u.lang = v?.lang ?? 'en-IN';
-    u.volume = prefs.volume;
-    u.rate = priority >= 3 || excited ? 1.12 : 1.04;
-    u.pitch = priority >= 3 ? 1.15 : excited ? 1.08 : 1;
-    u.onend = () => {
-      if (!synth.pending) speakingPriority = -1;
-    };
-    speakingPriority = Math.max(mode === 'queue' ? speakingPriority : -1, priority);
-    lastLine = text;
-    synth.speak(u);
-  } catch {
-    speakingPriority = -1;
-  }
-}
-
-/**
- * Play a delivery: its effects always; its commentary when the moment is big
- * enough for the pace of play (at speed only boundaries, wickets and
- * milestones get a word; routine singles and dots only now and then).
- */
-export function playCall(call: BallCall, ballMs: number, seed: number): void {
-  playSfx(call.sfx);
-  if (!call.line) return;
-  const fast = ballMs < 900;
-  const speakIt = call.priority >= 2 || (!fast && call.priority === 1) || (!fast && call.priority === 0 && seed % 3 === 0);
-  if (speakIt) speak(call.line, call.priority, call.mine);
-}
-
-/** Full commentary: every line for the ball, the first cutting in, the rest in turn. */
-export function playFull(sfx: BallCall['sfx'], lines: { text: string; priority: number; queue: boolean; excited: boolean }[]): void {
-  playSfx(sfx);
-  lines.forEach((l, i) => speak(l.text, l.priority, l.excited, i === 0 && !l.queue ? 'interrupt' : 'queue'));
 }
