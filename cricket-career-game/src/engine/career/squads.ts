@@ -289,16 +289,18 @@ function userCandidate(state: GameState, tournamentIds: string[]): Candidate {
 
 /**
  * How much a match counts towards a competition's selection: fully at the
- * level, half per level down below it (club runs barely move the U-19
- * selectors). Professional selectors discount senior cricket more gently.
+ * level, less per level down below it - for at most two levels, so a
+ * dominant club season still registers with the U-19 or senior selectors.
+ * Professional selectors discount senior cricket more gently.
  */
 export function levelWeight(level: number, tournamentId: string, targets: string[]): number {
   if (targets.includes(tournamentId)) return 1;
   const below = level - levelOfCompetition(tournamentId);
   if (below <= 0) return 1;
-  if (level < 8) return SQUAD_SELECTION.lowerLevelDiscount ** below;
+  const steps = (n: number) => Math.min(n, SQUAD_SELECTION.lowerLevelMaxSteps);
+  if (level < 8) return SQUAD_SELECTION.lowerLevelDiscount ** steps(below);
   const proSteps = Math.min(below, level - 7);
-  return SQUAD_SELECTION.proLevelDiscount ** proSteps * SQUAD_SELECTION.lowerLevelDiscount ** (below - proSteps);
+  return SQUAD_SELECTION.proLevelDiscount ** proSteps * SQUAD_SELECTION.lowerLevelDiscount ** steps(below - proSteps);
 }
 
 /** Professional selectors look to the future: every year past 32 counts against a player. */

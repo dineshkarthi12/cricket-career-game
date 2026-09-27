@@ -26,7 +26,8 @@ describe('fast score-only sim, calibrated against the engine', () => {
       expect(Math.abs(gap.quick.strongerWins - gap.engine.strongerWins)).toBeLessThan(format === 'MULTI_DAY' ? 0.25 : 0.15);
       expect(gap.quick.strongerWins).toBeGreaterThan(0.6);
       // Even sides are a coin flip.
-      expect(Math.abs(even.quick.strongerWins - 0.5)).toBeLessThan(0.15);
+      // First-class: only ~55 of 80 matches are decided, so the sample is noisier.
+      expect(Math.abs(even.quick.strongerWins - 0.5)).toBeLessThan(format === 'MULTI_DAY' ? 0.2 : 0.15);
       if (format === 'MULTI_DAY') {
         expect(gap.quick.draws).toBeGreaterThan(0.25);
         expect(gap.quick.draws).toBeLessThan(0.55);

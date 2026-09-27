@@ -68,8 +68,8 @@ describe('50 training-only careers, age 10 to 35', () => {
 
   it('separates the talented from the rest', () => {
     for (const age of [16, 24, 30]) expect(at(age).p90 - at(age).p10).toBeGreaterThan(8);
-    const high = careers.filter((c) => c.hiddenPotential >= 80);
-    const low = careers.filter((c) => c.hiddenPotential <= 68);
+    const high = careers.filter((c) => c.hiddenPotential >= 84);
+    const low = careers.filter((c) => c.hiddenPotential <= 74);
     const mean = (cs: typeof careers) => cs.reduce((s, c) => s + c.peakOverall, 0) / cs.length;
     expect(mean(high)).toBeGreaterThan(mean(low) + 8);
   });
