@@ -718,6 +718,12 @@ export const MATCH = {
     window: 36,
     /** Extra wicket chance per wicket in the window beyond the first. */
     collapseWicket: 0.2,
+    /**
+     * Share of that extra risk a batter who is already in still carries: the
+     * collapse is about the new batters walking in, not the one who is set.
+     * Limited-overs only: a first-class side has time, and no chase to carry.
+     */
+    collapseSetShare: 0.35,
     /** Scoring dries up while a side is losing wickets in a heap. */
     collapseBoundary: 0.78,
     collapseDot: 1.16,
@@ -770,6 +776,12 @@ export const MATCH = {
     tailFromWicket: 7,
     /** How hard a set batter tries to keep the strike with the tail in. */
     farmStrikeStrength: 0.55,
+    /** ...in first-class cricket, where the tail is given time to bat. */
+    farmStrikeFirstClass: 0.4,
+    /** How hard a partner works the single to get a set batter back on strike. */
+    feedStrikeStrength: 0.5,
+    /** Most a partner feeding the strike will attack, unless the captain says otherwise. */
+    feedStrikeMaxLevel: 3,
     /** A tailender blocks rather than plays shots. */
     tailIntentDrop: 1,
     /** Openers and number threes anchor; five to seven finish. */
@@ -911,7 +923,13 @@ export const MATCH = {
      * not yet in, on a hard pitch, against a better bowler, and for a batter
      * without the temperament for it; raw power makes it safer.
      */
-    risk: { unsettled: 0.6, pitch: 0.5, bowler: 0.2, temperament: 0.3, power: 0.12 },
+    risk: { unsettled: 0.6, pitch: 0.5, bowler: 0.2, temperament: 0.3, power: 0.12, inTheZone: 0.35 },
+    /**
+     * "In the zone": runs on the board make attacking safer, as much as balls
+     * faced do. 0 at `from` runs, fully in the zone `span` runs later.
+     * Limited-overs only, where a set batter has to go and win it.
+     */
+    zone: { from: 20, span: 40 },
     /** A powerful batter gets more boundaries out of attacking. */
     powerReward: 0.12,
     /** Share of Very Aggressive shots that go in the air. */

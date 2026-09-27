@@ -15,6 +15,7 @@ import { TrophiesCard } from './home/TrophiesCard';
 import { CommunityCard } from './home/CommunityCard';
 import { BottomBanner } from './home/BottomBanner';
 import { DecisionsCard } from './pro/DecisionsCard';
+import { RoadToSelectionCard } from './home/RoadToSelectionCard';
 
 /** The Home dashboard from design/dashboard.png. */
 export default function Home() {
@@ -40,6 +41,8 @@ export default function Home() {
       </div>
 
       <DecisionsCard state={state} />
+
+      <RoadToSelectionCard state={state} />
 
       <CareerJourneyCard state={state} />
 

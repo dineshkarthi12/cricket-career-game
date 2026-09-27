@@ -219,19 +219,36 @@ export function duelFactors(context: DeliveryContext): DuelFactors {
 
   // Wickets come in clusters: a new batter walking in while the last two went
   // cheaply is in far more trouble than the same batter in a calm innings.
+  // The batter who is already in at the other end carries only part of it.
   const cluster = Math.max(0, context.recentWickets - 1);
-  const collapse = 1 + cluster * cfg.momentum.collapseWicket;
+  const exposure = limitedOvers(context) ? 1 - settle * (1 - cfg.momentum.collapseSetShare) : 1;
+  const collapse = 1 + cluster * cfg.momentum.collapseWicket * exposure;
   // A pair who have been in for twenty overs have worn the bowling down.
   const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
 
   return { batter, bowler, bite, edge, settle, set, phaseMod, dotWicket, milestone, cluster, collapse, partnership };
 }
 
+function limitedOvers(context: DeliveryContext): boolean {
+  return context.format !== 'MULTI_DAY' && context.format !== 'TEST';
+}
+
+/**
+ * 0-1 how far "in the zone" the striker is: time at the crease or runs on the
+ * board, whichever says more. A batter on 50 has earned the right to go.
+ */
+export function inTheZone(context: DeliveryContext, f: Pick<DuelFactors, 'set'>): number {
+  if (!limitedOvers(context)) return 0;
+  const z = MATCH.aggression.zone;
+  return Math.max(f.set, clamp01((context.strikerRuns - z.from) / z.span));
+}
+
 /**
  * How much of the extra risk of attacking this batter carries right now. The
  * same shot is far riskier for a batter who is not in, on a hard pitch,
  * against a better bowler, or without the temperament for it; raw power makes
- * clearing the rope easier. 1 is an average situation.
+ * clearing the rope easier, and a batter in the zone has the measure of it.
+ * 1 is an average situation.
  */
 export function aggressionRiskScale(context: DeliveryContext, f: DuelFactors): number {
   const r = MATCH.aggression.risk;
@@ -244,7 +261,8 @@ export function aggressionRiskScale(context: DeliveryContext, f: DuelFactors): n
     r.pitch * (0.5 - ease) * 2 +
     r.bowler * (f.bowler - f.batter) +
     r.temperament * (0.5 - temperament) * 2 -
-    r.power * (power - 0.5) * 2;
+    r.power * (power - 0.5) * 2 -
+    r.inTheZone * inTheZone(context, f);
   return Math.max(0.4, Math.min(2.5, scale));
 }
 
@@ -860,13 +878,19 @@ function resolvePlacedShot(
   const twoWeight = rates.twoWeight * runFactor * (1 - straightAt * 0.7) * (0.6 + contact * 0.8);
   const threeWeight = rates.threeWeight * runFactor * (1 - straightAt * 0.85) * (0.5 + contact * 0.8);
 
-  // A set batter shielding the tail wants the strike back: he takes the single
-  // early in the over and turns one down late, so the tailender faces as few
-  // balls as possible.
-  const farm = context.farmingStrike ? MATCH.batting.farmStrikeStrength : 0;
-  const lateInOver = context.ballInOver >= 5;
-  const oddWeight = 1 * (farm > 0 ? (lateInOver ? 1 - farm : 1 + farm * 0.4) : 1);
-  const evenTwo = twoWeight * (farm > 0 && lateInOver ? 1 + farm : 1);
+  // A set batter shielding the tail keeps the strike: he turns down the single
+  // early in the over (running two where he can) and takes one off the last
+  // ball, so he faces the next over too. A partner feeding the strike to a
+  // set batter does the opposite: a single early, none off the last ball.
+  const farm = context.farmingStrike
+    ? limitedOvers(context) ? MATCH.batting.farmStrikeStrength : MATCH.batting.farmStrikeFirstClass
+    : 0;
+  const feed = context.feedingStrike ? MATCH.batting.feedStrikeStrength : 0;
+  const lastBall = context.ballInOver >= 6;
+  const oddWeight =
+    (farm > 0 ? (lastBall ? 1 + farm * 1.5 : 1 - farm) : 1) *
+    (feed > 0 ? (lastBall ? 1 - feed : 1 + feed) : 1);
+  const evenTwo = twoWeight * (farm > 0 && !lastBall ? 1 + farm * 0.5 : 1);
 
   const runs = rng.weighted<number>([
     { item: 0, weight: dotWeight },

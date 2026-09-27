@@ -333,7 +333,7 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
               <Card>
                 <CardHeader title="Commentary" />
                 <div className="mt-2.5 max-h-[420px] overflow-y-auto">
-                  <CommentaryFeed deliveries={shown.deliveries} limit={120} />
+                  <CommentaryFeed deliveries={shown.deliveries} innings={shown} battingTeam={teamNameOf(shown.battingTeamId)} limit={120} />
                 </div>
               </Card>
             </>

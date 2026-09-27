@@ -125,6 +125,11 @@ export interface DeliveryContext {
   strikerRuns: number;
   /** True when the striker is shielding a tailender at the other end. */
   farmingStrike: boolean;
+  /**
+   * True when the striker is working the strike to a set batter at the other
+   * end (the career player asked their partner to get them back on strike).
+   */
+  feedingStrike?: boolean;
   /** Balls the current pair have been together. */
   partnershipBalls: number;
   /** Overs this bowler has sent down in the current spell. */

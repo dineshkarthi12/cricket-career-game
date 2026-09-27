@@ -1327,3 +1327,52 @@ Tests: 577 pass. Two test adjustments: the development test compares
 potential 84+ with 74- (the old "68 or less" group no longer exists), and the
 fast-sim check for even first-class sides allows 0.2 (only ~55 of 80 matches
 are decided).
+
+### Commentary highlights, the road to selection, and carrying an innings
+
+**Commentary highlights.** The ball-by-ball feed was plain text with a
+coloured edge. Now (`lib/highlights.ts`, derived from the log, so older
+saves get it too):
+- every ball has a scorer's chip: `•`, 1-3, **4** (green), **6** (gold),
+  **W** (red), `wd` / `nb` / `lb` / `b`; fours, sixes and wickets are bold;
+- banners for the big moments: a batter's FIFTY / HUNDRED / 150+ (with balls,
+  fours and sixes), FIVE-FOR, HAT-TRICK, the team's 100 / 150 / 200...,
+  50 / 100 partnerships; wicket lines give the score (e.g. "Kerala 112/4");
+- an "End of over" strip with the over's runs and the score;
+- a **Highlights** filter (only 4s, 6s, wickets, drops and milestones);
+- on the ground during play, a banner pops up for two seconds: FOUR!, SIX!,
+  OUT!, FIFTY!, HUNDRED!, FIVE-FOR!, HAT-TRICK! (gold ring when it is you).
+
+**Road to selection.** The Home "Next Match" card used to show the state
+side's next Ranji / Vijay Hazare game even when the player was not picked,
+while Continue (correctly) skips those - so the matches looked "missing".
+The Next Match card now shows only a match the player is in (the one
+Continue stops at); the Upcoming Schedule marks the side's other games
+"not picked, played without you". A new **Road to selection** card on Home
+(`engine/career/journey.ts`) shows, per competition, six steps - Scouted,
+Shortlisted, Trial, Squad, Playing XI, Regular - with the step in play
+highlighted and explained, where the selectors rank you among your role
+group (XI and squad cut-offs), the scouts' report (figures, form, trust,
+OVR), the next selection event and the next match (you play / without you).
+After Continue, any selection news opens a four-step **Selection news**
+walk-through: the scouts' report -> the selectors' meeting and your rank ->
+the verdict (green / red) -> the road ahead.
+
+**Carrying an innings.**
+- Bug: the set batter shielding the tail did it backwards (took the single
+  early in the over and refused it off the last ball), handing the strike to
+  the tail. Fixed: no single early in the over (two where he can), one off
+  the last ball; a turned-down single does not count as dot-ball pressure.
+- New batting option **Carry the innings - farm the strike**: once set, the
+  player keeps the strike; while they are at the other end their partner
+  plays safe (at most level 3) and works the single to give it back.
+- Limited-overs only: a set batter is "in the zone" - runs on the board make
+  attacking safer as well as balls faced (`aggression.zone`, `risk.inTheZone`),
+  and a collapse at the other end hurts the new batters, not the set one as
+  much (`momentum.collapseSetShare`). First-class keeps its balance (farming
+  strength 0.4 there; draw rate unchanged).
+- Measured: a 62-rated side chasing 175 against a 66-rated attack wins 37%
+  (was 31%); the player on 50+ at level 4 is out every ~35 balls (was ~32).
+
+Tests: 8 new (highlights, the journey, farming the strike, the Next Match
+card); 585 pass.

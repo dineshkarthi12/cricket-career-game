@@ -67,6 +67,13 @@ describe('schedule selectors', () => {
     expect(fixture?.title).toBe('TN U-16 vs Karnataka U-16');
   });
 
+  it('only offers a match the player is picked for, not the side\'s other games', () => {
+    const first = nextMatchFixture(state)!;
+    const without = { ...state, fixtures: { ...state.fixtures, [first.id]: { ...first, involvesUser: false } } };
+    expect(nextMatchFixture(without)?.id).not.toBe(first.id);
+    expect(nextMatchFixture(without)?.involvesUser ?? true).toBe(true);
+  });
+
   it('finds the most recent completed match', () => {
     expect(recentMatch(state)?.id).toBe('match-andhra-u16');
     expect(recentMatch({ ...state, matches: {} })).toBeNull();

@@ -85,6 +85,11 @@ export interface PlayerDecisions {
   /** The player's own bowling: line, length, variation. */
   plan: Partial<BowlerPlan>;
   roundTheWicket: boolean;
+  /**
+   * Carry the innings: keep the strike once set, and have the partner play
+   * safe and give it back. For when the wickets are going at the other end.
+   */
+  farmStrike: boolean;
 }
 
 /** Decisions that are the player's only as captain. */
@@ -178,6 +183,7 @@ const DEFAULT_PLAYER: PlayerDecisions = {
   shotPreference: null,
   plan: {},
   roundTheWicket: false,
+  farmStrike: false,
 };
 
 const DEFAULT_CAPTAIN: CaptainDecisions = {
@@ -255,6 +261,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       // choice overrides it for that one ball.
       intentLevel: player.batting,
       bowlingAggression: player.bowling,
+      farmStrike: player.farmStrike,
       ...perBall,
     };
     if (!snap?.current) return overrides;

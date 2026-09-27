@@ -7,6 +7,8 @@ import { formatLongDate } from '@/lib/format';
 import { useGameStore } from '@/store/gameStore';
 import { useMatchStore } from '@/store/matchStore';
 import type { ClimateKind } from '@/engine/calendar';
+import type { GameState, InboxMessage } from '@/types';
+import { SelectionNewsModal } from '@/screens/career/SelectionNewsModal';
 
 const CLIMATE_ICON: Record<ClimateKind, typeof Sun> = {
   MONSOON: CloudRain,
@@ -31,6 +33,8 @@ export function ContinueBar() {
   const coachTrial = useGameStore((s) => s.coachTrial);
   // A note belongs to the day (and the match day) it was written about.
   const [noteState, setNoteState] = useState<{ text: string; date: string; fixtureId: string | null } | null>(null);
+  // Selection news the week brought, told step by step.
+  const [news, setNews] = useState<InboxMessage[] | null>(null);
 
   // A match in progress has its own controls; the clock waits for it.
   if (!state || pathname.startsWith('/match/') || pathname.startsWith('/trial/')) return null;
@@ -47,10 +51,18 @@ export function ContinueBar() {
   const rehab = state.player.development.rehab;
   const exams = state.calendar.windows.some((w) => w.kind === 'EXAMS' && w.start <= today && w.end >= today);
 
+  /** Open the selection news, if the week brought any. */
+  const showNews = (before: GameState, after: GameState) => {
+    const seen = new Set(before.inbox.map((m) => m.id));
+    const fresh = after.inbox.filter((m) => !seen.has(m.id) && m.category === 'SELECTION');
+    if (fresh.length) setNews(fresh);
+  };
+
   const onContinue = () => {
     const hadReview = Boolean(state.career.pendingReview);
     const result = advanceWeek();
     if (!result) return;
+    showNews(state, result.state);
     if (!hadReview && result.state.career.pendingReview) {
       navigate('/season-review');
       return;
@@ -118,6 +130,8 @@ export function ContinueBar() {
                 type="button"
                 onClick={() => {
                   coachTrial(trial.id);
+                  const after = useGameStore.getState().state;
+                  if (after) showNews(state, after);
                   setNote(`${trial.title}: the coach made the calls. See Selection / News for the verdict.`);
                 }}
                 className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page"
@@ -159,6 +173,9 @@ export function ContinueBar() {
           )}
         </div>
       </div>
+      {news ? (
+        <SelectionNewsModal state={useGameStore.getState().state ?? state} messages={news} onClose={() => setNews(null)} />
+      ) : null}
       {note ? (
         <p
           role="status"

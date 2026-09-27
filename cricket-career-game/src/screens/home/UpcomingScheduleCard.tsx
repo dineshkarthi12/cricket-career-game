@@ -32,7 +32,11 @@ export function UpcomingScheduleCard({ state }: { state: GameState }) {
                 <span className="block truncate text-[12.5px] leading-[1.25] font-medium text-ink">
                   {fixture.title}
                 </span>
-                {fixture.subtitle ? (
+                {fixture.kind === 'MATCH' && !fixture.involvesUser ? (
+                  <span className="block truncate text-[10.5px] leading-[1.3] font-semibold text-brand-orange">
+                    Your side - not picked, played without you
+                  </span>
+                ) : fixture.subtitle ? (
                   <span className="block truncate text-[10.5px] leading-[1.3] text-ink-soft">
                     {fixture.subtitle}
                   </span>
