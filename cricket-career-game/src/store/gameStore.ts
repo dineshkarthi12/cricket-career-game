@@ -1,3 +1,4 @@
+import { loadRealData } from '@/data/real';
 import { create } from 'zustand';
 import { createDemoCareer } from '@/data/demoCareer';
 import { createNewCareer, type NewCareerOptions } from '@/engine/newCareer';
@@ -141,8 +142,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ booted: true });
       return;
     }
-    // Careers live in IndexedDB; wait for them (and for any move from localStorage).
-    const init = await initSaveStorage();
+    // Careers live in IndexedDB; wait for them (and for any move from localStorage),
+    // and for the real players, which every professional and senior state side is built from.
+    const [init, real] = await Promise.all([initSaveStorage(), loadRealData()]);
+    if (!real) {
+      get().pushToast({ tone: 'error', message: 'The real players could not be loaded, so the teams will be made up. Reload to try again.' });
+    }
     if (init.ok && init.value.migrated.length > 0) {
       get().pushToast({
         tone: 'info',

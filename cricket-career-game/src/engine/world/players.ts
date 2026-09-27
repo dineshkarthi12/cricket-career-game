@@ -3,7 +3,7 @@
  * and age curve as the user's player, so a 15-year-old in a state U-16 side
  * and the user at 15 are measured on one scale.
  */
-import { WORLD } from '../config';
+import { REAL_PLAYERS, WORLD } from '../config';
 import { computeOverall } from '../ratings';
 import type { Rng } from '../match/rng';
 import { bowlingStyleFor, freshCondition } from '../match/squad';
@@ -124,7 +124,8 @@ export function reachableOverall(potential: number, age: number): number {
  */
 export function ageRival(rival: RivalPlayer, seasonStart: string, seasonYear: number, rng: Rng): RivalPlayer {
   const age = rival.age + 1;
-  const target = reachableOverall(rival.potentialOverall, age) * WORLD.developedShare;
+  // Real cricketers are established: they keep more of what they can reach.
+  const target = reachableOverall(rival.potentialOverall, age) * (rival.realId ? REAL_PLAYERS.developedShare : WORLD.developedShare);
   const move = (target - rival.overall) * WORLD.annualPull + rng.spread() * WORLD.annualNoise;
   const nextOverall = Math.max(10, Math.min(97, rival.overall + move));
   const scale = nextOverall / Math.max(1, rival.overall);

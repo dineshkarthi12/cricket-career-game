@@ -1,4 +1,5 @@
 import { createTrophyCabinet } from '@/data/trophies';
+import { FRANCHISES_BY_ID } from '@/data/franchises';
 import { emptyProState } from '@/engine/pro/state';
 import { DEFAULT_AGGRESSION, SAVE_VERSION } from '@/types';
 import type {
@@ -128,6 +129,22 @@ const MIGRATIONS: Record<number, (state: GameState) => GameState> = {
     pro: state.pro ?? emptyProState(state.season?.year ?? 2026),
     // New trophies join the cabinet, locked.
     trophies: [...(state.trophies ?? []), ...createTrophyCabinet().filter((t) => !(state.trophies ?? []).some((x) => x.id === t.id))],
+  }),
+  /**
+   * v9: real players. The franchises take their real names now (same ids);
+   * the real squads replace the generated ones at the next season rollover.
+   */
+  8: (state) => ({
+    ...state,
+    version: 9,
+    realSquadsPending: true,
+    teams: Object.fromEntries(
+      Object.entries(state.teams ?? {}).map(([id, team]) => {
+        const f = FRANCHISES_BY_ID[id];
+        if (!f) return [id, team];
+        return [id, { ...team, name: f.name, shortName: f.short, crest: { ...team.crest, monogram: f.monogram, primaryColor: f.colors[0], secondaryColor: f.colors[1] } }];
+      }),
+    ),
   }),
   /** v8 (Phase 8): difficulty is Easy / Realistic / Hard. */
   7: (state) => {

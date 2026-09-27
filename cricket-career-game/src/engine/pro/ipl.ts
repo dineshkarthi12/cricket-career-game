@@ -14,6 +14,7 @@ import { roleGroup, type RoleGroup } from '../career/squads';
 import { tournamentOf } from '../tournament/live';
 import { resolveClashes } from '../career/involvement';
 import { INDIAN_REGIONS, OVERSEAS_NATIONS, OVERSEAS_PROFILE, bookSalary, rngFor, setUserFranchiseFlag } from './world';
+import { realAuctionPool } from '../world/realSquads';
 import { clamp, decision, formatLakh, message, navigate, withEvent, withInbox } from './common';
 import type { Rng } from '../match/rng';
 import type { AuctionBid, AuctionLot, AuctionSummary, GameState, IplContract, IplStatus, Match, RivalPlayer, SquadPlace, Team } from '@/types';
@@ -434,11 +435,20 @@ export function runAuction(state: GameState, date: string): GameState {
   const domestic = mega ? AUCTION.freshDomestic.mega : AUCTION.freshDomestic.mini;
   const overseas = mega ? AUCTION.freshOverseas.mega : AUCTION.freshOverseas.mini;
   const roles = ['BATTER', 'OPENING_BATTER', 'PACE_BOWLER', 'SPIN_BOWLER', 'BATTING_ALLROUNDER', 'BOWLING_ALLROUNDER', 'WICKET_KEEPER_BATTER', 'PACE_BOWLER'] as const;
-  for (let i = 0; i < domestic; i += 1) {
+  // Real players not on a franchise's books come first; generated names make up the numbers.
+  const signed = new Set<string>();
+  for (const f of FRANCHISES) for (const p of squads[f.id]) if (p.realId) signed.add(p.realId);
+  for (const p of state.teams[AUCTION_POOL_ID]?.squad ?? []) if (p.realId) signed.add(p.realId);
+  const real = realAuctionPool(year, signed, AUCTION_POOL_ID, { domestic, overseas }, rng);
+  const realDomestic = real.filter((p) => !p.overseas).length;
+  const realOverseas = real.length - realDomestic;
+  fresh.push(...real.map((p) => ({ ...p, capped: p.capped ?? p.overall >= 80 })));
+  for (const p of real) taken.add(p.name);
+  for (let i = realDomestic; i < domestic; i += 1) {
     const p = generateWorldPlayer({ teamId: AUCTION_POOL_ID, region: rng.pick(INDIAN_REGIONS), role: roles[i % roles.length], age: rng.int(19, 31), seasonStart, seasonYear: year, potential: LEVELS.FRANCHISE.potential[0] - 2 + rng.spread() * 6, share: 0.92, rng, taken });
     fresh.push({ ...p, capped: p.overall >= 80 });
   }
-  for (let i = 0; i < overseas; i += 1) {
+  for (let i = realOverseas; i < overseas; i += 1) {
     const p = generateWorldPlayer({ teamId: AUCTION_POOL_ID, region: rng.pick(OVERSEAS_NATIONS), role: roles[(i + 3) % roles.length], age: rng.int(OVERSEAS_PROFILE.ages[0], OVERSEAS_PROFILE.ages[1]), seasonStart, seasonYear: year, potential: OVERSEAS_PROFILE.potential[0] - 1 + rng.spread() * 6, share: 0.95, rng, taken });
     fresh.push({ ...p, overseas: true, capped: true });
   }
@@ -447,7 +457,7 @@ export function runAuction(state: GameState, date: string): GameState {
   // The user's lot.
   const userValue = userMarketValue(state);
   const userBase = state.pro.ipl.registeredBase && allowedBases(state).includes(state.pro.ipl.registeredBase) ? state.pro.ipl.registeredBase : defaultBase(state);
-  const userAsRival: RivalPlayer = { ...fresh[0], id: state.player.id, name: `${state.player.firstName} ${state.player.lastName}`.trim(), role: state.player.role, age: state.player.age, overseas: false, capped: capped(state), attributes: state.player.attributes };
+  const userAsRival: RivalPlayer = { ...fresh[0], id: state.player.id, name: `${state.player.firstName} ${state.player.lastName}`.trim(), role: state.player.role, age: state.player.age, overseas: false, realId: undefined, capped: capped(state), attributes: state.player.attributes };
   type Entry = { player: RivalPlayer; value: number; base: number; isUser: boolean };
   const entries: Entry[] = pool.map((p) => {
     const value = rivalValue(p);

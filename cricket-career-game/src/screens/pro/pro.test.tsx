@@ -45,7 +45,7 @@ describe('Phase 7 screens', () => {
     fireEvent.click(screen.getByRole('button', { name: '₹50 L' }));
     expect(useGameStore.getState().state!.pro.ipl.registeredBase).toBe(50);
     fireEvent.click(screen.getByRole('tab', { name: 'Franchises' }));
-    expect(screen.getByText('Coromandel Kings')).toBeInTheDocument();
+    expect(screen.getByText('Chennai Super Kings')).toBeInTheDocument();
   });
 
   it('International shows the format squads, series, rankings and the WTC', () => {

@@ -21,7 +21,7 @@ export const SAVE_SLOT_IDS: readonly SaveSlotId[] = [1, 2, 3] as const;
  * Bumped whenever the shape of `GameState` changes. `migrate` in
  * `src/save/migrate.ts` upgrades older saves to the current version.
  */
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 /** The complete, serialisable state of one career. */
 export interface GameState {
@@ -47,6 +47,12 @@ export interface GameState {
   pro: ProState;
   /** Id of the match currently being played, if any. */
   activeMatchId: Id | null;
+  /**
+   * A career saved before real players (save v8 or older): its generated
+   * professional and senior state squads give way to the real ones at the
+   * next season rollover (`engine/world/realSeed.ts`).
+   */
+  realSquadsPending?: boolean;
   settings: GameSettings;
 }
 

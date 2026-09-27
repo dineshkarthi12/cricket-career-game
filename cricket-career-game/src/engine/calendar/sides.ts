@@ -1,7 +1,7 @@
 /**
  * Teams and grounds for a season: the player's own side in each competition
- * and the opponents they meet. All names are fictional (schools, clubs,
- * franchises) or plain place names (districts, states, zones, countries).
+ * and the opponents they meet. Schools and clubs are fictional; districts,
+ * states, zones, countries and the IPL franchises carry their real names.
  */
 import type { Rng } from '../match/rng';
 import {
@@ -237,7 +237,7 @@ export function sidesFor(
       const [mine, ...others] = picked;
       const make = (f: (typeof FRANCHISE_NAMES)[number], isUser: boolean, i: number) => {
         const host = STATES[(i * 3) % STATES.length];
-        return spec(f.name, f.short, 'FRANCHISE', 'FRANCHISE', isUser ? base + 1 : around(3), capitalOf(host), host.name, isUser, f.colors, { monogram: f.monogram });
+        return spec(f.name, f.short, 'FRANCHISE', 'FRANCHISE', isUser ? base + 1 : around(3), capitalOf(host), host.name, isUser, f.colors, { id: f.id, monogram: f.monogram });
       };
       return {
         user: make(mine, true, 0),

@@ -86,8 +86,8 @@ export function userTeamOf(state: GameState, fixture: Fixture): Team | null {
 }
 
 /** The whole squad the selectors choose from, with the player in it. */
-export function candidatesFor(state: GameState, team: Team): SimPlayer[] {
-  return [simFromUser(state.player, team.id, 4, { difficulty: state.settings?.difficulty }), ...squadFor(state, team.id)];
+export function candidatesFor(state: GameState, team: Team, tournamentId?: string | null): SimPlayer[] {
+  return [simFromUser(state.player, team.id, 4, { difficulty: state.settings?.difficulty }), ...squadFor(state, team.id, tournamentId)];
 }
 
 /** GAME_SPEC.md section 6, with selector trust blended in. */
@@ -206,7 +206,7 @@ export function selectForFixture(state: GameState, fixture: Fixture): SelectionD
 
   const rng = createRng(deriveSeed(state.seed, saltOf(`select-${fixture.id}`)));
   // Rivals out injured are not in the frame (the user is always considered first).
-  const candidates = candidatesFor(state, team).filter(
+  const candidates = candidatesFor(state, team, fixture.tournamentId).filter(
     (p, i) => i === 0 || !((team.squad.find((r) => r.id === p.id)?.injuredUntil ?? '') > fixture.date),
   );
   const reasons: string[] = [];

@@ -14,6 +14,10 @@ import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { daysBetweenDates } from '../development/dates';
 import { createRng, deriveSeed } from '../match/rng';
 import { generateWorldPlayer } from '../world/players';
+import { competitionMembers } from '../world/teams';
+import { realContenders } from '../world/realSquads';
+import { attributeRefs, cloneAttributes, getAttr, setAttr } from '../development/curves';
+import { nationTeamId } from '@/data/nations';
 import { profileOf } from '../world/progression';
 import type {
   CareerStageId,
@@ -339,7 +343,16 @@ export function outsideProbables(state: GameState, team: Team, group: RoleGroup,
   const rng = createRng(deriveSeed(state.seed, saltOf(`probables-${team.id}-${year}-${group}`)));
   const taken = new Set(team.squad.map((p) => p.name));
   const out: RivalPlayer[] = [];
-  for (let i = 0; i < count; i += 1) {
+  // India's contenders are the best real players outside the squad.
+  if (team.id === nationTeamId('India')) {
+    const inSquad = new Set(team.squad.map((p) => p.realId).filter((id): id is string => Boolean(id)));
+    const real = realContenders(`probables-${team.id}`, year, inSquad, GROUP_ROLES[group], count);
+    real.forEach((p, i) => out.push({ ...p, id: `probable-${team.id}-${group}-r${i}` }));
+  }
+  // A side of real players: generated contenders sit just behind the side itself, not at the generated level.
+  const real = team.squad.filter((p) => p.realId);
+  const reference = real.length >= team.squad.length / 2 ? [...team.squad].sort((a, b) => b.overall - a.overall)[Math.floor(team.squad.length / 2)]?.overall : undefined;
+  for (let i = out.length; i < count; i += 1) {
     const player = generateWorldPlayer({
       teamId: `probables-${team.id}`,
       region: team.squad[0]?.region ?? state.player.state,
@@ -352,9 +365,17 @@ export function outsideProbables(state: GameState, team: Team, group: RoleGroup,
       rng,
       taken,
     });
-    out.push({ ...player, id: `probable-${team.id}-${group}-${i}` });
+    out.push({ ...(reference ? atOverall(player, reference - SQUAD_SELECTION.outsideBehind + rng.spread() * 3) : player), id: `probable-${team.id}-${group}-${i}` });
   }
   return out;
+}
+
+/** The same player, every attribute scaled so the overall lands on `target`. */
+function atOverall(player: RivalPlayer, target: number): RivalPlayer {
+  const scale = target / Math.max(1, player.overall);
+  const attributes = cloneAttributes(player.attributes);
+  for (const ref of attributeRefs(attributes)) setAttr(attributes, ref.group, ref.key, Math.max(1, Math.min(99, Math.round(getAttr(attributes, ref.group, ref.key) * scale))));
+  return { ...player, attributes, overall: computeOverall(attributes, player.role) };
 }
 
 /** Everyone in the user's role group for a side, best first, with the user in it. */
@@ -366,7 +387,8 @@ export function rankGroup(state: GameState, team: Team, tournamentIds: string[])
   const adjust = (c: Candidate, attributes: RivalPlayer['attributes']): Candidate =>
     format ? { ...c, overall: formatOverall(attributes, c.role, format) - ageDrag(c.age, level) } : c;
   const user = adjust(userCandidate(state, tournamentIds), state.player.attributes);
-  const rivals = team.squad.map((p) => adjust(rivalCandidate(p, today), p.attributes)).filter((c) => c.group === user.group);
+  // A real state side's Ranji, Vijay Hazare and Mushtaq Ali squads are different groups of rivals.
+  const rivals = competitionMembers(team, tournamentIds[0]).map((p) => adjust(rivalCandidate(p, today), p.attributes)).filter((c) => c.group === user.group);
   const outside = outsideProbables(state, team, user.group, level).map((p) => ({ ...adjust(rivalCandidate(p, today), p.attributes), outside: true }));
   const peers = [user, ...rivals, ...outside];
   return peers

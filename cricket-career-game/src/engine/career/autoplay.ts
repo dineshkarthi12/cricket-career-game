@@ -24,9 +24,9 @@ function saltOf(text: string): number {
   return hash >>> 0;
 }
 
-function opponentXi(state: GameState, teamId: string, format: Fixture['format']): SimPlayer[] {
-  const squad = squadFor(state, teamId).filter((p) => !state.teams[teamId]?.squad.find((r) => r.id === p.id)?.injuredUntil);
-  const ids = defaultXiIds(squad.length >= 11 ? squad : squadFor(state, teamId), null, xiOptionsFor(state.teams[teamId], format));
+function opponentXi(state: GameState, teamId: string, format: Fixture['format'], tournamentId?: string | null): SimPlayer[] {
+  const squad = squadFor(state, teamId, tournamentId).filter((p) => !state.teams[teamId]?.squad.find((r) => r.id === p.id)?.injuredUntil);
+  const ids = defaultXiIds(squad.length >= 11 ? squad : squadFor(state, teamId, tournamentId), null, xiOptionsFor(state.teams[teamId], format));
   const byId = new Map(squad.map((p) => [p.id, p]));
   return battingOrderOf(ids.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p)));
 }
@@ -46,8 +46,8 @@ export function autoPlayFixture(state: GameState, fixture: Fixture): GameState {
   const played = xi.some((p) => p.id === me);
   const meta = TOURNAMENTS_BY_ID[fixture.tournamentId ?? ''];
   const venue = (fixture.venueId && state.venues[fixture.venueId]) || state.venues[team.homeVenueId] || Object.values(state.venues)[0];
-  const homeXi = userIsHome ? xi : opponentXi(state, opponentId, fixture.format);
-  const awayXi = userIsHome ? opponentXi(state, opponentId, fixture.format) : xi;
+  const homeXi = userIsHome ? xi : opponentXi(state, opponentId, fixture.format, fixture.tournamentId);
+  const awayXi = userIsHome ? opponentXi(state, opponentId, fixture.format, fixture.tournamentId) : xi;
   const homeTeam = state.teams[fixture.homeTeamId];
   const awayTeam = state.teams[fixture.awayTeamId];
   const impact =

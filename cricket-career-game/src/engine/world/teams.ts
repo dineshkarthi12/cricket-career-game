@@ -4,11 +4,11 @@
  * 14-15-year-olds in the state, so their potential is well above an average
  * child's; a senior state side is older, better and more complete again.
  */
-import { WORLD } from '../config';
+import { REAL_PLAYERS, WORLD } from '../config';
 import type { Rng } from '../match/rng';
 import type { SideKind } from '@/data/schedule';
 import { generateWorldPlayer } from './players';
-import type { PlayerRole, RivalPlayer } from '@/types';
+import type { PlayerRole, RivalPlayer, Team } from '@/types';
 
 export interface LevelProfile {
   ages: [number, number];
@@ -40,7 +40,7 @@ export const LEVELS: Record<SideKind, LevelProfile> = {
 export const SENIOR_CLUB: LevelProfile = { ages: [17, 34], potential: [70, 7], share: 0.9, ageLimit: null };
 
 /** A squad of 17: a balanced XI plus cover (the last place is the first given up for the user). */
-const SQUAD_ROLES: PlayerRole[] = [
+export const SQUAD_ROLES: PlayerRole[] = [
   'OPENING_BATTER',
   'OPENING_BATTER',
   'BATTER',
@@ -133,4 +133,22 @@ export function squadStrength(squad: RivalPlayer[]): number {
   const best = [...squad].sort((a, b) => b.overall - a.overall).slice(0, 11);
   if (best.length === 0) return 40;
   return Math.round(best.reduce((sum, p) => sum + p.overall, 0) / best.length);
+}
+
+/**
+ * The players in a side's squad for one competition: a real state side has
+ * separate Ranji, Vijay Hazare and Mushtaq Ali squads (best first); when
+ * retirements have thinned one, the best of the rest of the side make up
+ * the numbers. Any other side uses its whole squad.
+ */
+export function competitionMembers(team: Team, tournamentId?: string | null): RivalPlayer[] {
+  const ids = tournamentId ? team.competitionSquads?.[tournamentId] : undefined;
+  if (!ids) return team.squad;
+  const listed = new Set(ids);
+  const byOverall = (a: RivalPlayer, b: RivalPlayer) => b.overall - a.overall;
+  const members = team.squad.filter((p) => listed.has(p.id)).sort(byOverall);
+  const min = REAL_PLAYERS.competitionSquadMin;
+  if (members.length >= min) return members;
+  const rest = team.squad.filter((p) => !listed.has(p.id)).sort(byOverall);
+  return [...members, ...rest.slice(0, min - members.length)];
 }
