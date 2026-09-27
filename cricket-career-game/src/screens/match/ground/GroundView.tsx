@@ -27,8 +27,8 @@ export interface GroundViewProps {
   /** The player's own cricketer, in gold wherever they are. */
   userId: string | null;
   bowlerId: string | null;
-  /** The striker is the player. */
-  userOnStrike: boolean;
+  /** The two batters at the crease, by id and a short label (the striker faces). */
+  batters: { strikerId: string; nonStrikerId: string; labelOf: (id: string) => string } | null;
   leftArmBowler: boolean;
   durationMs: number;
   reduceMotion: boolean;
@@ -48,7 +48,7 @@ export function GroundView({
   leftHanded,
   userId,
   bowlerId,
-  userOnStrike,
+  batters,
   leftArmBowler,
   durationMs,
   reduceMotion,
@@ -172,7 +172,17 @@ export function GroundView({
             durationMs={durationMs}
             reduceMotion={reduceMotion}
           />
-          <BatterMarker box={box} leftHanded={leftHanded} isUser={userOnStrike} />
+          {batters ? (
+            <BatterPair
+              box={box}
+              leftHanded={leftHanded}
+              userId={userId}
+              batters={batters}
+              bowlerSide={release.x > box.bowler.x ? 1 : -1}
+              runMs={reduceMotion ? 0 : Math.max(250, Math.min(900, durationMs * 0.6))}
+              runDelayMs={reduceMotion ? 0 : Math.round(durationMs * 0.3)}
+            />
+          ) : null}
           {raining ? <RainOverlay box={box} /> : null}
         </svg>
 
@@ -199,24 +209,70 @@ export function GroundView({
   );
 }
 
-function BatterMarker({
+/**
+ * Both batters: the striker at the batting end, the non-striker beside the
+ * stumps at the bowler's end (on the other side from the bowler). Each is
+ * keyed by player, so when they cross - an odd number of runs, or the end of
+ * an over (the view always shows the striker's end at the bottom) - they run
+ * along the pitch to their new ends. The player is gold, the partner blue.
+ */
+function BatterPair({
   box,
   leftHanded,
-  isUser,
+  userId,
+  batters,
+  bowlerSide,
+  runMs,
+  runDelayMs,
 }: {
   box: ReturnType<typeof groundBox>;
   leftHanded: boolean;
-  isUser: boolean;
+  userId: string | null;
+  batters: NonNullable<GroundViewProps['batters']>;
+  bowlerSide: 1 | -1;
+  runMs: number;
+  /** They set off once the ball has reached the bat. */
+  runDelayMs: number;
 }) {
   // The striker stands slightly to the leg side of the stumps.
   const legSide = direction(270, leftHanded);
-  const x = box.striker.x + legSide.x * 0.9;
-  const y = box.striker.y - 0.6;
+  const strikerSpot = { x: box.striker.x + legSide.x * 0.9, y: box.striker.y - 0.6 };
+  const nonStrikerSpot = { x: box.bowler.x - bowlerSide * 2.2, y: box.bowler.y + 0.9 };
+  const people = [
+    { id: batters.strikerId, at: strikerSpot, onStrike: true },
+    { id: batters.nonStrikerId, at: nonStrikerSpot, onStrike: false },
+  ].sort((a, b) => a.id.localeCompare(b.id)); // stable order, so React moves (not remounts) each one
   return (
     <g aria-hidden>
-      <title>{isUser ? 'You - on strike' : 'Striker'}</title>
-      {isUser ? <circle cx={x} cy={y} r={2.5} fill="#f5c518" opacity={0.35} /> : null}
-      <circle cx={x} cy={y} r={1.5} fill={isUser ? '#f5c518' : '#1e5ef0'} stroke="#ffffff" strokeWidth={0.3} />
+      {people.map((p) => {
+        const isUser = p.id === userId;
+        const label = isUser ? 'YOU' : batters.labelOf(p.id);
+        return (
+          <g
+            key={p.id}
+            data-batter={p.onStrike ? 'striker' : 'non-striker'}
+            data-user={isUser ? 'true' : undefined}
+            style={{ transform: `translate(${p.at.x}px, ${p.at.y}px)`, transition: runMs ? `transform ${runMs}ms ease-in-out ${runDelayMs}ms` : undefined }}
+          >
+            <title>{`${isUser ? 'You' : batters.labelOf(p.id)} - ${p.onStrike ? 'on strike' : "non-striker's end"}`}</title>
+            {isUser ? <circle r={2.5} fill="#f5c518" opacity={0.35} /> : null}
+            <circle r={1.5} fill={isUser ? '#f5c518' : '#1e5ef0'} stroke="#ffffff" strokeWidth={0.3} />
+            <text
+              x={p.onStrike ? 0 : -bowlerSide * 2.2}
+              y={p.onStrike ? 4 : 0.7}
+              textAnchor={p.onStrike ? 'middle' : bowlerSide === 1 ? 'end' : 'start'}
+              fontSize={1.9}
+              fontWeight={700}
+              fill={isUser ? '#f5c518' : '#ffffff'}
+              stroke="#0f1b33"
+              strokeWidth={0.45}
+              paintOrder="stroke"
+            >
+              {label}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }

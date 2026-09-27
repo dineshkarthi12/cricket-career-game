@@ -77,17 +77,15 @@ export function ScoreStrip({
 
       <div className="grid gap-2 border-t border-line pt-3 sm:grid-cols-[1fr_1fr_auto]">
         <div className="min-w-0">
-          <BatterLine
-            name={striker?.name ?? nameOf(cur.strikerId)}
-            line={striker}
-            onStrike
-            isUser={cur.strikerId === userId}
-          />
-          <BatterLine
-            name={nonStriker?.name ?? nameOf(cur.nonStrikerId)}
-            line={nonStriker}
-            isUser={cur.nonStrikerId === userId}
-          />
+          {/* The two batters keep their rows (earlier in the order on top); the strike badge moves between them. */}
+          {[
+            { id: cur.strikerId, line: striker, onStrike: true },
+            { id: cur.nonStrikerId, line: nonStriker, onStrike: false },
+          ]
+            .sort((a, b) => (a.line?.battingPosition ?? 99) - (b.line?.battingPosition ?? 99))
+            .map((b) => (
+              <BatterLine key={b.id} name={b.line?.name ?? nameOf(b.id)} line={b.line} onStrike={b.onStrike} isUser={b.id === userId} />
+            ))}
         </div>
 
         <div className="min-w-0 text-[13px]">
@@ -158,6 +156,11 @@ function BatterLine({
         {isUser ? <span className="ml-1 text-[10.5px] font-bold text-brand-navy">YOU</span> : null}
         {onStrike ? <span className="text-brand-blue"> *</span> : null}
       </span>
+      {onStrike ? (
+        <span className="shrink-0 rounded bg-brand-blue px-1 py-px text-[9.5px] font-bold tracking-wide text-white" aria-label="on strike">
+          ON STRIKE
+        </span>
+      ) : null}
       <span className="ml-auto shrink-0 font-semibold text-ink tabular-nums">
         {line?.runs ?? 0}
         <span className="ml-1 font-normal text-ink-soft">({line?.balls ?? 0})</span>

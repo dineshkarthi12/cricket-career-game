@@ -1280,3 +1280,20 @@ opens a panel (`layout/NotificationsPanel.tsx`) with the latest 30 messages,
 unread important ones first: tap one to read it (marks it read), "Mark all
 read" clears the count, a tap outside, Escape or a change of screen closes
 it. Works with touch on phones and tablets. 2 new tests; 574 pass.
+
+### Fix - who is on strike, on screen
+
+The engine already rotated the strike correctly (checked on 21,000
+deliveries: odd runs and odd byes cross, 0/2/4/6 do not, the ends change at
+the end of every over; the only exceptions were a new batter after a
+retirement). But the 2D ground drew only one batter, always at the
+striker's end, so after a single it still looked as if the same player was
+on strike. Now:
+- the ground shows both batters - the striker at the batting end, the
+  non-striker beside the stumps at the bowler's end - with names (the player
+  in gold, "YOU"), and they run along the pitch to their new ends when they
+  cross (after the ball reaches the bat; instant with reduced motion);
+- the score strip keeps both batters in their rows and moves an ON STRIKE
+  badge between them, instead of swapping the rows.
+- `engine/match/strike.test.ts` locks the rule in, for simulated matches and
+  ball by ball in a live match with the player batting.
