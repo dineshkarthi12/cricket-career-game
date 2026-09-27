@@ -5,7 +5,7 @@ import { MobileTabBar } from './MobileTabBar';
 import { ContinueBar } from './ContinueBar';
 import { AppBanner } from './AppBanner';
 import { useGameStore } from '@/store/gameStore';
-import { playerTitle, unreadCount } from '@/lib/selectors';
+import { playerTitle } from '@/lib/selectors';
 
 /**
  * Sidebar + top bar + content, in one place so every screen in the game keeps
@@ -36,7 +36,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             level={player?.level ?? 1}
             xp={player?.xp ?? 0}
             xpToNextLevel={player?.xpToNextLevel ?? 100}
-            notifications={state ? unreadCount(state) : 0}
           />
           <AppBanner />
           <ContinueBar />

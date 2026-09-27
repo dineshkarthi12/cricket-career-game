@@ -13,7 +13,7 @@ import { unreadCount } from '@/lib/selectors';
 import { cn } from '@/lib/cn';
 import type { GameState, InboxSender } from '@/types';
 
-const SENDER_STYLE: Record<InboxSender, { icon: LucideIcon; tile: string }> = {
+export const SENDER_STYLE: Record<InboxSender, { icon: LucideIcon; tile: string }> = {
   SELECTOR: { icon: Landmark, tile: 'bg-brand-navy text-white' },
   COACH: { icon: UserRound, tile: 'bg-page text-ink-muted' },
   MEDIA: { icon: Megaphone, tile: 'bg-brand-red text-white' },

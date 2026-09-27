@@ -1,4 +1,5 @@
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { NotificationsPanel } from './NotificationsPanel';
 import { Link } from 'react-router-dom';
 import { Avatar, ProgressBar } from '@/components';
 
@@ -9,7 +10,6 @@ interface TopBarProps {
   level: number;
   xp: number;
   xpToNextLevel: number;
-  notifications: number;
 }
 
 export function TopBar({
@@ -18,7 +18,6 @@ export function TopBar({
   level,
   xp,
   xpToNextLevel,
-  notifications,
 }: TopBarProps) {
   const pct = xpToNextLevel > 0 ? (xp / xpToNextLevel) * 100 : 0;
 
@@ -35,18 +34,7 @@ export function TopBar({
       </label>
 
       <div className="ml-auto flex items-center gap-3 sm:gap-4">
-        <button
-          type="button"
-          className="relative grid size-9 place-items-center rounded-xl text-ink transition-colors hover:bg-surface"
-          aria-label={`Notifications (${notifications} unread)`}
-        >
-          <Bell className="size-[19px]" strokeWidth={1.8} />
-          {notifications > 0 ? (
-            <span className="absolute -top-0.5 -right-0.5 grid size-[18px] place-items-center rounded-full bg-brand-red text-[10px] font-bold text-white">
-              {notifications > 9 ? '9+' : notifications}
-            </span>
-          ) : null}
-        </button>
+        <NotificationsPanel />
 
         <Link
           to="/start"

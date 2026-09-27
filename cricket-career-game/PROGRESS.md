@@ -1271,3 +1271,12 @@ players are still there.
   converter's role and stay flagged in the file.
 - A test pins the real roles and styles of 37 well-known players. 572 tests
   pass; build clean.
+
+### Fix - the notifications bell
+
+The bell in the top bar showed an unread count but did nothing when tapped,
+and nothing ever marked a message read, so it sat at "9+" for good. It now
+opens a panel (`layout/NotificationsPanel.tsx`) with the latest 30 messages,
+unread important ones first: tap one to read it (marks it read), "Mark all
+read" clears the count, a tap outside, Escape or a change of screen closes
+it. Works with touch on phones and tablets. 2 new tests; 574 pass.
