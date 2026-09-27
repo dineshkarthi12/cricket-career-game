@@ -1029,7 +1029,7 @@ reduced motion. Every screen but Home is code-split; recharts loads with the
 first chart; fonts are self-hosted.
 
 ### Installable app
-`public/manifest.webmanifest` and crown icons (`scripts/make-icons.mjs`); a
+`public/manifest.webmanifest` and the Cricket 26 badge icons (`design/logo-cricket-26.png` rendered by `scripts/make-icons.mjs`, `npm run icons`: 192/512 rounded, 512 maskable, 180 Apple touch, 64 favicon, and `public/assets/logo.webp` for the `Logo` component); a
 service worker generated at build time (`scripts/sw-template.js`, the
 `serviceWorker` plugin in `vite.config.ts`) precaches the whole build: pages
 network-first with the app shell offline, assets cache-first. `lib/pwa.ts`
@@ -1064,6 +1064,11 @@ it directly; the tests import it):
 | `squadLists.ts` | `Ranji trophy.txt` (`<State> cricket team: Name (c), Name (vc/wk), ...`, `Standbyes:`, `(subject to fitness)`, any-case markers) and `VHT_2024-25_All_Team_Players.txt` (`[TEAM]` headers, notes skipped); team names mapped onto the game's 38 sides. |
 | `names.ts` | Listed names ("Hanuma Vihari") to Cricsheet names ("GH Vihari"): every full word matched (one letter off allowed for long words), the surname among them, the other words' initials among the initials (family-name-first "G Ajitesh" only within the side). Scored up for the side they play SMAT for, recent seasons and an exact Kaggle full name; a common surname matched on an initial alone, a misspelt surname, or a known full name with a different given name is only trusted within the side. Ties are ambiguous, never guessed. |
 | `convert.ts` | Squads and records: national squads (22 most-capped of the last two seasons), IPL squads (last IPL team; old names mapped, defunct sides dropped; latest season, topped to 22 from the season before, at most 8 overseas), state squads (Ranji list, Vijay Hazare list trimmed to 20 keeping captain and keepers, SMAT = the side's recent SMAT players topped up from its lists, to 18). One home side per player (the newer Ranji list wins; between two, the side they last played SMAT for). Styles from the Kaggle archive (players file, then ball-by-ball types); otherwise inferred (stumpings off their bowling -> off-spin, else seam). Role from how much they bowl, where they bat and whether they keep ((wk) marker, stumpings). Country from their latest international (anyone seen in an overseas franchise league is not Indian). Age from the first recorded match (debut at 21). |
+
+Roles checked by hand: every national and IPL squad player, and the
+well-known state players, were compared with their real roles, batting hands
+and bowling styles; ~270 corrections live in the overrides file's `manual`
+section (and a test pins the roles of well-known players).
 
 Output: `src/data/real/international.json`, `ipl.json`, `domestic.json`
 (compact records: id, name, country, role code, batting hand, bowling style,
