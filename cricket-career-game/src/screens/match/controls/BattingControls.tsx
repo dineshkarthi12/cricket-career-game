@@ -4,7 +4,7 @@
  * while the player's own batter is on strike.
  */
 import { memo } from 'react';
-import { FastForward, Play, Target } from 'lucide-react';
+import { FastForward, Play, Shield, Target } from 'lucide-react';
 import type { RiskEstimate } from '@/engine/match/innings';
 import { BALL_INTENTS, type BallIntent } from '@/store/matchStore';
 import { AggressionBar } from './AggressionBar';
@@ -38,6 +38,8 @@ export const BattingControls = memo(function BattingControls({
   onShotPreference,
   onSimOver,
   onSimUntilOut,
+  farmStrike,
+  onFarmStrike,
   disabled = false,
 }: {
   /** The player's batting aggression, 1-5. */
@@ -50,6 +52,8 @@ export const BattingControls = memo(function BattingControls({
   onShotPreference: (angle: number | null) => void;
   onSimOver: () => void;
   onSimUntilOut: () => void;
+  farmStrike: boolean;
+  onFarmStrike: (on: boolean) => void;
   disabled?: boolean;
 }) {
   return (
@@ -62,6 +66,8 @@ export const BattingControls = memo(function BattingControls({
         hotkeys
         onChange={(next) => next !== null && onLevel(next)}
       />
+
+      <CarryToggle on={farmStrike} onChange={onFarmStrike} />
 
       <button
         type="button"
@@ -173,5 +179,39 @@ function Pill({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Carry the innings: once set, keep the strike (no single early in the over,
+ * one off the last ball) and have the partner play safe and give it back.
+ */
+export function CarryToggle({ on, onChange, compact = false }: { on: boolean; onChange: (on: boolean) => void; compact?: boolean }) {
+  return (
+    <label
+      className={[
+        'flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 transition-colors',
+        on ? 'border-brand-gold bg-brand-gold/15' : 'border-line bg-surface hover:bg-page',
+      ].join(' ')}
+    >
+      <input
+        type="checkbox"
+        checked={on}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-0.5 size-4 shrink-0 accent-brand-blue"
+      />
+      <span className="min-w-0">
+        <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
+          <Shield className="size-3.5 text-brand-gold" aria-hidden />
+          Carry the innings - farm the strike
+        </span>
+        {compact ? null : (
+          <span className="mt-0.5 block text-[11.5px] leading-snug text-ink-muted">
+            Once you are set you keep the strike, and your partner plays safe and gives it back. Use it when the
+            wickets are falling at the other end; you face more balls, so pick your moments to attack.
+          </span>
+        )}
+      </span>
+    </label>
   );
 }

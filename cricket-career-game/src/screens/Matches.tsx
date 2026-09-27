@@ -15,6 +15,7 @@ import { useMatchStore } from '@/store/matchStore';
 import { Manhattan, WagonWheelPanel, Worm, chartInnings } from './match/panels/MatchCharts';
 import { CommentaryFeed } from './match/panels/CommentaryFeed';
 import { Scorecard } from './match/panels/Scorecard';
+import { MatchHighlights } from './match/panels/MatchHighlights';
 import type { Fixture, GameState, Match } from '@/types';
 
 /** Results shown at a time: a full career has hundreds. */
@@ -281,6 +282,8 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
         ) : null}
       </Card>
 
+      <MatchHighlights match={match} teamNameOf={teamNameOf} userId={state.player.id} />
+
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Card>
           <CardHeader title="Scorecard" />
@@ -333,7 +336,14 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
               <Card>
                 <CardHeader title="Commentary" />
                 <div className="mt-2.5 max-h-[420px] overflow-y-auto">
-                  <CommentaryFeed deliveries={shown.deliveries} limit={120} />
+                  <CommentaryFeed
+                    deliveries={shown.deliveries}
+                    innings={shown}
+                    battingTeam={teamNameOf(shown.battingTeamId)}
+                    earlier={match.innings.filter((i) => i.number < shown.number)}
+                    userId={state.player.id}
+                    limit={120}
+                  />
                 </div>
               </Card>
             </>

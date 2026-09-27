@@ -1,3 +1,4 @@
+import type { ScoringProfile } from '../config';
 /**
  * Types the match engine uses internally. Nothing here is persisted - the
  * saved shapes live in `/src/types`.
@@ -125,6 +126,13 @@ export interface DeliveryContext {
   strikerRuns: number;
   /** True when the striker is shielding a tailender at the other end. */
   farmingStrike: boolean;
+  /**
+   * True when the striker is working the strike to a set batter at the other
+   * end (the career player asked their partner to get them back on strike).
+   */
+  feedingStrike?: boolean;
+  /** The competition's scoring profile (IPL, Test...); neutral when unset. */
+  scoring?: ScoringProfile;
   /** Balls the current pair have been together. */
   partnershipBalls: number;
   /** Overs this bowler has sent down in the current spell. */

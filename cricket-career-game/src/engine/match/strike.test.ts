@@ -3,6 +3,8 @@ import { simulateMatch } from './simulate';
 import { createLiveMatch } from './live';
 import { generateXi } from './squad';
 import { createRng } from './rng';
+import { createPitch, createWeather, newBall } from './conditions';
+import { createInningsState, stepBall } from './innings';
 import { VENUES_BY_ID } from '@/data/venues';
 import type { Ball } from '@/types';
 
@@ -89,4 +91,55 @@ describe('the strike', () => {
     expect(checked).toBeGreaterThan(300);
     expect(mine).toBeGreaterThan(30);
   });
+});
+
+describe('carrying the innings (farming the strike)', () => {
+  /** Share of the pair's balls the player faces, and singles taken on the last ball vs earlier. */
+  function measure(farmStrike: boolean) {
+    let mine = 0;
+    let pair = 0;
+    let lastBallSingles = 0;
+    let earlySingles = 0;
+    let lastBalls = 0;
+    let earlyBalls = 0;
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const setup = {
+        number: 1, battingTeamId: 'bat', bowlingTeamId: 'bowl',
+        batting: generateXi('bat', 62, createRng(seed)), bowling: generateXi('bowl', 64, createRng(seed + 90)),
+        format: 'ODI' as const, venue,
+        conditions: { pitch: createPitch(createRng(seed), venue), weather: createWeather(createRng(seed), 11), ball: newBall(1), phase: 'POWERPLAY' as const, pressure: 0, underLights: false },
+        oversAvailable: 50, target: null, battingAtHome: true, knockout: false, day: 1, underLights: false,
+      };
+      const userId = setup.batting[2].id;
+      const state = createInningsState(setup);
+      const rng = createRng(seed * 7);
+      for (let guard = 0; guard < 700 && !state.complete; guard += 1) {
+        const ball = stepBall(state, rng, { battingFor: userId, intentLevel: 3, farmStrike });
+        if (!ball) break;
+        if (!ball.isLegalDelivery || ball.wicket) continue;
+        const involved = ball.strikerId === userId || ball.nonStrikerId === userId;
+        if (!involved || (state.ballsFaced[userId] ?? 0) < 20) continue;
+        pair += 1;
+        if (ball.strikerId !== userId) continue;
+        mine += 1;
+        const single = ball.runsOffBat === 1;
+        if (ball.ballInOver === 6) {
+          lastBalls += 1;
+          if (single) lastBallSingles += 1;
+        } else {
+          earlyBalls += 1;
+          if (single) earlySingles += 1;
+        }
+      }
+    }
+    return { share: mine / pair, lastRate: lastBallSingles / lastBalls, earlyRate: earlySingles / earlyBalls };
+  }
+
+  it('keeps the set player on strike: fewer early singles, a single off the last ball', () => {
+    const normal = measure(false);
+    const farming = measure(true);
+    expect(farming.share).toBeGreaterThan(normal.share + 0.05);
+    expect(farming.earlyRate).toBeLessThan(normal.earlyRate * 0.75);
+    expect(farming.lastRate).toBeGreaterThan(farming.earlyRate);
+  }, 60_000);
 });

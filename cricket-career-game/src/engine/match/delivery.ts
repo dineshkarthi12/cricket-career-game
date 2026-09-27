@@ -58,7 +58,8 @@ function rollIllegal(
   const wideScale =
     (context.phase === 'DEATH' ? 1.9 : 1) *
     (context.aroundTheWicket ? MATCH.aroundTheWicket.wideRate : 1) *
-    MATCH.bowlingAggression.wide[Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1))];
+    MATCH.bowlingAggression.wide[Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1))] *
+    whiteBall(context, MATCH.limitedOvers.wideScale);
   if (rng.chance(cfg.wideChance * scale * wideScale)) return { type: 'WIDE', runs: 1 };
   if (rng.chance(cfg.noBallChance * scale)) return { type: 'NO_BALL', runs: 1 };
   return null;
@@ -219,19 +220,43 @@ export function duelFactors(context: DeliveryContext): DuelFactors {
 
   // Wickets come in clusters: a new batter walking in while the last two went
   // cheaply is in far more trouble than the same batter in a calm innings.
+  // The batter who is already in at the other end carries only part of it.
   const cluster = Math.max(0, context.recentWickets - 1);
-  const collapse = 1 + cluster * cfg.momentum.collapseWicket;
+  const exposure = limitedOvers(context) ? 1 - settle * (1 - cfg.momentum.collapseSetShare) : 1;
+  const collapseRate = limitedOvers(context) ? cfg.limitedOvers.collapseWicket : cfg.momentum.collapseWicket;
+  const collapse = 1 + cluster * collapseRate * exposure;
   // A pair who have been in for twenty overs have worn the bowling down.
   const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
 
   return { batter, bowler, bite, edge, settle, set, phaseMod, dotWicket, milestone, cluster, collapse, partnership };
 }
 
+/** A white-ball multiplier by format (T20 or one-day), 1 in first-class cricket. */
+function whiteBall(context: DeliveryContext, scale: Record<string, number>): number {
+  if (!limitedOvers(context)) return 1;
+  return context.format === 'T20' ? (scale.T20 ?? 1) : (scale.ODI ?? 1);
+}
+
+function limitedOvers(context: DeliveryContext): boolean {
+  return context.format !== 'MULTI_DAY' && context.format !== 'TEST';
+}
+
+/**
+ * 0-1 how far "in the zone" the striker is: time at the crease or runs on the
+ * board, whichever says more. A batter on 50 has earned the right to go.
+ */
+export function inTheZone(context: DeliveryContext, f: Pick<DuelFactors, 'set'>): number {
+  if (!limitedOvers(context)) return 0;
+  const z = MATCH.aggression.zone;
+  return Math.max(f.set, clamp01((context.strikerRuns - z.from) / z.span));
+}
+
 /**
  * How much of the extra risk of attacking this batter carries right now. The
  * same shot is far riskier for a batter who is not in, on a hard pitch,
  * against a better bowler, or without the temperament for it; raw power makes
- * clearing the rope easier. 1 is an average situation.
+ * clearing the rope easier, and a batter in the zone has the measure of it.
+ * 1 is an average situation.
  */
 export function aggressionRiskScale(context: DeliveryContext, f: DuelFactors): number {
   const r = MATCH.aggression.risk;
@@ -244,7 +269,8 @@ export function aggressionRiskScale(context: DeliveryContext, f: DuelFactors): n
     r.pitch * (0.5 - ease) * 2 +
     r.bowler * (f.bowler - f.batter) +
     r.temperament * (0.5 - temperament) * 2 -
-    r.power * (power - 0.5) * 2;
+    r.power * (power - 0.5) * 2 -
+    r.inTheZone * inTheZone(context, f);
   return Math.max(0.4, Math.min(2.5, scale));
 }
 
@@ -269,8 +295,8 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
     (1 - f.edge * cfg.edge.wicket) *
     f.phaseMod.wicket *
     (1 + f.bite * cfg.pressure.wicketAtMax) *
-    (1 + (1 - f.settle) * cfg.newBatter.wicketPenalty) *
-    (1 - f.set * (1 - cfg.setBatter.wicket)) *
+    (1 + (1 - f.settle) * (limitedOvers(context) ? cfg.limitedOvers.newBatterWicket : cfg.newBatter.wicketPenalty)) *
+    (1 - f.set * (1 - (limitedOvers(context) ? cfg.limitedOvers.setBatterWicket : cfg.setBatter.wicket))) *
     f.collapse *
     f.dotWicket *
     f.milestone *
@@ -278,7 +304,7 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
     (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2) *
     (context.rotate ? cfg.rotate.wicket : 1) *
     cfg.bowlingAggression.wicket[bowlingIndex];
-  const floor = rates.wicket * cfg.limits.wicketFloor;
+  const floor = rates.wicket * (limitedOvers(context) ? cfg.limitedOvers.wicketFloor : cfg.limits.wicketFloor);
   const ceiling = rates.wicket * cfg.limits.wicketCeiling;
   // Defending (levels 1-2, and the normal game) works inside the usual limits.
   if (intentWicket <= 1) return clamp01(Math.max(floor, Math.min(ceiling, situation * intentWicket)));
@@ -363,7 +389,7 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   );
 
   // --- Wicket -------------------------------------------------------------
-  let pWicket = wicketChance(context, threat, f);
+  let pWicket = wicketChance(context, threat, f) * (context.scoring?.wicket ?? 1);
 
   // --- Boundaries ---------------------------------------------------------
   const power = batterPower(context.striker);
@@ -390,14 +416,14 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     (context.rotate ? cfg.rotate.boundary : 1) *
     cfg.bowlingAggression.boundary[bowlingIndex];
 
-  let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76));
+  let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76) * (context.scoring?.four ?? 1));
   // Ground size matters: a short square boundary turns a mis-hit pull into
   // six, a long straight one keeps the same shot in the ground.
   const meanBoundary = (context.boundaries.straight + context.boundaries.square) / 2;
   const groundSize = clamp01(1 + (68 - meanBoundary) / 40);
 
   let pSix = clamp01(
-    rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1) * (0.6 + groundSize * 0.8),
+    rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1) * (0.6 + groundSize * 0.8) * (context.scoring?.six ?? 1),
   );
 
   // Nothing can be more likely than the total probability space allows.
@@ -846,6 +872,7 @@ function resolvePlacedShot(
   const dotWeight = Math.max(
     0.02,
     rates.dotWeight *
+      (context.scoring?.dot ?? 1) *
       input.phaseDot *
       cfg.intent.dot[intentIndex] *
       (input.cluster > 0 ? cfg.momentum.collapseDot : 1) *
@@ -860,13 +887,19 @@ function resolvePlacedShot(
   const twoWeight = rates.twoWeight * runFactor * (1 - straightAt * 0.7) * (0.6 + contact * 0.8);
   const threeWeight = rates.threeWeight * runFactor * (1 - straightAt * 0.85) * (0.5 + contact * 0.8);
 
-  // A set batter shielding the tail wants the strike back: he takes the single
-  // early in the over and turns one down late, so the tailender faces as few
-  // balls as possible.
-  const farm = context.farmingStrike ? MATCH.batting.farmStrikeStrength : 0;
-  const lateInOver = context.ballInOver >= 5;
-  const oddWeight = 1 * (farm > 0 ? (lateInOver ? 1 - farm : 1 + farm * 0.4) : 1);
-  const evenTwo = twoWeight * (farm > 0 && lateInOver ? 1 + farm : 1);
+  // A set batter shielding the tail keeps the strike: he turns down the single
+  // early in the over (running two where he can) and takes one off the last
+  // ball, so he faces the next over too. A partner feeding the strike to a
+  // set batter does the opposite: a single early, none off the last ball.
+  const farm = context.farmingStrike
+    ? limitedOvers(context) ? MATCH.batting.farmStrikeStrength : MATCH.batting.farmStrikeFirstClass
+    : 0;
+  const feed = context.feedingStrike ? MATCH.batting.feedStrikeStrength : 0;
+  const lastBall = context.ballInOver >= 6;
+  const oddWeight =
+    (farm > 0 ? (lastBall ? 1 + farm * 1.5 : 1 - farm) : 1) *
+    (feed > 0 ? (lastBall ? 1 - feed : 1 + feed) : 1);
+  const evenTwo = twoWeight * (farm > 0 && !lastBall ? 1 + farm * 0.5 : 1);
 
   const runs = rng.weighted<number>([
     { item: 0, weight: dotWeight },
@@ -1069,7 +1102,7 @@ function rollRunOut(
   );
   const fieldingSharpness = normalise(fielder.throwing * 0.55 + fielder.groundFielding * 0.45);
 
-  const inPlay = cfg.chancePerRun * runs * (1 + (fieldingSharpness - batterRunning) * 0.8);
+  const inPlay = cfg.chancePerRun * runs * (1 + (fieldingSharpness - batterRunning) * 0.8) * whiteBall(context, MATCH.limitedOvers.runOutScale);
   if (!rng.chance(Math.max(0, inPlay))) return null;
 
   const converted =

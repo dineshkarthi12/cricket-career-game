@@ -310,8 +310,12 @@ export const QUICK_SIM = {
    * e^(spread x this), so upsets happen as often as in the full engine.
    */
   dayVariance: { T20: 0.66, ODI: 0.5, MULTI_DAY: 0.3 },
+  /** How a competition's scoring profile moves the fast sim's averages and strike rates. */
+  profileK: { four: 0.45, six: 0.2, dot: 0.3, wicket: 1 },
+  /** A Test is played faster than first-class cricket (about 3.4 an over against 3.0). */
+  testTempo: { average: 1.12, strikeRate: 1.13 },
   T20: {
-    average: 26,
+    average: 28.8,
     strikeRate: 146,
     position: [1, 1, 1, 1, 0.95, 0.85, 0.6, 0.42, 0.3, 0.2, 0.16],
     extras: 8,
@@ -319,18 +323,18 @@ export const QUICK_SIM = {
     sixShare: 0.2,
   },
   ODI: {
-    average: 35,
+    average: 39.5,
     strikeRate: 97,
-    position: [1, 1, 1, 1, 0.95, 0.85, 0.62, 0.45, 0.32, 0.22, 0.16],
-    extras: 12,
+    position: [1, 1, 1, 1, 0.95, 0.9, 0.72, 0.55, 0.4, 0.28, 0.2],
+    extras: 14,
     fourShare: 0.4,
     sixShare: 0.1,
   },
   MULTI_DAY: {
-    average: 29,
+    average: 30,
     strikeRate: 58,
-    position: [1, 1, 1, 1, 0.97, 0.94, 0.8, 0.6, 0.45, 0.34, 0.26],
-    extras: 18,
+    position: [1, 1, 1, 1, 0.97, 0.94, 0.86, 0.68, 0.52, 0.4, 0.3],
+    extras: 22,
     fourShare: 0.5,
     sixShare: 0.04,
     /** Overs a day, before time lost to weather and slow over rates. */
@@ -504,12 +508,50 @@ export interface FormatRates {
   defaultIntent: number;
 }
 
+/**
+ * How a competition scores against its format's base rates. The modern game:
+ * the IPL (impact player, flat decks, short boundaries) is the highest
+ * scoring T20 there is; international one-dayers put up 350 far more often
+ * than domestic ones; Tests are played quicker than first-class cricket and
+ * far fewer are drawn. Multipliers on the four and six chances, the wicket
+ * chance and the weight of a dot ball.
+ */
+export interface ScoringProfile {
+  four: number;
+  six: number;
+  wicket: number;
+  dot: number;
+}
+
+export const NEUTRAL_SCORING: ScoringProfile = { four: 1, six: 1, wicket: 1, dot: 1 };
+
+export const COMPETITION_SCORING: Record<string, ScoringProfile> = {
+  ipl: { four: 1.1, six: 1.22, wicket: 0.97, dot: 0.92 },
+  'intl-t20i': { four: 1.02, six: 1.05, wicket: 1, dot: 0.98 },
+  't20-world-cup': { four: 1.0, six: 1.02, wicket: 1.02, dot: 1 },
+  'vijay-hazare': { four: 1.03, six: 1.05, wicket: 1, dot: 0.98 },
+  'intl-odi': { four: 1.06, six: 1.12, wicket: 0.98, dot: 0.96 },
+  'intl-bilateral': { four: 1.06, six: 1.12, wicket: 0.98, dot: 0.96 },
+  'odi-world-cup': { four: 1.05, six: 1.1, wicket: 0.99, dot: 0.97 },
+  'champions-trophy': { four: 1.05, six: 1.1, wicket: 0.99, dot: 0.97 },
+};
+
+/** Days a multi-day match lasts: five for a Test, four for first-class cricket. */
+export function matchDaysFor(format: string): number {
+  return format === 'TEST' ? MATCH.multiDay.testDays : MATCH.multiDay.days;
+}
+
+/** The scoring profile for a competition. */
+export function scoringProfile(tournamentId: string | null | undefined): ScoringProfile {
+  return (tournamentId && COMPETITION_SCORING[tournamentId]) || NEUTRAL_SCORING;
+}
+
 export const MATCH_FORMATS: Record<string, FormatRates> = {
   T20: {
     overs: 20,
     wicket: 0.0420,
-    four: 0.1560,
-    six: 0.0540,
+    four: 0.1270,
+    six: 0.0450,
     dotWeight: 0.5000,
     twoWeight: 0.19,
     threeWeight: 0.022,
@@ -518,9 +560,9 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   ODI: {
     overs: 50,
-    wicket: 0.0225,
+    wicket: 0.0245,
     four: 0.0700,
-    six: 0.0120,
+    six: 0.0118,
     dotWeight: 1.1500,
     twoWeight: 0.20,
     threeWeight: 0.018,
@@ -530,8 +572,8 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   ONE_DAY: {
     overs: 50,
     wicket: 0.0231,
-    four: 0.0672,
-    six: 0.0105,
+    four: 0.0655,
+    six: 0.0102,
     dotWeight: 1.2200,
     twoWeight: 0.20,
     threeWeight: 0.018,
@@ -551,10 +593,10 @@ export const MATCH_FORMATS: Record<string, FormatRates> = {
   },
   TEST: {
     overs: null,
-    wicket: 0.0157,
-    four: 0.0392,
-    six: 0.0025,
-    dotWeight: 3.6000,
+    wicket: 0.0172,
+    four: 0.0460,
+    six: 0.0042,
+    dotWeight: 3.1000,
     twoWeight: 0.18,
     threeWeight: 0.021,
     maxOversPerBowler: null,
@@ -718,6 +760,12 @@ export const MATCH = {
     window: 36,
     /** Extra wicket chance per wicket in the window beyond the first. */
     collapseWicket: 0.2,
+    /**
+     * Share of that extra risk a batter who is already in still carries: the
+     * collapse is about the new batters walking in, not the one who is set.
+     * Limited-overs only: a first-class side has time, and no chase to carry.
+     */
+    collapseSetShare: 0.35,
     /** Scoring dries up while a side is losing wickets in a heap. */
     collapseBoundary: 0.78,
     collapseDot: 1.16,
@@ -770,6 +818,12 @@ export const MATCH = {
     tailFromWicket: 7,
     /** How hard a set batter tries to keep the strike with the tail in. */
     farmStrikeStrength: 0.55,
+    /** ...in first-class cricket, where the tail is given time to bat. */
+    farmStrikeFirstClass: 0.4,
+    /** How hard a partner works the single to get a set batter back on strike. */
+    feedStrikeStrength: 0.5,
+    /** Most a partner feeding the strike will attack, unless the captain says otherwise. */
+    feedStrikeMaxLevel: 3,
     /** A tailender blocks rather than plays shots. */
     tailIntentDrop: 1,
     /** Openers and number threes anchor; five to seven finish. */
@@ -783,6 +837,10 @@ export const MATCH = {
      * "Balanced" means what a typical batter plays.
      */
     aiIntentStart: 1,
+    /** How much harder a batter with wickets in hand goes in the last tenth of the innings. */
+    lastOversSurge: 2,
+    /** A T20 side reads its wickets this many fewer when deciding to go: the tail swings too. */
+    t20WicketAllowance: 1,
     finisherIntentBump: 1,
     /** A nightwatchman goes in when this few overs are left in the day. */
     nightwatchmanOversLeft: 8,
@@ -820,6 +878,33 @@ export const MATCH = {
     boundary: 1.1,
     /** Added to effective batting skill once fully set. */
     skill: 0.1,
+  },
+
+  /**
+   * White-ball cricket, where the first-class values made innings far too
+   * swingy: 12% of T20 first innings under 100 and a third over 200 between
+   * evenly matched sides (real T20: a few percent under 100). A new batter in
+   * a T20 or one-dayer comes in with licence to play, and one wicket does not
+   * so readily bring the next.
+   */
+  limitedOvers: {
+    collapseWicket: 0.07,
+    newBatterWicket: 0.45,
+    /**
+     * A higher floor on the wicket chance: even a set batter in a one-dayer
+     * is taking risks, which is why real ODI hundreds are rarer than the
+     * engine made them (7-8% of innings, against about 4-5%).
+     */
+    wicketFloor: 0.62,
+    /** A set batter's wicket chance, against the first-class 0.7. */
+    setBatterWicket: 0.84,
+    /**
+     * Wides: a wide line is called far more tightly in white-ball cricket
+     * (real T20s give away about 8 extras an innings, mostly wides).
+     */
+    wideScale: { T20: 2.4, ODI: 1.5 } as Record<string, number>,
+    /** Hard running between the wickets: run-outs are ~7% of white-ball dismissals. */
+    runOutScale: { T20: 3, ODI: 1.6 } as Record<string, number>,
   },
 
   /** How a new batter plays before they are set. */
@@ -911,7 +996,13 @@ export const MATCH = {
      * not yet in, on a hard pitch, against a better bowler, and for a batter
      * without the temperament for it; raw power makes it safer.
      */
-    risk: { unsettled: 0.6, pitch: 0.5, bowler: 0.2, temperament: 0.3, power: 0.12 },
+    risk: { unsettled: 0.6, pitch: 0.5, bowler: 0.2, temperament: 0.3, power: 0.12, inTheZone: 0.35 },
+    /**
+     * "In the zone": runs on the board make attacking safer, as much as balls
+     * faced do. 0 at `from` runs, fully in the zone `span` runs later.
+     * Limited-overs only, where a set batter has to go and win it.
+     */
+    zone: { from: 20, span: 40 },
     /** A powerful batter gets more boundaries out of attacking. */
     powerReward: 0.12,
     /** Share of Very Aggressive shots that go in the air. */
@@ -939,7 +1030,7 @@ export const MATCH = {
    * a bowler's normal game, and every multiplier is 1 there.
    */
   bowlingAggression: {
-    wicket: [0.55, 0.78, 1, 1.25, 1.6],
+    wicket: [0.45, 0.74, 1, 1.12, 1.3],
     boundary: [0.58, 0.78, 1, 1.35, 1.9],
     dot: [1.4, 1.17, 1, 0.85, 0.68],
     wide: [0.6, 0.8, 1, 1.2, 1.55],
@@ -1090,7 +1181,9 @@ export const MATCH = {
 
   /** Multi-day structure. */
   multiDay: {
+    /** First-class matches (Ranji, Duleep...) are four days; Tests are five. */
     days: 4,
+    testDays: 5,
     oversPerDay: 90,
     sessionsPerDay: 3,
     oversPerSession: 30,

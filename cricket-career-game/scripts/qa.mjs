@@ -108,9 +108,18 @@ async function answerQuestions() {
   }
 }
 
+let newsShot = false;
 /** Continue until the clock stops for a match (or a number of weeks passes). */
 async function continueToMatch(maxWeeks = 30) {
   for (let i = 0; i < maxWeeks; i += 1) {
+    // Selection news opens step by step after Continue: capture it once, then close it.
+    if (await page.getByRole('dialog', { name: 'Selection news' }).isVisible().catch(() => false)) {
+      if (!newsShot) {
+        newsShot = true;
+        await snap('selection-news');
+      }
+      await click(/^Skip$|Back to the career/, { optional: true, timeout: 1500 });
+    }
     if (await visible(/Match day: play/)) return true;
     if (await visible(/Trial day: attend/)) {
       await click(/Coach decides/);
@@ -177,7 +186,10 @@ try {
   step = 'new';
   await page.goto(`${BASE}/new?slot=1`);
   await page.waitForLoadState('networkidle');
-  await page.fill('#firstName', 'Arjun');
+  // Type rather than fill, once the form is up, so React sees every key.
+  await page.locator('#firstName').waitFor({ state: 'visible' });
+  await page.waitForTimeout(500);
+  await page.locator('#firstName').pressSequentially('Arjun');
   await page.fill('#lastName', 'Varadan');
   await snap('new-career-1-details');
   await click(/^Next$/);

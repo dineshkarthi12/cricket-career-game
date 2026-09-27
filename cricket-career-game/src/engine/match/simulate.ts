@@ -3,7 +3,7 @@
  * handling the toss, innings order, multi-day days and declarations, the
  * follow-on, rain and DLS, draws, ties and a super over.
  */
-import { MATCH, MATCH_FORMATS } from '../config';
+import { MATCH, MATCH_FORMATS, matchDaysFor } from '../config';
 import { newId } from '../id';
 import { createPitch, createWeather, newBall } from './conditions';
 import { hasResult, revisedTarget } from './dls';
@@ -150,7 +150,7 @@ export function simulateMatch(setup: MatchSetup): MatchSimulation {
     format: setup.format,
     stage: setup.stage,
     date: setup.date,
-    days: isLimitedOvers(setup.format) ? 1 : MATCH.multiDay.days,
+    days: isLimitedOvers(setup.format) ? 1 : matchDaysFor(setup.format),
     venueId: setup.venue.id,
     homeTeamId: setup.homeTeamId,
     awayTeamId: setup.awayTeamId,
@@ -230,6 +230,7 @@ function playLimitedOvers(ctx: PlayContext): PlayOutcome {
       batting: ctx.xiOf(ctx.battingFirstTeamId),
       bowling: ctx.xiOf(bowlingFirstTeamId),
       format: setup.format,
+      tournamentId: setup.tournamentId,
       venue: setup.venue,
       conditions: ctx.conditions,
       oversAvailable: firstInningsOvers,
@@ -284,6 +285,7 @@ function playLimitedOvers(ctx: PlayContext): PlayOutcome {
       batting: ctx.xiOf(bowlingFirstTeamId),
       bowling: ctx.xiOf(ctx.battingFirstTeamId),
       format: setup.format,
+      tournamentId: setup.tournamentId,
       venue: setup.venue,
       conditions: first.conditions,
       oversAvailable: secondInningsOvers,
@@ -407,8 +409,8 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
   // into the time available for a result, which is why first-class cricket
   // draws as often as it does.
   const rng = ctx.rng;
-  let oversLost = cfg.days * cfg.slowOverRatePerDay;
-  for (let day = 1; day <= cfg.days; day += 1) {
+  let oversLost = matchDaysFor(setup.format) * cfg.slowOverRatePerDay;
+  for (let day = 1; day <= matchDaysFor(setup.format); day += 1) {
     const wet = ctx.conditions.weather.rainRisk / 100;
     if (rng.chance(cfg.washoutChance + wet * 0.35)) {
       oversLost += cfg.oversPerDay * rng.range(0.55, 1);
@@ -419,7 +421,7 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
 
   const maxBalls = Math.max(
     cfg.oversPerDay * 6,
-    Math.floor((cfg.days * cfg.oversPerDay - oversLost) * 6),
+    Math.floor((matchDaysFor(setup.format) * cfg.oversPerDay - oversLost) * 6),
   );
   let ballsUsed = 0;
   let day = 1;
@@ -444,6 +446,7 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
         batting: ctx.xiOf(battingTeamId),
         bowling: ctx.xiOf(bowlingTeamId),
         format: setup.format,
+        tournamentId: setup.tournamentId,
         venue: setup.venue,
         conditions,
         basePitch: ctx.conditions.pitch,
@@ -458,7 +461,7 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
       createRng(deriveSeed(setup.seed, number)),
     );
     ballsUsed += result.innings.balls;
-    day = Math.min(cfg.days, 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
+    day = Math.min(matchDaysFor(setup.format), 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
     conditions = result.conditions;
     innings.push(result.innings);
     partnerships.push(result.partnerships);

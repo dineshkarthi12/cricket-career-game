@@ -1327,3 +1327,133 @@ Tests: 577 pass. Two test adjustments: the development test compares
 potential 84+ with 74- (the old "68 or less" group no longer exists), and the
 fast-sim check for even first-class sides allows 0.2 (only ~55 of 80 matches
 are decided).
+
+### Commentary highlights, the road to selection, and carrying an innings
+
+**Commentary highlights.** The ball-by-ball feed was plain text with a
+coloured edge. Now (`lib/highlights.ts`, derived from the log, so older
+saves get it too):
+- every ball has a scorer's chip: `•`, 1-3, **4** (green), **6** (gold),
+  **W** (red), `wd` / `nb` / `lb` / `b`; fours, sixes and wickets are bold;
+- banners for the big moments: a batter's FIFTY / HUNDRED / 150+ (with balls,
+  fours and sixes), FIVE-FOR, HAT-TRICK, the team's 100 / 150 / 200...,
+  50 / 100 partnerships; wicket lines give the score (e.g. "Kerala 112/4");
+- an "End of over" strip with the over's runs and the score;
+- a **Highlights** filter (only 4s, 6s, wickets, drops and milestones);
+- on the ground during play, a banner pops up for two seconds: FOUR!, SIX!,
+  OUT!, FIFTY!, HUNDRED!, FIVE-FOR!, HAT-TRICK! (gold ring when it is you).
+
+**Road to selection.** The Home "Next Match" card used to show the state
+side's next Ranji / Vijay Hazare game even when the player was not picked,
+while Continue (correctly) skips those - so the matches looked "missing".
+The Next Match card now shows only a match the player is in (the one
+Continue stops at); the Upcoming Schedule marks the side's other games
+"not picked, played without you". A new **Road to selection** card on Home
+(`engine/career/journey.ts`) shows, per competition, six steps - Scouted,
+Shortlisted, Trial, Squad, Playing XI, Regular - with the step in play
+highlighted and explained, where the selectors rank you among your role
+group (XI and squad cut-offs), the scouts' report (figures, form, trust,
+OVR), the next selection event and the next match (you play / without you).
+After Continue, any selection news opens a four-step **Selection news**
+walk-through: the scouts' report -> the selectors' meeting and your rank ->
+the verdict (green / red) -> the road ahead.
+
+**Carrying an innings.**
+- Bug: the set batter shielding the tail did it backwards (took the single
+  early in the over and refused it off the last ball), handing the strike to
+  the tail. Fixed: no single early in the over (two where he can), one off
+  the last ball; a turned-down single does not count as dot-ball pressure.
+- New batting option **Carry the innings - farm the strike**: once set, the
+  player keeps the strike; while they are at the other end their partner
+  plays safe (at most level 3) and works the single to give it back.
+- Limited-overs only: a set batter is "in the zone" - runs on the board make
+  attacking safer as well as balls faced (`aggression.zone`, `risk.inTheZone`),
+  and a collapse at the other end hurts the new batters, not the set one as
+  much (`momentum.collapseSetShare`). First-class keeps its balance (farming
+  strength 0.4 there; draw rate unchanged).
+- Measured: a 62-rated side chasing 175 against a 66-rated attack wins 37%
+  (was 31%); the player on 50+ at level 4 is out every ~35 balls (was ~32).
+
+Tests: 8 new (highlights, the journey, farming the strike, the Next Match
+card); 585 pass.
+
+### Realism pass - white-ball scores, extras, run-outs; two fixes
+
+Measured against real cricket (evenly matched sides, 400-600 matches):
+
+| | before | now | real cricket |
+|---|---|---|---|
+| T20 1st innings | 172, sd 52 | 171, sd 41 | IPL ~180, SMAT ~160 |
+| T20 under 100 / 200+ | 10% / 32% | 5% / 25% | a few % / 15-30% |
+| T20 extras per innings | 3.7 | 6.5 | ~8 |
+| Run-outs (T20 / ODI) | 2% / 4% | 7% / 7% | ~7% |
+| ODI 1st innings, 350+ | 283, 20% | 281, 12% | 280-300, ~10-15% |
+| One-day (Vijay Hazare) | - | 267 | 270-290 |
+| First-class | 291, 37% draws | unchanged | 300-320, 35-45% draws |
+
+What changed (`config.ts` -> `MATCH.limitedOvers`, white-ball only):
+- a collapse brings the next wicket less readily, and a new batter walks in
+  with licence to play (T20 innings were far too swingy);
+- a T20 lower order keeps swinging instead of "batting the overs out" at
+  seven down, and T20 tailenders no longer block (`t20WicketAllowance`);
+- a slightly higher wicket floor and a smaller set-batter bonus (fewer
+  runaway partnerships), wides called tighter, harder running between the
+  wickets; T20 and one-day boundary rates retuned so the averages hold;
+- the fast sim (the AI-vs-AI matches) was 7-11% below the engine; T20 and
+  one-day now within 4-7%.
+The career player at #3 in full matches: T20 level 3 about SR 145, one-day
+level 3 average ~46 / SR 89, first-class level 3 average ~42 / SR 55. The
+balance tests now also cap the tails (T20 under 100 < 9%, 200+ < 30%, ODI
+400+ < 5%) and require real white-ball run-outs.
+
+Fixes:
+- The flaky "respected captain" test was a timeout, not a logic bug: it
+  built the demo career 60 times (4.3 s against a 5 s limit), so it failed
+  when the suite ran in parallel. It builds it once and clones it now.
+- `npm run qa` typed the player's name before the form was ready (the
+  name was lost and the run stopped at "Start career"); it waits and types
+  now, and closes the selection-news walk-through.
+
+### The modern game, by competition - and the bowler's and all-rounder's side
+
+**Scoring by competition** (`COMPETITION_SCORING` / `scoringProfile` in
+`config.ts`, passed to every delivery through `InningsSetup.tournamentId`).
+Evenly matched sides, first innings:
+
+| | average | big totals | run rate | bowling |
+|---|---|---|---|---|
+| IPL | 191 | 200+ in 48%, 250+ in 8% | 9.7 | econ 9.7, avg 30 |
+| Mushtaq Ali / T20I | 178-180 | 200+ in ~32% | 9.0 | econ 9.0, avg 27 |
+| ODI | 287 | 350+ in 22%, 400+ in 5% | 6.1 | econ 6.0, avg 39 |
+| Vijay Hazare | 274 | 350+ in 11% | 5.8 | econ 5.7 |
+| Test | 301 | 450+ in 15% | 3.4 | avg 33, SR 61; 7-14% draws |
+| Ranji | 289 | 450+ in 9% | 3.0 | avg 30, SR 63; 35% draws |
+
+- Bug: Tests were played over four days (the first-class length). They are
+  five now (`matchDaysFor`), with a modern Test tempo (faster scoring, more
+  wickets) - draws went from 50% to about 10%.
+- The fast sim (AI-vs-AI matches) follows the same profiles (`quickTempo`)
+  and stays within ~5% of the engine in every competition.
+
+**The bowler's side.** Bowling aggression 5 used to be the best at
+everything (Ranji: average 22 at level 5 against 31 at level 3), so there
+was no reason to pick anything else. Now it is a trade - a T20 seamer:
+level 1 economy 5.8 / SR 27, level 3 7.9 / 18, level 5 11.0 / 14, and the
+average is no better at level 5 (`bowlingAggression.wicket`).
+
+**Highlights for bowlers and all-rounders.**
+- Commentary: THREE-FOR and MAIDEN moments, the bowler's figures on every
+  end-of-over strip (e.g. "Starc 3-0-24-1", yours in gold), and the
+  ALL-ROUND SHOW banner when a player has 50 runs and 3 wickets in the match
+  (counting earlier innings). Your moments carry a YOU tag; the ground
+  banner shows your maidens too.
+- A **Match highlights** reel on the post-match screen and every scorecard:
+  fifties and hundreds (with SR), three-fors and five-fors, tight spells,
+  hat-tricks, the all-round double (or 30 runs + 2 wickets), and your line
+  always; filters All / Batting / Bowling / Yours. Built from the
+  scorecards, so archived matches have it too.
+- The scouts' report judges batters on runs, bowlers on wickets, average
+  and economy, and all-rounders on both.
+
+Tests: 7 new (competition scoring, Test length, the bowling trade-off,
+maidens / three-fors / all-round doubles); 592 pass.

@@ -166,6 +166,46 @@ body {
   }
 }
 
+/* A verdict sliding in. */
+@keyframes moment-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-moment-in {
+  animation: moment-in 0.45s ease-out both;
+}
+
+/* The big-moment banner over the ground: SIX!, OUT!, FIFTY! */
+@keyframes moment-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.08);
+  }
+  22% {
+    transform: translateX(-50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1);
+  }
+}
+.animate-moment-pop {
+  animation: moment-pop 2.2s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [class*='animate-'],
   .ground-animated * {

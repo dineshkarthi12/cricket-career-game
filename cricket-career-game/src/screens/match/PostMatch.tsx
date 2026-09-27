@@ -31,6 +31,7 @@ import type { CaptaincyState, Player, Venue } from '@/types';
 import { BATTING_LEVELS, BOWLING_LEVELS } from './controls/AggressionBar';
 import { Manhattan, WagonWheelPanel, Worm, chartInnings } from './panels/MatchCharts';
 import { Scorecard } from './panels/Scorecard';
+import { MatchHighlights } from './panels/MatchHighlights';
 
 export function PostMatch({
   after,
@@ -232,6 +233,8 @@ export function PostMatch({
           </Card>
         ) : null}
       </div>
+
+      <MatchHighlights match={match} teamNameOf={teamNameOf} userId={player.id} />
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Card>

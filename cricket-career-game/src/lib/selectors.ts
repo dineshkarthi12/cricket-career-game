@@ -71,9 +71,12 @@ export function upcomingFixtures(state: GameState, limit = 5): Fixture[] {
     .slice(0, limit);
 }
 
-/** The next fixture that is an actual match, for the Next Match card. */
+/**
+ * The player's own next match, for the Next Match card: one the Continue
+ * button will stop for. Their side's games they are not picked for are not it.
+ */
 export function nextMatchFixture(state: GameState): Fixture | null {
-  return upcomingFixtures(state, 50).find((fixture) => fixture.kind === 'MATCH') ?? null;
+  return upcomingFixtures(state, 50).find((fixture) => fixture.kind === 'MATCH' && fixture.involvesUser) ?? null;
 }
 
 /** Most recently completed match, for the Recent Match card. */

@@ -1,10 +1,14 @@
 [fast-forward demo-pro] This slot now holds the demo professional career, aged 10.
-[fast-forward Senior state debut] Fast-forwarded 686 weeks: Senior State Team, age 21.
-[fast-forward IPL auction or contract] Fast-forwarded 282 weeks: International Star, age 26.
-[fast-forward India cap] Fast-forwarded 85 weeks: International Star, age 27.
-[fast-forward ICC event] Fast-forwarded 25 weeks: International Star, age 27.
-[fast-forward Leadership offer] Fast-forwarded 80 weeks: International Star, age 29.
-[fast-forward Age 36] Stopped after 156 weeks: a decision is waiting in the inbox.
-[fast-forward Age 36] Stopped after 72 weeks: a decision is waiting in the inbox.
-[fast-forward Age 36] Stopped after 119 weeks: a decision is waiting in the inbox.
-[fast-forward Age 36] Fast-forwarded 94 weeks: International Star, age 36.
+[fast-forward Senior state debut] Fast-forwarded 575 weeks: Senior State Team, age 19.
+[fast-forward IPL auction or contract] Fast-forwarded 162 weeks: Establish India Career, age 21.
+[fast-forward India cap] Fast-forwarded 42 weeks: ICC Tournaments, age 22.
+[fast-forward ICC event] Stopped after 55 weeks: a decision is waiting in the inbox.
+[fast-forward ICC event] Stopped after 186 weeks: a decision is waiting in the inbox.
+[fast-forward ICC event] Fast-forwarded 31 weeks: International Star, age 26.
+[fast-forward Leadership offer] Fast-forwarded 39 weeks: International Star, age 27.
+[fast-forward Age 36] Stopped after 253 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Stopped after 62 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Stopped after 40 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Stopped after 22 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Stopped after 44 weeks: a decision is waiting in the inbox.
+[fast-forward Age 36] Fast-forwarded 116 weeks: International Star, age 36.

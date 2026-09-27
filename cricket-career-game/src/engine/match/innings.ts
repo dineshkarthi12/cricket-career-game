@@ -7,7 +7,7 @@
  * over `stepBall`; the live controller calls it one ball at a time and can
  * feed in the player's own decisions through `BallOverrides`.
  */
-import { MATCH, MATCH_FORMATS } from '../config';
+import { MATCH, MATCH_FORMATS, scoringProfile } from '../config';
 import { newId } from '../id';
 import { ageBall, deterioratePitch, dewLevel, phaseFor } from './conditions';
 import { chooseApproach, chooseBowler, choosePlan, runRatePressure, type Situation } from './ai';
@@ -55,6 +55,8 @@ export interface InningsSetup {
   batting: SimPlayer[];
   bowling: SimPlayer[];
   format: MatchFormat;
+  /** The competition, for its scoring profile (the IPL scores more than a Ranji side). */
+  tournamentId?: string;
   venue: Venue;
   conditions: MatchConditions;
   /** Overs available, or null for unlimited. */
@@ -125,6 +127,12 @@ export interface BallOverrides {
   leave?: boolean;
   /** Work the ball into gaps rather than look for boundaries. */
   rotate?: boolean;
+  /**
+   * Carry the innings: once set, the player keeps the strike (no single early
+   * in the over, one off the last ball), and while they are at the other end
+   * their partner plays safe and works the single to give it back.
+   */
+  farmStrike?: boolean;
   /**
    * In career mode the player controls one batter and one bowler. When set,
    * the batting decisions above (intent, direction, leave, rotate) apply only
@@ -539,10 +547,18 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     setup.oversAvailable === null ? null : Math.max(0, state.maxBalls - state.legalBalls);
 
   const partnerIsTail = nonStriker.battingPosition >= MATCH.batting.tailFromWicket + 2;
+  const strikerIn = (state.ballsFaced[striker.id] ?? 0) > MATCH.newBatter.settleBalls;
+  // The career player carrying the innings: keeping the strike themselves, or
+  // (from the other end) having their partner hand it back.
+  const carrying = Boolean(overrides?.farmStrike && overrides.battingFor);
+  const userOnStrike = carrying && overrides!.battingFor === striker.id;
+  const feedingStrike =
+    carrying &&
+    overrides!.battingFor === nonStriker.id &&
+    (state.ballsFaced[nonStriker.id] ?? 0) > MATCH.newBatter.settleBalls;
   const farmingStrike =
-    partnerIsTail &&
-    striker.battingPosition < MATCH.batting.tailFromWicket + 2 &&
-    (state.ballsFaced[striker.id] ?? 0) > MATCH.newBatter.settleBalls;
+    (userOnStrike && strikerIn) ||
+    (partnerIsTail && striker.battingPosition < MATCH.batting.tailFromWicket + 2 && strikerIn);
 
   const situation: Situation = {
     format: setup.format,
@@ -598,6 +614,10 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     }
     if (overrides.targetBowlerId && overrides.targetBowlerId === bowler.id) level += 1;
     approach = level === aiApproach.level ? aiApproach : byLevel(level);
+  }
+  // A partner giving the strike back to the set career player plays safe.
+  if (feedingStrike && captainLevel === undefined && approach.level > MATCH.batting.feedStrikeMaxLevel) {
+    approach = byLevel(MATCH.batting.feedStrikeMaxLevel);
   }
 
   // Bowling aggression: the player's own, a captain's call, or the neutral 3.
@@ -662,6 +682,8 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
       consecutiveDots: situation.consecutiveDots,
       strikerRuns: situation.strikerRuns,
       farmingStrike,
+      feedingStrike,
+      scoring: scoringProfile(setup.tournamentId),
       recentWickets: state.wicketBalls.filter((b) => state.legalBalls - b <= MATCH.momentum.window)
         .length,
       partnershipBalls: state.partnershipBalls,
@@ -762,6 +784,7 @@ export function estimateRisk(
     consecutiveDots: state.dotStreak[striker.id] ?? 0,
     strikerRuns: state.battingLines.get(striker.id)?.runs ?? 0,
     farmingStrike: false,
+    scoring: scoringProfile(setup.tournamentId),
     partnershipBalls: state.partnershipBalls,
     spellOvers: state.spellOvers[bowler.id] ?? 1,
     oversBowled: overNumber,
@@ -926,7 +949,9 @@ function applyOutcome(
 
   if (outcome.isLegalDelivery) {
     const scored = outcome.runsOffBat + extraRuns;
-    state.dotStreak[striker.id] = scored === 0 ? (state.dotStreak[striker.id] ?? 0) + 1 : 0;
+    // A single turned down to keep the strike is a choice, not a batter stuck.
+    const heldStrike = prepared.context.farmingStrike && outcome.shot !== null && outcome.contactQuality >= MATCH.aggression.falseShotContact;
+    state.dotStreak[striker.id] = scored === 0 && !heldStrike ? (state.dotStreak[striker.id] ?? 0) + 1 : scored === 0 ? (state.dotStreak[striker.id] ?? 0) : 0;
     state.legalBalls += 1;
     state.ballsThisOver += 1;
     bowlLine.balls += 1;

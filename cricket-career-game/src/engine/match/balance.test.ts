@@ -46,6 +46,11 @@ describe('balance', () => {
       expect(s.max).toBeGreaterThan(235);
       expect(report.tails['under 100']).toBeGreaterThan(0.02);
       expect(report.tails['over 200']).toBeGreaterThan(0.06);
+      // ...but neither too often: this harness pairs sides up to 20 points
+      // apart, and still a sub-100 total or a 200 is not an every-week thing.
+      expect(report.tails['under 100']).toBeLessThan(0.09);
+      expect(report.tails['over 200']).toBeLessThan(0.3);
+      expect(s.stdDev).toBeLessThan(50);
     },
     TIMEOUT,
   );
@@ -75,6 +80,8 @@ describe('balance', () => {
       expect(s.max).toBeGreaterThan(400);
       expect(report.tails['under 150']).toBeGreaterThan(0.02);
       expect(report.tails['over 350']).toBeGreaterThan(0.05);
+      expect(report.tails['over 350']).toBeLessThan(0.2);
+      expect(report.tails['over 400']).toBeLessThan(0.05);
     },
     TIMEOUT,
   );
@@ -184,8 +191,9 @@ describe('balance', () => {
         expect(caught, `${report.format}: caught should lead`).toBeGreaterThan(bowled);
         expect(bowled, `${report.format}: bowled should beat lbw`).toBeGreaterThan(lbw);
         expect(lbw, `${report.format}: lbw should be a real share`).toBeGreaterThan(0.04);
-        // Run-outs are a small minority everywhere.
+        // Run-outs are a small minority everywhere, but a real one in white-ball cricket.
         expect(d.RUN_OUT ?? 0).toBeLessThan(0.1);
+        if (report.format !== 'MULTI_DAY') expect(d.RUN_OUT ?? 0).toBeGreaterThan(0.04);
         expect(d.HIT_WICKET ?? 0).toBeLessThan(0.02);
       }
     },

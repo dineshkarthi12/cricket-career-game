@@ -143,6 +143,18 @@ describe('bowling aggression', () => {
     expect(attack.runsPerBall).toBeGreaterThan(contain.runsPerBall * 1.15);
   }, 60_000);
 
+  it('is a trade, not a free lunch: attacking does not buy cheaper wickets', () => {
+    const [contain, neutral, attack] = [1, 3, 5].map((level) => measure('T20', { bowlingAggression: level }, 60));
+    const average = (r: typeof neutral) => r.runsPerBall / r.wicketShare;
+    // Economy climbs and wickets come quicker with every step...
+    expect(attack.runsPerBall).toBeGreaterThan(neutral.runsPerBall * 1.2);
+    expect(contain.runsPerBall).toBeLessThan(neutral.runsPerBall * 0.85);
+    expect(attack.wicketShare).toBeGreaterThan(neutral.wicketShare);
+    expect(contain.wicketShare).toBeLessThan(neutral.wicketShare);
+    // ...but all-out attack's runs per wicket is no bargain.
+    expect(average(attack)).toBeGreaterThan(average(neutral) * 0.9);
+  }, 120_000);
+
   it('records the level on every ball bowled away from the neutral 3', () => {
     const state = createInningsState(setupFor(5, 'T20'));
     const rng = createRng(5);

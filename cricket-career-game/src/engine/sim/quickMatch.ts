@@ -6,7 +6,7 @@
  * per-format constants calibrated against it (`quickMatch.test.ts`), and no
  * deliveries.
  */
-import { MATCH, QUICK_SIM } from '../config';
+import { MATCH, QUICK_SIM, scoringProfile } from '../config';
 import { createRng, type Rng } from '../match/rng';
 import { conditionMultiplier, normalise } from '../match/skill';
 import { createPitch, createWeather, newBall } from '../match/conditions';
@@ -184,6 +184,8 @@ function playInnings(
   ease: number,
   rng: Rng,
   limits: { balls: number | null; target: number | null; declareAt: number | null },
+  /** The competition's scoring rate against its format (the IPL goes faster). */
+  srScale = 1,
 ): InningsPlay {
   const cfg = QUICK_SIM[format];
   const attack = attackOf(bowling, format);
@@ -208,7 +210,7 @@ function playInnings(
     const edge = battingAbility(batter) - attack.ability;
     const positionShare = cfg.position[Math.min(10, i)];
     const mean = cfg.average * positionShare * Math.exp(QUICK_SIM.skillK[format] * edge) * ease * dayForm;
-    const strikeRate = Math.max(15, cfg.strikeRate * (0.85 + positionShare * 0.15) * (1 + edge * QUICK_SIM.srK));
+    const strikeRate = Math.max(15, cfg.strikeRate * srScale * (0.85 + positionShare * 0.15) * (1 + edge * QUICK_SIM.srK));
     // Heavy-tailed: many small scores, the odd big one.
     let score = Math.floor(-mean * Math.log(1 - rng.next() * 0.9999));
     let faced = Math.max(1, Math.round((score * 100) / strikeRate + rng.spread() * 3));
@@ -359,13 +361,28 @@ export function matchRating(
   return Math.max(MATCH.aftermath.ratingFloor, Math.min(MATCH.aftermath.ratingCeiling, Number(raw.toFixed(1))));
 }
 
+/**
+ * How much faster (and how much bigger) a competition scores than its format's
+ * base: the IPL and international cricket from their scoring profile, and a
+ * Test from its quicker five-day tempo.
+ */
+export function quickTempo(format: MatchFormat, tournamentId: string): { average: number; strikeRate: number } {
+  const p = scoringProfile(tournamentId);
+  const k = QUICK_SIM.profileK;
+  const pace = 1 + k.four * (p.four - 1) + k.six * (p.six - 1) + k.dot * (1 - p.dot);
+  const survive = 1 + k.wicket * (1 - p.wicket);
+  const test = format === 'TEST' ? QUICK_SIM.testTempo : { average: 1, strikeRate: 1 };
+  return { average: pace * survive * test.average, strikeRate: pace * test.strikeRate };
+}
+
 /** Play a match to a result, fast. */
 export function quickMatch(setup: QuickMatchSetup): QuickMatchResult {
   const rng = createRng(setup.seed);
   const key = formatKey(setup.format);
   const pitch = createPitch(rng, setup.venue);
   const weather = createWeather(rng, Number(setup.date.slice(5, 7)), setup.region);
-  const ease = 0.82 + (pitch.battingEase / 100) * 0.36;
+  const tempo = quickTempo(setup.format, setup.tournamentId);
+  const ease = (0.82 + (pitch.battingEase / 100) * 0.36) * tempo.average;
   const batFirstHome = rng.chance(0.5);
   const first = batFirstHome ? setup.homeXi : setup.awayXi;
   const second = batFirstHome ? setup.awayXi : setup.homeXi;
@@ -379,7 +396,7 @@ export function quickMatch(setup: QuickMatchSetup): QuickMatchResult {
   const subs: SimPlayer[] = [];
   if (key !== 'MULTI_DAY') {
     const balls = (OVERS[key] ?? 50) * 6;
-    const one = playInnings(1, first, second, firstId, secondId, key, ease, rng, { balls, target: null, declareAt: null });
+    const one = playInnings(1, first, second, firstId, secondId, key, ease, rng, { balls, target: null, declareAt: null }, tempo.strikeRate);
     const target = one.innings.runs + 1;
     // Impact substitutes: a bowler in for the side that batted, a batter for the chasers.
     let bowlSecond = first;
@@ -394,7 +411,7 @@ export function quickMatch(setup: QuickMatchSetup): QuickMatchResult {
       if (a.sub) subs.push(a.sub);
       if (b.sub) subs.push(b.sub);
     }
-    const two = playInnings(2, batSecond, bowlSecond, secondId, firstId, key, ease, rng, { balls, target, declareAt: null });
+    const two = playInnings(2, batSecond, bowlSecond, secondId, firstId, key, ease, rng, { balls, target, declareAt: null }, tempo.strikeRate);
     plays.push(one, two);
     const a = one.innings.runs;
     const b = two.innings.runs;
@@ -411,9 +428,9 @@ export function quickMatch(setup: QuickMatchSetup): QuickMatchResult {
     const spend = (p: InningsPlay) => {
       oversLeft -= p.innings.balls / 6;
     };
-    const one = playInnings(1, first, second, firstId, secondId, key, ease, rng, { balls: null, target: null, declareAt: QUICK_SIM.MULTI_DAY.declareFirst });
+    const one = playInnings(1, first, second, firstId, secondId, key, ease, rng, { balls: null, target: null, declareAt: QUICK_SIM.MULTI_DAY.declareFirst }, tempo.strikeRate);
     spend(one);
-    const two = playInnings(2, second, first, secondId, firstId, key, ease, rng, { balls: Math.max(6, Math.round(oversLeft * 6)), target: null, declareAt: one.innings.runs + QUICK_SIM.MULTI_DAY.declareLead });
+    const two = playInnings(2, second, first, secondId, firstId, key, ease, rng, { balls: Math.max(6, Math.round(oversLeft * 6)), target: null, declareAt: one.innings.runs + QUICK_SIM.MULTI_DAY.declareLead }, tempo.strikeRate);
     spend(two);
     plays.push(one, two);
     firstInningsLeadTeamId = one.innings.runs >= two.innings.runs ? firstId : secondId;
@@ -425,14 +442,14 @@ export function quickMatch(setup: QuickMatchSetup): QuickMatchResult {
       const leader = firstLead >= 0 ? { xi: first, id: firstId, opp: second, oppId: secondId } : { xi: second, id: secondId, opp: first, oppId: firstId };
       const lead = Math.abs(firstLead);
       const declareAt = Math.max(60, QUICK_SIM.MULTI_DAY.fourthInningsTarget - lead);
-      const three = playInnings(3, leader.xi, leader.opp, leader.id, leader.oppId, key, ease, rng, { balls: Math.max(6, Math.round((oversLeft - QUICK_SIM.MULTI_DAY.leaveForFourth) * 6)), target: null, declareAt });
+      const three = playInnings(3, leader.xi, leader.opp, leader.id, leader.oppId, key, ease, rng, { balls: Math.max(6, Math.round((oversLeft - QUICK_SIM.MULTI_DAY.leaveForFourth) * 6)), target: null, declareAt }, tempo.strikeRate);
       spend(three);
       plays.push(three);
       const need = lead + three.innings.runs + 1;
       if (oversLeft < 8) {
         result = draw();
       } else {
-        const four = playInnings(4, leader.opp, leader.xi, leader.oppId, leader.id, key, ease, rng, { balls: Math.max(6, Math.round(oversLeft * 6)), target: need, declareAt: null });
+        const four = playInnings(4, leader.opp, leader.xi, leader.oppId, leader.id, key, ease, rng, { balls: Math.max(6, Math.round(oversLeft * 6)), target: need, declareAt: null }, tempo.strikeRate);
         plays.push(four);
         if (four.innings.runs >= need) result = win(leader.oppId, `won by ${10 - four.innings.wickets} wickets`, null, 10 - four.innings.wickets);
         else if (four.innings.allOut) result = win(leader.id, `won by ${need - 1 - four.innings.runs} runs`, need - 1 - four.innings.runs, null);

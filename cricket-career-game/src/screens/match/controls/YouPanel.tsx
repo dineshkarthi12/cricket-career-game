@@ -12,7 +12,7 @@ import type { LiveSnapshot } from '@/engine/match/live';
 import type { SimPlayer } from '@/engine/match/types';
 import type { BallIntent, PlayerDecisions } from '@/store/matchStore';
 import { AggressionBar } from './AggressionBar';
-import { BattingControls } from './BattingControls';
+import { BattingControls, CarryToggle } from './BattingControls';
 import { BowlingControls } from './BowlingControls';
 
 export interface YouPanelProps {
@@ -92,6 +92,8 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
           onShotPreference={(shotPreference) => props.onDecisions({ shotPreference })}
           onSimOver={props.onSimOver}
           onSimUntilOut={props.onSimUntilOut}
+          farmStrike={decisions.farmStrike}
+          onFarmStrike={(farmStrike) => props.onDecisions({ farmStrike })}
           disabled={busy}
         />
       ) : i.bowling ? (
@@ -128,6 +130,9 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
                 risk={props.risk}
                 onChange={(batting) => batting !== null && props.onDecisions({ batting })}
               />
+              {i.atCrease ? (
+                <CarryToggle compact on={decisions.farmStrike} onChange={(farmStrike) => props.onDecisions({ farmStrike })} />
+              ) : null}
               <AggressionBar
                 compact
                 label="Bowling aggression"

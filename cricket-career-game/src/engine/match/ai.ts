@@ -71,8 +71,11 @@ export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng
     // Acceleration depends on what you have left in the shed, not just the
     // clock: three down at fifteen overs of a T20 is a green light, seven
     // down is not.
-    const goFrom = accelerationPoint(situation.wicketsLost);
-    if (goFrom !== null && share >= goFrom) level += share >= 0.9 ? 2 : 1;
+    // In a T20 there are only twenty overs to use: even seven down, the
+    // lower order keeps swinging rather than batting the overs out.
+    const t20 = situation.format === 'T20';
+    const goFrom = accelerationPoint(t20 ? Math.max(0, situation.wicketsLost - cfg.t20WicketAllowance) : situation.wicketsLost);
+    if (goFrom !== null && share >= goFrom) level += share >= 0.9 ? cfg.lastOversSurge : 1;
     if (goFrom === null) level -= 1;
 
     if (share < MATCH.powerplayFraction && situation.wicketsLost <= 1) level += 1;
@@ -101,7 +104,7 @@ export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng
   }
 
   // A tailender is not trying to play shots, unless there is nothing to lose.
-  if (isTail && situation.runsRequired === null) level -= cfg.tailIntentDrop;
+  if (isTail && situation.runsRequired === null && situation.format !== 'T20') level -= cfg.tailIntentDrop;
 
   // With the tail in, the recognised batter has to do the scoring.
   if (!isTail && situation.partnerIsTail) level += 1;
