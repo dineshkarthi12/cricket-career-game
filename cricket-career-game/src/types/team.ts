@@ -52,6 +52,12 @@ export interface Team {
   squadSize?: number;
   /** For national sides: the country. */
   nation?: string;
+  /**
+   * Real state sides: the players (ids from `squad`) in each competition's
+   * squad - Ranji, Vijay Hazare and Mushtaq Ali squads differ, and a player
+   * can be in several. A competition without an entry uses the whole squad.
+   */
+  competitionSquads?: Record<Id, Id[]>;
 }
 
 export type TeamNeed =

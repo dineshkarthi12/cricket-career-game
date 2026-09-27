@@ -11,6 +11,7 @@ import { stateInfo } from '@/data/places';
 import { homeVenueFor, sidesFor, teamFromSide, type SideSpec } from '../calendar/sides';
 import { addDays } from '../development/dates';
 import { LEVELS, SENIOR_CLUB, generateSquad, squadStrength, type LevelProfile } from '../world/teams';
+import { fillSquad, realStateSide } from '../world/realSquads';
 import { emptyStanding, rankAll } from './standings';
 import { buildBracket, knockoutDates, roundDates, roundRobin, withLegs } from './schedule';
 import type { Fixture, KnockoutTie, RivalPlayer, Team, TournamentGroup, TournamentStage, TournamentState, Venue } from '@/types';
@@ -92,6 +93,23 @@ export function buildTournament(input: BuildTournamentInput): BuiltTournament {
       // A side from an earlier season keeps its (aged) squad.
       teams.push(existing);
       return existing;
+    }
+    // Senior state sides are real: the Ranji, Vijay Hazare and Mushtaq Ali squads together.
+    const real = structure.side === 'STATE' ? realStateSide(side.name, existing?.id ?? side.id, input.seasonYear) : null;
+    if (real) {
+      const squad = fillSquad(real.squad, 17, { teamId: existing?.id ?? side.id, region: side.stateName, profile, seasonStart, seasonYear: input.seasonYear, rng, strengthOffset: offsetFor(side), taken });
+      const team: Team = {
+        ...(existing ?? teamFromSide(side, venue.id, [meta.format])),
+        squad,
+        strength: squadStrength(squad),
+        isUserTeam: side.isUser,
+        sideKind: structure.side,
+        squadSize: Math.max(17, squad.length),
+        competitionSquads: real.competitionSquads,
+        captainId: real.captainId,
+      };
+      teams.push(team);
+      return team;
     }
     const squad: RivalPlayer[] = generateSquad({
       teamId: existing?.id ?? side.id,

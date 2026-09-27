@@ -9,6 +9,7 @@ import type { Rng } from '../match/rng';
 import { ageOnCutoff } from '../career/eligibility';
 import { LEVELS, SENIOR_CLUB, generateSquad, squadStrength, type LevelProfile } from './teams';
 import { ageRival, seasonRating } from './players';
+import { playerRng, retireAgeOf } from './realPlayers';
 import type { SideKind } from '@/data/schedule';
 import { STATES } from '@/data/places';
 
@@ -66,14 +67,16 @@ export function progressWorld(
   for (const team of Object.values(state.teams)) {
     if (team.squad.length === 0) continue;
     const profile = profileOf(team);
-    const aged = team.squad.map((p) => ageRival(p, seasonStart, seasonYear, rng));
+    // A real cricketer ages on their own random stream, so every copy of them (state, franchise, country) stays the same.
+    const aged = team.squad.map((p) => ageRival(p, seasonStart, seasonYear, p.realId ? playerRng(p.realId, seasonYear) : rng));
     const report = userTeamIds.has(team.id);
     const keep: RivalPlayer[] = [];
 
     for (const p of aged) {
       const limit = profile?.ageLimit ?? null;
       const tooOld = limit !== null && ageOnCutoff(p.dateOfBirth, seasonYear) >= limit;
-      const retires = limit === null && p.age >= 35 && rng.chance(0.25 + (p.age - 35) * 0.12);
+      const realRetire = retireAgeOf(p);
+      const retires = limit === null && (realRetire !== null ? p.age >= realRetire : p.age >= 35 && rng.chance(0.25 + (p.age - 35) * 0.12));
       if (tooOld) {
         const nextName = nextSideName(team);
         const nextId = nextName ? byName.get(nextName) : undefined;
@@ -151,6 +154,13 @@ export function progressWorld(
     }
     const squad = [...team.squad, ...additions];
     teams[team.id] = { ...team, squad, strength: squadStrength(squad) };
+  }
+
+  // Competition squads lose the players who have left (the rest of the side covers, see `competitionMembers`).
+  for (const team of Object.values(teams)) {
+    if (!team.competitionSquads) continue;
+    const present = new Set(team.squad.map((p) => p.id));
+    teams[team.id] = { ...team, competitionSquads: Object.fromEntries(Object.entries(team.competitionSquads).map(([tid, ids]) => [tid, ids.filter((id) => present.has(id))])) };
   }
 
   return { teams, news };

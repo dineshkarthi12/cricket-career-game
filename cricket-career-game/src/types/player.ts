@@ -192,4 +192,6 @@ export interface RivalPlayer {
   capped?: boolean;
   /** IPL salary this season, lakh. */
   salary?: number;
+  /** A real cricketer: their Cricsheet id (`src/data/real`). Every copy of them shares it. */
+  realId?: string;
 }

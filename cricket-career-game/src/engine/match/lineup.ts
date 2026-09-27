@@ -7,6 +7,7 @@
  */
 import { KNOCKOUT_STAGES } from '../career/afterMatch';
 import { emptySeasonLine } from '../world/players';
+import { competitionMembers } from '../world/teams';
 import { computeOverall, formatOverall } from '../ratings';
 import { DIFFICULTY, IPL_RULES } from '../config';
 import { traitSum } from '@/data/traits';
@@ -133,11 +134,12 @@ export function rivalFromSim(sim: SimPlayer, overall: number, seasonYear = 2026)
  * first time it is needed - always from the same seed, so the same career gets
  * the same players every time.
  */
-export function squadFor(state: GameState, teamId: Id): SimPlayer[] {
+export function squadFor(state: GameState, teamId: Id, tournamentId?: string | null): SimPlayer[] {
   const team = state.teams[teamId];
   if (!team) return [];
   if (team.squad.length >= 11) {
-    return team.squad.map((rival) => simFromRival(rival, POSITION_BY_ROLE[rival.role] ?? 8));
+    // A real state side picks from that competition's squad.
+    return competitionMembers(team, tournamentId).map((rival) => simFromRival(rival, POSITION_BY_ROLE[rival.role] ?? 8));
   }
   const rng = createRng(deriveSeed(state.seed, saltOf(teamId)));
   // Ids must be stable: an XI the player picked is stored by id, and a squad
@@ -314,7 +316,7 @@ export function buildMatch(
   };
 
   const buildSide = (teamId: Id): SimPlayer[] => {
-    const squad = squadFor(state, teamId);
+    const squad = squadFor(state, teamId, fixture.tournamentId);
     const isUserSide = teamId === userTeamId;
     let pool = squad;
     if (isUserSide) {
@@ -353,7 +355,7 @@ export function buildMatch(
     const team = state.teams[teamId];
     const inXi = new Set(xi.map((p) => p.id));
     const overseasFull = xi.filter((p) => p.overseas).length >= IPL_RULES.maxOverseasXi;
-    return squadFor(state, teamId).filter((p) => {
+    return squadFor(state, teamId, fixture.tournamentId).filter((p) => {
       const rival = team?.squad.find((r) => r.id === p.id);
       return !inXi.has(p.id) && !(rival?.injuredUntil && rival.injuredUntil >= fixture.date) && !(overseasFull && p.overseas);
     });

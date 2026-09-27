@@ -204,18 +204,22 @@ export const CLUB_NAMES = [
   'Evergreen CC',
 ];
 
-/** Fictional franchises. No real IPL team names. */
-export const FRANCHISE_NAMES: { name: string; short: string; monogram: string; colors: [string, string] }[] = [
-  { name: 'Coromandel Kings', short: 'Coromandel', monogram: 'CK', colors: ['#F5C518', '#1E5EF0'] },
-  { name: 'Deccan Thunder', short: 'Thunder', monogram: 'DT', colors: ['#F59E0B', '#0F1B33'] },
-  { name: 'Gateway Giants', short: 'Giants', monogram: 'GG', colors: ['#1E5EF0', '#F5C518'] },
-  { name: 'Capital Comets', short: 'Comets', monogram: 'CC', colors: ['#E5484D', '#1B2A6B'] },
-  { name: 'Hooghly Hawks', short: 'Hawks', monogram: 'HH', colors: ['#6C3483', '#F5C518'] },
-  { name: 'Garden City Gladiators', short: 'Gladiators', monogram: 'GC', colors: ['#C0392B', '#0F1B33'] },
-  { name: 'Thar Titans', short: 'Titans', monogram: 'TT', colors: ['#E91E63', '#1E5EF0'] },
-  { name: 'Five Rivers Falcons', short: 'Falcons', monogram: 'FR', colors: ['#E5484D', '#C0C0C0'] },
-  { name: 'Sabarmati Strikers', short: 'Strikers', monogram: 'SS', colors: ['#154360', '#F5C518'] },
-  { name: 'Awadh Arrows', short: 'Arrows', monogram: 'AA', colors: ['#16A085', '#F59E0B'] },
+/**
+ * The ten IPL franchises, by their real names and colours (the crests stay the
+ * game's generic designs). The ids are the ones the franchises had when their
+ * names were fictional, so careers saved before the rename still find them.
+ */
+export const FRANCHISE_NAMES: { id: string; name: string; short: string; monogram: string; colors: [string, string] }[] = [
+  { id: 'team-coromandel-kings', name: 'Chennai Super Kings', short: 'CSK', monogram: 'CS', colors: ['#F9CD05', '#0081E9'] },
+  { id: 'team-deccan-thunder', name: 'Sunrisers Hyderabad', short: 'SRH', monogram: 'SH', colors: ['#F26522', '#0F1B33'] },
+  { id: 'team-gateway-giants', name: 'Mumbai Indians', short: 'MI', monogram: 'MI', colors: ['#004BA0', '#D1AB3E'] },
+  { id: 'team-capital-comets', name: 'Delhi Capitals', short: 'DC', monogram: 'DC', colors: ['#17479E', '#EF1B23'] },
+  { id: 'team-hooghly-hawks', name: 'Kolkata Knight Riders', short: 'KKR', monogram: 'KK', colors: ['#3A225D', '#D4AF37'] },
+  { id: 'team-garden-city-gladiators', name: 'Royal Challengers Bengaluru', short: 'RCB', monogram: 'RC', colors: ['#EC1C24', '#2B2A29'] },
+  { id: 'team-thar-titans', name: 'Rajasthan Royals', short: 'RR', monogram: 'RR', colors: ['#EA1A85', '#254AA5'] },
+  { id: 'team-five-rivers-falcons', name: 'Punjab Kings', short: 'PBKS', monogram: 'PK', colors: ['#ED1B24', '#A7A9AC'] },
+  { id: 'team-sabarmati-strikers', name: 'Gujarat Titans', short: 'GT', monogram: 'GT', colors: ['#1B2133', '#DBBE6E'] },
+  { id: 'team-awadh-arrows', name: 'Lucknow Super Giants', short: 'LSG', monogram: 'LS', colors: ['#0057A8', '#F26522'] },
 ];
 
 export const TEST_NATIONS = [

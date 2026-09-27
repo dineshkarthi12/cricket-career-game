@@ -1,11 +1,15 @@
 /**
  * The professional world: twelve national sides and their A teams, the five
  * zones and the Rest of India, and the ten IPL franchises with their overseas
- * players. Squads are generated once, then live on - they age, develop and
- * are refilled by the world's yearly progression (franchises by the auction).
+ * players. Senior national squads, the franchises, India A, the zones and the
+ * Rest of India are real players (`world/realSquads.ts`) where the data is
+ * loaded; the other A sides are generated. Squads are built once, then live
+ * on - they age, develop and are refilled by the world's yearly progression
+ * (franchises by the auction).
  */
 import { createRng, deriveSeed, type Rng } from '../match/rng';
 import { LEVELS, generateSquad, squadStrength, type LevelProfile } from '../world/teams';
+import { fillSquad, realFranchiseSquad, realIndiaASquad, realNationSquad, realRestOfIndiaSquad, realZoneSquad } from '../world/realSquads';
 import { NATIONS, NATIONS_BY_NAME, OPPONENT_NATIONS, nationTeamId, type NationInfo } from '@/data/nations';
 import { FRANCHISES, type FranchiseInfo } from '@/data/franchises';
 import { STATES, stateInfo } from '@/data/places';
@@ -119,6 +123,21 @@ function squadOf(state: GameState, teamId: string, profile: LevelProfile, option
   });
 }
 
+/** Real players first, then generated ones in the roles the side is short of. */
+function topUp(state: GameState, teamId: string, real: RivalPlayer[], profile: LevelProfile, options: { size: number; offset: number; region: string; regions?: string[]; key: string }): RivalPlayer[] {
+  const year = state.season.year;
+  return fillSquad(real, options.size, {
+    teamId,
+    region: options.region,
+    regions: options.regions,
+    profile,
+    seasonStart: `${year}-06-01`,
+    seasonYear: year,
+    rng: rngFor(state, `${options.key}-fill-${year}`),
+    strengthOffset: options.offset,
+  });
+}
+
 /** A side with a squad of at least 11 is live; one kept without a squad (pruned) is refilled. */
 function live(state: GameState, id: string): boolean {
   return (state.teams[id]?.squad.length ?? 0) >= 11;
@@ -138,13 +157,16 @@ export function ensureNationSide(state: GameState, nationName: string, suffix: '
   const senior = suffix === '';
   const profile = senior ? LEVELS.INDIA : LEVELS.INDIA_A;
   const size = senior ? PRO.nationalSquad : PRO.aSquad;
-  const squad = squadOf(next, id, profile, {
+  const generatedInput = {
     size,
     offset,
     region: nation.name,
     regions: nation.name === 'India' ? INDIAN_REGIONS : undefined,
     key: `nation-${id}`,
-  }).map((p) => ({ ...p, capped: senior }));
+  };
+  // Real squads: every nation's senior side, and India A from India's best outside the squad.
+  const real = senior ? realNationSquad(nation.name, id, next.season.year) : nation.name === 'India' ? realIndiaASquad(id, next.season.year) : null;
+  const squad = (real ? topUp(next, id, real, profile, generatedInput) : squadOf(next, id, profile, generatedInput)).map((p) => ({ ...p, capped: senior || p.capped }));
   const existing = next.teams[id];
   const team: Team = {
     ...(existing ??
@@ -202,13 +224,15 @@ export function ensureZones(state: GameState): GameState {
       if (next.teams[id].isUserTeam !== (zone === home)) next = withTeam(next, { ...next.teams[id], isUserTeam: zone === home });
       continue;
     }
-    const squad = squadOf(next, id, LEVELS.ZONE, {
+    const zoneInput = {
       size: 17,
       offset: 0,
       region: hostState.name,
       regions: STATES.filter((s) => s.zone === zone).map((s) => s.name),
       key: `zone-${id}`,
-    });
+    };
+    const real = realZoneSquad(zone, id, next.season.year);
+    const squad = real ? topUp(next, id, real, LEVELS.ZONE, zoneInput) : squadOf(next, id, LEVELS.ZONE, zoneInput);
     const team: Team = {
       ...baseTeam({ id, name: `${zone} Zone`, shortName: `${zone} Zone`, kind: 'ZONE', level: 'ZONAL', homeVenueId: venue.id, colors: hostState.colors, monogram: `${zone[0]}Z`, shape: 'SHIELD' }),
       formats: ['MULTI_DAY'],
@@ -228,7 +252,9 @@ export function ensureRestOfIndia(state: GameState): GameState {
   if (live(state, REST_OF_INDIA_ID)) return state;
   const venue = cityVenue('Mumbai', 'Maharashtra', 'India');
   const next = withVenues(state, [venue]);
-  const squad = squadOf(next, REST_OF_INDIA_ID, LEVELS.REST_OF_INDIA, { size: 17, offset: 0, region: 'Maharashtra', regions: INDIAN_REGIONS, key: 'rest-of-india' });
+  const restInput = { size: 17, offset: 0, region: 'Maharashtra', regions: INDIAN_REGIONS, key: 'rest-of-india' };
+  const real = realRestOfIndiaSquad(REST_OF_INDIA_ID, next.season.year);
+  const squad = real ? topUp(next, REST_OF_INDIA_ID, real, LEVELS.REST_OF_INDIA, restInput) : squadOf(next, REST_OF_INDIA_ID, LEVELS.REST_OF_INDIA, restInput);
   return withTeam(next, {
     ...baseTeam({ id: REST_OF_INDIA_ID, name: 'Rest of India', shortName: 'Rest of India', kind: 'ZONE', level: 'ZONAL', homeVenueId: venue.id, colors: ['#0F1B33', '#F5C518'], monogram: 'RI', shape: 'SHIELD' }),
     formats: ['MULTI_DAY'],
@@ -285,9 +311,17 @@ export function ensureFranchises(state: GameState): GameState {
     next = withVenues(next, [venue]);
     if (live(next, f.id)) continue;
     const rng = rngFor(next, `franchise-salaries-${f.id}`);
-    const indians = squadOf(next, f.id, LEVELS.FRANCHISE, { size: IPL_RULES.squadSize - IPL_RULES.maxOverseasSquad, offset: 0, region: f.state, regions: [f.state, f.state, ...INDIAN_REGIONS], roles: INDIAN_ROLES, key: `franchise-${f.id}` });
-    const overseas = squadOf(next, f.id, OVERSEAS_PROFILE, { size: IPL_RULES.maxOverseasSquad, offset: 0, region: 'Australia', regions: OVERSEAS_NATIONS, roles: OVERSEAS_ROLES, key: `franchise-os-${f.id}` }).map((p) => ({ ...p, overseas: true, capped: true }));
-    const squad = [...indians, ...overseas].map((p) => ({ ...p, salary: bookSalary(p, rng), capped: p.capped ?? p.overall >= 78 }));
+    const real = realFranchiseSquad(f.name, f.id, next.season.year, f.state);
+    let players: RivalPlayer[];
+    if (real) {
+      // The real squad, topped up with generated Indian players if retirements have thinned it.
+      players = topUp(next, f.id, real, LEVELS.FRANCHISE, { size: IPL_RULES.squadSize, offset: 0, region: f.state, regions: [f.state, f.state, ...INDIAN_REGIONS], key: `franchise-${f.id}` });
+    } else {
+      const indians = squadOf(next, f.id, LEVELS.FRANCHISE, { size: IPL_RULES.squadSize - IPL_RULES.maxOverseasSquad, offset: 0, region: f.state, regions: [f.state, f.state, ...INDIAN_REGIONS], roles: INDIAN_ROLES, key: `franchise-${f.id}` });
+      const overseas = squadOf(next, f.id, OVERSEAS_PROFILE, { size: IPL_RULES.maxOverseasSquad, offset: 0, region: 'Australia', regions: OVERSEAS_NATIONS, roles: OVERSEAS_ROLES, key: `franchise-os-${f.id}` }).map((p) => ({ ...p, overseas: true, capped: true }));
+      players = [...indians, ...overseas];
+    }
+    const squad = players.map((p) => ({ ...p, salary: bookSalary(p, rng), capped: p.capped ?? p.overall >= 78 }));
     const existing = next.teams[f.id];
     next = withTeam(next, {
       ...(existing ??
@@ -297,7 +331,7 @@ export function ensureFranchises(state: GameState): GameState {
       strength: squadStrength(squad),
       isUserTeam: next.pro?.ipl.franchiseId === f.id,
       sideKind: 'FRANCHISE',
-      squadSize: IPL_RULES.squadSize,
+      squadSize: Math.max(IPL_RULES.squadSize, squad.length),
       nation: 'India',
     });
   }

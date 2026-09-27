@@ -1446,3 +1446,65 @@ export const RETIREMENT = {
   /** ...and leave a format they are overlooked in from this age. */
   formatAge: { TEST: 33, ODI: 34, T20I: 34 } as Record<'TEST' | 'ODI' | 'T20I', number>,
 } as const;
+
+/**
+ * Real players (`engine/world/realPlayers.ts`): how their figures become
+ * ratings. Each competition's figures are compared with its par average and
+ * strike rate (batting) or runs per ball and average (bowling), weighted by
+ * how much each matters in that format, and turned into points around 70.
+ * The points are then mapped onto the game's scale so the levels line up with
+ * the generated world: top internationals ~88-94, IPL regulars ~78-88, state
+ * players ~62-78.
+ */
+export const REAL_PLAYERS = {
+  /** Par per competition: batting average, strike rate, bowling runs per ball, bowling average. */
+  par: {
+    TEST: { avg: 32, sr: 55, rpb: 0.55, bowlAvg: 32 },
+    ODI: { avg: 32, sr: 86, rpb: 0.92, bowlAvg: 34 },
+    T20I: { avg: 24, sr: 128, rpb: 1.33, bowlAvg: 26 },
+    IPL: { avg: 24, sr: 138, rpb: 1.45, bowlAvg: 28 },
+    SMAT: { avg: 23, sr: 128, rpb: 1.3, bowlAvg: 24 },
+  },
+  /** Weight of average and strike rate in batting, economy and average in bowling. */
+  batWeights: { TEST: [1, 0.25], ODI: [0.75, 0.6], T20I: [0.45, 1.3], IPL: [0.45, 1.3], SMAT: [0.45, 1.3] },
+  bowlWeights: { TEST: [0.5, 1], ODI: [0.8, 0.7], T20I: [1.3, 0.5], IPL: [1.3, 0.5], SMAT: [1.3, 0.5] },
+  /** Points for the level of the competition (SMAT figures come against weaker sides). */
+  levelPoints: { TEST: 0, ODI: 0, T20I: 0, IPL: -1, SMAT: -8 },
+  /** How much each competition counts when they are combined. */
+  importance: { TEST: 1.2, ODI: 1, T20I: 1, IPL: 1, SMAT: 0.8 },
+  /** International figures against the country's usual opposition. */
+  nationPoints: { India: 0, Australia: 0, England: 0, 'South Africa': 0, 'New Zealand': 0, Pakistan: 0, 'Sri Lanka': -2, 'West Indies': -2, Afghanistan: -2, Bangladesh: -3, Ireland: -6, Zimbabwe: -6 } as Record<string, number>,
+  /** Any other country's international figures. */
+  otherNationPoints: -8,
+  /** Points per unit of log-quality. */
+  pointsScale: 22,
+  /** Innings (or 24-ball spells) before the figures are fully trusted; fewer pull towards `shrinkTo`. */
+  shrinkInnings: 16,
+  shrinkTo: 55,
+  /** Points -> overall, piecewise linear. */
+  overallCurve: [
+    [38, 57],
+    [44, 61],
+    [50, 65],
+    [56, 70],
+    [62, 75.5],
+    [68, 82],
+    [72, 86.5],
+    [75, 90],
+    [78, 93.5],
+    [82, 96],
+  ] as [number, number][],
+  /** Listed players with no figures: an overall around this, like a generated state player. */
+  noFiguresOverall: [69, 4] as [number, number],
+  /** Largest tilt (points) of T20 skills against red-ball ones for a specialist. */
+  formatTilt: 8,
+  /** Share of their reachable level an established real player keeps (generated players: WORLD.developedShare). */
+  developedShare: 0.97,
+  /** Retirement age: this range, later for the better players, earlier for fast bowlers. */
+  retireAge: [34, 39] as [number, number],
+  /** Smallest competition squad kept by topping up from the rest of the side. */
+  competitionSquadMin: 15,
+  /** Squad sizes built from the real players. */
+  zoneSquad: 17,
+  indiaASquad: 17,
+} as const;

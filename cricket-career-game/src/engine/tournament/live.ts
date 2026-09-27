@@ -197,13 +197,14 @@ export function recordInTournament(
   return next;
 }
 
-function xiFor(state: GameState, team: Team, date: string, format?: Fixture['format']): SimPlayer[] {
-  const pool = squadFor(state, team.id).filter((p) => {
+function xiFor(state: GameState, team: Team, date: string, format?: Fixture['format'], tournamentId?: string | null): SimPlayer[] {
+  const squad = squadFor(state, team.id, tournamentId);
+  const pool = squad.filter((p) => {
     const rival = team.squad.find((r) => r.id === p.id);
     return !rival?.injuredUntil || rival.injuredUntil < date;
   });
-  const ids = defaultXiIds(pool.length >= 11 ? pool : squadFor(state, team.id), null, xiOptionsFor(team, format));
-  const byId = new Map(squadFor(state, team.id).map((p) => [p.id, p]));
+  const ids = defaultXiIds(pool.length >= 11 ? pool : squad, null, xiOptionsFor(team, format));
+  const byId = new Map(squad.map((p) => [p.id, p]));
   return battingOrderOf(ids.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p)));
 }
 
@@ -239,8 +240,8 @@ export function playAiFixture(state: GameState, fixture: Fixture): GameState {
   if (!home || !away) return state;
   const meta = TOURNAMENTS_BY_ID[fixture.tournamentId ?? ''];
   const venue = (fixture.venueId && state.venues[fixture.venueId]) || state.venues[home.homeVenueId] || Object.values(state.venues)[0];
-  const homeXi = xiFor(state, home, fixture.date, fixture.format);
-  const awayXi = xiFor(state, away, fixture.date, fixture.format);
+  const homeXi = xiFor(state, home, fixture.date, fixture.format, fixture.tournamentId);
+  const awayXi = xiFor(state, away, fixture.date, fixture.format, fixture.tournamentId);
   const result = quickMatch({
     fixtureId: fixture.id,
     tournamentId: fixture.tournamentId ?? 'friendly',

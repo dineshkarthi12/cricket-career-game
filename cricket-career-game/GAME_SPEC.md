@@ -312,7 +312,11 @@ toast. Settings shows the storage used against the quota and each slot's size.
   place of a full record; tournament records without tables are dropped.
   The season in progress carries on as scheduled.
   v7 (Phase 7): `pro` (the professional career, empty for an older save)
-  and the new trophies, locked.
+  and the new trophies, locked. v8: difficulty. v9 (real players): the
+  franchises take their real names at once (same ids); `realSquadsPending`
+  swaps the generated professional and senior state squads for real ones at
+  the next 1 June (`engine/world/realSeed.ts`); the season in progress is
+  untouched.
 - **Size** - a multi-day match is over 1 MB of deliveries and a browser gives
   an origin ~5 MB, so only the latest `SAVE.ballByBallMatches` (2) matches
   keep every ball (`engine/match/archive.ts`); older ones keep full
@@ -667,8 +671,8 @@ match both drift back towards normal.
   Plus each stage's trials, camps, fitness tests and selection meetings,
   travel days before away state-level matches, recovery days after long
   ones, and the birthday. Matches avoid exams and never overlap.
-- **Sides** (`sides.ts`) — fictional schools, clubs and franchises; district,
-  state, zone and national sides by name; strengths by level tuned to the
+- **Sides** (`sides.ts`) — fictional schools and clubs; district, state,
+  zone and national sides and the ten IPL franchises by their real names; strengths by level tuned to the
   age curve (school 25, club 30, district 37, U-16 46, U-19 53, U-23 59,
   senior 65, zone 70, franchise 71, India 77). A team already in the save
   (by id or name) is reused.
@@ -852,14 +856,15 @@ and replacement signings (March), central contracts (April), awards night
 12 nations (`data/nations.ts`: India, Australia, England, South Africa, New
 Zealand, Pakistan strong; Sri Lanka, West Indies, Afghanistan, Bangladesh
 mid; Ireland, Zimbabwe associates), each with 22-man senior and 17-man A
-squads of fictional players, host cities, a home pitch, bat-friendliness and
+squads (senior squads are real players, §8h; A sides generated), host cities, a home pitch, bat-friendliness and
 climate. New climates: England (cloud, swing), Australia (heat, pace and
 bounce), South Africa, New Zealand (wind, green), Caribbean (humid, slow);
 subcontinent hosts use the Indian regions. Nations drift each season
 (`driftNations`), and the rest of the world's series are settled on ratings
-(`backgroundSeason`) for the team rankings and the WTC. 10 fictional
-franchises (`data/franchises.ts`) with a city, home ground and style; 22-man
-squads with up to 8 overseas players. Five zonal sides and Rest of India.
+(`backgroundSeason`) for the team rankings and the WTC. The 10 IPL
+franchises by their real names (`data/franchises.ts`) with a city, home ground
+and style; real squads of 22-25 with up to 8 overseas players. Five zonal
+sides and Rest of India, picked from the real state players.
 
 ### Selection at professional level
 The Phase 6 squad score, with: the competition's format (`formatOverall`: T20
@@ -1040,6 +1045,95 @@ errors, horizontal overflow and fast-forward results.
 immutable caching for hashed assets. The Vercel project's root directory is
 `cricket-career-game`.
 
+## 8h. Real players
+
+Personal-project rule (CLAUDE.md): real player and team names. District,
+school, club and age-group sides (U-14 to U-23) stay generated.
+
+### The data and the converter (`npm run import:players`)
+`scripts/import-players.mjs` reads a clone of
+`github.com/dineshkarthi12/Cricket-teams-and-players` (`--data <dir>` or
+`$PLAYER_DATA_DIR`) straight from its zips (`adm-zip`, `js-yaml`); nothing raw
+is committed. The logic is plain TypeScript in `scripts/players/` (Node runs
+it directly; the tests import it):
+
+| Module | Does |
+|---|---|
+| `cricsheet.ts` | Cricsheet JSON 1.x and YAML 0.9x -> one summary per match: competition (Test, ODI, T20I, IPL, SMAT; everything else skipped), date, each XI with registry ids, and per player innings, runs, balls, outs, 4s, 6s, balls bowled, runs conceded, wickets, catches, stumpings, batting position, and stumpings off their bowling. |
+| `stats.ts` | `StatsDb`: figures by competition and year, deduplicated by match id (JSON zips first, YAML only for ids no JSON had; each zip's README picks the ids worth parsing). Weighted per competition: the last three seasons in full, the three before half, older a quarter. |
+| `squadLists.ts` | `Ranji trophy.txt` (`<State> cricket team: Name (c), Name (vc/wk), ...`, `Standbyes:`, `(subject to fitness)`, any-case markers) and `VHT_2024-25_All_Team_Players.txt` (`[TEAM]` headers, notes skipped); team names mapped onto the game's 38 sides. |
+| `names.ts` | Listed names ("Hanuma Vihari") to Cricsheet names ("GH Vihari"): every full word matched (one letter off allowed for long words), the surname among them, the other words' initials among the initials (family-name-first "G Ajitesh" only within the side). Scored up for the side they play SMAT for, recent seasons and an exact Kaggle full name; a common surname matched on an initial alone, a misspelt surname, or a known full name with a different given name is only trusted within the side. Ties are ambiguous, never guessed. |
+| `convert.ts` | Squads and records: national squads (22 most-capped of the last two seasons), IPL squads (last IPL team; old names mapped, defunct sides dropped; latest season, topped to 22 from the season before, at most 8 overseas), state squads (Ranji list, Vijay Hazare list trimmed to 20 keeping captain and keepers, SMAT = the side's recent SMAT players topped up from its lists, to 18). One home side per player (the newer Ranji list wins; between two, the side they last played SMAT for). Styles from the Kaggle archive (players file, then ball-by-ball types); otherwise inferred (stumpings off their bowling -> off-spin, else seam). Role from how much they bowl, where they bat and whether they keep ((wk) marker, stumpings). Country from their latest international (anyone seen in an overseas franchise league is not Indian). Age from the first recorded match (debut at 21). |
+
+Output: `src/data/real/international.json`, `ipl.json`, `domestic.json`
+(compact records: id, name, country, role code, batting hand, bowling style,
+birth year, weighted figures per competition in `REAL_STAT_KEYS` order,
+guess flags) and `src/data/playerOverrides.json`: every unmatched, ambiguous
+or fuzzy match, state conflict, player without figures, style, role, age and
+country guess, and trimmed names. Its `manual` section is the user's and is
+kept between runs: `matches["<Team>|<Listed name>"] = "<registry id>"` (or
+`"none"`), `players["<id>"] = { name, birthYear, role, bat, bowl, country }`.
+
+### Loading
+`src/data/real/index.ts` `loadRealData()` dynamic-imports the three files
+(separate chunks, ~100 KB gzipped) and installs them with `setRealData`; the
+store's `bootstrap` waits for it with the save database (a failure is a
+toast, and every side is generated as before). Tests load it in
+`src/test/setup.ts`.
+
+### Figures -> ratings -> attributes (`engine/world/realPlayers.ts`, `REAL_PLAYERS` in config)
+- Batting points per competition = 70 + 22 × (a × ln(avg / par avg) + b ×
+  ln(SR / par SR)), batting average and strike rate shrunk towards a modest
+  prior; a/b by format (Test 1/0.25, ODI 0.75/0.6, T20 0.45/1.3). Bowling
+  likewise from runs per ball and bowling average (Test 0.5/1, ODI 0.8/0.7,
+  T20 1.3/0.5). Pars: Test 32 / 55, ODI 32 / 86, T20I 24 / 128, IPL 24 / 138,
+  SMAT 23 / 128 (bowling runs per ball 0.55 / 0.92 / 1.33 / 1.45 / 1.30).
+- Level: IPL -1, SMAT -8; international figures by country (Sri Lanka,
+  West Indies, Afghanistan -2, Bangladesh -3, Ireland, Zimbabwe -6, others -8).
+- Competitions combined by innings (or 24-ball spells) × importance, then
+  pulled towards 55 for small samples (16 innings to half trust). Role points:
+  batters on batting, bowlers on bowling, all-rounders 0.55/0.45 (batting) or
+  0.4/0.6 (bowling) + 5.
+- Points -> overall, piecewise: 44 -> 61, 56 -> 70, 62 -> 75.5, 68 -> 82,
+  72 -> 86.5, 75 -> 90, 78 -> 93.5. Result on the 2026 data: India squad
+  78-93 (median 87), IPL squads 69-93 (median 80), domestic-only 62-78
+  (median 69).
+- Attributes: the role's usual shape at that overall (`buildCeilings`), then
+  batting against bowling as the figures say (a bowler who can bat, a
+  batter's part-time bowling), T20 against red-ball skills from the two
+  formats' points (power, range, running and death bowling against
+  technique, concentration, swing and seam - this is what `formatOverall`
+  reads), power from the T20 six rate, catching and keeping from catches, and
+  the whole set shifted so the overall lands on the target.
+- Listed players without figures: generated attributes at the state level,
+  scaled to ~69 ± 4, with their name, role and age.
+- Hidden potential keeps an established player where they are
+  (`developedShare` 0.97 for real players) with room to grow when young.
+
+### Real players over time
+The data describes the 2026 season. A side built in a later season takes
+each player aged year by year with a random stream fixed to that player
+(`playerRng`), so every copy of a person (state side, franchise, country) is
+identical; each has a fixed retirement age (34-39, a year later for the best,
+earlier for fast bowlers, at least a year past their age in the data). The
+yearly progression uses the same stream and retirement age. Retired players
+are gone for good; generated players fill the gaps (`fillSquad`).
+
+### The sides
+| Side | Squad |
+|---|---|
+| IPL franchises | Real squad (22-25, overseas <= 8, XI <= 4), topped up to 22. The auction pool is the best unsigned real Indians and overseas internationals first, generated names after. |
+| Nations | Real senior squads of 22 (Afghanistan generated: no Afghan matches in the data); A sides generated except India A. |
+| India A | Best real Indians outside the India squad, younger first. |
+| Zones, Rest of India | Best real players of the zone's states (or the country), India squad excluded, balanced 17. |
+| State sides (senior) | Everyone in the Ranji, Vijay Hazare and SMAT squads, with `Team.competitionSquads` per tournament; `competitionMembers` gives a competition's squad (best first, topped up to 15 from the rest of the side). The XI, the fast sim, the user's selection and Competition for places all use it. |
+| District, school, club, U-14 to U-23 | Generated, as before. |
+
+Selection: India's outside contenders are the best real Indians outside the
+squad; other real sides' generated probables are scaled to just behind the
+side (not the generated level). The user's own player is unchanged and has to
+earn a place like everyone else.
+
 ---
 
 ## 9. Phase plan
@@ -1054,3 +1148,4 @@ immutable caching for hashed assets. The Vercel project's root directory is
 | 6 | Selection, tournaments, career stages 1-10, IndexedDB saves | ✅ Done |
 | 7 | Stages 11-20: IPL to retirement | ✅ Done |
 | 8 | Polish, QA, installable app, deploy | ✅ Done |
+| 9 | Real players from Cricsheet and the squad lists | ✅ Done |

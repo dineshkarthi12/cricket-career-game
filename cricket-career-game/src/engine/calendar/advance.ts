@@ -5,6 +5,7 @@
  * can play it (or sim it). At the end of the days advanced, the week's
  * training, rehab and school are run. Crossing 31 May starts a new season.
  */
+import { seedRealSquads } from '../world/realSeed';
 import { FITNESS_TEST } from '../config';
 import { newId } from '../id';
 import { createRng, deriveSeed } from '../match/rng';
@@ -484,7 +485,7 @@ export function startNewSeason(state: GameState, year: number): GameState {
     calendar: { ...reviewed.calendar, pendingFixtureId: null, pendingTrialId: null },
   };
   // The professional world turns over (it reads last season from the history).
-  const next = rolloverPro(rolled, year);
+  const next = seedRealSquads(rolloverPro(rolled, year));
   const withCalendar = applySeasonCalendar(next, year, start);
   // Sides with nothing to play this season keep their names, not their squads.
   const active = new Set<string>([...withCalendar.player.currentTeamIds, ...withCalendar.season.tournaments.flatMap((t) => t.groups.flatMap((g) => g.teamIds)), ...proActiveTeamIds(withCalendar)]);

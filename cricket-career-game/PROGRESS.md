@@ -1180,3 +1180,70 @@ fast-forward. 524 tests pass; `npm run build` is clean.
   "Test the sound".
 - Tests: the effects for sixes, fours, 1/2/3, dismissals, ducks, run outs
   of the non-striker, milestones and the result. 529 tests pass.
+
+---
+
+## ✅ Phase 9 — Real players (complete)
+
+The generated rivals at professional and senior state level are now real
+cricketers from `github.com/dineshkarthi12/Cricket-teams-and-players`.
+Real player and team names are allowed (CLAUDE.md updated); crests stay
+generic, team colours are the real ones. GAME_SPEC §8h has the details.
+
+**Converter** - `npm run import:players -- --data <clone>` (`scripts/import-players.mjs`,
+logic in `scripts/players/`). Reads the zips directly: 9,207 matches (Test 895,
+ODI 2,576, T20I 3,798, IPL 1,243, SMAT 695; 7,373 players) in ~45 s, the
+Kaggle IPL archive for styles and full names, and the two squad lists.
+Writes `src/data/real/{international,ipl,domestic}.json` (1,312 players,
+~375 KB, ~100 KB gzipped, lazy chunks) and `src/data/playerOverrides.json`.
+
+**Matching** - 1,794 listed names (Ranji + Vijay Hazare entries), 1,120
+matched to figures, 671 unmatched, 3 ambiguous. Of the 1,047 players in the
+state squads, 754 have figures; the 293 without get generated state-level
+attributes. The overrides file lists for checking: 26 fuzzy spellings, 41
+players listed for two sides (and which was kept), 670 guessed batting
+hands and 437 guessed bowling styles (players outside the Kaggle archive),
+288 guessed roles, 1,312 estimated ages (debut at 21 - every age is an
+estimate), 11 IPL-only players assumed Indian, and the names trimmed from
+long Vijay Hazare lists. Four Afghans are fixed by hand in `manual` (the data
+has no Afghanistan internationals).
+
+**Game** - ratings from the figures (`engine/world/realPlayers.ts`,
+`REAL_PLAYERS` in config): India squad 78-93 (median 87), IPL 69-93 (median
+80), domestic-only 62-78 (median 69); T20 against red-ball skills from the
+figures, so `formatOverall` differs by format. The ten franchises (real
+names, same ids), all twelve senior national squads (Afghanistan generated),
+India A, the zones and the Rest of India from the real state players, and
+the state sides' separate Ranji, Vijay Hazare and SMAT squads
+(`Team.competitionSquads`). Real players age on their own random stream, so
+every copy of a player is identical, and retire at a fixed age; generated
+youngsters replace them. The IPL auction draws unsigned real players first.
+India's outside contenders are real players.
+
+**Save v9** - franchise names change at once; the real squads replace the
+generated ones at the next 1 June (`realSquadsPending`,
+`engine/world/realSeed.ts`). A fresh professional season is ~2.9 MB against
+2.3 MB with generated squads (bigger state squads).
+
+**Tests** - 42 new (571 in all, 1 skipped): both squad-list formats with
+the (c) / (vc/wk) / Standbyes / subject-to-fitness cases, name matching
+(initials, spelling, family-name-first, common surnames, ambiguity),
+Cricsheet parsing and weighting, a whole conversion on a hand-made fixture
+with manual overrides, the figures -> attributes mapping and the level bands,
+ageing and retirement, IPL squads within the overseas limits, a new career
+with real India / IPL / Ranji / Vijay Hazare / SMAT squads and the user
+ranked against that competition's squad, a career reaching the top in 2036,
+and the v8 -> v9 migration and rollover.
+
+**Browser QA** - a 2026 professional career (imported) and the demo career
+fast-forwarded to 2038-42: Selection (Competition for places per
+competition), Tournaments, a Ranji match played ball by ball, the IPL screens
+and Franchises, the auction room, International squads and rankings; no
+console errors. Fixes from it: players without figures no longer rate above
+proven ones, generated contenders sit behind real sides, stronger small-sample
+shrinkage.
+
+**Worth knowing** - the career starts in 2026 with the user aged 8-12, so by
+their senior debut (around 2036-38) most of today's players have aged or
+retired and generated players have taken their places; the youngest real
+players are still there.
