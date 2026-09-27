@@ -1376,3 +1376,40 @@ the verdict (green / red) -> the road ahead.
 
 Tests: 8 new (highlights, the journey, farming the strike, the Next Match
 card); 585 pass.
+
+### Realism pass - white-ball scores, extras, run-outs; two fixes
+
+Measured against real cricket (evenly matched sides, 400-600 matches):
+
+| | before | now | real cricket |
+|---|---|---|---|
+| T20 1st innings | 172, sd 52 | 171, sd 41 | IPL ~180, SMAT ~160 |
+| T20 under 100 / 200+ | 10% / 32% | 5% / 25% | a few % / 15-30% |
+| T20 extras per innings | 3.7 | 6.5 | ~8 |
+| Run-outs (T20 / ODI) | 2% / 4% | 7% / 7% | ~7% |
+| ODI 1st innings, 350+ | 283, 20% | 281, 12% | 280-300, ~10-15% |
+| One-day (Vijay Hazare) | - | 267 | 270-290 |
+| First-class | 291, 37% draws | unchanged | 300-320, 35-45% draws |
+
+What changed (`config.ts` -> `MATCH.limitedOvers`, white-ball only):
+- a collapse brings the next wicket less readily, and a new batter walks in
+  with licence to play (T20 innings were far too swingy);
+- a T20 lower order keeps swinging instead of "batting the overs out" at
+  seven down, and T20 tailenders no longer block (`t20WicketAllowance`);
+- a slightly higher wicket floor and a smaller set-batter bonus (fewer
+  runaway partnerships), wides called tighter, harder running between the
+  wickets; T20 and one-day boundary rates retuned so the averages hold;
+- the fast sim (the AI-vs-AI matches) was 7-11% below the engine; T20 and
+  one-day now within 4-7%.
+The career player at #3 in full matches: T20 level 3 about SR 145, one-day
+level 3 average ~46 / SR 89, first-class level 3 average ~42 / SR 55. The
+balance tests now also cap the tails (T20 under 100 < 9%, 200+ < 30%, ODI
+400+ < 5%) and require real white-ball run-outs.
+
+Fixes:
+- The flaky "respected captain" test was a timeout, not a logic bug: it
+  built the demo career 60 times (4.3 s against a 5 s limit), so it failed
+  when the suite ran in parallel. It builds it once and clones it now.
+- `npm run qa` typed the player's name before the form was ready (the
+  name was lost and the run stopped at "Start career"); it waits and types
+  now, and closes the selection-news walk-through.

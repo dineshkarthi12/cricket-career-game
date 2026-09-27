@@ -115,8 +115,11 @@ describe('the captain’s XI goes to the selectors', () => {
   it('gives a respected captain their way more often than a struggling one', () => {
     let respected = 0;
     let struggling = 0;
+    // One career, cloned per seed: building the demo career 60 times took
+    // over 4 s and timed the test out when the suite ran in parallel.
+    const career = appointCaptain(createDemoCareer(), 'team-tn-u16', '2026-10-01', 'test');
     for (let seed = 1; seed <= 60; seed += 1) {
-      const base = appointCaptain(createDemoCareer(), 'team-tn-u16', '2026-10-01', 'test');
+      const base = structuredClone(career);
       base.seed = seed;
       const good = structuredClone(base);
       good.career.captaincy.rating = 90;
@@ -130,7 +133,7 @@ describe('the captain’s XI goes to the selectors', () => {
       struggling += reviewCaptainXi(bad, bad.fixtures[FIXTURE], b.pick, b.ids).accepted.length;
     }
     expect(respected).toBeGreaterThan(struggling);
-  });
+  }, 30_000);
 
   it('keeps the captain’s batting order for the players who play', () => {
     const state = appointCaptain(createDemoCareer(), 'team-tn-u16', '2026-10-01', 'test');

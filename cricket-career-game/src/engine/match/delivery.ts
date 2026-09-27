@@ -58,7 +58,8 @@ function rollIllegal(
   const wideScale =
     (context.phase === 'DEATH' ? 1.9 : 1) *
     (context.aroundTheWicket ? MATCH.aroundTheWicket.wideRate : 1) *
-    MATCH.bowlingAggression.wide[Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1))];
+    MATCH.bowlingAggression.wide[Math.max(0, Math.min(4, (context.bowlingAggression ?? 3) - 1))] *
+    whiteBall(context, MATCH.limitedOvers.wideScale);
   if (rng.chance(cfg.wideChance * scale * wideScale)) return { type: 'WIDE', runs: 1 };
   if (rng.chance(cfg.noBallChance * scale)) return { type: 'NO_BALL', runs: 1 };
   return null;
@@ -222,11 +223,18 @@ export function duelFactors(context: DeliveryContext): DuelFactors {
   // The batter who is already in at the other end carries only part of it.
   const cluster = Math.max(0, context.recentWickets - 1);
   const exposure = limitedOvers(context) ? 1 - settle * (1 - cfg.momentum.collapseSetShare) : 1;
-  const collapse = 1 + cluster * cfg.momentum.collapseWicket * exposure;
+  const collapseRate = limitedOvers(context) ? cfg.limitedOvers.collapseWicket : cfg.momentum.collapseWicket;
+  const collapse = 1 + cluster * collapseRate * exposure;
   // A pair who have been in for twenty overs have worn the bowling down.
   const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
 
   return { batter, bowler, bite, edge, settle, set, phaseMod, dotWicket, milestone, cluster, collapse, partnership };
+}
+
+/** A white-ball multiplier by format (T20 or one-day), 1 in first-class cricket. */
+function whiteBall(context: DeliveryContext, scale: Record<string, number>): number {
+  if (!limitedOvers(context)) return 1;
+  return context.format === 'T20' ? (scale.T20 ?? 1) : (scale.ODI ?? 1);
 }
 
 function limitedOvers(context: DeliveryContext): boolean {
@@ -287,8 +295,8 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
     (1 - f.edge * cfg.edge.wicket) *
     f.phaseMod.wicket *
     (1 + f.bite * cfg.pressure.wicketAtMax) *
-    (1 + (1 - f.settle) * cfg.newBatter.wicketPenalty) *
-    (1 - f.set * (1 - cfg.setBatter.wicket)) *
+    (1 + (1 - f.settle) * (limitedOvers(context) ? cfg.limitedOvers.newBatterWicket : cfg.newBatter.wicketPenalty)) *
+    (1 - f.set * (1 - (limitedOvers(context) ? cfg.limitedOvers.setBatterWicket : cfg.setBatter.wicket))) *
     f.collapse *
     f.dotWicket *
     f.milestone *
@@ -296,7 +304,7 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
     (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2) *
     (context.rotate ? cfg.rotate.wicket : 1) *
     cfg.bowlingAggression.wicket[bowlingIndex];
-  const floor = rates.wicket * cfg.limits.wicketFloor;
+  const floor = rates.wicket * (limitedOvers(context) ? cfg.limitedOvers.wicketFloor : cfg.limits.wicketFloor);
   const ceiling = rates.wicket * cfg.limits.wicketCeiling;
   // Defending (levels 1-2, and the normal game) works inside the usual limits.
   if (intentWicket <= 1) return clamp01(Math.max(floor, Math.min(ceiling, situation * intentWicket)));
@@ -1093,7 +1101,7 @@ function rollRunOut(
   );
   const fieldingSharpness = normalise(fielder.throwing * 0.55 + fielder.groundFielding * 0.45);
 
-  const inPlay = cfg.chancePerRun * runs * (1 + (fieldingSharpness - batterRunning) * 0.8);
+  const inPlay = cfg.chancePerRun * runs * (1 + (fieldingSharpness - batterRunning) * 0.8) * whiteBall(context, MATCH.limitedOvers.runOutScale);
   if (!rng.chance(Math.max(0, inPlay))) return null;
 
   const converted =
