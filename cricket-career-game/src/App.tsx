@@ -26,6 +26,9 @@ const AwardsScreen = lazy(() => import('./screens/pro/AwardsScreen'));
 const LegacyScreen = lazy(() => import('./screens/pro/LegacyScreen'));
 const CommunityScreen = lazy(() => import('./screens/pro/CommunityScreen'));
 const SettingsScreen = lazy(() => import('./screens/placeholders').then((m) => ({ default: m.SettingsScreen })));
+const ChallengesScreen = lazy(() => import('./screens/career/ChallengesScreen'));
+const RivalsScreen = lazy(() => import('./screens/career/RivalsScreen'));
+const CareerCardScreen = lazy(() => import('./screens/career/CareerCardScreen'));
 const StatsScreen = lazy(() => import('./screens/stats/StatsScreen'));
 // IPL Manager: a separate mode with its own shell, store and saves.
 const ManagerStart = lazy(() => import('./screens/manager/ManagerStart'));
@@ -86,6 +89,9 @@ export default function App() {
               <Route path="/stats" element={<StatsScreen />} />
               <Route path="/awards" element={<AwardsScreen />} />
               <Route path="/community" element={<CommunityScreen />} />
+              <Route path="/challenges" element={<ChallengesScreen />} />
+              <Route path="/rivals" element={<RivalsScreen />} />
+              <Route path="/career-card" element={<CareerCardScreen />} />
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
+import { SAVE_VERSION } from '@/types';
 import { createNewCareer } from '../newCareer';
 import { applyProSeason } from '../pro/season';
 import { ensureFranchises, ensureNationSide, ensureZones, ensureRestOfIndia } from '../pro/world';
@@ -290,7 +291,7 @@ describe('saves from before the real players', () => {
     expect(migrated.ok).toBe(true);
     if (!migrated.ok) return;
     const m = migrated.value;
-    expect(m.version).toBe(9);
+    expect(m.version).toBe(SAVE_VERSION);
     expect(m.realSquadsPending).toBe(true);
     for (const f of FRANCHISES) expect(m.teams[f.id].name).toBe(f.name);
     // Nothing changes mid-season...

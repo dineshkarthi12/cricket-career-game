@@ -16,10 +16,12 @@ import { estimateWicketChance, resolveDelivery } from './delivery';
 import { bowlerKindOf, computePressure } from './skill';
 import { canBowlInEmergency, canBowlInMatch } from '../roles';
 import { INTENT_BY_LEVEL } from './types';
-import type { Rng } from './rng';
+import { createRng, deriveSeed, type Rng } from './rng';
+import type { TouchShot } from './touch';
 import type {
   BatterApproach,
   BowlerPlan,
+  BowlerKind,
   DecisionHooks,
   DecisionQuestion,
   DeliveryContext,
@@ -126,6 +128,8 @@ export interface BallOverrides {
   aroundTheWicket?: boolean;
   /** Leave the ball: no shot offered. */
   leave?: boolean;
+  /** Two-touch batting: the side tapped and its timing (the player's own batter only). */
+  touch?: TouchShot | null;
   /** Work the ball into gaps rather than look for boundaries. */
   rotate?: boolean;
   /**
@@ -183,9 +187,24 @@ export class DecisionNeeded extends Error {
   }
 }
 
+/**
+ * The next delivery, decided before it is bowled so the player can see it
+ * coming (line, length, pace) and choose a side to play it to. Used by the
+ * next `stepBall` only if nothing has changed since.
+ */
+export interface PlannedDelivery {
+  ballIndex: number;
+  strikerId: string;
+  bowlerId: string;
+  bowlerKind: BowlerKind;
+  plan: BowlerPlan;
+}
+
 export interface InningsState {
   /** Stable id, so the scorecard on screen and the stored one match. */
   id: string;
+  /** The next ball, decided early for two-touch batting. */
+  planned?: PlannedDelivery | null;
   /** A delivery parked on a question, if any. */
   pending: PendingBall | null;
   setup: InningsSetup;
@@ -657,7 +676,16 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     aggression: bowlingAggression,
     rng,
   });
-  const plan: BowlerPlan = { ...aiPlan, ...(ownBowling?.plan ?? {}) };
+  // A delivery the player has already watched coming is the one bowled.
+  const planned =
+    state.planned &&
+    state.planned.ballIndex === state.deliveries.length &&
+    state.planned.strikerId === striker.id &&
+    state.planned.bowlerId === bowler.id
+      ? state.planned.plan
+      : null;
+  state.planned = null;
+  const plan: BowlerPlan = planned ? { ...planned } : { ...aiPlan, ...(ownBowling?.plan ?? {}) };
 
   const fieldName =
     overrides?.fieldPreset ??
@@ -726,6 +754,7 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
       shotPreference: own?.shotPreference ?? null,
       aroundTheWicket: ownBowling?.aroundTheWicket ?? false,
       leave: own?.leave ?? false,
+      touch: own?.leave ? null : (own?.touch ?? null),
       rotate,
       bowlingAggression,
       hooks: overrides?.hooks,
@@ -741,6 +770,41 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     overNumber,
     phase,
   });
+}
+
+/**
+ * Decide the next delivery in advance (two-touch batting), with its own
+ * seeded random numbers. Returns null between overs, on a parked question or
+ * once the innings is over.
+ */
+export function planNextDelivery(state: InningsState, seed: number, intentLevel: number): PlannedDelivery | null {
+  if (state.pending || state.complete || state.currentBowlerId === null) return null;
+  const striker = strikerOf(state);
+  if (
+    state.planned &&
+    state.planned.ballIndex === state.deliveries.length &&
+    state.planned.strikerId === striker.id &&
+    state.planned.bowlerId === state.currentBowlerId
+  ) {
+    return state.planned;
+  }
+  const bowler = state.bowlers.find((b) => b.id === state.currentBowlerId);
+  if (!bowler) return null;
+  const kind = bowlerKindOf(bowler);
+  const overNumber = Math.floor(state.legalBalls / 6);
+  const phase = phaseFor(overNumber, state.setup.oversAvailable, state.conditions.ball.ageInBalls / 6);
+  const rng = createRng(deriveSeed(seed, state.setup.number * 100_000 + state.deliveries.length + 1));
+  const plan = choosePlan({
+    bowler,
+    kind,
+    phase,
+    batterIntentLevel: Math.max(1, Math.min(5, Math.round(intentLevel))),
+    batterBallsFaced: state.ballsFaced[striker.id] ?? 0,
+    aggression: 3,
+    rng,
+  });
+  state.planned = { ballIndex: state.deliveries.length, strikerId: striker.id, bowlerId: bowler.id, bowlerKind: kind, plan };
+  return state.planned;
 }
 
 /** How dangerous a level of batting aggression is right now. */
@@ -938,6 +1002,7 @@ function applyOutcome(
     dropped: outcome.dropped,
     freeHit: state.freeHit,
     aroundTheWicket: prepared.context.aroundTheWicket ?? false,
+    ...(prepared.context.touch && outcome.isLegalDelivery ? { touch: { ...prepared.context.touch } } : {}),
     ...(prepared.context.bowlingAggression !== undefined && prepared.context.bowlingAggression !== 3
       ? { bowlingAggression: prepared.context.bowlingAggression }
       : {}),

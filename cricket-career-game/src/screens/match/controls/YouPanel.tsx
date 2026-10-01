@@ -4,7 +4,7 @@
  * them the ball, and otherwise a note on where they are and the option to let
  * the match run until they are needed.
  */
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Eye, UserRound } from 'lucide-react';
 import { Avatar } from '@/components';
 import type { RiskEstimate } from '@/engine/match/innings';
@@ -14,6 +14,7 @@ import type { BallIntent, PlayerDecisions } from '@/store/matchStore';
 import { AggressionBar } from './AggressionBar';
 import { BattingControls, CarryToggle } from './BattingControls';
 import { BowlingControls } from './BowlingControls';
+import { TouchBatting, intentForLevel, type TouchBattingProps } from './TouchBatting';
 import { getAvailableMatchActions, roleMatchNote } from '@/engine/roles';
 
 export interface YouPanelProps {
@@ -30,6 +31,8 @@ export interface YouPanelProps {
   onSimOver: () => void;
   onSimUntilOut: () => void;
   onAutoWatch: (on: boolean) => void;
+  /** Two-touch batting, when the screen can offer it. */
+  touch?: Omit<TouchBattingProps, 'intent' | 'onIntent' | 'disabled'>;
 }
 
 /** One line on where the player is right now. */
@@ -67,6 +70,7 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
   const actions = me ? getAvailableMatchActions(me, i) : null;
 
   const bowlerLine = cur?.bowling.find((b) => b.playerId === me?.id);
+  const [intent, setIntent] = useState(() => intentForLevel(decisions.batting));
   const maxOvers = cur?.maxOversPerBowler ?? null;
   const bowled = me && cur ? (cur.oversBowledBy[me.id] ?? 0) : 0;
 
@@ -85,7 +89,31 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
         </div>
       </div>
 
-      {i.onStrike ? (
+      {i.onStrike && props.touch ? (
+        <>
+          <TouchBatting {...props.touch} intent={intent} onIntent={setIntent} disabled={busy} />
+          <details className="group rounded-xl border border-line">
+            <summary className="flex min-h-11 cursor-pointer items-center px-3 text-[12.5px] font-semibold text-ink">
+              More batting options - aggression, aim, carry the innings, sim
+            </summary>
+            <div className="border-t border-line p-3">
+              <BattingControls
+                level={decisions.batting}
+                risk={props.risk}
+                shotPreference={decisions.shotPreference}
+                onPlay={props.onPlay}
+                onLevel={(batting) => props.onDecisions({ batting })}
+                onShotPreference={(shotPreference) => props.onDecisions({ shotPreference })}
+                onSimOver={props.onSimOver}
+                onSimUntilOut={props.onSimUntilOut}
+                farmStrike={decisions.farmStrike}
+                onFarmStrike={(farmStrike) => props.onDecisions({ farmStrike })}
+                disabled={busy}
+              />
+            </div>
+          </details>
+        </>
+      ) : i.onStrike ? (
         <BattingControls
           level={decisions.batting}
           risk={props.risk}

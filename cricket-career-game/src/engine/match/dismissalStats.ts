@@ -5,11 +5,12 @@
  *
  * Used by the tests and by anyone tuning `MATCH` in config.ts.
  */
-import { createInningsState, stepBall, strikerOf, type InningsSetup } from './innings';
+import { createInningsState, planNextDelivery, stepBall, strikerOf, type InningsSetup } from './innings';
 import { createPitch, createWeather, newBall } from './conditions';
 import { createRng, deriveSeed } from './rng';
 import { generateXi } from './squad';
-import type { SimPlayer } from './types';
+import type { BowlerPlan, SimPlayer } from './types';
+import type { TouchShot } from './touch';
 import { VENUES_BY_ID } from '@/data/venues';
 import type { MatchFormat, PlayerRole } from '@/types';
 
@@ -42,6 +43,8 @@ export interface DismissalScenario {
   leave?: boolean;
   /** Ask to rotate the strike. */
   rotate?: boolean;
+  /** Two-touch batting: the same tap on every ball, or one picked per ball. */
+  touch?: TouchShot | ((ball: number, seen: BowlerPlan | null) => TouchShot);
   /** Number of innings to run. */
   innings: number;
   seed?: number;
@@ -123,6 +126,10 @@ export function measureDismissals(scenario: DismissalScenario): DismissalSample 
         intentLevel: scenario.level,
         leave: scenario.leave,
         rotate: scenario.rotate,
+        touch:
+          typeof scenario.touch === 'function'
+            ? scenario.touch(guard, meOnStrike ? (planNextDelivery(state, s, scenario.level)?.plan ?? null) : null)
+            : scenario.touch,
       });
       if (!ball) break;
       if (meOnStrike && ball.isLegalDelivery) balls += 1;

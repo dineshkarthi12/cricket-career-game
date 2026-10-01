@@ -21,6 +21,7 @@ import {
   setLevel,
 } from './skill';
 import { describeBall } from './commentary';
+import { timingLabel, touchAngle, touchEffect, touchShot } from './touch';
 import type { Rng } from './rng';
 import type { DeliveryContext, DeliveryOutcome } from './types';
 import type { DismissalType, ShotType } from '@/types';
@@ -110,6 +111,10 @@ function deliveryThreat(context: DeliveryContext, error: number): number {
 /** Pick the shot the batter played, from length, line and how hard they went. */
 function chooseShot(context: DeliveryContext, contact: number, rng: Rng): ShotType {
   const { plan, approach } = context;
+  // Two-touch batting: the player chose the side, the length decides the shot.
+  if (context.touch) {
+    return touchShot(context.touch.side, plan.length, approach.level, context.bowlerKind === 'SPIN', (p) => rng.chance(p));
+  }
   const attacking = approach.level >= 4 || (approach.level === 3 && contact > 0.55);
 
   if (!attacking && contact < 0.4) return rng.chance(0.75) ? 'DEFEND' : 'LEAVE';
@@ -162,6 +167,24 @@ function steer(
   let delta = ((preference - natural + 540) % 360) - 180;
   delta *= pull;
   return (natural + delta + 360) % 360;
+}
+
+/**
+ * Where this shot goes. With a tap the batter has picked a side: a decent
+ * contact goes there, a mishit goes wherever the edge takes it.
+ */
+function shotDirection(context: DeliveryContext, shot: ShotType, contact: number, rng: Rng): number {
+  const spec = SHOT_ANGLES[shot];
+  const spread = rng.spread() * spec.spread;
+  if (context.touch && contact >= MATCH.touch.mishitContact) {
+    return touchAngle(context.touch.side, shot, spread * 0.6);
+  }
+  return steer(
+    (spec.angle + spread + 360) % 360,
+    context.shotPreference,
+    contact,
+    context.striker.attributes.batting.technique,
+  );
 }
 
 /** Where a given shot tends to go, in degrees. */
@@ -229,6 +252,10 @@ export function duelFactors(context: DeliveryContext): DuelFactors {
   const partnership = clamp01(context.partnershipBalls / cfg.momentum.settledPartnershipBalls);
 
   return { batter, bowler, bite, edge, settle, set, phaseMod, dotWicket, milestone, cluster, collapse, partnership };
+}
+
+function lineFitOf(context: DeliveryContext): number {
+  return context.touch ? touchEffect(context.touch, context.plan.line, context.approach.level).fit : 1;
 }
 
 function straightLine(line: string): boolean {
@@ -347,6 +374,15 @@ export function estimateWicketChance(context: DeliveryContext): number {
 
 /** Resolve one legal or illegal delivery into everything the scorecard needs. */
 export function resolveDelivery(input: DeliveryContext, rng: Rng): DeliveryOutcome {
+  const outcome = resolveDeliveryCore(input, rng);
+  // Say how the player's tap was timed, when they actually played a shot.
+  if (input.touch && !input.leave && outcome.isLegalDelivery && outcome.shot !== 'LEAVE' && outcome.wicket?.type !== 'RUN_OUT') {
+    return { ...outcome, commentary: `${timingLabel(input.touch.timing)}. ${outcome.commentary}` };
+  }
+  return outcome;
+}
+
+function resolveDeliveryCore(input: DeliveryContext, rng: Rng): DeliveryOutcome {
   let context = input;
   const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
   const cfg = MATCH;
@@ -419,12 +455,14 @@ export function resolveDelivery(input: DeliveryContext, rng: Rng): DeliveryOutco
   const discomfort =
     comfortShortfall(context.striker.aggressionComfort?.batting, context.approach.level) *
     cfg.aggression.comfortPenalty;
+  // The player's tap: which side, and how well it was timed.
+  const touch = context.touch ? touchEffect(context.touch, context.plan.line, context.approach.level) : null;
   const contact = clamp01(
-    0.5 + (edge - threat * 0.55) * 0.6 + rng.spread() * 0.3 - bite * 0.18 + aggressionContact - discomfort,
+    0.5 + (edge - threat * 0.55) * 0.6 + rng.spread() * 0.3 - bite * 0.18 + aggressionContact - discomfort + (touch?.contact ?? 0),
   );
 
   // --- Wicket -------------------------------------------------------------
-  let pWicket = wicketChance(context, threat, f) * (context.scoring?.wicket ?? 1);
+  let pWicket = wicketChance(context, threat, f) * (context.scoring?.wicket ?? 1) * (touch?.wicket ?? 1);
 
   // --- Boundaries ---------------------------------------------------------
   const power = batterPower(context.striker);
@@ -451,14 +489,14 @@ export function resolveDelivery(input: DeliveryContext, rng: Rng): DeliveryOutco
     (context.rotate ? cfg.rotate.boundary : 1) *
     cfg.bowlingAggression.boundary[bowlingIndex];
 
-  let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76) * (context.scoring?.four ?? 1));
+  let pFour = clamp01(rates.four * capped * softBall * (0.62 + contact * 0.76) * (context.scoring?.four ?? 1) * (touch?.four ?? 1));
   // Ground size matters: a short square boundary turns a mis-hit pull into
   // six, a long straight one keeps the same shot in the ground.
   const meanBoundary = (context.boundaries.straight + context.boundaries.square) / 2;
   const groundSize = clamp01(1 + (68 - meanBoundary) / 40);
 
   let pSix = clamp01(
-    rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1) * (0.6 + groundSize * 0.8) * (context.scoring?.six ?? 1),
+    rates.six * capped * (0.5 + power * 1.0) * (0.45 + contact * 1.1) * (0.6 + groundSize * 0.8) * (context.scoring?.six ?? 1) * (touch?.six ?? 1),
   );
 
   // Nothing can be more likely than the total probability space allows.
@@ -616,6 +654,22 @@ function resolveWicket(
     weights.BOWLED *= d.bowled;
     weights.LBW *= d.lbw;
   }
+  // The tap: fighting the line, or mistiming it, changes how the batter goes.
+  if (context.touch) {
+    const d = MATCH.touch.dismissal;
+    const scale = (mods: Partial<Record<string, number>>) => {
+      for (const [key, value] of Object.entries(mods)) {
+        const k = key as DismissalType;
+        if (weights[k] !== undefined && value !== undefined) weights[k] *= value;
+      }
+    };
+    const fit = lineFitOf(context);
+    if (context.approach.level > 1 && fit < MATCH.touch.acrossLine) {
+      scale(context.touch.side === 'LEG' ? d.acrossToLeg : d.acrossToOff);
+    }
+    if (context.touch.timing === 'LATE') scale(d.late);
+    if (context.touch.timing === 'EARLY') scale(d.early);
+  }
   if (context.aroundTheWicket) {
     const cfg = MATCH.aroundTheWicket;
     weights.LBW *= cfg.lbw;
@@ -630,13 +684,7 @@ function resolveWicket(
 
   // Where the ball went, so the ground view can draw the chance.
   const shot = chooseShot(context, input.contact, rng);
-  const spec = SHOT_ANGLES[shot];
-  const angle = steer(
-    (spec.angle + rng.spread() * spec.spread + 360) % 360,
-    context.shotPreference,
-    input.contact,
-    context.striker.attributes.batting.technique,
-  );
+  const angle = shotDirection(context, shot, input.contact, rng);
   // A defensive edge carries to the close catchers, not the outfield.
   const distance =
     context.approach.level <= 2
@@ -809,13 +857,7 @@ function resolveBoundary(
   rng: Rng,
 ): DeliveryOutcome {
   const shot = chooseShot(context, input.contact, rng);
-  const spec = SHOT_ANGLES[shot];
-  const angle = steer(
-    (spec.angle + rng.spread() * spec.spread + 360) % 360,
-    context.shotPreference,
-    input.contact,
-    context.striker.attributes.batting.technique,
-  );
+  const angle = shotDirection(context, shot, input.contact, rng);
   const distance = input.six ? rng.range(68, 92) : rng.range(58, 72);
 
   // A six hit flat to a boundary rider is sometimes a catch instead.
@@ -907,13 +949,7 @@ function resolvePlacedShot(
   const { contact, intentIndex } = input;
 
   const shot = chooseShot(context, contact, rng);
-  const spec = SHOT_ANGLES[shot];
-  const angle = steer(
-    (spec.angle + rng.spread() * spec.spread + 360) % 360,
-    context.shotPreference,
-    contact,
-    context.striker.attributes.batting.technique,
-  );
+  const angle = shotDirection(context, shot, contact, rng);
   const distance = Math.max(2, 6 + contact * 46 + rng.spread() * 10);
 
   const nearest = nearestFielder(context.field, angle, distance);

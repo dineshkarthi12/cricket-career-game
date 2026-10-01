@@ -17,3 +17,4 @@ export * from './calendar';
 export * from './save';
 export * from './pro';
 export * from './real';
+export * from './challenge';

@@ -11,8 +11,16 @@ places, team needs, conditions and injuries. Good players get dropped, late
 bloomers break through, and most careers never reach India.
 
 - **Matches, ball by ball.** A top-down 2D ground with fielders as dots, ball
-  paths, commentary, scorecards, worms, Manhattans and wagon wheels. Set your
-  batting or bowling intent on a 1-5 aggression bar, or simulate ahead.
+  paths, commentary, scorecards, worms, Manhattans and wagon wheels.
+- **Two-touch batting.** Pick an intent (Defend, Rotate, Attack, Big shot),
+  watch the delivery come, and tap LEFT or RIGHT to play to the leg or off
+  side (mirrored for left-handers). The tap is timed early, good, perfect or
+  late; side and timing change the real outcome without fixing it. Keyboard
+  (arrows, Space, L), timing assist and reduced motion are supported. The
+  1-5 aggression bar and sim controls are still there.
+- **Challenges, rivals and a career card.** Daily and weekly challenges on
+  the real calendar that pay once; the rivals competing for your place; a
+  career card to share, save as an image or copy.
 - **The whole cricket year.** Training plans, fitness, injuries and rehab,
   school exams, trials, selection meetings, and real tournament names (Ranji
   Trophy, Vijay Hazare, Syed Mushtaq Ali, Cooch Behar, Duleep, Irani, ICC

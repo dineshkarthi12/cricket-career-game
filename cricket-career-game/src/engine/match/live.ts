@@ -26,12 +26,14 @@ import {
   inningsView,
   resumeBall,
   nonStrikerOf,
+  planNextDelivery,
   stepBall,
   strikerOf,
   type BallOverrides,
   type InningsSetup,
   type InningsState,
   type Partnership,
+  type PlannedDelivery,
   type RiskEstimate,
 } from './innings';
 import { createRng, deriveSeed, type Rng } from './rng';
@@ -254,6 +256,12 @@ export interface LiveMatch {
   prepareNextOver(overrides?: BallOverrides): SimPlayer | null;
   /** Who the AI would bowl next, as advice. Draws nothing from the match. */
   suggestBowler(): SimPlayer | null;
+  /**
+   * Two-touch batting: decide the next delivery now so the player can watch
+   * it come and pick a side. Only while the player's own batter is on strike
+   * and the bowler is known; the next `nextBall` bowls exactly this ball.
+   */
+  peekDelivery(intentLevel: number): PlannedDelivery | null;
   /** Play the rest of the innings out. */
   toEndOfInnings(overrides?: BallOverrides): Ball[];
   /** The captain's impact substitution for the next innings (nulls: none). */
@@ -1252,6 +1260,12 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       const bowler = beginOver(state, inningsRng, overrides);
       if (state.complete) closeInnings();
       return bowler;
+    },
+
+    peekDelivery(intentLevel) {
+      if (phase !== 'IN_PLAY' || !state || state.pending) return null;
+      if (strikerOf(state).id !== userId) return null;
+      return planNextDelivery(state, deriveSeed(setup.seed, 5000), intentLevel);
     },
 
     suggestBowler() {
