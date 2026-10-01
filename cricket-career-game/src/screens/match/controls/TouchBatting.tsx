@@ -264,8 +264,11 @@ export function TouchBatting(props: TouchBattingProps) {
 
   // Only once the store has moved past the ball the tap was for.
   const result = feedback && props.lastBall && ballKey !== feedback.key ? describeResult(props.lastBall) : null;
+  // A wide never reached the bat, so there is no timing to report.
+  const wide = Boolean(result && props.lastBall?.extras?.type === 'WIDE');
+  const gradeText = wide ? null : feedback?.grade ? timingLabel(feedback.grade) : 'No shot';
   const announce = feedback
-    ? `${feedback.grade ? timingLabel(feedback.grade) : 'No shot'}${result ? `. ${result}` : ''}`
+    ? [gradeText, result].filter(Boolean).join('. ')
     : notice ?? '';
 
   return (
@@ -396,8 +399,8 @@ export function TouchBatting(props: TouchBattingProps) {
           ) : null}
           {feedback ? (
             <p className="rounded-lg bg-white/15 px-3 py-2 text-[13px] font-bold">
-              <span className={gradeTone(feedback.grade)}>{feedback.grade ? timingLabel(feedback.grade) : 'No shot'}</span>
-              {result ? <span className="text-white"> · {result}</span> : null}
+              {gradeText ? <span className={gradeTone(feedback.grade)}>{gradeText}</span> : null}
+              {result ? <span className="text-white">{gradeText ? ' · ' : ''}{result}</span> : null}
             </p>
           ) : notice ? (
             <p className="text-[12px] text-white/80">{notice}</p>
