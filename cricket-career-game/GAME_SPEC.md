@@ -1150,6 +1150,26 @@ earn a place like everyone else.
 
 ---
 
+## 8i. Role rules, defensive batting and IPL Manager (Phase 10)
+
+- **Roles** (`engine/roles.ts`): Pure Batter (BATTER, OPENING_BATTER) and
+  Wicketkeeper never bowl, train bowling or see bowling controls; Bowler and
+  All-rounder bowl when they have a bowling type. The engine enforces it in
+  `bowlersOf`, `chooseBowler`, `startOver` (throws on a violation) and the
+  quick sim. AI players keep part-time bowling.
+- **Defence** (`MATCH.defence`): a block (intent 1) is bounded by the floor
+  before the batter's caution, scaled by defensive soundness; situational
+  multipliers reach it at 15%; no sixes, rope catches or stumpings off a
+  block; Leave defends straight balls by judgement.
+- **Dismissal integrity**: `validOutcome` in `innings.ts`; all-out when no
+  batter remains; no balls after an innings ends; `ballKeyOf` in the match
+  store drops stale requests.
+- **IPL Manager**: a separate mode (`engine/manager`, `store/managerStore`,
+  `save/managerSaves`, `screens/manager`). Phases per season: SCOUTING (4
+  weeks) -> TRIALS -> RETENTION -> AUCTION_PREP -> AUCTION -> PRESEASON ->
+  LEAGUE (14 rounds) -> PLAYOFFS -> SEASON_END. Every rule and balance number
+  is in `engine/manager/config.ts`; money is in lakh.
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |
