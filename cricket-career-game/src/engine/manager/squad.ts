@@ -210,3 +210,53 @@ export function setGamePlan(state: ManagerState, patch: Partial<Pick<TeamTactics
   if (patch.workloadLimit !== undefined && (patch.workloadLimit < 40 || patch.workloadLimit > 95)) return { ok: false, state, error: 'Set a workload limit between 40 and 95.' };
   return { ok: true, state: produce(state, (d) => void Object.assign(d.tactics, structuredClone(patch))) };
 }
+
+/**
+ * An injured player (or one no longer in the squad) cannot take the field.
+ * The assistant coach swaps each one for the best fit like-for-like
+ * replacement, keeping the XI legal; only if that cannot be done is a whole
+ * new XI suggested. Returns the names swapped, for the news. Mutates `draft`.
+ */
+export function repairUserXi(draft: ManagerState): { out: string; in: string }[] {
+  const fid = draft.franchiseId;
+  const t = draft.tactics;
+  const squadIds = new Set(draft.franchises[fid]?.squadIds ?? []);
+  const unavailable = (id: string) => !squadIds.has(id) || !draft.players[id] || !isAvailable(draft.players[id]);
+  if (t.xiIds.length === 0 || !t.xiIds.some(unavailable)) return [];
+  const swaps: { out: string; in: string }[] = [];
+  const group = (p: ManagedPlayer) => (canKeep(p) && p.role === 'WICKET_KEEPER_BATTER' ? 'WK' : isBowlingOption(p) ? (battingRating(p) >= 55 ? 'AR' : 'BOWL') : 'BAT');
+  let xi = [...t.xiIds];
+  let keeper = t.wicketkeeperId;
+  for (const id of t.xiIds.filter(unavailable)) {
+    const gone = draft.players[id];
+    const overseasLeft = MANAGER.rules.overseasXiMax - xi.filter((x) => x !== id && draft.players[x]?.overseas).length;
+    const bench = squadOf(draft, fid).filter((p) => !xi.includes(p.id) && isAvailable(p) && (!p.overseas || overseasLeft > 0));
+    const value = (p: ManagedPlayer) => Math.max(battingRating(p), bowlingRating(p)) + (gone && group(p) === group(gone) ? 25 : 0) + (gone?.bowlingStyle !== 'NONE' && p.bowlingStyle !== 'NONE' ? 8 : 0) + (id === keeper && canKeep(p) ? 60 : 0);
+    const pick = [...bench].sort((a, b) => value(b) - value(a))[0];
+    if (!pick) continue;
+    xi = xi.map((x) => (x === id ? pick.id : x));
+    if (id === keeper) keeper = canKeep(pick) ? pick.id : (xi.find((x) => draft.players[x] && canKeep(draft.players[x])) ?? null);
+    swaps.push({ out: gone?.name ?? id, in: pick.name });
+  }
+  if (xiProblems(draft, fid, xi, keeper).length > 0) {
+    const auto = autoXi(draft, fid);
+    xi = auto.xiIds;
+    keeper = auto.wicketkeeperId;
+  }
+  const kept = t.bowling;
+  const inXi = (x: string) => xi.includes(x) && x !== keeper && draft.players[x]?.bowlingStyle !== 'NONE';
+  const fresh = autoBowlingPlan(draft, xi, keeper);
+  draft.tactics = {
+    ...t,
+    xiIds: xi,
+    wicketkeeperId: keeper,
+    captainId: t.captainId && xi.includes(t.captainId) ? t.captainId : xi[0],
+    bowling: {
+      powerplay: kept.powerplay.filter(inXi).length ? [...kept.powerplay.filter(inXi), ...fresh.powerplay.filter((x) => !kept.powerplay.includes(x))] : fresh.powerplay,
+      middle: kept.middle.filter(inXi).length ? [...kept.middle.filter(inXi), ...fresh.middle.filter((x) => !kept.middle.includes(x))] : fresh.middle,
+      death: kept.death.filter(inXi).length ? [...kept.death.filter(inXi), ...fresh.death.filter((x) => !kept.death.includes(x))] : fresh.death,
+    },
+    impactSubId: t.impactSubId && !xi.includes(t.impactSubId) && !unavailable(t.impactSubId) ? t.impactSubId : null,
+  };
+  return swaps.length ? swaps : [{ out: 'the injured', in: 'a new suggested XI' }];
+}

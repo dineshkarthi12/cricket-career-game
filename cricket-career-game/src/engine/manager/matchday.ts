@@ -17,7 +17,7 @@ import type { Innings, Match, Venue } from '@/types';
 import type { BattingApproachSetting, ManagedPlayer, ManagerFixture, ManagerState, TeamTactics } from '@/types/manager';
 import { MANAGER } from './config';
 import { isAvailable, toSim } from './players';
-import { autoBowlingPlan, autoXi, xiProblems } from './squad';
+import { autoBowlingPlan, autoXi, repairUserXi, xiProblems } from './squad';
 import { addNews, book, clamp, holds, once, rngFor, saltOf, squadOf } from './util';
 
 export const IPL_TOURNAMENT_ID = 'ipl-manager';
@@ -263,6 +263,7 @@ export function applyResult(draft: ManagerState, fixtureId: string, match: Match
   }
 
   recordPlayerStats(draft, match, [fixture.homeId, fixture.awayId]);
+  keepXiFit(draft);
 
   if (userInvolved) {
     const won = winnerId === draft.franchiseId;
@@ -439,3 +440,15 @@ export function plannedBowler(state: ManagerState, live: LiveMatch): string | nu
   return o.bowlerId ?? null;
 }
 
+
+/** After injuries, make sure the user's saved XI can still take the field - and say who came in. */
+export function keepXiFit(draft: ManagerState): void {
+  const swaps = repairUserXi(draft);
+  if (!swaps.length) return;
+  addNews(draft, {
+    kind: 'INJURY',
+    title: 'XI changed for injury',
+    body: `${swaps.map((s) => `${s.in} replaces ${s.out}`).join('; ')}. Review the XI before the next match.`,
+    route: '/manager/xi',
+  });
+}

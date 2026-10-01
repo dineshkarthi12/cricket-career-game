@@ -37,6 +37,23 @@ function serviceWorker(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), serviceWorker()],
+  build: {
+    rolldownOptions: {
+      output: {
+        // The game engine and its static data are shared by every screen of both
+        // modes; on their own they keep the screen chunks under the size limit.
+        codeSplitting: {
+          groups: [
+            { name: 'engine-manager', test: /[\\/]src[\\/]engine[\\/]manager[\\/]/, priority: 3 },
+            { name: 'engine-match', test: /[\\/]src[\\/]engine[\\/](match|sim)[\\/]/, priority: 2 },
+            { name: 'engine', test: /[\\/]src[\\/]engine[\\/]/, priority: 1 },
+            // Static data; the real players (src/data/real) stay lazy chunks of their own.
+            { name: 'game-data', test: /[\\/]src[\\/]data[\\/](?!real[\\/])/, priority: 1 },
+          ],
+        },
+      },
+    },
+  },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

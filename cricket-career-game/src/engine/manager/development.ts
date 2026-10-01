@@ -10,6 +10,7 @@ import type { ManagedPlayer, ManagerState, StaffKind, TrainingFocus } from '@/ty
 import { MANAGER } from './config';
 import type { ActionResult } from './scouting';
 import { book, clamp, holds, produce, weekStamp } from './util';
+import { keepXiFit } from './matchday';
 
 type Key = [keyof Attributes, string];
 
@@ -94,6 +95,9 @@ export function developmentWeek(draft: ManagerState): void {
       p.condition.fitness = clamp(100 - p.condition.fatigue * 0.3 - (p.injuredWeeks > 0 ? 25 : 0), 30, 100);
     }
   }
+  // A player back from injury does not walk into the XI on his own, but the
+  // XI must never hold someone injured.
+  keepXiFit(draft);
   const user = draft.franchises[draft.franchiseId];
   book(draft, { id: `dev-${weekStamp(draft)}`, kind: 'DEVELOPMENT', amount: -MANAGER.development.costPerWeek * Math.max(1, Math.round(user.squadIds.length / 5)), note: 'Training and facilities' });
 }

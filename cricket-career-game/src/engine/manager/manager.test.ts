@@ -274,6 +274,20 @@ describe('squads and the playing XI', () => {
     expect(xiProblems(noBowlers, s.franchiseId, xiIds, wicketkeeperId).join()).toMatch(/bowling options/);
   });
 
+  it('an injury to someone in the saved XI never blocks the next match', () => {
+    let s = until(fresh({ seed: 9 }), 'LEAGUE');
+    const victim = s.tactics.xiIds[2];
+    s = produce(s, (d) => void (d.players[victim].injuredWeeks = 3));
+    // Play this round: the week's development pass repairs the XI.
+    s = step(s);
+    s = step(s);
+    expect(s.tactics.xiIds).not.toContain(victim);
+    expect(xiProblems(s, s.franchiseId, s.tactics.xiIds, s.tactics.wicketkeeperId)).toEqual([]);
+    expect(s.news.some((n) => n.title === 'XI changed for injury')).toBe(true);
+    // And the season carries on without the manager being stuck.
+    expect(() => playSeason(s)).not.toThrow();
+  }, 60000);
+
   it('will not start the league with an invalid XI', () => {
     let s = until(fresh(), 'PRESEASON');
     s = produce(s, (d) => void (d.tactics.xiIds = d.tactics.xiIds.slice(0, 9)));
