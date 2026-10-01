@@ -15,8 +15,10 @@ export function setupAudio(): void {
   apply();
   useAppSettings.subscribe(apply);
   const unlock = () => unlockAudio();
-  window.addEventListener('pointerdown', unlock, { passive: true });
-  window.addEventListener('keydown', unlock);
+  // Phones unlock audio on a finger lifting or a click, not a finger landing.
+  for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) {
+    window.addEventListener(type, unlock, { passive: true });
+  }
   window.addEventListener('click', (event) => {
     if (!useAppSettings.getState().buttonClicks) return;
     const target = event.target as HTMLElement | null;

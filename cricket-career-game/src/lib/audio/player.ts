@@ -18,6 +18,8 @@ let master: GainNode | null = null;
 let noiseBuffer: AudioBuffer | null = null;
 let ambience: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
 let prefs: AudioPrefs = { effects: true, ambience: true, volume: 0.8 };
+/** A match is on and would like the crowd: started as soon as audio is allowed. */
+let wantAmbience = false;
 
 export function setAudioPrefs(next: AudioPrefs): void {
   prefs = next;
@@ -44,10 +46,24 @@ function audio(): AudioContext | null {
   }
 }
 
-/** Call from a tap or click: browsers keep audio locked until then. */
+/**
+ * Call from a tap or click: browsers keep audio locked until then. Phones
+ * only accept some gestures (a finger lifting, a click - not a finger landing),
+ * so this is called on all of them; once audio runs, a waiting crowd starts.
+ */
 export function unlockAudio(): void {
   const c = audio();
-  if (c && c.state === 'suspended') void c.resume().catch(() => {});
+  if (!c) return;
+  if (c.state === 'running') {
+    if (wantAmbience) startAmbience();
+    return;
+  }
+  void c
+    .resume()
+    .then(() => {
+      if (wantAmbience) startAmbience();
+    })
+    .catch(() => {});
 }
 
 function noise(c: AudioContext, loop = false): AudioBufferSourceNode {
@@ -132,7 +148,18 @@ const EFFECTS: Record<Sfx, (c: AudioContext, t: number) => void> = {
 export function playSfx(list: Sfx[]): void {
   if (!prefs.effects || prefs.volume === 0) return;
   const c = audio();
-  if (!c || !master || c.state !== 'running') return;
+  if (!c || !master) return;
+  if (c.state !== 'running') {
+    // Not unlocked yet (or the phone suspended it): try again, play when it can.
+    void c.resume().then(() => playNow(c, list)).catch(() => {});
+    return;
+  }
+  playNow(c, list);
+}
+
+function playNow(c: AudioContext, list: Sfx[]): void {
+  if (c.state !== 'running') return;
+  if (wantAmbience && !ambience) startAmbience();
   const t = c.currentTime + 0.01;
   for (const s of list) {
     try {
@@ -153,9 +180,20 @@ export function playClick(): void {
 
 /** The murmur of a crowd, looped quietly under a match. */
 export function startAmbience(): void {
+  wantAmbience = true;
   if (ambience || !prefs.effects || !prefs.ambience || prefs.volume === 0) return;
   const c = audio();
-  if (!c || !master || c.state !== 'running') return;
+  if (!c || !master) return;
+  if (c.state !== 'running') {
+    // Start when audio is allowed - unless the match has ended meanwhile.
+    void c
+      .resume()
+      .then(() => {
+        if (wantAmbience) startAmbience();
+      })
+      .catch(() => {});
+    return;
+  }
   const source = noise(c, true);
   const low = c.createBiquadFilter();
   low.type = 'bandpass';
@@ -170,6 +208,7 @@ export function startAmbience(): void {
 }
 
 export function stopAmbience(): void {
+  wantAmbience = false;
   if (!ambience || !ctx) return;
   const { source, gain } = ambience;
   ambience = null;
