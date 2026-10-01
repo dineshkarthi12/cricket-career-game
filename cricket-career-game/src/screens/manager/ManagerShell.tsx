@@ -4,7 +4,7 @@
  * with the manager's own navigation and top bar.
  */
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink, Navigate, Link } from 'react-router-dom';
+import { NavLink, Navigate, Link, useLocation } from 'react-router-dom';
 import {
   Award,
   BarChart3,
@@ -37,6 +37,7 @@ import { cn } from '@/lib/cn';
 import { Logo } from '@/layout/Logo';
 import { useManagerStore } from '@/store/managerStore';
 import { FranchiseCrest } from './ui';
+import { PhaseBar } from './PhaseFlow';
 
 interface Item {
   label: string;
@@ -216,6 +217,9 @@ export function ManagerShell({ children }: { children: ReactNode }) {
   const boot = useManagerStore((s) => s.boot);
   const state = useManagerStore((s) => s.state);
   const saveNow = useManagerStore((s) => s.saveNow);
+  const { pathname } = useLocation();
+  // Home has its own Next-up card; a live match runs its own flow.
+  const showPhaseBar = pathname !== '/manager' && pathname !== '/manager/' && !/^\/manager\/match\/[^/]+\/?$/.test(pathname);
 
   useEffect(() => {
     void boot();
@@ -249,6 +253,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
         <div className="px-4 pb-24 sm:px-5 md:pb-8 lg:px-3">
           <ManagerTopBar />
           <main id="manager-main" tabIndex={-1} className="outline-none">
+            {showPhaseBar ? <PhaseBar /> : null}
             {children}
           </main>
         </div>

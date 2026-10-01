@@ -52,7 +52,7 @@ export default function ManagerStart() {
       setConfirmOverwrite(true);
       return;
     }
-    if (await newCareer(target, { name, franchiseId, difficulty, pathway, fullControl })) navigate('/manager');
+    if (await newCareer(target, { name, franchiseId, difficulty, pathway, fullControl })) navigate(fullControl ? '/manager/scouting' : '/manager');
   };
 
   return (
@@ -280,7 +280,7 @@ export default function ManagerStart() {
         onCancel={() => setConfirmOverwrite(false)}
         onConfirm={async () => {
           setConfirmOverwrite(false);
-          if (await newCareer(target, { name, franchiseId, difficulty, pathway, fullControl })) navigate('/manager');
+          if (await newCareer(target, { name, franchiseId, difficulty, pathway, fullControl })) navigate(fullControl ? '/manager/scouting' : '/manager');
         }}
       />
     </div>

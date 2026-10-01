@@ -97,6 +97,15 @@ describe('a new manager career', () => {
     expect(r.error).toMatch(/match is next/);
   });
 
+  it('with full control, the scouting weeks wait until the manager sends a scout out', () => {
+    const s = fresh({ pathway: 'SCOUTING', fullControl: true });
+    expect(advance(s).error).toMatch(/scout/);
+    const scout = s.staff.find((x) => x.kind === 'SCOUT')!;
+    const sent = assignScout(s, scout.id, 'NORTH', null);
+    expect(sent.ok).toBe(true);
+    expect(advance(sent.state).ok).toBe(true);
+  });
+
   it('full control can be switched on for an existing save, but not mid-auction', () => {
     const s = fresh({ pathway: 'SCOUTING' });
     expect(holds(s, 'AUCTION')).toBe(false);
