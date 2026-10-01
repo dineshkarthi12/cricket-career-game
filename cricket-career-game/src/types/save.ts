@@ -1,3 +1,4 @@
+import type { ChallengeState } from './challenge';
 import type { CalendarState } from './calendar';
 import type { CareerState } from './career';
 import type { InboxMessage } from './inbox';
@@ -21,7 +22,7 @@ export const SAVE_SLOT_IDS: readonly SaveSlotId[] = [1, 2, 3] as const;
  * Bumped whenever the shape of `GameState` changes. `migrate` in
  * `src/save/migrate.ts` upgrades older saves to the current version.
  */
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 
 /** The complete, serialisable state of one career. */
 export interface GameState {
@@ -53,6 +54,8 @@ export interface GameState {
    * next season rollover (`engine/world/realSeed.ts`).
    */
   realSquadsPending?: boolean;
+  /** Daily and weekly challenges (save v10). Optional: an older save gets an empty one. */
+  challenges?: ChallengeState;
   settings: GameSettings;
 }
 

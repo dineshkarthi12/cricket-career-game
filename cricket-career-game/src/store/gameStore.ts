@@ -18,6 +18,7 @@ import {
 } from '@/save';
 import { downloadSave } from '@/save/file';
 import { advanceWeek as advanceCareerWeek, type AdvanceResult } from '@/engine/calendar';
+import { claimChallenge, recordTraining, type ClaimResult } from '@/engine/career/challenges';
 import {
   canReturnEarly,
   changeRehabPlan,
@@ -97,6 +98,8 @@ interface GameStore {
    * null with no career loaded.
    */
   advanceWeek: () => AdvanceResult | null;
+  /** Claim a finished daily or weekly challenge, once. */
+  claimChallenge: (id: string) => ClaimResult;
   /** Attend the trial the clock stopped for, with a played-out record. */
   attendTrial: (record: TrialRecord) => void;
   /** Let the coach make the calls at the trial. */
@@ -314,7 +317,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { state } = get();
     if (!state) return null;
     const result = advanceCareerWeek(state);
-    get().update(() => result.state);
+    // A finished training week counts towards today's challenges.
+    get().update(() => recordTraining(state, result.state, new Date()));
+    return result;
+  },
+
+  claimChallenge: (id) => {
+    const { state } = get();
+    if (!state) return { ok: false, reason: 'No career loaded.' };
+    const result = claimChallenge(state, id, new Date());
+    if (result.ok) get().update(() => result.state);
     return result;
   },
 

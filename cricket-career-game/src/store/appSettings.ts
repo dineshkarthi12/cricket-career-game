@@ -27,6 +27,11 @@ export interface AppSettings {
   buttonClicks: boolean;
   /** 0-1. */
   volume: number;
+  /**
+   * Two-touch batting without the timing test: any tap in time counts as good
+   * timing. For anyone who cannot, or would rather not, time a tap.
+   */
+  timingAssist: boolean;
 }
 
 const KEY = 'cc.appSettings';
@@ -40,6 +45,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   crowdAmbience: true,
   buttonClicks: false,
   volume: 0.8,
+  timingAssist: false,
 };
 
 function load(): AppSettings {
@@ -56,6 +62,7 @@ function load(): AppSettings {
       crowdAmbience: parsed.crowdAmbience !== false,
       buttonClicks: parsed.buttonClicks === true,
       volume: typeof parsed.volume === 'number' ? Math.max(0, Math.min(1, parsed.volume)) : 0.8,
+      timingAssist: parsed.timingAssist === true,
     };
   } catch {
     return DEFAULT_APP_SETTINGS;
@@ -79,8 +86,8 @@ interface AppSettingsStore extends AppSettings {
 export const useAppSettings = create<AppSettingsStore>((set, get) => {
   const commit = (patch: Partial<AppSettings>) => {
     set(patch);
-    const { animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume } = get();
-    save({ animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume });
+    const { animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume, timingAssist } = get();
+    save({ animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume, timingAssist });
   };
   return {
     ...load(),

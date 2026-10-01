@@ -22,9 +22,11 @@ import {
   type XiReview,
 } from '@/engine/career/selection';
 import { commitMatchDetailed, type CommitResult } from '@/engine/match/commit';
+import { recordMatch } from '@/engine/career/challenges';
 import { buildMatch, type MatchBuild } from '@/engine/match/lineup';
 import { createLiveMatch, type LiveMatch, type LiveSnapshot } from '@/engine/match/live';
-import type { BallOverrides, RiskEstimate } from '@/engine/match/innings';
+import type { BallOverrides, PlannedDelivery, RiskEstimate } from '@/engine/match/innings';
+import type { TouchShot } from '@/engine/match/touch';
 import type { BowlerPlan, FieldSetting, SimPlayer } from '@/engine/match/types';
 import { fieldProblems } from '@/lib/fieldRules';
 import { useGameStore } from './gameStore';
@@ -159,7 +161,12 @@ interface MatchStore {
    * firing just after the player pressed a button - is ignored, so one
    * decision can never be applied to two deliveries.
    */
-  playBall: (intent?: BallIntent, expectKey?: number) => void;
+  playBall: (intent?: BallIntent, expectKey?: number, touch?: TouchShot | null) => void;
+  /**
+   * Two-touch batting: the next delivery, decided now so the player can watch
+   * it come. Null when the player is not on strike or the bowler is not known.
+   */
+  peekDelivery: (intent: BallIntent) => PlannedDelivery | null;
   nextOver: () => void;
   toNextWicket: () => void;
   untilInvolved: () => void;
@@ -357,8 +364,8 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       teammateIds: userSide.map((p) => p.id),
       captain: captain ? { log: tactics, xiChanges: xiReview } : null,
     });
-    useGameStore.getState().update(() => result.state);
     const stored = result.state.matches[done.match.id] ?? done.match;
+    useGameStore.getState().update(() => recordMatch(result.state, stored, new Date()));
     set({
       after: {
         match: stored,
@@ -489,10 +496,19 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       sync(null);
     },
 
-    playBall: (intent, expectKey) => {
+    playBall: (intent, expectKey, touch) => {
       if (!live) return;
+      // Each ball is played once: a request for a ball already bowled is stale.
       if (expectKey !== undefined && expectKey !== ballKeyOf(live.snapshot())) return;
-      run((o) => live!.nextBall(o), intent ? intentOverrides(intent) : undefined);
+      const perBall: BallOverrides | undefined =
+        intent || touch ? { ...(intent ? intentOverrides(intent) : {}), ...(touch ? { touch } : {}) } : undefined;
+      run((o) => live!.nextBall(o), perBall);
+    },
+
+    peekDelivery: (intent) => {
+      if (!live) return null;
+      const level = intentOverrides(intent).intentLevel ?? get().player.batting;
+      return live.peekDelivery(level);
     },
     nextOver: () => run((o) => live!.nextOver(o)),
     toNextWicket: () => run((o) => live!.toNextWicket(o)),
@@ -614,8 +630,9 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         teammateIds: xiIds,
         captain: captain ? { log: emptyTacticalLog(), xiChanges: null } : null,
       });
-      useGameStore.getState().update(() => result.state);
-      return result.state.matches[done.match.id] ?? done.match;
+      const stored = result.state.matches[done.match.id] ?? done.match;
+      useGameStore.getState().update(() => recordMatch(result.state, stored, new Date()));
+      return stored;
     },
 
     setPlayer: (patch) => {

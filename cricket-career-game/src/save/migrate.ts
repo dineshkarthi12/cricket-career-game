@@ -40,6 +40,8 @@ import { fail, ok } from './storage';
  * careers must keep loading.
  */
 const MIGRATIONS: Record<number, (state: GameState) => GameState> = {
+  /** v10: daily and weekly challenges. Nothing else changes. */
+  9: (state) => ({ ...state, version: 10, challenges: state.challenges ?? { log: [], claimed: [], xpEarned: 0 } }),
   /**
    * v2 (Phase 3): balls carry a shot direction and distance for the 2D ground
    * view, and condition carries selector trust.

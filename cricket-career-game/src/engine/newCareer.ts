@@ -147,6 +147,7 @@ export function createNewCareer(options: NewCareerOptions): GameState {
   const seasonYear = seasonYearOf(startDate);
   const base: GameState = {
     version: SAVE_VERSION,
+    challenges: { log: [], claimed: [], xpEarned: 0 },
     seed,
     pro: emptyProState(seasonYear),
     player,
