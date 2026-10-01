@@ -88,9 +88,9 @@ export function LockedNotice({ responsibility, state }: { responsibility: Respon
       <p className="text-[13px] text-ink">
         {state.profile.unemployed
           ? 'You are between jobs - accept an offer on your profile to get back to work.'
-          : `As ${MANAGER.ranks.label[state.profile.rank]} this is handled by the franchise's staff. It becomes yours as ${nextRank ? MANAGER.ranks.label[nextRank] : 'a senior manager'} - earned at a season review.`}{' '}
+          : `As ${MANAGER.ranks.label[state.profile.rank]} this is handled by the franchise's staff. It becomes yours as ${nextRank ? MANAGER.ranks.label[nextRank] : 'a senior manager'} - earned at a season review, or straight away with full control.`}{' '}
         <Link to="/manager/profile" className="font-semibold text-brand-blue underline-offset-2 hover:underline">
-          See your career path
+          Take full control
         </Link>
       </p>
     </div>

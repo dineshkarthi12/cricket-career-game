@@ -1523,6 +1523,11 @@ balance suites (T20/ODI/first-class, competitions, aggression) all pass.
   season review on reputation and the board's objectives; sacking below the
   board's confidence line, job offers, explicit retirement with the whole
   history kept.
+- Full control (`profile.fullControl`, on by default for new careers, switch
+  on the Profile screen for older saves): every responsibility is the
+  manager's from the first week whatever the rank, so Continue never runs the
+  auction, picks the XI or plays a match for them. Cannot be switched while a
+  live auction is open.
 - Scouting network (regions, trips, budgets, staff quality, analyst), reports
   with estimates and uncertainty, hidden potential, rival interest; trials
   and development contracts that can be refused or countered.

@@ -3,7 +3,7 @@
  * Separate from the player-career slots; nothing here touches a career.
  */
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Briefcase, Crown, Play, Plus, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Briefcase, Crown, Play, Plus, SlidersHorizontal, Trash2, Upload } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Card, ConfirmDialog } from '@/components';
 import { FRANCHISES } from '@/data/franchises';
@@ -33,6 +33,7 @@ export default function ManagerStart() {
   const [franchiseId, setFranchiseId] = useState(FRANCHISES[0].id);
   const [pathway, setPathway] = useState<ManagerPathway>('SCOUTING');
   const [difficulty, setDifficulty] = useState<ManagerDifficulty>('NORMAL');
+  const [fullControl, setFullControl] = useState(true);
   const [slot, setSlot] = useState<ManagerSlotId | null>(null);
   const [tried, setTried] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ManagerSlotId | null>(null);
@@ -51,7 +52,7 @@ export default function ManagerStart() {
       setConfirmOverwrite(true);
       return;
     }
-    if (await newCareer(target, { name, franchiseId, difficulty, pathway })) navigate('/manager');
+    if (await newCareer(target, { name, franchiseId, difficulty, pathway, fullControl })) navigate('/manager');
   };
 
   return (
@@ -216,6 +217,18 @@ export default function ManagerStart() {
               </div>
             </fieldset>
 
+            <label className={cn('flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3', fullControl ? 'border-brand-blue bg-brand-blue-soft' : 'border-line bg-surface hover:bg-page')}>
+              <input type="checkbox" checked={fullControl} onChange={(e) => setFullControl(e.target.checked)} className="mt-0.5 size-4 accent-brand-blue" />
+              <span>
+                <span className="flex items-center gap-1.5 text-[13.5px] font-semibold text-ink">
+                  <SlidersHorizontal className="size-4 text-brand-blue" aria-hidden /> Full control
+                </span>
+                <span className="mt-0.5 block text-[12px] text-ink-muted">
+                  You do every job from the first week: scouting trips, trials, retentions, every auction bid, the XI, tactics and every match. Continue never plays anything for you. Off: jobs above your rank are done by the franchise staff.
+                </span>
+              </span>
+            </label>
+
             <div className="flex flex-wrap items-end gap-4">
               <fieldset>
                 <legend className="mb-2 text-[12.5px] font-semibold text-ink">Difficulty</legend>
@@ -267,7 +280,7 @@ export default function ManagerStart() {
         onCancel={() => setConfirmOverwrite(false)}
         onConfirm={async () => {
           setConfirmOverwrite(false);
-          if (await newCareer(target, { name, franchiseId, difficulty, pathway })) navigate('/manager');
+          if (await newCareer(target, { name, franchiseId, difficulty, pathway, fullControl })) navigate('/manager');
         }}
       />
     </div>

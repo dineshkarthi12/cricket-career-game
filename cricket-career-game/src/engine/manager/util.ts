@@ -68,6 +68,7 @@ export function book(draft: ManagerState, entry: Omit<LedgerEntry, 'season' | 'w
 /** Whether the manager's current rank carries a responsibility. */
 export function holds(state: Pick<ManagerState, 'profile'>, responsibility: Responsibility): boolean {
   if (state.profile.unemployed || state.profile.retired) return false;
+  if (state.profile.fullControl) return true;
   return (MANAGER.ranks.responsibilities[state.profile.rank] as readonly Responsibility[]).includes(responsibility);
 }
 

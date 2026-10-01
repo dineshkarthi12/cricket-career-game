@@ -100,6 +100,18 @@ export default function ManagerHome() {
                 : advanceLabel(state)}
           </p>
           {blocker && !pending ? <p className="mt-0.5 text-[12.5px] text-brand-red" role="status">{blocker}</p> : null}
+          {!state.profile.retired && state.season.phase === 'SCOUTING' && holds(state, 'SCOUTING') && state.staff.every((s) => s.kind !== 'SCOUT' || !s.assignment) ? (
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">
+              Your scouts are idle.{' '}
+              <Link to="/manager/scouting" className="font-semibold text-brand-blue underline-offset-2 hover:underline">Send them out</Link> before the weeks pass.
+            </p>
+          ) : null}
+          {!state.profile.retired && !state.profile.unemployed && !state.profile.fullControl ? (
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">
+              Jobs above your rank are played by the staff when you continue.{' '}
+              <Link to="/manager/profile" className="font-semibold text-brand-blue underline-offset-2 hover:underline">Take full control</Link>
+            </p>
+          ) : null}
         </div>
         {pending && (holds(state, 'MATCHDAY') || holds(state, 'SELECTION')) ? (
           <LinkButton to={`/manager/match/${pending.id}`} variant="primary">
