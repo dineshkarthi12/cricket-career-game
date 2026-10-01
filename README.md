@@ -11,13 +11,8 @@ places, team needs, conditions and injuries. Good players get dropped, late
 bloomers break through, and most careers never reach India.
 
 - **Matches, ball by ball.** A top-down 2D ground with fielders as dots, ball
-  paths, commentary, scorecards, worms, Manhattans and wagon wheels.
-- **Two-touch batting.** Pick an intent (Defend, Rotate, Attack, Big shot),
-  watch the delivery come, and tap LEFT or RIGHT to play to the leg or off
-  side (mirrored for left-handers). The tap is timed early, good, perfect or
-  late; side and timing change the real outcome without fixing it. Keyboard
-  (arrows, Space, L), timing assist and reduced motion are supported. The
-  1-5 aggression bar and sim controls are still there.
+  paths, commentary, scorecards, worms, Manhattans and wagon wheels. Set your
+  batting or bowling intent on a 1-5 aggression bar, or simulate ahead.
 - **Challenges, rivals and a career card.** Daily and weekly challenges on
   the real calendar that pay once; the rivals competing for your place; a
   career card to share, save as an image or copy.
@@ -30,7 +25,8 @@ bloomers break through, and most careers never reach India.
   Championship, ICC tournaments, awards, media and fans, captaincy offers.
 - **IPL Manager mode.** A separate career as a franchise manager: scout the
   regions, run trials, retain and bid at a live auction against nine AI
-  franchises, pick the XI and the plan, manage matchdays ball by ball, and
+  franchises, pick the XI and the plan, manage matchdays ball by ball (with
+  the same Ball / Over / Wicket / Auto bar and match sound as a career match), and
   climb from Head of Scouting to Director of Cricket - with its own saves.
 - **Plays offline.** Install it to a phone's home screen; careers are saved in
   the browser (IndexedDB) in three slots with export and import.

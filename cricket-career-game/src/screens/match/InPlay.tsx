@@ -15,9 +15,7 @@ import type { FieldSetting, SimPlayer } from '@/engine/match/types';
 import { groundBox, insideCircle } from '@/lib/ground';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import type { BallIntent, CaptainDecisions, PlayerDecisions } from '@/store/matchStore';
-import type { Ball, CaptainDelegation, Difficulty, Venue } from '@/types';
-import type { PlannedDelivery } from '@/engine/match/innings';
-import type { TouchShot } from '@/engine/match/touch';
+import type { Ball, CaptainDelegation, Venue } from '@/types';
 import { CaptainPanel } from './controls/CaptainPanel';
 import { snapFielder } from './controls/FieldEditor';
 import { SimControls } from './controls/SimControls';
@@ -78,11 +76,6 @@ export interface InPlayProps {
   onPlayer: (patch: Partial<PlayerDecisions>) => void;
   onCaptain: (patch: Partial<CaptainDecisions>) => void;
   onDelegate: (patch: Partial<CaptainDelegation>) => void;
-  /** Two-touch batting for the player's own batter. */
-  ballKey: number;
-  difficulty: Difficulty;
-  onPeek: (intent: BallIntent) => PlannedDelivery | null;
-  onTouchPlay: (intent: BallIntent, expectKey: number, touch: TouchShot | null) => void;
 }
 
 export function InPlay(props: InPlayProps) {
@@ -216,22 +209,6 @@ export function InPlay(props: InPlayProps) {
       onSimOver={props.onOver}
       onSimUntilOut={props.onUntilOut}
       onAutoWatch={props.onAutoWatch}
-      touch={
-        me
-          ? {
-              ballKey: props.ballKey,
-              leftHanded: me.battingStyle === 'LEFT_HAND_BAT',
-              batterTiming: me.attributes.batting.timing,
-              batterFootwork: me.attributes.batting.footwork,
-              difficulty: props.difficulty,
-              bowlerName: bowler?.name ?? 'The bowler',
-              reduceMotion: props.reduceMotion,
-              lastBall: props.lastBall,
-              onPeek: props.onPeek,
-              onPlay: props.onTouchPlay,
-            }
-          : undefined
-      }
     />
   );
 
