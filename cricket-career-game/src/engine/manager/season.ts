@@ -218,8 +218,10 @@ export function advance(state: ManagerState): ActionResult {
         }
         s.fixtures = buildLeagueFixtures(d);
         s.standings = Object.keys(d.franchises).map(emptyStanding);
-        payWages(d);
+        // The central media share and sponsorship arrive before the wages go out.
+        bookMediaShare(d);
         bookSponsorship(d);
+        payWages(d);
         seedPublicReports(d);
         addNews(d, { kind: 'BOARD', title: 'Pre-season', body: 'The fixtures are out. Set your XI, your plan and your training before the first ball.', route: '/manager/fixtures' });
         break;

@@ -20,7 +20,7 @@ import { isAvailable, toSim } from './players';
 import { autoBowlingPlan, autoXi, xiProblems } from './squad';
 import { addNews, book, clamp, holds, once, rngFor, saltOf, squadOf } from './util';
 
-export const IPL_TOURNAMENT_ID = 'ipl';
+export const IPL_TOURNAMENT_ID = 'ipl-manager';
 
 /** Matchday dates: the league opens in late March, a round every four days. */
 export function fixtureDate(year: number, round: number): string {
@@ -176,7 +176,8 @@ export function simulateAiFixture(state: ManagerState, fixture: ManagerFixture):
   const result = quickMatch({
     id: setup.matchId,
     fixtureId: fixture.id,
-    tournamentId: IPL_TOURNAMENT_ID,
+    // The quick sim is calibrated on the IPL profile itself.
+    tournamentId: 'ipl',
     seasonYear: state.season.year,
     format: 'T20',
     stage: fixture.stage,
@@ -216,9 +217,12 @@ export function applyResult(draft: ManagerState, fixtureId: string, match: Match
   const userInvolved = fixture.homeId === draft.franchiseId || fixture.awayId === draft.franchiseId;
   const archiveId = userInvolved ? match.id : null;
 
+  const decidedOnSeeding = fixture.stage !== 'LEAGUE' && !match.result?.winningTeamId && winnerId;
   fixture.result = {
     winnerId,
-    summary: match.result?.summary ?? 'No result',
+    summary: decidedOnSeeding
+      ? `${match.result?.summary ?? 'No result'} - ${draft.franchises[winnerId!]?.short ?? 'the higher seed'} go through on league position`
+      : match.result?.summary ?? 'No result',
     homeRuns: homeInn?.runs ?? 0,
     homeWickets: homeInn?.wickets ?? 0,
     homeBalls: homeInn?.balls ?? 0,

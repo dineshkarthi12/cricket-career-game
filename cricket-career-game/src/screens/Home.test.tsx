@@ -32,6 +32,8 @@ describe('Home dashboard', () => {
     renderHome();
     expect(screen.getByRole('heading', { level: 1, name: 'Dinesh' })).toBeInTheDocument();
     expect(screen.getByText(/Right-Hand Batter/)).toHaveTextContent('Right-Arm Medium');
+    // A batter's backup style is shown, but the role rules mean he never bowls.
+    expect(screen.getByText(/Right-Hand Batter/)).toHaveTextContent('does not bowl');
     expect(screen.getByText('Chennai, Tamil Nadu')).toBeInTheDocument();
     expect(screen.getByText('68')).toBeInTheDocument();
     expect(screen.getByText('92%')).toBeInTheDocument();

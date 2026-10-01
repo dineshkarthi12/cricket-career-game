@@ -27,6 +27,9 @@ const LegacyScreen = lazy(() => import('./screens/pro/LegacyScreen'));
 const CommunityScreen = lazy(() => import('./screens/pro/CommunityScreen'));
 const SettingsScreen = lazy(() => import('./screens/placeholders').then((m) => ({ default: m.SettingsScreen })));
 const StatsScreen = lazy(() => import('./screens/stats/StatsScreen'));
+// IPL Manager: a separate mode with its own shell, store and saves.
+const ManagerStart = lazy(() => import('./screens/manager/ManagerStart'));
+const ManagerRoutes = lazy(() => import('./screens/manager/ManagerRoutes'));
 
 export default function App() {
   const bootstrap = useGameStore((s) => s.bootstrap);
@@ -53,6 +56,8 @@ export default function App() {
       <Route path="/start" element={<StartScreen />} />
       <Route path="/slots" element={<SlotPicker />} />
       <Route path="/new" element={<NewCareer />} />
+      <Route path="/manager/start" element={<ManagerStart />} />
+      <Route path="/manager/*" element={<ManagerRoutes />} />
 
       <Route
         path="*"

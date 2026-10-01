@@ -527,6 +527,13 @@ export const NEUTRAL_SCORING: ScoringProfile = { four: 1, six: 1, wicket: 1, dot
 
 export const COMPETITION_SCORING: Record<string, ScoringProfile> = {
   ipl: { four: 1.1, six: 1.22, wicket: 0.97, dot: 0.92 },
+  /**
+   * The IPL Manager mode: every XI is a full-strength franchise of real
+   * internationals, well above the strengths the base rates were tuned on, so
+   * boundaries are reined in to keep totals at modern IPL levels: about
+   * 185 +- 45 in the first innings, seven wickets down (engine/manager tests).
+   */
+  'ipl-manager': { four: 0.8, six: 0.75, wicket: 0.9, dot: 1.05 },
   'intl-t20i': { four: 1.02, six: 1.05, wicket: 1, dot: 0.98 },
   't20-world-cup': { four: 1.0, six: 1.02, wicket: 1.02, dot: 1 },
   'vijay-hazare': { four: 1.03, six: 1.05, wicket: 1, dot: 0.98 },

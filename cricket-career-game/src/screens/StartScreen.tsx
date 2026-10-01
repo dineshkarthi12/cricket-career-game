@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FolderOpen, Play, Plus, Sparkles, Upload } from 'lucide-react';
+import { Crown, FolderOpen, Play, Plus, Sparkles, Upload } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar, Badge, Card } from '@/components';
 import { Logo } from '@/layout/Logo';
@@ -134,6 +134,21 @@ export default function StartScreen() {
               onChange={(event) => void onImport(event.target.files?.[0])}
             />
           </div>
+
+          {/* The second game mode: run a franchise instead of playing. */}
+          <Link
+            to="/manager/start"
+            className="flex flex-wrap items-center gap-3 rounded-card border border-brand-gold/60 bg-brand-navy/70 px-4 py-3.5 text-white backdrop-blur-sm transition-colors hover:bg-brand-navy/85 focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:outline-none"
+          >
+            <span className="grid size-10 place-items-center rounded-full bg-brand-gold text-brand-navy" aria-hidden>
+              <Crown className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-bold tracking-wide uppercase">IPL Manager</span>
+              <span className="block text-[12.5px] text-white/75">A separate career: scout, bid at the auction, pick the XI and build a franchise dynasty.</span>
+            </span>
+            <span className="rounded-xl bg-brand-gold px-3 py-2 text-[13px] font-bold text-brand-navy">Manage a franchise</span>
+          </Link>
         </div>
       </header>
 

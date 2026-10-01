@@ -6,7 +6,7 @@
 import type { ManagedPlayer, ManagerState, TeamTactics } from '@/types/manager';
 import { MANAGER } from './config';
 import { isAvailable, isBowlingOption } from './players';
-import { squadOf } from './util';
+import { holds, produce, squadOf } from './util';
 
 export function battingRating(p: ManagedPlayer): number {
   const b = p.attributes.batting;
@@ -169,4 +169,44 @@ export function selectionAdvice(state: ManagerState, franchiseId: string, tactic
     advice.push(`${bestBench.name} on the bench looks stronger than ${weakest.name}.`);
   }
   return advice;
+}
+
+/**
+ * Save the playing XI and order. Refused unless it is legal; the manager must
+ * hold team selection.
+ */
+export function setPlayingXi(state: ManagerState, xiIds: string[], wicketkeeperId: string | null, captainId: string | null): { ok: boolean; state: ManagerState; error?: string } {
+  if (!holds(state, 'SELECTION')) return { ok: false, state, error: 'Team selection is the head coach’s job.' };
+  const problems = xiProblems(state, state.franchiseId, xiIds, wicketkeeperId);
+  if (problems.length) return { ok: false, state, error: problems[0] };
+  if (captainId && !xiIds.includes(captainId)) return { ok: false, state, error: 'The captain must be in the XI.' };
+  return {
+    ok: true,
+    state: produce(state, (d) => {
+      d.tactics.xiIds = [...xiIds];
+      d.tactics.wicketkeeperId = wicketkeeperId;
+      d.tactics.captainId = captainId ?? xiIds[0];
+      // Bowlers no longer in the side come out of the plan.
+      const inXi = (id: string) => xiIds.includes(id) && id !== wicketkeeperId && d.players[id]?.bowlingStyle !== 'NONE';
+      const plan = d.tactics.bowling;
+      d.tactics.bowling = { powerplay: plan.powerplay.filter(inXi), middle: plan.middle.filter(inXi), death: plan.death.filter(inXi) };
+      if (d.tactics.bowling.powerplay.length + d.tactics.bowling.middle.length + d.tactics.bowling.death.length === 0) d.tactics.bowling = autoBowlingPlan(d, xiIds, wicketkeeperId);
+      if (d.tactics.impactSubId && xiIds.includes(d.tactics.impactSubId)) d.tactics.impactSubId = null;
+    }),
+  };
+}
+
+/** Save the game plan (approach, bowling plan, workload). Bowlers must be in the XI and able to bowl. */
+export function setGamePlan(state: ManagerState, patch: Partial<Pick<TeamTactics, 'battingApproach' | 'bowling' | 'pitchPlans' | 'impactSubId' | 'workloadLimit'>>): { ok: boolean; state: ManagerState; error?: string } {
+  if (!holds(state, 'TACTICS')) return { ok: false, state, error: 'Tactics are set by the head coach.' };
+  if (patch.bowling) {
+    for (const id of [...patch.bowling.powerplay, ...patch.bowling.middle, ...patch.bowling.death]) {
+      const p = state.players[id];
+      if (!p || !state.tactics.xiIds.includes(id)) return { ok: false, state, error: 'Only players in the XI can be in the bowling plan.' };
+      if (p.bowlingStyle === 'NONE' || id === state.tactics.wicketkeeperId) return { ok: false, state, error: `${p.name} does not bowl.` };
+    }
+  }
+  if (patch.impactSubId && state.tactics.xiIds.includes(patch.impactSubId)) return { ok: false, state, error: 'The impact substitute must come from the bench.' };
+  if (patch.workloadLimit !== undefined && (patch.workloadLimit < 40 || patch.workloadLimit > 95)) return { ok: false, state, error: 'Set a workload limit between 40 and 95.' };
+  return { ok: true, state: produce(state, (d) => void Object.assign(d.tactics, structuredClone(patch))) };
 }

@@ -19,7 +19,7 @@ import {
 } from './auction';
 import { assignScout, observe, watchPlayer } from './scouting';
 import { acceptCounter, offerDevelopmentContract, runTrial } from './trials';
-import { applyResult, netRunRate, quickSimFixture, rankStandings } from './matchday';
+import { applyResult, netRunRate, quickSimFixture, rankStandings, simulateAiFixture } from './matchday';
 import { advance, advanceBlocker, buildLeagueFixtures, pendingUserFixture } from './season';
 import { autoXi, squadProblems, xiProblems } from './squad';
 import { retireManager } from './career';
@@ -336,6 +336,21 @@ describe('fixtures, results and the table', () => {
     // Prize money is booked once at most.
     expect(s.finances.ledger.filter((e) => e.kind === 'PRIZE').length).toBeLessThanOrEqual(1);
   });
+});
+
+describe('match calibration', () => {
+  it('franchise T20s score at modern IPL levels, live and quick-simmed', () => {
+    const s = until(fresh({ seed: 7 }), 'LEAGUE');
+    const fx = s.season.fixtures.slice(0, 30);
+    const live = fx.map((f) => quickSimFixture(s, f).innings[0].runs);
+    const quick = fx.map((f) => simulateAiFixture(s, f).match.innings[0].runs);
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    expect(mean(live)).toBeGreaterThan(160);
+    expect(mean(live)).toBeLessThan(215);
+    expect(mean(quick)).toBeGreaterThan(160);
+    expect(mean(quick)).toBeLessThan(210);
+    expect(Math.max(...live)).toBeLessThan(330);
+  }, 60000);
 });
 
 describe('money', () => {
