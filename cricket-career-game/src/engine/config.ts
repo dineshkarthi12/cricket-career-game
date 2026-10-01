@@ -845,6 +845,11 @@ export const MATCH = {
     /** A nightwatchman goes in when this few overs are left in the day. */
     nightwatchmanOversLeft: 8,
     nightwatchmanChance: 0.55,
+    /**
+     * Wickets in the recent window that make a new batter play themselves in
+     * more carefully (unless the required rate says otherwise).
+     */
+    collapseCaution: { wickets: 2, balls: 12, maxRequiredRate: 10.5 },
   },
 
   /**
@@ -1054,6 +1059,25 @@ export const MATCH = {
       LEG_STUMP: [0.5, 0.75, 1, 1.2, 1.4],
       DOWN_LEG: [0.6, 0.8, 1, 1.1, 1.2],
     } as Record<string, number[]>,
+  },
+
+  /**
+   * Defensive batting. A batter who chooses to defend is trying to survive,
+   * so the effects that get batters out by making them force the pace -
+   * collapses, dot-ball pressure, the scoreboard - reach them only in part.
+   * It is never immunity: good balls, edges, lbws and misjudgements remain.
+   */
+  defence: {
+    /** Share of collapse, dot-ball and pressure effects that reach each intent level, 1-5. */
+    situationalExposure: [0.15, 1, 1, 1, 1] as number[],
+    /** Above 1, only genuinely sound techniques get the full benefit of a block. */
+    soundnessCurve: 1.6,
+    /** Chance a batter set to leave picks up a ball on the stumps and defends it instead. */
+    leaveJudgement: { base: 0.62, skill: 0.33 },
+    /** Fours off a block, as a share of the normal level-1 rate. */
+    blockFourShare: 0.6,
+    /** Dismissal-type weights while defending (levels 1-2). */
+    dismissal: { caughtBlock: 0.3, caughtDefensive: 0.55, caughtBehind: 1.5, bowled: 1.2, lbw: 1.2 },
   },
 
   /** Run-outs are rolled while the batters are running, not off the bat. */

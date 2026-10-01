@@ -11,7 +11,7 @@ import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { normalise } from '@/engine/match/skill';
 import { tossHint } from '@/lib/tossHint';
 import { useGameStore } from '@/store/gameStore';
-import { BALL_SPEEDS, WATCH_SPEED, useMatchStore } from '@/store/matchStore';
+import { BALL_SPEEDS, WATCH_SPEED, ballKeyOf, useMatchStore } from '@/store/matchStore';
 import { InPlay } from './InPlay';
 import { InningsBreak } from './InningsBreak';
 import { PostMatch } from './PostMatch';
@@ -77,7 +77,10 @@ export default function MatchScreen() {
   const tickMs = autoPlay ? BALL_SPEEDS[speed].ms : BALL_SPEEDS[WATCH_SPEED].ms;
   useEffect(() => {
     if (!ticking) return;
-    const timer = window.setTimeout(() => useMatchStore.getState().playBall(), tickMs);
+    // The timer bowls the ball it was set for, or nothing: if the player has
+    // bowled it themselves in the meantime the request is stale.
+    const key = ballKeyOf(snap ?? null);
+    const timer = window.setTimeout(() => useMatchStore.getState().playBall(undefined, key), tickMs);
     return () => window.clearTimeout(timer);
   }, [ticking, tickMs, snap]);
 

@@ -7,6 +7,7 @@
  * Attributes are integers, so gains accumulate as fractions in
  * `development.progress` and whole points are paid out as they complete.
  */
+import { canTrainBowling } from '../roles';
 import { DEVELOPMENT, TRAINING } from '../config';
 import { computeOverall } from '../ratings';
 import type { Rng } from '../match/rng';
@@ -90,11 +91,11 @@ function interpolateTable(table: readonly (readonly [number, number])[], x: numb
 export function drillAllowed(drill: Drill, player: Pick<Player, 'bowlingStyle' | 'role'>): boolean {
   switch (drill.requires) {
     case 'BOWLER':
-      return player.bowlingStyle !== 'NONE';
+      return canTrainBowling(player);
     case 'PACER':
-      return player.bowlingStyle !== 'NONE' && !isSpin(player.bowlingStyle);
+      return canTrainBowling(player) && !isSpin(player.bowlingStyle);
     case 'SPINNER':
-      return isSpin(player.bowlingStyle);
+      return canTrainBowling(player) && isSpin(player.bowlingStyle);
     case 'KEEPER':
       return player.role === 'WICKET_KEEPER_BATTER';
     default:
@@ -215,6 +216,7 @@ export function runTrainingWeek(input: TrainingWeekInput): TrainingWeekResult {
     }) * fraction,
   );
   const sessions = sessionsThatRun(plan.sessions, budget, before);
+  const bowls = canTrainBowling(before);
   const energyUsed = planEnergy(sessions);
 
   const attributes = cloneAttributes(before.attributes);
@@ -267,6 +269,8 @@ export function runTrainingWeek(input: TrainingWeekInput): TrainingWeekResult {
     });
 
     for (const target of drill.targets) {
+      // A role that does not bowl never builds bowling skills, whatever the drill.
+      if (target.group === 'bowling' && !bowls) continue;
       const gain = TRAINING.sessionGain * target.weight * intensity.gain * multiplier * headroomFactor(roomFor(target.group, target.key));
       if (gain > 0) credit(target.group, target.key, gain);
     }
@@ -288,6 +292,7 @@ export function runTrainingWeek(input: TrainingWeekInput): TrainingWeekResult {
   const passive = DEVELOPMENT.passiveShare * learningRateAt(age, traits) * fraction;
   for (const ref of attributeRefs(attributes)) {
     const room = roomFor(ref.group, ref.key);
+    if (room > 0 && ref.group === 'bowling' && !bowls) continue;
     if (room > 0) {
       let amount = passive * headroomFactor(room);
       if (ref.group === 'mental' && (ref.key === 'matchAwareness' || ref.key === 'temperament') && age < 34) {

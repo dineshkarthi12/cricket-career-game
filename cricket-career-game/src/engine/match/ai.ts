@@ -4,6 +4,7 @@
  */
 import { MATCH, MATCH_FORMATS } from '../config';
 import { clamp01, normalise } from './skill';
+import { canBowlInEmergency } from '../roles';
 import type { Rng } from './rng';
 import type { BatterApproach, BowlerKind, BowlerPlan, SimPlayer } from './types';
 import { INTENT_BY_LEVEL } from './types';
@@ -34,6 +35,8 @@ export interface Situation {
   inningsNumber: number;
   /** For a multi-day match: is this side batting to save the game? */
   savingTheGame: boolean;
+  /** Wickets that fell in the last few overs - a collapse in progress. */
+  recentWickets?: number;
 }
 
 /** How hard the batter should be trying, 1-5. */
@@ -121,6 +124,17 @@ export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng
     level += Math.min(MATCH.dotPressure.maxIntent, dots * MATCH.dotPressure.intentPerDot);
   }
 
+  // A collapse at the other end: a sensible batter tightens up to stop the
+  // rot, unless the chase leaves no time for that.
+  // (First-class batters already bat time; this is the white-ball read.)
+  if (situation.totalOvers !== null && (situation.recentWickets ?? 0) >= MATCH.batting.collapseCaution.wickets && situation.strikerBallsFaced < MATCH.batting.collapseCaution.balls) {
+    const required =
+      situation.runsRequired !== null && situation.ballsRemaining !== null && situation.ballsRemaining > 0
+        ? (situation.runsRequired / situation.ballsRemaining) * 6
+        : 0;
+    if (required < MATCH.batting.collapseCaution.maxRequiredRate) level -= 1;
+  }
+
   // Personality, and a little noise so no two batters play the same way.
   level += aggression > 0.7 ? 1 : aggression < 0.3 ? -1 : 0;
   if (rng.chance(0.12)) level += rng.chance(0.5) ? 1 : -1;
@@ -133,6 +147,7 @@ export function chooseApproach(batter: SimPlayer, situation: Situation, rng: Rng
 /** A part-timer is someone who bowls, but is not really a bowler. */
 export function isPartTimer(player: SimPlayer): boolean {
   if (player.bowlingStyle === 'NONE') return false;
+  if (!canBowlInEmergency(player)) return false;
   if (player.role === 'PACE_BOWLER' || player.role === 'SPIN_BOWLER') return false;
   if (player.role === 'BOWLING_ALLROUNDER') return false;
   return true;
@@ -158,14 +173,17 @@ export function chooseBowler(input: {
   const rates = MATCH_FORMATS[input.format] ?? MATCH_FORMATS.ODI;
   const limit = rates.maxOversPerBowler;
 
-  const eligible = input.bowlers.filter((b) => {
+  // The role rules travel with the choice: whatever list arrives, the user's
+  // own player is never picked unless their role bowls.
+  const allowed = input.bowlers.filter(canBowlInEmergency);
+  const eligible = allowed.filter((b) => {
     if (b.id === input.lastBowlerId) return false; // no consecutive overs
     if (limit !== null && (input.oversBowledBy[b.id] ?? 0) >= limit) return false;
     return true;
   });
 
-  const pool = eligible.length > 0 ? eligible : input.bowlers.filter((b) => b.id !== input.lastBowlerId);
-  if (pool.length === 0) return input.bowlers[0];
+  const pool = eligible.length > 0 ? eligible : allowed.filter((b) => b.id !== input.lastBowlerId);
+  if (pool.length === 0) return allowed[0] ?? input.bowlers[0];
 
   // With the game under control and plenty of overs left, a captain will
   // happily give a part-timer a go and save his front-liners for later.

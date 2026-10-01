@@ -12,6 +12,7 @@ import { useGameStore } from '@/store/gameStore';
 import { BALL_SPEEDS } from '@/store/matchStore';
 import { useAppSettings, type AnimationSpeed } from '@/store/appSettings';
 import { SAVE_SLOT_IDS, type Difficulty } from '@/types';
+import { RoleCard } from './RoleCard';
 
 function formatBytes(bytes: number | null): string {
   if (bytes === null) return '—';
@@ -136,6 +137,8 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
             />
           </Row>
         </Card>
+
+        <RoleCard />
 
         <Card>
           <CardHeader title="Matches and motion" subtitle="On this device" className="mb-1" />

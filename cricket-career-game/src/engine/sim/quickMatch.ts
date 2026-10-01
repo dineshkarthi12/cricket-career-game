@@ -11,6 +11,7 @@ import { createRng, type Rng } from '../match/rng';
 import { conditionMultiplier, normalise } from '../match/skill';
 import { createPitch, createWeather, newBall } from '../match/conditions';
 import type { SimPlayer } from '../match/types';
+import { canBowlInMatch } from '../roles';
 import type {
   BatterInningsLine,
   BowlerInningsLine,
@@ -133,7 +134,9 @@ interface Attack {
 
 /** The five best bowlers share the overs, the best bowling most. */
 function attackOf(xi: SimPlayer[], format: FormatKey): Attack {
+  // The user's own player never bowls unless their role does (engine/roles.ts).
   const ranked = xi
+    .filter((p) => !p.isUser || canBowlInMatch(p))
     .map((player) => ({ player, ability: bowlingAbility(player) }))
     .sort((a, b) => b.ability - a.ability)
     .slice(0, format === 'MULTI_DAY' ? 5 : 6);

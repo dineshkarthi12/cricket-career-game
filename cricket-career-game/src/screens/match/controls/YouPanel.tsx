@@ -14,6 +14,7 @@ import type { BallIntent, PlayerDecisions } from '@/store/matchStore';
 import { AggressionBar } from './AggressionBar';
 import { BattingControls, CarryToggle } from './BattingControls';
 import { BowlingControls } from './BowlingControls';
+import { getAvailableMatchActions, roleMatchNote } from '@/engine/roles';
 
 export interface YouPanelProps {
   snap: LiveSnapshot;
@@ -62,6 +63,8 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
   const cur = snap.current;
   const i = snap.involvement;
   const status = statusLine(snap, me?.id);
+  // What the role allows: a Pure Batter or a keeper never sees a bowling control.
+  const actions = me ? getAvailableMatchActions(me, i) : null;
 
   const bowlerLine = cur?.bowling.find((b) => b.playerId === me?.id);
   const maxOvers = cur?.maxOversPerBowler ?? null;
@@ -96,7 +99,7 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
           onFarmStrike={(farmStrike) => props.onDecisions({ farmStrike })}
           disabled={busy}
         />
-      ) : i.bowling ? (
+      ) : i.bowling && actions?.bowl ? (
         <BowlingControls
           bowler={me}
           bowlerLine={bowlerLine}
@@ -118,7 +121,9 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
               ? 'The match will play itself out. Watch it, or sim to the end.'
               : snap.userBatting
                 ? 'Your controls appear the moment you are on strike.'
-                : 'Your controls appear if the captain throws you the ball - and a catch or run-out coming your way is yours to take.'}
+                : actions?.setBowlingAggression
+                  ? 'Your controls appear if the captain throws you the ball - and a catch or run-out coming your way is yours to take.'
+                  : `${me ? roleMatchNote(me) : ''} A catch or run-out coming your way is yours to take.`}
           </p>
           {i.playing ? (
             <div className="mt-3 flex flex-col gap-2.5">
@@ -133,13 +138,15 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
               {i.atCrease ? (
                 <CarryToggle compact on={decisions.farmStrike} onChange={(farmStrike) => props.onDecisions({ farmStrike })} />
               ) : null}
-              <AggressionBar
-                compact
-                label="Bowling aggression"
-                kind="bowling"
-                level={decisions.bowling}
-                onChange={(bowling) => bowling !== null && props.onDecisions({ bowling })}
-              />
+              {actions?.setBowlingAggression ? (
+                <AggressionBar
+                  compact
+                  label="Bowling aggression"
+                  kind="bowling"
+                  level={decisions.bowling}
+                  onChange={(bowling) => bowling !== null && props.onDecisions({ bowling })}
+                />
+              ) : null}
             </div>
           ) : null}
           <label className="mt-2.5 flex items-center gap-2 text-[12.5px] font-semibold text-ink">

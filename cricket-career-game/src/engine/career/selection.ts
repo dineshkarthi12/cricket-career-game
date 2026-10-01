@@ -7,6 +7,7 @@
  * When the player is captain, they can put forward their own XI - and the
  * selectors can say no.
  */
+import { canUserControlBowling, roleMatchNote } from '../roles';
 import { SELECTION } from '../config';
 import { computeOverall, formatOverall } from '../ratings';
 import { createRng, deriveSeed } from '../match/rng';
@@ -176,7 +177,7 @@ function coachPosition(order: SimPlayer[], userId: Id): {
 
 /** How readily the AI captain throws the player the ball. */
 function coachBowlingTrust(player: SimPlayer): { trust: number; note: string } {
-  if (player.bowlingStyle === 'NONE') return { trust: 1, note: 'You do not bowl.' };
+  if (!canUserControlBowling(player)) return { trust: 1, note: roleMatchNote(player) };
   const c = player.condition;
   const specialist =
     player.role === 'PACE_BOWLER' ||
