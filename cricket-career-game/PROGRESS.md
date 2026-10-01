@@ -1560,3 +1560,81 @@ balance suites (T20/ODI/first-class, competitions, aggression) all pass.
 Tests: 79 new (roles 16, dismissals 17, manager engine 30, manager saves 5,
 manager screens 9, store, selection and home updates); 671 pass, 1 skipped.
 `npm run lint` and `npm run build` are clean.
+
+---
+
+## ✅ Phase 11 — Two-touch batting, challenges, rivals and the career card
+
+### What was found
+Phase 10 had already fixed the Pure Batter bowling bug (`engine/roles.ts`,
+enforced by the engine's over guard), defensive batting and the
+dismissal-integrity issues, and built IPL Manager as a separate mode with its
+own saves. The inspection re-ran those suites (all green) and found what
+was still missing: batting had no touch control or timing - the player
+chose an intent and "Play the ball", and the outcome ignored where or when
+they played - and there were no challenges, no rivals view and no career
+card.
+
+### Two-touch batting
+- `engine/match/touch.ts` (pure): the screen side maps to leg or off for the
+  batter's hand; a timing window from delivery pace, the batter's timing and
+  footwork, and difficulty; `gradeTiming` (early / good / perfect / late /
+  no shot); `touchEffect` - multipliers on contact, wicket, four and six
+  chances from the timing grade and how well the side suits the line.
+  A deliberate block feels 30% of it, so DEFEND is never scored like an
+  attacking shot. All constants in `MATCH.touch`.
+- `resolveDelivery` uses the tap for shot choice (side-appropriate: cut,
+  drive, loft, reverse sweep / pull, hook, flick, sweep), direction (a clean
+  contact goes to the chosen side, a mishit wherever the edge takes it) and
+  dismissal type (across the line to leg: lbw / bowled; late: bowled, lbw,
+  caught behind; early: caught, caught and bowled). A ball without a tap uses
+  exactly the same random numbers as before, so AI matches and every balance
+  suite are unchanged.
+- `planNextDelivery` / `live.peekDelivery`: the next ball is decided before it
+  is bowled so the player sees its line, length and pace; `nextBall` bowls
+  that same ball. `Ball.touch` records the tap; only the user's own batter can
+  carry one (`own` overrides only).
+- `TouchBatting.tsx`: intent, "Face the ball", big LEFT/RIGHT pads labelled
+  leg/off, the ball on a pitch strip, the delivery read, a timing meter with
+  text labels, Leave, pause, keyboard, timing assist, reduced motion, an
+  aria-live result, and a replayable five-step tutorial. Each ball is
+  committed once (a per-ball key, checked again by the store); a hidden tab
+  or a question calls the delivery back unplayed, and the same planned ball
+  comes again.
+
+Measured (200 innings each, generated batters, balls per dismissal / SR):
+
+| T20, level 4 (Attack) | reads the line | plays across it |
+|---|---|---|
+| no tap (old behaviour) | 15.0 / 188 | |
+| Perfect | 23.2 / 240 | 16.0 / 185 |
+| Good | 20.6 / 209 | 12.2 / 158 |
+| Early | 14.8 / 159 | 11.9 / 129 |
+| Late | 12.9 / 131 | 10.3 / 108 |
+
+DEFEND stays at 60-90 balls per dismissal in a T20 whatever the timing or
+side (no tap: 73), and a collapse at the other end does not make a timed
+block riskier.
+
+### Challenges (save v10)
+`engine/career/challenges.ts`: three daily and three weekly challenges chosen
+from the real local date and the save's seed, filtered by role (no wicket
+challenges for a Pure Batter or keeper). Progress comes only from the
+activity log - each committed match the player played (once per match id)
+and each finished training week. A claim pays XP once and is stored in the
+save, so a reload or double tap cannot claim it again. Migration v9 -> v10
+adds an empty `challenges`.
+
+### Rivals and the career card
+- `engine/career/rivals.ts` + `/rivals`: squad-mates in the player's role group
+  at each current side - rating, form, fitness, season figures, selector
+  favour, injuries, direct rivals - and the player's rank among them.
+- `engine/career/careerCard.ts`, `lib/shareCard.ts` + `/career-card`: the card
+  from the save; Share (Web Share with the PNG where files are supported,
+  else text), Save image (canvas PNG) and Copy text. Each reports what the
+  browser actually did: cancelled, unavailable and failed are never shown as
+  success.
+
+Tests: 36 new (touch engine 14, touch controls 7, challenges 10, screens 5);
+one updated (`realPlayers.test.ts` now expects `SAVE_VERSION` after the v10
+bump). `npm run build` is clean.
