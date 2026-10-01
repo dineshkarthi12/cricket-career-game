@@ -14,6 +14,7 @@ import { chooseApproach, chooseBowler, choosePlan, runRatePressure, type Situati
 import { chooseField, placeField } from './field';
 import { estimateWicketChance, resolveDelivery } from './delivery';
 import { bowlerKindOf, computePressure } from './skill';
+import { canBowlInEmergency, canBowlInMatch } from '../roles';
 import { INTENT_BY_LEVEL } from './types';
 import type { Rng } from './rng';
 import type {
@@ -291,11 +292,20 @@ function dismissalText(ball: Ball, bowlerName: string, fielderName: string | nul
   }
 }
 
-/** Who bowls in this side: anyone with a bowling style, best first. */
+/**
+ * Who bowls in this side, best first: anyone whose role lets them bowl (see
+ * `engine/roles.ts`). A side short of bowlers is topped up from the AI players
+ * who may bowl in an emergency - never with the user's own player when their
+ * role does not bowl (a Pure Batter or a keeper), however short the side is.
+ */
 export function bowlersOf(side: SimPlayer[]): SimPlayer[] {
-  const able = side.filter((p) => p.bowlingStyle !== 'NONE');
-  const pool = able.length >= 4 ? able : side;
-  return [...pool].sort(
+  const able = side.filter(canBowlInMatch);
+  const emergency = side.filter((p) => !able.includes(p) && canBowlInEmergency(p));
+  const pool = able.length >= 4 ? able : [...able, ...emergency];
+  // A side with only restricted players left still needs someone: the AI
+  // keeper takes the ball before the user's player ever would.
+  const fallback = pool.length > 0 ? pool : side.filter((p) => !p.isUser || canBowlInMatch(p));
+  return [...fallback].sort(
     (a, b) =>
       b.attributes.bowling.accuracy + b.attributes.bowling.control -
       (a.attributes.bowling.accuracy + a.attributes.bowling.control),
@@ -361,7 +371,11 @@ export const nonStrikerOf = (s: InningsState): SimPlayer => s.batting[s.nonStrik
 /** Has the innings run out of batters, overs, or reason to continue? */
 function checkComplete(state: InningsState): boolean {
   const { setup } = state;
-  if (state.wickets >= state.batting.length - 1) {
+  // A dismissed batter can never carry on: if either end holds someone who is
+  // out (no one left to come in - a batter retired hurt, say), the innings is over.
+  const strikerOut = state.battingLines.get(strikerOf(state)?.id ?? '')?.out ?? true;
+  const nonStrikerOut = state.battingLines.get(nonStrikerOf(state)?.id ?? '')?.out ?? true;
+  if (state.wickets >= state.batting.length - 1 || strikerOut || nonStrikerOut) {
     state.ending = 'ALL_OUT';
     state.complete = true;
   } else if (state.legalBalls >= state.maxBalls) {
@@ -431,6 +445,11 @@ function startOver(state: InningsState, rng: Rng, overrides?: BallOverrides): Si
       )
     : undefined;
   const bowler = forced ?? chosen;
+  // The engine's own guard: whatever chose this bowler, a player whose role
+  // does not bowl is never handed the ball.
+  if (bowler.isUser && !canBowlInMatch(bowler)) {
+    throw new Error(`Role rule broken: ${bowler.name} (${bowler.role}) may not bowl`);
+  }
 
   if (!state.bowlingLines.has(bowler.id)) state.bowlingLines.set(bowler.id, bowlingLine(bowler));
 
@@ -576,6 +595,7 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
     consecutiveDots: state.dotStreak[striker.id] ?? 0,
     inningsNumber: setup.number,
     savingTheGame: setup.oversAvailable === null && setup.number === 4 && setup.target === null,
+    recentWickets: state.wicketBalls.filter((b) => state.legalBalls - b <= MATCH.momentum.window).length,
   };
 
   // In career mode the player's batting and bowling decisions only reach the
@@ -850,14 +870,35 @@ export function resumeBall(state: InningsState, rng: Rng, hooks: DecisionHooks):
   });
 }
 
+/**
+ * The last check before a delivery is written: a wicket needs a dismissal
+ * type and a batter who is actually at the crease and not already out. A
+ * result that fails it is a bug elsewhere; it is never allowed to take a
+ * wicket (it is scored as a dot ball instead).
+ */
+export function validOutcome(state: InningsState, prepared: Pick<PreparedBall, 'striker' | 'nonStriker'>, outcome: DeliveryOutcome): DeliveryOutcome {
+  if (!outcome.wicket && !outcome.dismissedPlayerId) return outcome;
+  const id = outcome.dismissedPlayerId;
+  const atCrease = id === prepared.striker.id || id === prepared.nonStriker.id;
+  const alreadyOut = id ? (state.battingLines.get(id)?.out ?? true) : true;
+  // Only a run-out can remove the non-striker.
+  const rightBatter = id === prepared.striker.id || outcome.wicket?.type === 'RUN_OUT';
+  const legal = Boolean(outcome.wicket?.type) && atCrease && !alreadyOut && rightBatter && !(state.freeHit && outcome.wicket?.type !== 'RUN_OUT');
+  if (legal) return outcome;
+  return { ...outcome, wicket: null, dismissedPlayerId: null };
+}
+
 function applyOutcome(
   state: InningsState,
   rng: Rng,
   prepared: PreparedBall,
-  outcome: DeliveryOutcome,
+  raw: DeliveryOutcome,
 ): Ball {
   const { setup } = state;
   const { bowler, striker, nonStriker, plan, approach, overNumber, phase } = prepared;
+  // A finished innings takes no more deliveries, and every wicket must be a real one.
+  if (state.complete) throw new Error('A delivery was applied to a finished innings');
+  const outcome = validOutcome(state, prepared, raw);
 
   const bowlLine = state.bowlingLines.get(bowler.id)!;
   const batLine = state.battingLines.get(striker.id)!;
@@ -1021,6 +1062,10 @@ function applyOutcome(
       if (outcome.dismissedPlayerId === striker.id) state.strikerIndex = incoming;
       else state.nonStrikerIndex = incoming;
       state.nextBatterIndex += 1;
+    } else {
+      // Nobody left to come in (someone retired hurt): all out.
+      state.ending = 'ALL_OUT';
+      state.complete = true;
     }
   } else if (outcome.strikeRotated) {
     [state.strikerIndex, state.nonStrikerIndex] = [state.nonStrikerIndex, state.strikerIndex];

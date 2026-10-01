@@ -231,6 +231,10 @@ export function duelFactors(context: DeliveryContext): DuelFactors {
   return { batter, bowler, bite, edge, settle, set, phaseMod, dotWicket, milestone, cluster, collapse, partnership };
 }
 
+function straightLine(line: string): boolean {
+  return line === 'OFF_STUMP' || line === 'MIDDLE' || line === 'LEG_STUMP';
+}
+
 /** A white-ball multiplier by format (T20 or one-day), 1 in first-class cricket. */
 function whiteBall(context: DeliveryContext, scale: Record<string, number>): number {
   if (!limitedOvers(context)) return 1;
@@ -286,6 +290,15 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
   const raw = cfg.intent.wicket[index] / cfg.intent.wicket[defaultIndex];
   const intentWicket = raw > 1 ? 1 + (raw - 1) * aggressionRiskScale(context, f) : raw;
 
+  // Collapses, dot-ball pressure and the match situation get batters out
+  // because they make them try something. A batter deliberately defending is
+  // not chasing a release shot, so those effects only reach them in part:
+  // losing wickets at the other end does not by itself make a block riskier.
+  const exposure = cfg.defence.situationalExposure[index];
+  const collapse = 1 + (f.collapse - 1) * exposure;
+  const dotWicket = 1 + (f.dotWicket - 1) * exposure;
+  const bite = f.bite * exposure;
+
   // The situation first (capped), then the batter's own aggression on top of it,
   // so a step up in aggression always adds risk - even for a batter already at
   // the cap, which is where levels 4 and 5 used to become the same.
@@ -294,11 +307,11 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
     (0.55 + 0.9 * threat) *
     (1 - f.edge * cfg.edge.wicket) *
     f.phaseMod.wicket *
-    (1 + f.bite * cfg.pressure.wicketAtMax) *
+    (1 + bite * cfg.pressure.wicketAtMax) *
     (1 + (1 - f.settle) * (limitedOvers(context) ? cfg.limitedOvers.newBatterWicket : cfg.newBatter.wicketPenalty)) *
     (1 - f.set * (1 - (limitedOvers(context) ? cfg.limitedOvers.setBatterWicket : cfg.setBatter.wicket))) *
-    f.collapse *
-    f.dotWicket *
+    collapse *
+    dotWicket *
     f.milestone *
     (1 - f.partnership * cfg.momentum.settledPartnershipWicket) *
     (1 + (0.5 - context.conditions.pitch.battingEase / 100) * cfg.pitch.battingEaseWicket * 2) *
@@ -306,7 +319,19 @@ export function wicketChance(context: DeliveryContext, threat: number, f: DuelFa
     cfg.bowlingAggression.wicket[bowlingIndex];
   const floor = rates.wicket * (limitedOvers(context) ? cfg.limitedOvers.wicketFloor : cfg.limits.wicketFloor);
   const ceiling = rates.wicket * cfg.limits.wicketCeiling;
-  // Defending (levels 1-2, and the normal game) works inside the usual limits.
+  // Defending (levels 1-2, and the normal game): the situation is bounded
+  // first and the batter's caution then applies to it. Bounding after the
+  // caution let the floor wipe most of a defensive batter's care away - a
+  // block was barely safer than a normal shot.
+  if (index === 0) {
+    // How sound the block is: a proper batter's defence keeps almost all of
+    // the floor's risk away, a tailender's much less of it.
+    const b = context.striker.attributes.batting;
+    const soundness = clamp01(normalise(b.technique * 0.6 + b.concentration * 0.4));
+    const sound = Math.pow(soundness, cfg.defence.soundnessCurve);
+    const floorShare = 1 - sound * (1 - intentWicket);
+    return clamp01(Math.max(floor * floorShare, Math.min(ceiling, situation) * intentWicket));
+  }
   if (intentWicket <= 1) return clamp01(Math.max(floor, Math.min(ceiling, situation * intentWicket)));
   const capped = Math.max(floor, Math.min(ceiling, situation));
   return clamp01(Math.min(rates.wicket * cfg.limits.intentCeiling, capped * intentWicket));
@@ -321,7 +346,8 @@ export function estimateWicketChance(context: DeliveryContext): number {
 }
 
 /** Resolve one legal or illegal delivery into everything the scorecard needs. */
-export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOutcome {
+export function resolveDelivery(input: DeliveryContext, rng: Rng): DeliveryOutcome {
+  let context = input;
   const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
   const cfg = MATCH;
 
@@ -365,15 +391,24 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
   const formatLeave = cfg.aggression.leaveOutsideOff[Math.max(0, Math.min(4, rates.defaultIntent - 1))];
   const autoLeave =
     !context.leave && outsideOff ? Math.max(0, cfg.aggression.leaveOutsideOff[levelIndex] - formatLeave) : 0;
-  if (context.leave || (autoLeave > 0 && rng.chance(autoLeave))) {
+  // A batter set to leave still watches the ball: one on the stumps is
+  // usually picked up and defended. Judgement decides how often they get it
+  // right; misjudging the line is a genuine, and costly, mistake.
+  let defendInstead = false;
+  if (context.leave && straightLine(context.plan.line)) {
+    const judgement = normalise(context.striker.attributes.batting.technique * 0.5 + context.striker.attributes.batting.concentration * 0.5);
+    defendInstead = rng.chance(cfg.defence.leaveJudgement.base + cfg.defence.leaveJudgement.skill * judgement);
+  }
+  if (!defendInstead && (context.leave || (autoLeave > 0 && rng.chance(autoLeave)))) {
     return resolveLeave(context, deliveryThreat(context, error), speed, rng);
   }
+  if (defendInstead) context = { ...context, leave: false, approach: { level: 1, intent: 'BLOCK' } };
 
   // --- The duel -----------------------------------------------------------
   const threat = deliveryThreat(context, error);
   const f = duelFactors(context);
   const { edge, bite, settle, set, phaseMod, cluster, partnership } = f;
-  const intentIndex = levelIndex;
+  const intentIndex = Math.max(0, Math.min(4, context.approach.level - 1));
   const defaultIntentIndex = Math.max(0, Math.min(4, rates.defaultIntent - 1));
 
   // Quality of contact drives everything downstream. Attacking brings more
@@ -433,6 +468,13 @@ export function resolveDelivery(context: DeliveryContext, rng: Rng): DeliveryOut
     pWicket *= scale;
     pFour *= scale;
     pSix *= scale;
+  }
+
+  // A block is not a shot that clears the rope: no sixes, and only the odd
+  // four that runs away off a well-timed push.
+  if (intentIndex === 0) {
+    pSix = 0;
+    pFour *= MATCH.defence.blockFourShare;
   }
 
   // On a free hit only a run-out can end the innings, and the batter knows
@@ -563,6 +605,17 @@ function resolveWicket(
     weights.CAUGHT *= 1.5;
     weights.LBW *= 0.75;
   }
+  // A defensive batter is beaten by the ball, not by their own shot: edges
+  // to the keeper and slips, bowled, lbw, a bat-pad catch - never stumped
+  // charging down the pitch, and rarely caught in the deep.
+  if (context.approach.level <= 2) {
+    const d = MATCH.defence.dismissal;
+    weights.STUMPED = 0;
+    weights.CAUGHT *= context.approach.level === 1 ? d.caughtBlock : d.caughtDefensive;
+    weights.CAUGHT_BEHIND *= d.caughtBehind;
+    weights.BOWLED *= d.bowled;
+    weights.LBW *= d.lbw;
+  }
   if (context.aroundTheWicket) {
     const cfg = MATCH.aroundTheWicket;
     weights.LBW *= cfg.lbw;
@@ -584,7 +637,11 @@ function resolveWicket(
     input.contact,
     context.striker.attributes.batting.technique,
   );
-  const distance = Math.max(4, 12 + input.contact * 34 + rng.spread() * 8);
+  // A defensive edge carries to the close catchers, not the outfield.
+  const distance =
+    context.approach.level <= 2
+      ? Math.max(3, 6 + input.contact * 12 + rng.spread() * 4)
+      : Math.max(4, 12 + input.contact * 34 + rng.spread() * 8);
 
   let fielderName: string | null = null;
   if (type === 'CAUGHT') {
@@ -762,7 +819,8 @@ function resolveBoundary(
   const distance = input.six ? rng.range(68, 92) : rng.range(58, 72);
 
   // A six hit flat to a boundary rider is sometimes a catch instead.
-  if (input.six) {
+  // Only an aerial shot can be caught on the rope.
+  if (input.six && context.approach.level >= 3) {
     const nearest = nearestFielder(context.field, angle, distance);
     const reachable =
       nearest &&

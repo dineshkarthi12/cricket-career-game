@@ -4,6 +4,7 @@ import { HeroStatTile } from '@/components';
 import { StoryModal } from './StoryModal';
 import { battingStyleLabel, bowlingStyleLabel, countryFlag, formLabel, moraleLabel } from '@/lib/format';
 import type { GameState } from '@/types';
+import { ROLE_CATEGORY_LABEL, canUserControlBowling, roleCategory } from '@/engine/roles';
 
 /**
  * The hero banner: photograph, the player's identity, the four condition
@@ -69,7 +70,11 @@ export function HeroBanner({ state }: { state: GameState }) {
             <p className="mt-1.5 text-[14px] font-medium text-ink">
               {battingStyleLabel(player.battingStyle)}
               <span className="mx-1.5 text-ink-soft">•</span>
-              {bowlingStyleLabel(player.bowlingStyle)}
+              {canUserControlBowling(player)
+                ? bowlingStyleLabel(player.bowlingStyle)
+                : player.bowlingStyle === 'NONE'
+                  ? ROLE_CATEGORY_LABEL[roleCategory(player.role)]
+                  : `${bowlingStyleLabel(player.bowlingStyle)} (does not bowl)`}
             </p>
 
             <p className="mt-2 flex items-center gap-1.5 text-[13.5px] text-ink-muted">

@@ -1457,3 +1457,96 @@ average is no better at level 5 (`bowlingAggression.wicket`).
 
 Tests: 7 new (competition scoring, Test length, the bowling trade-off,
 maidens / three-fors / all-round doubles); 592 pass.
+
+---
+
+## ✅ Phase 10 — Role rules, defensive batting, and IPL Manager mode
+
+### Root causes found
+1. **A Pure Batter was asked to bowl.** `bowlersOf()` treated anyone with a
+   bowling style as a bowler, and new careers defaulted Batters to
+   "right-arm medium"; a side with fewer than four bowlers fell back to the
+   whole XI, and `chooseBowler` fell back to `bowlers[0]`. The user's
+   batter became a part-timer the captain could throw the ball to.
+2. **Defending barely helped.** `wicketChance()` applied the wicket *floor*
+   (62% of the base rate in white-ball cricket) after the DEFEND multiplier,
+   so a block was only ~2.3x safer than a normal shot in a T20. Collapse,
+   dot-ball and scoreboard-pressure multipliers also hit a deliberate block
+   in full, a block could still produce sixes and rope catches, and "Leave"
+   left straight balls as often as wide ones.
+3. **Dismissal integrity.** With a batter retired hurt, an innings could run
+   out of incoming batters with fewer than ten down, leaving a dismissed
+   batter at the crease to be "out" again; a wicket was written without
+   checking it was a real dismissal of a batter at the crease; and the
+   auto-play timer could bowl the ball the player had just chosen to defend.
+
+### Fixes
+- **`engine/roles.ts`** - one role-capability module: `roleCategory`,
+  `canUserControlBatting`, `canUserControlBowling`, `canPlayerBeAssignedToBowl`,
+  `getAvailableMatchActions`, `canTrainBowling`. Used by the bowler choice,
+  the quick sim, the over guard (the engine throws rather than hand a
+  restricted player the ball), training (no bowling drills or bowling
+  growth for batters and keepers), selection notes, the match controls,
+  player creation ("None (Pure Batter)") and a confirmed **role change**
+  in Settings (`engine/career/roleChange.ts`). AI part-timers are unchanged.
+- **Defensive batting** (`delivery.ts`, `MATCH.defence` in config): the floor
+  is bounded before a sound batter's caution (scaled by technique and
+  concentration, so a tail-ender's block is still fragile); collapses and dot
+  pressure reach a block only in part; blocks cannot be hit for six or caught
+  on the rope or stumped; defensive dismissals are edges, bowled, lbw and
+  bat-pad catches; Leave picks up straight balls by judgement. White-ball AI
+  batters tighten up after a cluster of wickets (`collapseCaution`).
+- **Integrity**: `validOutcome()` refuses any wicket without a dismissal type
+  on a batter at the crease (non-strikers only by run-out, nothing on a free
+  hit); an innings with nobody left to come in ends; finished innings take
+  no balls; the match store ignores stale ball requests (`ballKeyOf`).
+
+Measured dismissal rates (balls faced per dismissal, generated batters,
+300 innings each; before -> after):
+
+| | Defend | Normal | Attack | Big shot | Leave |
+|---|---|---|---|---|---|
+| T20 | 49 -> 65 | 21 -> 22 | 14 | 7 | 21 -> 59 |
+| T20, 4 down | 47 -> 70 | 22 -> 23 | 15 | 8 | 20 -> 59 |
+| ODI | 76 -> 124 | 42 | 33 | 17 | 39 -> 123 |
+| First-class | 132 -> 188 | 50 | 24 | 13 | 56 -> 168 |
+
+A genuinely good ball still gets a defender out (bowled, lbw, edges); the
+balance suites (T20/ODI/first-class, competitions, aggression) all pass.
+
+### IPL Manager mode (new, separate game)
+- `src/types/manager.ts`, `src/engine/manager/*` (pure TS), `src/store/managerStore.ts`,
+  `src/save/managerSaves.ts`, `src/screens/manager/*`; routes under `/manager`,
+  entered from the start screen and the career sidebar.
+- Career: Head of Scouting -> Assistant Coach -> Head Coach -> Director of
+  Cricket. Each rank holds a set of responsibilities; promotion only at a
+  season review on reputation and the board's objectives; sacking below the
+  board's confidence line, job offers, explicit retirement with the whole
+  history kept.
+- Scouting network (regions, trips, budgets, staff quality, analyst), reports
+  with estimates and uncertainty, hidden potential, rival interest; trials
+  and development contracts that can be refused or countered.
+- Retention (mega auction every third season), auction preparation with
+  targets and maximum bids, and a live auction against nine AI franchises
+  with their own needs, styles and purse discipline. Purse, squad (18-25) and
+  overseas (8) limits enforced; second round for the unsold; replacements.
+- Squad and XI validation (11, keeper, 5 bowling options, 4 overseas, no
+  injured players), weaknesses, default XI/plan, tactics (approach, surface
+  plans, phase bowling plan, workload, impact sub).
+- 14-round league + Qualifier 1 / Eliminator / Qualifier 2 / Final, NRR,
+  points table. Matchday on the ball-by-ball engine with live tactical
+  control (approach, next bowler, target bowler, toss, impact sub) or quick
+  sim; AI fixtures on the calibrated quick sim; scorecards and reports.
+- Development (focus, coaches, fatigue, injuries, ageing), staff hiring and
+  courses, contracts/renewals/releases, a once-only ledger and budgets,
+  awards (Orange/Purple Cap, MVP, emerging), records, milestones, legacy.
+- Saves: three manager slots of their own (IndexedDB + headers), own file
+  marker, validation (squads/contracts consistent, no duplicate
+  transactions), versioned migrations; career and manager saves can never
+  load or overwrite each other.
+- Manager matches use an `ipl-manager` scoring profile so full-strength real
+  XIs score at modern IPL levels (~185 +- 45 first innings).
+
+Tests: 79 new (roles 16, dismissals 17, manager engine 30, manager saves 5,
+manager screens 9, store, selection and home updates); 671 pass, 1 skipped.
+`npm run lint` and `npm run build` are clean.

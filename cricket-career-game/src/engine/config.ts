@@ -527,6 +527,13 @@ export const NEUTRAL_SCORING: ScoringProfile = { four: 1, six: 1, wicket: 1, dot
 
 export const COMPETITION_SCORING: Record<string, ScoringProfile> = {
   ipl: { four: 1.1, six: 1.22, wicket: 0.97, dot: 0.92 },
+  /**
+   * The IPL Manager mode: every XI is a full-strength franchise of real
+   * internationals, well above the strengths the base rates were tuned on, so
+   * boundaries are reined in to keep totals at modern IPL levels: about
+   * 185 +- 45 in the first innings, seven wickets down (engine/manager tests).
+   */
+  'ipl-manager': { four: 0.8, six: 0.75, wicket: 0.9, dot: 1.05 },
   'intl-t20i': { four: 1.02, six: 1.05, wicket: 1, dot: 0.98 },
   't20-world-cup': { four: 1.0, six: 1.02, wicket: 1.02, dot: 1 },
   'vijay-hazare': { four: 1.03, six: 1.05, wicket: 1, dot: 0.98 },
@@ -845,6 +852,11 @@ export const MATCH = {
     /** A nightwatchman goes in when this few overs are left in the day. */
     nightwatchmanOversLeft: 8,
     nightwatchmanChance: 0.55,
+    /**
+     * Wickets in the recent window that make a new batter play themselves in
+     * more carefully (unless the required rate says otherwise).
+     */
+    collapseCaution: { wickets: 2, balls: 12, maxRequiredRate: 10.5 },
   },
 
   /**
@@ -1054,6 +1066,25 @@ export const MATCH = {
       LEG_STUMP: [0.5, 0.75, 1, 1.2, 1.4],
       DOWN_LEG: [0.6, 0.8, 1, 1.1, 1.2],
     } as Record<string, number[]>,
+  },
+
+  /**
+   * Defensive batting. A batter who chooses to defend is trying to survive,
+   * so the effects that get batters out by making them force the pace -
+   * collapses, dot-ball pressure, the scoreboard - reach them only in part.
+   * It is never immunity: good balls, edges, lbws and misjudgements remain.
+   */
+  defence: {
+    /** Share of collapse, dot-ball and pressure effects that reach each intent level, 1-5. */
+    situationalExposure: [0.15, 1, 1, 1, 1] as number[],
+    /** Above 1, only genuinely sound techniques get the full benefit of a block. */
+    soundnessCurve: 1.6,
+    /** Chance a batter set to leave picks up a ball on the stumps and defends it instead. */
+    leaveJudgement: { base: 0.62, skill: 0.33 },
+    /** Fours off a block, as a share of the normal level-1 rate. */
+    blockFourShare: 0.6,
+    /** Dismissal-type weights while defending (levels 1-2). */
+    dismissal: { caughtBlock: 0.3, caughtDefensive: 0.55, caughtBehind: 1.5, bowled: 1.2, lbw: 1.2 },
   },
 
   /** Run-outs are rolled while the batters are running, not off the bat. */

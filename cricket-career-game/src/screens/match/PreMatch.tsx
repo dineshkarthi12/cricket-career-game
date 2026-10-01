@@ -340,7 +340,7 @@ function roleLabel(selection: SelectionDecision): string {
 }
 
 function bowlingLabel(selection: SelectionDecision): string {
-  if (!selection.bowlingNote || selection.bowlingNote === 'You do not bowl.') return "Won't bowl";
+  if (!selection.bowlingNote || selection.bowlingNote.includes('will not bowl') || selection.bowlingNote === 'You do not bowl.') return "Won't bowl";
   return selection.bowlingTrust >= 1.05 ? 'Frontline' : selection.bowlingTrust >= 0.7 ? 'Some overs' : 'Rarely';
 }
 

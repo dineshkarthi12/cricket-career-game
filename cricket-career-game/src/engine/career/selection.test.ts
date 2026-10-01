@@ -68,11 +68,20 @@ describe('selection for a fixture', () => {
   });
 
   it('trusts an in-form bowler with more overs than one out of form', () => {
-    const hot = withPlayer({ form: 90, selectorTrust: 85 });
-    const cold = withPlayer({ form: 35, selectorTrust: 40 });
+    // An all-rounder: a Pure Batter is never given the ball, in form or not.
+    const allRounder = (s: GameState): GameState => ({ ...s, player: { ...s.player, role: 'BATTING_ALLROUNDER' } });
+    const hot = allRounder(withPlayer({ form: 90, selectorTrust: 85 }));
+    const cold = allRounder(withPlayer({ form: 35, selectorTrust: 40 }));
     const a = selectForFixture(hot, hot.fixtures[FIXTURE])!;
     const b = selectForFixture(cold, cold.fixtures[FIXTURE]);
     if (b?.status === 'PLAYING_XI') expect(a.bowlingTrust).toBeGreaterThan(b.bowlingTrust);
+  });
+
+  it('tells a Pure Batter they will not bowl, whatever their form', () => {
+    const state = withPlayer({ form: 95, selectorTrust: 90 });
+    expect(state.player.role === 'BATTER' || state.player.role === 'OPENING_BATTER').toBe(true);
+    const pick = selectForFixture(state, state.fixtures[FIXTURE])!;
+    expect(pick.bowlingNote).toMatch(/will not bowl/);
   });
 });
 

@@ -254,3 +254,22 @@ describe('match store: captain mode', () => {
     expect(useGameStore.getState().state!.career.captaincy.delegate.field).toBe(true);
   });
 });
+
+describe('match store: one decision, one delivery', () => {
+  beforeEach(reset);
+
+  it('ignores a ball request made against a snapshot that has moved on', async () => {
+    const { ballKeyOf } = await import('./matchStore');
+    open();
+    useMatchStore.getState().toToss();
+    useMatchStore.getState().toss('BAT');
+    const before = useMatchStore.getState().snap;
+    const staleKey = ballKeyOf(before);
+    useMatchStore.getState().playBall('DEFEND', staleKey);
+    const after = ballKeyOf(useMatchStore.getState().snap);
+    expect(after).toBeGreaterThan(staleKey);
+    // The timer that was set for the ball already bowled does nothing.
+    useMatchStore.getState().playBall(undefined, staleKey);
+    expect(ballKeyOf(useMatchStore.getState().snap)).toBe(after);
+  });
+});

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { canTrainBowling } from '@/engine/roles';
 import { Link } from 'react-router-dom';
 import { HeartPulse, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts';
@@ -483,7 +484,7 @@ function StudiesCard({ state }: { state: GameState }) {
 
 function ComfortCard({ state }: { state: GameState }) {
   const { comfort, preferredAggression } = state.player.development;
-  const bowls = state.player.bowlingStyle !== 'NONE';
+  const bowls = canTrainBowling(state.player);
   const bars = (values: number[], names: { name: string }[], preferred: number | null) => (
     <ul className="flex flex-col gap-1">
       {values.map((value, i) => (

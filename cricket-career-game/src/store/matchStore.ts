@@ -71,6 +71,13 @@ function intentOverrides(intent: BallIntent): BallOverrides {
   }
 }
 
+/** Deliveries bowled so far in the match: identifies the ball about to be bowled. */
+export function ballKeyOf(snap: LiveSnapshot | null): number {
+  if (!snap) return -1;
+  const done = snap.completed.reduce((n, inn) => n + inn.deliveries.length, 0);
+  return done + (snap.current?.deliveries.length ?? 0) + (snap.question ? 0.5 : 0);
+}
+
 /** Decisions that are always the player's own. */
 export interface PlayerDecisions {
   /**
@@ -146,7 +153,13 @@ interface MatchStore {
   toToss: () => void;
   toss: (decision?: 'BAT' | 'BOWL') => void;
 
-  playBall: (intent?: BallIntent) => void;
+  /**
+   * Bowl the next ball. `expectKey` (see `ballKeyOf`) is the ball the caller
+   * saw: a request made against a snapshot that has since moved on - a timer
+   * firing just after the player pressed a button - is ignored, so one
+   * decision can never be applied to two deliveries.
+   */
+  playBall: (intent?: BallIntent, expectKey?: number) => void;
   nextOver: () => void;
   toNextWicket: () => void;
   untilInvolved: () => void;
@@ -476,8 +489,11 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       sync(null);
     },
 
-    playBall: (intent) =>
-      run((o) => live!.nextBall(o), intent ? intentOverrides(intent) : undefined),
+    playBall: (intent, expectKey) => {
+      if (!live) return;
+      if (expectKey !== undefined && expectKey !== ballKeyOf(live.snapshot())) return;
+      run((o) => live!.nextBall(o), intent ? intentOverrides(intent) : undefined);
+    },
     nextOver: () => run((o) => live!.nextOver(o)),
     toNextWicket: () => run((o) => live!.toNextWicket(o)),
     untilInvolved: () => run((o) => live!.untilInvolved(o)),

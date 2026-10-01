@@ -23,10 +23,10 @@ import {
 } from '@/types';
 
 const ROLES: { id: CreationRole; label: string; help: string }[] = [
-  { id: 'BATTER', label: 'Batter', help: 'Runs are your job. Top or middle order.' },
+  { id: 'BATTER', label: 'Batter', help: 'Pure Batter: runs are your job. You never bowl.' },
   { id: 'BOWLER', label: 'Bowler', help: 'Wickets are your job. Pace or spin.' },
   { id: 'ALLROUNDER', label: 'All-rounder', help: 'Bat and bowl. Twice the work, twice the ways in.' },
-  { id: 'WICKETKEEPER', label: 'Wicketkeeper', help: 'Gloves first, and runs in the middle order.' },
+  { id: 'WICKETKEEPER', label: 'Wicketkeeper', help: 'Gloves first, runs in the middle order. No bowling.' },
 ];
 
 const APPROACHES: { id: BattingApproach; label: string; help: string }[] = [
@@ -46,6 +46,9 @@ const BOWLING_TYPES: BowlingStyle[] = [
   'LEFT_ARM_WRIST_SPIN',
   'NONE',
 ];
+
+/** Roles that bowl in matches (see engine/roles.ts). */
+const bowlingRole = (role: CreationRole) => role === 'BOWLER' || role === 'ALLROUNDER';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -84,7 +87,7 @@ const INITIAL: FormState = {
   role: 'BATTER',
   battingStyle: 'RIGHT_HAND_BAT',
   approach: 'STROKE_MAKER',
-  bowlingStyle: 'RIGHT_ARM_MEDIUM',
+  bowlingStyle: 'NONE',
   preferredAggression: 3,
   traits: ['HARD_WORKER', 'BIG_MATCH_TEMPERAMENT'],
 };
@@ -137,6 +140,8 @@ export default function NewCareer() {
     const shirt = Number(form.shirtNumber);
     if (!Number.isInteger(shirt) || shirt < 1 || shirt > 99) found.shirtNumber = 'Pick a number from 1 to 99.';
     if (form.role === 'BOWLER' && form.bowlingStyle === 'NONE') found.bowlingStyle = 'A bowler needs a bowling type.';
+    if (form.role === 'ALLROUNDER' && form.bowlingStyle === 'NONE') found.bowlingStyle = 'An all-rounder needs a bowling type.';
+    if (!bowlingRole(form.role) && form.bowlingStyle !== 'NONE') found.bowlingStyle = 'This role does not bowl.';
     if (!validTraitSet(form.traits)) found.traits = 'Pick two or three traits that go together.';
     return found;
   }, [form]);
@@ -301,8 +306,9 @@ export default function NewCareer() {
                 value={form.role}
                 onChange={(role) => {
                   set('role', role);
-                  if (role === 'BOWLER' && form.bowlingStyle === 'NONE') set('bowlingStyle', 'RIGHT_ARM_FAST');
-                  if (role === 'WICKETKEEPER') set('bowlingStyle', 'NONE');
+                  if (bowlingRole(role) && form.bowlingStyle === 'NONE') set('bowlingStyle', role === 'BOWLER' ? 'RIGHT_ARM_FAST' : 'RIGHT_ARM_MEDIUM');
+                  // A Pure Batter and a keeper never bowl: the bowling type goes with the role.
+                  if (!bowlingRole(role)) set('bowlingStyle', 'NONE');
                 }}
               />
             </Card>
@@ -324,13 +330,18 @@ export default function NewCareer() {
                   <Pill
                     key={style}
                     active={form.bowlingStyle === style}
-                    disabled={style === 'NONE' && form.role === 'BOWLER'}
+                    disabled={style === 'NONE' ? bowlingRole(form.role) : !bowlingRole(form.role)}
                     onClick={() => set('bowlingStyle', style)}
                   >
-                    {style === 'NONE' ? "Doesn't bowl" : bowlingStyleLabel(style)}
+                    {style === 'NONE' ? (form.role === 'BATTER' ? 'None (Pure Batter)' : "Doesn't bowl") : bowlingStyleLabel(style)}
                   </Pill>
                 ))}
               </div>
+              <p className="mt-2 text-[12px] text-ink-muted" role="note">
+                {bowlingRole(form.role)
+                  ? 'Role will decide the gameplay and training options: you will be given overs in matches.'
+                  : 'You will not bowl in matches, and bowling drills are not available. Choose All-rounder to bat and bowl.'}
+              </p>
               {showError('bowlingStyle', 1) ? <p className="mt-2 text-[11.5px] font-medium text-brand-red">{errors.bowlingStyle}</p> : null}
             </Card>
             <Card>

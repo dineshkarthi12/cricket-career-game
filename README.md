@@ -20,6 +20,10 @@ bloomers break through, and most careers never reach India.
 - **The professional game.** IPL scouting, auctions, retention and trades;
   India selectors, central contracts, world rankings, the World Test
   Championship, ICC tournaments, awards, media and fans, captaincy offers.
+- **IPL Manager mode.** A separate career as a franchise manager: scout the
+  regions, run trials, retain and bid at a live auction against nine AI
+  franchises, pick the XI and the plan, manage matchdays ball by ball, and
+  climb from Head of Scouting to Director of Cricket - with its own saves.
 - **Plays offline.** Install it to a phone's home screen; careers are saved in
   the browser (IndexedDB) in three slots with export and import.
 
