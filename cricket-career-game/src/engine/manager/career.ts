@@ -10,7 +10,7 @@ import { financeReport } from './finance';
 import { rankStandings } from './matchday';
 import { marketValue } from './players';
 import type { ActionResult } from './scouting';
-import { addNews, clamp, once, produce, squadOf } from './util';
+import { addNews, clamp, holds, once, produce, squadOf } from './util';
 
 export function rankLabel(rank: ManagerRank): string {
   return MANAGER.ranks.label[rank];
@@ -51,7 +51,7 @@ export function seasonReview(draft: ManagerState): SeasonSummary | null {
   const playoffs = draft.season.fixtures.some((f) => f.stage !== 'LEAGUE' && (f.homeId === draft.franchiseId || f.awayId === draft.franchiseId));
   const profit = financeReport(draft).profit;
   const r = MANAGER.reputation;
-  const responsibleForResults = MANAGER.ranks.responsibilities[draft.profile.rank].includes('MATCHDAY');
+  const responsibleForResults = holds(draft, 'MATCHDAY');
   const resultWeight = responsibleForResults ? 1 : 0.35;
 
   let change = 0;
@@ -180,6 +180,29 @@ export function acceptJob(state: ManagerState, franchiseId: string): ActionResul
       d.shortlist = [];
       d.auctionPlan = { targets: [], overseasWanted: 4, rolePriorities: [] };
       addNews(d, { kind: 'CAREER', title: `New job: ${d.franchises[franchiseId].name}`, body: `Appointed ${rankLabel(offer.rank)}. A fresh start.`, route: '/manager' });
+    }),
+  };
+}
+
+/**
+ * Switch full control on or off. On, every job is the manager's own and the
+ * AI staff do none of it; off, the rank decides as before. Not while the
+ * auction room is open: a lot half-run by the staff cannot change hands.
+ */
+export function setFullControl(state: ManagerState, on: boolean): ActionResult {
+  if (state.profile.retired) return { ok: false, state, error: 'Your career is over.' };
+  if (Boolean(state.profile.fullControl) === on) return { ok: true, state };
+  if (state.season.phase === 'AUCTION' && state.auction && !state.auction.complete) return { ok: false, state, error: 'Wait until the auction is over to change who runs things.' };
+  return {
+    ok: true,
+    state: produce(state, (d) => {
+      d.profile.fullControl = on;
+      addNews(d, {
+        kind: 'CAREER',
+        title: on ? 'Full control' : 'Staff back in charge',
+        body: on ? 'Every decision is yours now: scouting, trials, the auction, the XI and every match. The staff will not act for you.' : 'Jobs above your rank go back to the franchise staff.',
+        route: '/manager/profile',
+      });
     }),
   };
 }

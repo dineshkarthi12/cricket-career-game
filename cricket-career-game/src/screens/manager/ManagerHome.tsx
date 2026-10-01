@@ -3,13 +3,12 @@
  * thing to do, and the cards a manager checks every week.
  */
 import { CalendarDays, ChevronRight, Crown, Play, Target, Users, Wallet } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Card, CardHeader, HeroStatTile, ProgressBar, Stepper, type StepItem } from '@/components';
 import {
   MANAGER,
   PHASE_LABEL,
   PHASE_ORDER,
-  advance,
   advanceBlocker,
   advanceLabel,
   financeReport,
@@ -23,16 +22,17 @@ import {
   holds,
 } from '@/engine/manager';
 import { cn } from '@/lib/cn';
+import { useContinue } from './PhaseFlow';
 import { Button, FranchiseCrest, LinkButton, Money, ToneBadge, nameOf, shortOf, useManager } from './ui';
 
 export default function ManagerHome() {
-  const { state, apply } = useManager();
-  const navigate = useNavigate();
+  const { state } = useManager();
   const f = state.franchises[state.franchiseId];
   const squad = squadOf(state, f.id);
   const pending = pendingUserFixture(state);
   const next = nextUserFixture(state);
   const blocker = advanceBlocker(state);
+  const cont = useContinue();
   const table = rankStandings(state.season.standings);
   const position = table.findIndex((r) => r.franchiseId === f.id) + 1;
   const weak = squadWeaknesses(state, f.id).filter((w) => w.severity !== 'OK');
@@ -100,24 +100,26 @@ export default function ManagerHome() {
                 : advanceLabel(state)}
           </p>
           {blocker && !pending ? <p className="mt-0.5 text-[12.5px] text-brand-red" role="status">{blocker}</p> : null}
+          {!state.profile.retired && state.season.phase === 'SCOUTING' && holds(state, 'SCOUTING') && state.staff.every((s) => s.kind !== 'SCOUT' || !s.assignment) ? (
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">
+              Your scouts are idle.{' '}
+              <Link to="/manager/scouting" className="font-semibold text-brand-blue underline-offset-2 hover:underline">Send them out</Link> before the weeks pass.
+            </p>
+          ) : null}
+          {!state.profile.retired && !state.profile.unemployed && !state.profile.fullControl ? (
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">
+              Jobs above your rank are played by the staff when you continue.{' '}
+              <Link to="/manager/profile" className="font-semibold text-brand-blue underline-offset-2 hover:underline">Take full control</Link>
+            </p>
+          ) : null}
         </div>
         {pending && (holds(state, 'MATCHDAY') || holds(state, 'SELECTION')) ? (
           <LinkButton to={`/manager/match/${pending.id}`} variant="primary">
             <Play className="size-4 fill-white" aria-hidden /> Go to match
           </LinkButton>
         ) : (
-          <Button
-            variant="gold"
-            disabled={Boolean(blocker) || state.profile.retired}
-            onClick={() => {
-              if (state.season.phase === 'AUCTION_PREP' && holds(state, 'AUCTION')) {
-                if (apply(advance(state))) navigate('/manager/auction');
-                return;
-              }
-              apply(advance(state));
-            }}
-          >
-            {advanceLabel(state)} <ChevronRight className="size-4" aria-hidden />
+          <Button variant="gold" disabled={cont.disabled} onClick={cont.go}>
+            {cont.label} <ChevronRight className="size-4" aria-hidden />
           </Button>
         )}
       </Card>

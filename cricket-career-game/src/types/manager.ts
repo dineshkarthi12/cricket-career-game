@@ -388,6 +388,13 @@ export interface ManagerProfile {
   difficulty: ManagerDifficulty;
   pathway: ManagerPathway;
   rank: ManagerRank;
+  /**
+   * Full control: the manager does every job - scouting, trials, retentions,
+   * the auction, the XI, tactics, matches, contracts, staff and budgets -
+   * whatever the rank. Nothing is handed to the AI staff. Optional so older
+   * saves load (missing = off).
+   */
+  fullControl?: boolean;
   /** 0-100. Moves with results, objectives, finances and development. */
   reputation: number;
   experience: number;

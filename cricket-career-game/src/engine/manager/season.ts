@@ -68,7 +68,12 @@ export function advanceBlocker(state: ManagerState): string | null {
   const s = state.season;
   if (state.profile.retired) return 'Your career is over. Start a new manager save to play again.';
   if (state.profile.unemployed) return 'You are out of work: accept an offer or retire.';
-  if (s.phase === 'AUCTION' && state.auction && !state.auction.complete && holds(state, 'AUCTION')) return 'The auction is still running - finish it, or let your assistant bid to your plan.';
+  if (s.phase === 'SCOUTING' && s.week === 0 && state.profile.fullControl && holds(state, 'SCOUTING')) {
+    const idle = state.staff.every((x) => x.kind !== 'SCOUT' || !x.assignment);
+    const sent = state.finances.ledger.some((e) => e.season === s.year && e.kind === 'SCOUTING');
+    if (idle && !sent && state.staff.some((x) => x.kind === 'SCOUT') && state.finances.balance >= MANAGER.scouting.tripCost) return 'Send at least one scout on a trip first - the scouting is yours.';
+  }
+  if (s.phase === 'AUCTION' && state.auction && !state.auction.complete && holds(state, 'AUCTION')) return state.profile.fullControl ? 'The auction is still running - bid or pass on every lot until it is over.' : 'The auction is still running - finish it, or let your assistant bid to your plan.';
   if (s.phase === 'AUCTION' && holds(state, 'AUCTION')) {
     const size = state.franchises[state.franchiseId].squadIds.length;
     if (size < MANAGER.rules.squadMin) return `The squad has ${size} players - sign ${MANAGER.rules.squadMin - size} replacement${MANAGER.rules.squadMin - size === 1 ? '' : 's'} from the unsold list first.`;
@@ -86,7 +91,7 @@ export function advanceBlocker(state: ManagerState): string | null {
 export function advanceLabel(state: ManagerState): string {
   const s = state.season;
   if (s.phase === 'SCOUTING') return s.week + 1 >= MANAGER.phaseWeeks.SCOUTING ? 'Continue to trials' : `Next week (${s.week + 1}/${MANAGER.phaseWeeks.SCOUTING})`;
-  if (s.phase === 'LEAGUE') return s.round >= MANAGER.rules.leagueRounds ? 'Continue to the playoffs' : `Play round ${s.round}`;
+  if (s.phase === 'LEAGUE') return s.round >= MANAGER.rules.leagueRounds ? 'Continue to the playoffs' : pendingUserFixture(state) ? `Play round ${s.round}` : `Finish round ${s.round}`;
   if (s.phase === 'PLAYOFFS') return 'Next playoff match';
   if (s.phase === 'SEASON_END') return `Start ${s.year + 1} season`;
   const order: SeasonPhase[] = ['TRIALS', 'RETENTION', 'AUCTION_PREP', 'AUCTION', 'PRESEASON'];

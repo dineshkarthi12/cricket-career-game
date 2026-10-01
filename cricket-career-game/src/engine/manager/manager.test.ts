@@ -22,7 +22,7 @@ import { acceptCounter, offerDevelopmentContract, runTrial } from './trials';
 import { applyResult, netRunRate, quickSimFixture, rankStandings, simulateAiFixture } from './matchday';
 import { advance, advanceBlocker, buildLeagueFixtures, pendingUserFixture } from './season';
 import { autoXi, squadProblems, xiProblems } from './squad';
-import { retireManager } from './career';
+import { retireManager, setFullControl } from './career';
 import { setTrainingFocus, trainPlayer } from './development';
 import { hireStaff } from './staff';
 import { releasePlayer } from './contracts';
@@ -77,6 +77,45 @@ describe('a new manager career', () => {
     expect(holds(s, 'AUCTION')).toBe(false);
     expect(holds(s, 'SELECTION')).toBe(false);
     expect(holds(s, 'STAFF')).toBe(false);
+  });
+
+  it('full control hands every job to the manager from day one, whatever the rank', () => {
+    const s = fresh({ pathway: 'SCOUTING', fullControl: true });
+    expect(s.profile.rank).toBe('HEAD_OF_SCOUTING');
+    for (const r of ['SCOUTING', 'TRIALS', 'AUCTION', 'DEVELOPMENT', 'SELECTION', 'TACTICS', 'MATCHDAY', 'CONTRACTS', 'STAFF', 'FINANCE'] as const) expect(holds(s, r)).toBe(true);
+  });
+
+  it('with full control, Continue never runs the auction or plays a match for the manager', () => {
+    let s = fresh({ pathway: 'SCOUTING', fullControl: true });
+    s = until(s, 'AUCTION');
+    expect(s.auction && !s.auction.complete).toBe(true);
+    expect(advance(s).ok).toBe(false);
+    s = until(s, 'LEAGUE');
+    expect(pendingUserFixture(s)).not.toBeNull();
+    const r = advance(s);
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/match is next/);
+  });
+
+  it('with full control, the scouting weeks wait until the manager sends a scout out', () => {
+    const s = fresh({ pathway: 'SCOUTING', fullControl: true });
+    expect(advance(s).error).toMatch(/scout/);
+    const scout = s.staff.find((x) => x.kind === 'SCOUT')!;
+    const sent = assignScout(s, scout.id, 'NORTH', null);
+    expect(sent.ok).toBe(true);
+    expect(advance(sent.state).ok).toBe(true);
+  });
+
+  it('full control can be switched on for an existing save, but not mid-auction', () => {
+    const s = fresh({ pathway: 'SCOUTING' });
+    expect(holds(s, 'AUCTION')).toBe(false);
+    const on = setFullControl(s, true);
+    expect(on.ok).toBe(true);
+    expect(holds(on.state, 'AUCTION')).toBe(true);
+    expect(validateManagerState(on.state)).toBeNull();
+    const live = until(on.state, 'AUCTION');
+    expect(live.auction && !live.auction.complete).toBe(true);
+    expect(setFullControl(live, false).ok).toBe(false);
   });
 
   it('hides prospects until someone scouts them', () => {

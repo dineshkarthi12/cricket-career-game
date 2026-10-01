@@ -33,7 +33,7 @@ export default function AuctionScreen() {
   return (
     <div className="flex flex-col gap-3 pb-4">
       <PageHeader title={`IPL Auction ${state.season.year}`} subtitle={`${a.round === 1 ? 'Main round' : 'Accelerated round'} · lot ${Math.min(a.index + 1, a.queue.length)} of ${a.queue.length}`}>
-        {!a.complete && holds(state, 'AUCTION') ? (
+        {!a.complete && holds(state, 'AUCTION') && !state.profile.fullControl ? (
           <Button variant="secondary" onClick={() => replace(autoCompleteAuction(state))}>
             <SkipForward className="size-4" aria-hidden /> Let your assistant finish (bids to your plan)
           </Button>

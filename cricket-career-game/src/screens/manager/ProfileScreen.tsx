@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Check, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, ConfirmDialog, ProgressBar, Stepper, type StepItem } from '@/components';
-import { MANAGER, acceptJob, jobOffers, promotionOutlook, retireManager } from '@/engine/manager';
+import { MANAGER, acceptJob, holds, jobOffers, promotionOutlook, retireManager, setFullControl } from '@/engine/manager';
 import type { Responsibility } from '@/types/manager';
 import { useManagerStore } from '@/store/managerStore';
 import { Button, InfoCard, PageHeader, StatLine, shortOf, useManager } from './ui';
@@ -31,7 +31,6 @@ export default function ProfileScreen() {
   const current = order.indexOf(p.rank);
   const steps: StepItem[] = order.map((r, i) => ({ id: r, index: i + 1, label: MANAGER.ranks.label[r], status: i < current ? 'done' : i === current ? 'current' : 'locked' }));
   const outlook = promotionOutlook(state);
-  const held = MANAGER.ranks.responsibilities[p.rank] as readonly Responsibility[];
   const all = Object.keys(RESPONSIBILITY_LABEL) as Responsibility[];
   const offers = jobOffers(state);
 
@@ -73,7 +72,7 @@ export default function ProfileScreen() {
         <InfoCard title="Your responsibilities">
           <ul className="grid gap-1.5">
             {all.map((r) => {
-              const has = held.includes(r);
+              const has = holds(state, r);
               return (
                 <li key={r} className="flex items-center gap-2 text-[13px]">
                   {has ? <Check className="size-4 text-brand-green" aria-hidden /> : <Lock className="size-4 text-ink-soft" aria-hidden />}
@@ -97,6 +96,24 @@ export default function ProfileScreen() {
           </ul>
         </InfoCard>
       </div>
+
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-semibold text-ink">Full control {p.fullControl ? <span className="text-brand-green">· On</span> : <span className="text-ink-muted">· Off</span>}</p>
+          <p className="text-[12.5px] text-ink-muted">
+            {p.fullControl
+              ? 'Every job is yours - scouting, trials, retentions, the auction, the XI, tactics and every match. The staff never act for you.'
+              : 'Jobs above your rank are done by the franchise staff, so Continue plays them for you. Switch on to do everything yourself.'}
+          </p>
+        </div>
+        <Button
+          variant={p.fullControl ? 'secondary' : 'gold'}
+          disabled={p.retired}
+          onClick={() => apply(setFullControl(state, !p.fullControl), p.fullControl ? 'The staff take the jobs above your rank again.' : 'Full control: every decision is yours.')}
+        >
+          {p.fullControl ? 'Hand jobs to staff' : 'Take full control'}
+        </Button>
+      </Card>
 
       {p.unemployed ? (
         <Card>

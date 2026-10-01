@@ -25,6 +25,8 @@ export interface NewManagerOptions {
   difficulty: ManagerDifficulty;
   pathway: ManagerPathway;
   nationality?: string;
+  /** Do every job yourself from day one; the AI staff take none of it. */
+  fullControl?: boolean;
   seed?: number;
 }
 
@@ -139,6 +141,7 @@ export function createManagerCareer(options: NewManagerOptions): ManagerState {
       difficulty: options.difficulty,
       pathway: options.pathway,
       rank,
+      fullControl: Boolean(options.fullControl),
       reputation: MANAGER.reputation.start[options.pathway],
       experience: 0,
       boardConfidence: MANAGER.board.startConfidence - (options.pathway === 'DIRECT' ? 8 : 0),
@@ -183,8 +186,9 @@ export function createManagerCareer(options: NewManagerOptions): ManagerState {
   addNews(state, {
     kind: 'CAREER',
     title: `Welcome to ${f.name}`,
-    body:
-      rank === 'HEAD_OF_SCOUTING'
+    body: options.fullControl
+      ? `You run everything: send the scouts out, hold the trials, make the retentions, bid in the auction, pick the XI and play every match. Nobody does it for you.`
+      : rank === 'HEAD_OF_SCOUTING'
         ? `You start as Head of Scouting. Find the talent, run the trials and shape the auction shortlist - the head coach will be watching. Earn the bigger jobs through results.`
         : `You are the new Head Coach. The board expects results straight away, and the budget is tight.`,
     route: '/manager/profile',

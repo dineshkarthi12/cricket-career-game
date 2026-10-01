@@ -1523,6 +1523,16 @@ balance suites (T20/ODI/first-class, competitions, aggression) all pass.
   season review on reputation and the board's objectives; sacking below the
   board's confidence line, job offers, explicit retirement with the whole
   history kept.
+- Full control (`profile.fullControl`, on by default for new careers, switch
+  on the Profile screen for older saves): every responsibility is the
+  manager's from the first week whatever the rank, so Continue never runs the
+  auction, picks the XI or plays a match for them. Cannot be switched while a
+  live auction is open. Under full control the first scouting week waits for
+  a scout to be sent, and the auction has no "let your assistant finish".
+- Season flow on screen (`src/screens/manager/PhaseFlow.tsx`): Continue opens
+  the screen the next step needs (scouting, trials, retention/auction prep,
+  live auction, playing XI, the next match, the season summary), and a
+  Continue bar sits on every manager screen except Home and a live match.
 - Scouting network (regions, trips, budgets, staff quality, analyst), reports
   with estimates and uncertainty, hidden potential, rival interest; trials
   and development contracts that can be refused or countered.

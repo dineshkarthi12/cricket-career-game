@@ -9,6 +9,7 @@ import { auctionPool, autoCompleteAuction, signReplacement } from './auction';
 import { applyResult, quickSimFixture } from './matchday';
 import { marketValue } from './players';
 import { advance, advanceBlocker, pendingUserFixture } from './season';
+import { assignScout } from './scouting';
 import { produce } from './util';
 
 /** One step: play the pending fixture, finish the auction, sign who is needed, or advance. */
@@ -25,6 +26,11 @@ export function step(state: ManagerState): ManagerState {
       const r = signReplacement(state, p.id);
       if (r.ok) return r.state;
     }
+  }
+  if (state.season.phase === 'SCOUTING' && state.profile.fullControl) {
+    const idle = state.staff.find((x) => x.kind === 'SCOUT' && !x.assignment);
+    const sent = assignScout(state, idle?.id ?? '', 'SOUTH', null);
+    if (sent.ok && advanceBlocker(state)) return sent.state;
   }
   const r = advance(state);
   if (!r.ok) throw new Error(`Stuck in ${state.season.phase}: ${r.error ?? advanceBlocker(state)}`);
