@@ -132,3 +132,18 @@ describe('two-touch batting controls', () => {
     expect(screen.getByRole('button', { name: /face the ball/i })).toBeInTheDocument();
   });
 });
+
+describe('the timing meter', () => {
+  it('lays the zones out in order, each wide enough to read', async () => {
+    const { meterZones } = await import('./TouchBatting');
+    const { timingWindow } = await import('@/engine/match/touch');
+    for (const speedKmh of [80, 120, 150]) {
+      const z = meterZones(timingWindow({ speedKmh, batterTiming: 50 }));
+      expect(z.goodFrom).toBeGreaterThan(10);
+      expect(z.perfectFrom).toBeGreaterThan(z.goodFrom + 8);
+      expect(z.perfectTo).toBeGreaterThan(z.perfectFrom + 8);
+      expect(z.goodTo).toBeGreaterThan(z.perfectTo + 8);
+      expect(100 - z.goodTo).toBeGreaterThan(10);
+    }
+  });
+});

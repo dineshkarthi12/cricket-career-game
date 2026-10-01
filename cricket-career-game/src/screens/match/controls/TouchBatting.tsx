@@ -503,25 +503,47 @@ function SideButton(props: { screen: ScreenSide; label: string; enabled: boolean
   );
 }
 
-/** Early | good | PERFECT | good | late, with a cursor riding the ball. */
+/**
+ * Early | good | PERFECT | good | late, with a cursor riding the ball. The
+ * meter shows the end of the delivery, where timing is decided, so each zone
+ * is wide enough to read; before that the cursor waits at the left edge.
+ */
+export function meterZones(win: TimingWindow) {
+  const start = Math.max(0, win.idealMs - win.goodMs * 2.5);
+  const span = Math.max(1, win.missMs - start);
+  const at = (ms: number) => Math.max(0, Math.min(100, ((ms - start) / span) * 100));
+  const goodFrom = at(win.idealMs - win.goodMs);
+  const perfectFrom = at(win.idealMs - win.perfectMs);
+  const perfectTo = at(win.idealMs + win.perfectMs);
+  const goodTo = at(win.idealMs + win.goodMs);
+  return { start, span, at, goodFrom, perfectFrom, perfectTo, goodTo };
+}
+
 function TimingMeter({ win, progress, grade }: { win: TimingWindow; progress: number | null; grade: TimingGrade | null }) {
-  const pct = (ms: number) => `${Math.max(0, Math.min(100, (ms / win.missMs) * 100))}%`;
-  const goodFrom = win.idealMs - win.goodMs;
-  const perfectFrom = win.idealMs - win.perfectMs;
+  const z = meterZones(win);
+  const cursor = progress === null ? null : z.at(progress * win.missMs);
+  const labels: { text: string; centre: number; active: boolean; tone: string }[] = [
+    { text: 'Early', centre: z.goodFrom / 2, active: grade === 'EARLY', tone: 'text-brand-orange' },
+    { text: 'Good', centre: (z.goodFrom + z.perfectFrom) / 2, active: grade === 'GOOD', tone: 'text-brand-green' },
+    { text: 'Perfect', centre: (z.perfectFrom + z.perfectTo) / 2, active: grade === 'PERFECT', tone: 'text-brand-gold' },
+    { text: 'Good', centre: (z.perfectTo + z.goodTo) / 2, active: grade === 'GOOD', tone: 'text-brand-green' },
+    { text: 'Late', centre: (z.goodTo + 100) / 2, active: grade === 'LATE', tone: 'text-brand-red' },
+  ];
   return (
     <div aria-hidden className="px-1">
       <div className="relative h-4 overflow-hidden rounded-full bg-white/15">
-        <span className="absolute inset-y-0 bg-brand-green/60" style={{ left: pct(goodFrom), width: pct(win.goodMs * 2) }} />
-        <span className="absolute inset-y-0 bg-brand-gold" style={{ left: pct(perfectFrom), width: pct(win.perfectMs * 2) }} />
-        {progress !== null ? (
-          <span className="absolute inset-y-[-2px] w-1 rounded bg-white shadow" style={{ left: `${progress * 100}%` }} />
+        <span className="absolute inset-y-0 bg-brand-green/60" style={{ left: `${z.goodFrom}%`, width: `${z.goodTo - z.goodFrom}%` }} />
+        <span className="absolute inset-y-0 bg-brand-gold" style={{ left: `${z.perfectFrom}%`, width: `${z.perfectTo - z.perfectFrom}%` }} />
+        {cursor !== null ? (
+          <span className="absolute inset-y-[-2px] w-1 rounded bg-white shadow" style={{ left: `${cursor}%` }} />
         ) : null}
       </div>
-      <div className="mt-1 flex justify-between text-[10.5px] font-semibold text-white/80">
-        <span className={grade === 'EARLY' ? 'text-brand-orange' : ''}>Early</span>
-        <span className={grade === 'GOOD' ? 'text-brand-green' : ''}>Good</span>
-        <span className={grade === 'PERFECT' ? 'text-brand-gold' : ''}>Perfect</span>
-        <span className={grade === 'LATE' ? 'text-brand-red' : ''}>Late</span>
+      <div className="relative mt-1 h-4 text-[10.5px] font-semibold text-white/80">
+        {labels.map((l, i) => (
+          <span key={i} className={cn('absolute -translate-x-1/2 whitespace-nowrap', l.active && l.tone)} style={{ left: `${l.centre}%` }}>
+            {l.text}
+          </span>
+        ))}
       </div>
     </div>
   );
