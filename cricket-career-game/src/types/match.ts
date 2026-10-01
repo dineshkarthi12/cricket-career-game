@@ -106,6 +106,8 @@ export interface Ball {
   aroundTheWicket?: boolean;
   /** Bowling aggression 1-5 when it was not the neutral 3. Optional. */
   bowlingAggression?: number;
+  /** Two-touch batting: the side the player tapped and the timing. Optional. */
+  touch?: { side: 'LEG' | 'OFF'; timing: 'EARLY' | 'GOOD' | 'PERFECT' | 'LATE' };
   /** Ball-by-ball text commentary line. */
   commentary: string;
   /** Snapshot of the conditions for this delivery. */

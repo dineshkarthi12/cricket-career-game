@@ -1087,6 +1087,48 @@ export const MATCH = {
     dismissal: { caughtBlock: 0.3, caughtDefensive: 0.55, caughtBehind: 1.5, bowled: 1.2, lbw: 1.2 },
   },
 
+  /**
+   * Two-touch batting (`engine/match/touch.ts`): the side the player taps and
+   * how well they time it. Multipliers on the engine's own chances - never a
+   * fixed result.
+   */
+  touch: {
+    timing: {
+      PERFECT: { contact: 0.1, wicket: 0.85, four: 1.18, six: 1.2 },
+      GOOD: { contact: 0.03, wicket: 0.96, four: 1.04, six: 1.02 },
+      EARLY: { contact: -0.1, wicket: 1.22, four: 0.75, six: 0.8 },
+      LATE: { contact: -0.13, wicket: 1.32, four: 0.66, six: 0.55 },
+    } as Record<'PERFECT' | 'GOOD' | 'EARLY' | 'LATE', { contact: number; wicket: number; four: number; six: number }>,
+    /** Playing with the line or across it (fit 0-1; `neutral` is no change). */
+    lineFit: { neutral: 0.6, wicket: 0.5, contact: 0.14, boundaryBase: 0.58, boundary: 0.55 },
+    /** Share of the touch effect a deliberate block feels. */
+    defendShare: 0.3,
+    /** Below this contact the shot is a mishit and goes wherever the edge takes it. */
+    mishitContact: 0.3,
+    /** Line fit below this is playing across the line. */
+    acrossLine: 0.35,
+    /** Dismissal-type weights when the tap fights the line or the timing is off. */
+    dismissal: {
+      acrossToLeg: { LBW: 1.8, BOWLED: 1.5, CAUGHT: 1.15 },
+      acrossToOff: { BOWLED: 1.6, CAUGHT_BEHIND: 1.2 },
+      late: { BOWLED: 1.35, LBW: 1.3, CAUGHT_BEHIND: 1.4 },
+      early: { CAUGHT: 1.35, CAUGHT_AND_BOWLED: 1.8 },
+    } as Record<'acrossToLeg' | 'acrossToOff' | 'late' | 'early', Partial<Record<string, number>>>,
+    window: {
+      /** On-screen ball travel is real time times this, so people can play it. */
+      slowdown: 1.7,
+      /** Ideal contact as a share of the travel time. */
+      idealAt: 0.86,
+      perfectMs: 55,
+      goodMs: 150,
+      /** Past the ideal moment by this much, the ball is through: no shot. */
+      missAfterMs: 320,
+      skillMin: 0.75,
+      skillMax: 1.3,
+      difficulty: { EASY: 1.3, REALISTIC: 1, HARD: 0.78 } as Record<'EASY' | 'REALISTIC' | 'HARD', number>,
+    },
+  },
+
   /** Run-outs are rolled while the batters are running, not off the bat. */
   runOut: {
     /** Chance per completed run that a run-out is even in play. */

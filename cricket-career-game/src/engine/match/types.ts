@@ -20,6 +20,7 @@ import type {
   Dismissal,
   ShotType,
 } from '@/types';
+import type { TouchShot } from './touch';
 
 /** A player as the engine sees them: the user and every AI are the same here. */
 export interface SimPlayer {
@@ -168,6 +169,11 @@ export interface DeliveryContext {
   aroundTheWicket?: boolean;
   /** The batter shoulders arms: no shot, so only a straight ball can get them. */
   leave?: boolean;
+  /**
+   * Two-touch batting: the side the player tapped and how well it was timed.
+   * Only ever set for the player's own batter.
+   */
+  touch?: TouchShot | null;
   /** The batter is working the ball into gaps rather than looking for boundaries. */
   rotate?: boolean;
   /** Bowling aggression, 1 (contain) to 5 (all-out attack). 3 when unset. */
