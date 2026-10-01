@@ -19,6 +19,43 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Start-up safety net. If the app has not drawn anything a few seconds after
+      loading (a script that failed to download on a patchy connection, or a stale
+      offline copy after an update), say so and offer a way out instead of leaving
+      a blank page. "Reset offline copy" clears only the cached app files and the
+      service worker - saved careers live in IndexedDB and are never touched.
+    -->
+    <div id="boot-fallback" hidden style="font-family:system-ui,sans-serif;max-width:420px;margin:15vh auto 0;padding:24px;text-align:center;color:#0F1B33">
+      <p style="font-size:20px;font-weight:700;margin:0 0 8px">Cricket Career did not start</p>
+      <p id="boot-reason" style="font-size:14px;color:#5B6577;margin:0 0 20px">The game could not finish loading. Your saved careers are safe.</p>
+      <button id="boot-reload" type="button" style="min-height:44px;padding:0 20px;border:0;border-radius:12px;background:#1E5EF0;color:#fff;font-weight:600;font-size:14px;margin:4px">Reload</button>
+      <button id="boot-reset" type="button" style="min-height:44px;padding:0 20px;border:1px solid #E8ECF5;border-radius:12px;background:#fff;color:#0F1B33;font-weight:600;font-size:14px;margin:4px">Reset offline copy</button>
+    </div>
+    <script>
+      (function () {
+        var shown = false;
+        function show(reason) {
+          var root = document.getElementById('root');
+          if (shown || (root && root.childElementCount > 0)) return;
+          shown = true;
+          var box = document.getElementById('boot-fallback');
+          if (reason) document.getElementById('boot-reason').textContent = reason + ' Your saved careers are safe.';
+          box.hidden = false;
+        }
+        window.addEventListener('error', function (e) {
+          if (e && e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) show('Part of the game could not be downloaded.');
+        }, true);
+        window.addEventListener('load', function () { setTimeout(function () { show(); }, 6000); });
+        document.getElementById('boot-reload').onclick = function () { location.reload(); };
+        document.getElementById('boot-reset').onclick = function () {
+          var jobs = [];
+          if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+          if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+          Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
+        };
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
