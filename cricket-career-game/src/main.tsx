@@ -18,6 +18,29 @@ import { setupAudio } from './lib/audio/setup';
 setupPwa();
 setupAudio();
 
+// A code-split chunk that fails to download (a request caught mid-deploy, or a
+// stale offline copy) would otherwise leave the screen blank: reload once.
+window.addEventListener('vite:preloadError', (event) => {
+  const key = 'cc-preload-reload';
+  try {
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+  } catch {
+    return; // no session storage: let the start-up safety net in index.html handle it
+  }
+  event.preventDefault();
+  window.location.reload();
+});
+window.addEventListener('load', () =>
+  setTimeout(() => {
+    try {
+      sessionStorage.removeItem('cc-preload-reload');
+    } catch {
+      /* ignore */
+    }
+  }, 10000),
+);
+
 const container = document.getElementById('root');
 if (!container) throw new Error('Root element #root not found');
 
