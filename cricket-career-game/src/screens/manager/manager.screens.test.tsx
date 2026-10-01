@@ -153,3 +153,43 @@ describe('the career match panel respects the role', () => {
     expect(within(container).getByText(/Bowling aggression/)).toBeInTheDocument();
   });
 });
+
+describe('the live manager match', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    __resetManagerStore();
+  });
+
+  it('keeps Ball / Over / Wicket / Auto within reach, and Auto plays on by itself', async () => {
+    let s = createManagerCareer({ name: 'A', franchiseId: 'team-coromandel-kings', difficulty: 'NORMAL', pathway: 'DIRECT', seed: 4 });
+    while (s.season.phase !== 'LEAGUE') s = step(s);
+    load(s);
+    const fixture = s.season.fixtures.find((f) => !f.result && (f.homeId === s.franchiseId || f.awayId === s.franchiseId))!;
+    render(
+      <MemoryRouter initialEntries={[`/manager/match/${fixture.id}`]}>
+        <Routes>
+          <Route path="/manager/*" element={<ManagerRoutes />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /Play live/ }, { timeout: 5000 }));
+    const toss = screen.queryByRole('button', { name: 'Bat first' });
+    if (toss) fireEvent.click(toss);
+    const bar = (await screen.findByRole('button', { name: 'Auto play' })).parentElement!;
+    const ball = within(bar).getByRole('button', { name: /^Ball$/ });
+    fireEvent.click(ball);
+    expect(within(bar).getByRole('button', { name: 'Over' })).toBeEnabled();
+    fireEvent.click(within(bar).getByRole('button', { name: 'Auto play' }));
+    expect(within(bar).getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+    // While auto runs, the one-ball button is locked so a ball is never played twice.
+    expect(within(bar).getByRole('button', { name: /^Ball$/ })).toBeDisabled();
+    // The commentary grows as auto plays on.
+    const before = screen.getAllByRole('listitem').length;
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 3400));
+    });
+    expect(screen.getAllByRole('listitem').length).toBeGreaterThan(before);
+    fireEvent.click(within(bar).getByRole('button', { name: 'Pause' }));
+    expect(within(bar).getByRole('button', { name: 'Auto play' })).toBeInTheDocument();
+  }, 30000);
+});

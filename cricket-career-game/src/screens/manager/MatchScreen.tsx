@@ -26,7 +26,10 @@ import {
   xiProblems,
   type MatchdayCalls,
 } from '@/engine/manager';
-import { useReducedMotion } from '@/store/appSettings';
+import { useAppSettings, useReducedMotion } from '@/store/appSettings';
+import { BALL_SPEEDS } from '@/store/matchStore';
+import { useMatchAudio } from '@/lib/audio/useMatchAudio';
+import { SimControls } from '@/screens/match/controls/SimControls';
 import { useManagerStore } from '@/store/managerStore';
 import type { BattingApproachSetting, ManagerFixture, ManagerState } from '@/types/manager';
 import type { Ball } from '@/types';
@@ -61,6 +64,9 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
   const [tab, setTab] = useState('commentary');
   const finishing = useRef(false);
   const reduceMotion = useReducedMotion(false);
+  // Full auto: one ball at a time at the chosen speed, until paused or play stops.
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [speed, setSpeed] = useState(() => useAppSettings.getState().defaultSimSpeed);
   const preview = useMemo(() => createLiveMatch(buildSetup(state, fixture)).snapshot(), [state, fixture]);
   const tactics = tacticsFor(state, state.franchiseId);
   const problems = holds(state, 'SELECTION') ? xiProblems(state, state.franchiseId, state.tactics.xiIds, state.tactics.wicketkeeperId) : [];
@@ -138,6 +144,28 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
   };
 
   const quick = () => finish(quickSimFixture(state, fixture));
+
+  // Match sound: bat, stumps and crowd, as in a career match.
+  useMatchAudio({
+    lastBall,
+    snap,
+    playing: Boolean(live && snap && snap.phase !== 'COMPLETE'),
+    userId: null,
+    userTeamId: state.franchiseId,
+  });
+
+  // Auto play bowls the next ball after a pause; it stops when play stops.
+  const inPlay = snap?.phase === 'IN_PLAY';
+  useEffect(() => {
+    if (!autoPlay) return;
+    if (!inPlay) {
+      setAutoPlay(false);
+      return;
+    }
+    const timer = window.setTimeout(() => step('ball'), BALL_SPEEDS[speed]?.ms ?? 1500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, inPlay, snap, speed]);
 
   /* ----------------------------- pre-match ------------------------------ */
   if (!live || !snap) {
@@ -278,11 +306,31 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
                 </div>
               )}
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button onClick={() => step('ball')} disabled={snap.phase !== 'IN_PLAY'}><Play className="size-4 fill-white" aria-hidden /> Next ball</Button>
-                <Button variant="ghost" onClick={() => step('over')} disabled={snap.phase !== 'IN_PLAY'}><FastForward className="size-4" aria-hidden /> Next over</Button>
-                <Button variant="secondary" onClick={() => step('wicket')} disabled={snap.phase !== 'IN_PLAY'}><Swords className="size-4" aria-hidden /> To a wicket</Button>
-                <Button variant="secondary" onClick={() => step('innings')} disabled={snap.phase !== 'IN_PLAY'}><Zap className="size-4" aria-hidden /> End of innings</Button>
+                <Button onClick={() => step('ball')} disabled={snap.phase !== 'IN_PLAY' || autoPlay}><Play className="size-4 fill-white" aria-hidden /> Next ball</Button>
+                <Button variant="ghost" onClick={() => step('over')} disabled={snap.phase !== 'IN_PLAY' || autoPlay}><FastForward className="size-4" aria-hidden /> Next over</Button>
+                <Button variant="secondary" onClick={() => step('wicket')} disabled={snap.phase !== 'IN_PLAY' || autoPlay}><Swords className="size-4" aria-hidden /> To a wicket</Button>
+                <Button variant="secondary" onClick={() => step('innings')} disabled={snap.phase !== 'IN_PLAY' || autoPlay}><Zap className="size-4" aria-hidden /> End of innings</Button>
               </div>
+            </Card>
+          </div>
+          {/* Phone and tablet: the play buttons stay within thumb reach. */}
+          <div className="sticky bottom-[76px] z-20 md:bottom-3 xl:hidden">
+            <Card className="p-2 shadow-card-hover">
+              <SimControls
+                compact
+                autoPlay={autoPlay}
+                speed={speed}
+                busy={!inPlay}
+                playing={false}
+                onBall={() => step('ball')}
+                onOver={() => step('over')}
+                onWicket={() => step('wicket')}
+                onInvolved={() => step('wicket')}
+                onInnings={() => step('innings')}
+                onAuto={setAutoPlay}
+                onSimRest={() => step('end')}
+                onSpeed={setSpeed}
+              />
             </Card>
           </div>
         </>

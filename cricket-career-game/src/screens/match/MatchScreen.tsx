@@ -374,10 +374,6 @@ export default function MatchScreen() {
           onPlayer={store.setPlayer}
           onCaptain={store.setCaptain}
           onDelegate={store.setDelegate}
-          ballKey={ballKeyOf(snap)}
-          difficulty={state.settings.difficulty ?? 'REALISTIC'}
-          onPeek={store.peekDelivery}
-          onTouchPlay={store.playBall}
         />
         {question ? (
           <QuestionModal

@@ -1638,3 +1638,15 @@ adds an empty `challenges`.
 Tests: 36 new (touch engine 14, touch controls 7, challenges 10, screens 5);
 one updated (`realPlayers.test.ts` now expects `SAVE_VERSION` after the v10
 bump). `npm run build` is clean.
+
+### Follow-up: the batting screen as before; IPL Manager matchday controls and sound
+- The two-touch batting screen is removed at the player's request: on strike
+  the match shows the earlier controls again (aggression bar, one-ball
+  intents, aim, carry the innings, sim). The touch engine (`touch.ts`,
+  `peekDelivery`) stays, unused by the UI and still tested; untouched balls
+  never used it, so nothing in play changes.
+- IPL Manager live match: the compact Ball / Over / Wicket / Auto bar is
+  pinned above the tab bar on phones and tablets (no scrolling to play), Auto
+  plays a ball at the chosen speed until paused or the innings stops (the
+  one-ball buttons lock meanwhile), and the match has the career match's
+  sound (bat, stumps, crowd, result) through `useMatchAudio`.
