@@ -7,7 +7,8 @@ import { AggressionBar } from './match/controls/AggressionBar';
 import { useGameStore } from '@/store/gameStore';
 import { DEFAULT_START_DATE, createNewCareer, type NewCareerOptions } from '@/engine/newCareer';
 import { REAL_PLAYERS } from '@/engine/config';
-import { loadRealSeason, startSeasons } from '@/data/real';
+import { loadRealSeason } from '@/data/real';
+import { realSeasonFor } from '@/engine/world/realPlayers';
 import { randomTraits, type CreationRole } from '@/engine/development';
 import { createRng } from '@/engine/match/rng';
 import { STATES, TAMIL_NADU_DISTRICTS, stateOfTown } from '@/data/places';
@@ -65,9 +66,18 @@ export function seasonStartDate(year: number): string {
   return `${year}-06-01`;
 }
 
+/** Birth years a career can have: from the 1980s (among the stars of the 2000s) to today's beginners. */
+export const MIN_BIRTH_YEAR = 1980;
+
+/** The season in which a player born on that day is `age` on its first day (1 June). */
+export function careerStartYear(birthYear: number, month: number, day: number, age: number): number {
+  const monthDay = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return birthYear + age + (monthDay <= '06-01' ? 0 : 1);
+}
+
 interface FormState {
-  /** The season the career starts in: a past one plays among that season's real cricketers. */
-  startYear: number;
+  /** Year of birth: an earlier one starts the career in the past, among that time's real cricketers. */
+  birthYear: string;
   firstName: string;
   lastName: string;
   age: number;
@@ -85,7 +95,7 @@ interface FormState {
 }
 
 const INITIAL: FormState = {
-  startYear: Number(DEFAULT_START_DATE.slice(0, 4)),
+  birthYear: String(Number(DEFAULT_START_DATE.slice(0, 4)) - 10),
   firstName: '',
   lastName: '',
   age: 10,
@@ -109,6 +119,14 @@ export function dateOfBirthFor(age: number, month: number, day: number, start = 
   const monthDay = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const year = monthDay <= startMonthDay ? startYear - age : startYear - age - 1;
   return `${year}-${monthDay}`;
+}
+
+/** Which real cricketers a career starting in `startYear` plays among. */
+function eraHint(startYear: number, realSeason: number): string {
+  const latest = REAL_PLAYERS.seasons.latest;
+  if (!Number.isFinite(startYear) || startYear >= latest) return "Today's real cricketers";
+  if (realSeason > startYear) return `Starts ${startYear}. Real squads of ${realSeason} (the earliest data), then real history to ${latest}`;
+  return `Starts ${startYear}, among that season's real cricketers; real history to ${latest}`;
 }
 
 function daysInMonth(month: number): number {
@@ -143,9 +161,21 @@ export default function NewCareer() {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
 
+  const birthYear = Number(form.birthYear);
+  const latest = REAL_PLAYERS.seasons.latest;
+  const startYear = careerStartYear(birthYear, form.birthMonth, form.birthDay, form.age);
+  // The real players the career begins with: that season's, or the earliest data before it.
+  const realStart = startYear < latest ? startYear : undefined;
+  const realSeason = realSeasonFor(realStart, startYear);
+
   const errors = useMemo(() => {
     const found: Partial<Record<keyof FormState, string>> = {};
     if (!form.firstName.trim()) found.firstName = 'Your player needs a first name.';
+    if (!Number.isInteger(birthYear) || birthYear < MIN_BIRTH_YEAR || birthYear > latest - MIN_AGE) {
+      found.birthYear = `Pick a year from ${MIN_BIRTH_YEAR} to ${latest - MIN_AGE}.`;
+    } else if (startYear > latest) {
+      found.birthYear = `Born then, you are ${form.age} only in ${startYear}: pick an earlier year or a younger age.`;
+    }
     if (form.age < MIN_AGE || form.age > MAX_AGE) found.age = `A career starts between ${MIN_AGE} and ${MAX_AGE}.`;
     const shirt = Number(form.shirtNumber);
     if (!Number.isInteger(shirt) || shirt < 1 || shirt > 99) found.shirtNumber = 'Pick a number from 1 to 99.';
@@ -154,10 +184,10 @@ export default function NewCareer() {
     if (!bowlingRole(form.role) && form.bowlingStyle !== 'NONE') found.bowlingStyle = 'This role does not bowl.';
     if (!validTraitSet(form.traits)) found.traits = 'Pick two or three traits that go together.';
     return found;
-  }, [form]);
+  }, [form, birthYear, startYear, latest]);
 
   const stepFields: (keyof FormState)[][] = [
-    ['firstName', 'age', 'shirtNumber'],
+    ['firstName', 'birthYear', 'age', 'shirtNumber'],
     ['bowlingStyle'],
     ['traits'],
     [],
@@ -168,8 +198,8 @@ export default function NewCareer() {
     () => ({
       firstName: form.firstName.trim() || 'Player',
       lastName: form.lastName.trim(),
-      dateOfBirth: dateOfBirthFor(form.age, form.birthMonth, form.birthDay, seasonStartDate(form.startYear)),
-      startDate: seasonStartDate(form.startYear),
+      dateOfBirth: `${birthYear}-${String(form.birthMonth).padStart(2, '0')}-${String(Math.min(form.birthDay, daysInMonth(form.birthMonth))).padStart(2, '0')}`,
+      startDate: seasonStartDate(startYear),
       hometown: form.hometown,
       state: stateOfTown(form.hometown).name,
       country: 'India',
@@ -183,7 +213,7 @@ export default function NewCareer() {
       shirtNumber: Number(form.shirtNumber) || 18,
       seed,
     }),
-    [form, seed],
+    [form, seed, birthYear, startYear],
   );
 
   // Only build the preview on the review step: it is a whole career.
@@ -191,8 +221,8 @@ export default function NewCareer() {
 
   // That season's players, ready for the preview and the start.
   useEffect(() => {
-    void loadRealSeason(form.startYear);
-  }, [form.startYear]);
+    void loadRealSeason(realSeason);
+  }, [realSeason]);
 
   const next = () => {
     setTried((t) => ({ ...t, [step]: true }));
@@ -207,7 +237,7 @@ export default function NewCareer() {
       return;
     }
     // The squads are built from that season's players: have them first.
-    await loadRealSeason(form.startYear);
+    await loadRealSeason(realSeason);
     if (startNewCareer(slot, options)) navigate('/');
   };
 
@@ -257,24 +287,19 @@ export default function NewCareer() {
               <Field label="Last name" hint="Optional" htmlFor="lastName">
                 <input id="lastName" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} className={inputClass(false)} />
               </Field>
-              <Field
-                label="Start year"
-                hint={form.startYear < REAL_PLAYERS.seasons.latest ? `Among the real cricketers of ${form.startYear}; the squads follow real history to ${REAL_PLAYERS.seasons.latest}` : 'Today\'s real cricketers'}
-                htmlFor="startYear"
-                className="sm:col-span-2"
-              >
-                <select id="startYear" value={form.startYear} onChange={(e) => set('startYear', Number(e.target.value))} className={inputClass(false)}>
-                  {startSeasons()
-                    .slice()
-                    .reverse()
-                    .map((year) => (
-                      <option key={year} value={year}>
-                        {year}-{String((year + 1) % 100).padStart(2, '0')} season
-                      </option>
-                    ))}
-                </select>
+              <Field label="Birth year" error={showError('birthYear', 0)} hint={eraHint(startYear, realSeason)} htmlFor="birthYear">
+                <input
+                  id="birthYear"
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_BIRTH_YEAR}
+                  max={latest - MIN_AGE}
+                  value={form.birthYear}
+                  onChange={(e) => set('birthYear', e.target.value)}
+                  className={inputClass(Boolean(showError('birthYear', 0)))}
+                />
               </Field>
-              <Field label="Age" error={showError('age', 0)} hint={`On ${formatLongDate(seasonStartDate(form.startYear))}`} htmlFor="age">
+              <Field label="Age when the career starts" error={showError('age', 0)} hint={errors.birthYear ? undefined : `On ${formatLongDate(seasonStartDate(startYear))}`} htmlFor="age">
                 <select id="age" value={form.age} onChange={(e) => set('age', Number(e.target.value))} className={inputClass(false)}>
                   {[8, 9, 10, 11, 12].map((a) => (
                     <option key={a} value={a}>
