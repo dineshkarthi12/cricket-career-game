@@ -1650,3 +1650,23 @@ bump). `npm run build` is clean.
   plays a ball at the chosen speed until paused or the innings stops (the
   one-ball buttons lock meanwhile), and the match has the career match's
   sound (bat, stumps, crowd, result) through `useMatchAudio`.
+
+### Fix: real stars retired before the game started
+Kohli, Rohit, Dhoni, Bumrah, Jadeja, Starc, Cummins, Russell and 24 more of
+the 388 real squad players were gone by 2027 - the season an IPL Manager
+career starts. A real player was only guaranteed one season past the 2026
+data, retirement ages were 34-39 (Bumrah drew 35), and IPL Manager retired
+everyone at 39 (and 36-38s at 35% a season) on top. Now:
+- `realRetireAge`: 35-40, +2 for the best (overall 86+), and a player active
+  in the data season or the one before plays at least three more seasons
+  (`REAL_PLAYERS.minSeasonsLeft`). Nobody in a real squad retires before
+  2029; by 2030 about 51 of 388 have, gradually.
+- IPL Manager's yearly ageing uses the same per-player retirement age for
+  real cricketers; generated players keep the old rule.
+- `realStars.test.ts`: no real squad player retired in 2027/2028, veterans
+  still leave later, Kohli is at RCB in a new manager career and the stars
+  survive the first season rollover.
+Saves made before this keep the players they already lost; a new career (or
+a new IPL Manager career) has them. Birth years are still estimated from a
+player's first recorded match, so some are a year early (Kohli 1987 rather
+than 1988); fixing that needs `npm run import:players` with Cricsheet access.

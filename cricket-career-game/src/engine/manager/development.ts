@@ -5,6 +5,7 @@
  * veteran at his ceiling - and decline after the early thirties.
  */
 import { computeOverall } from '../ratings';
+import { ageOn, realDateOfBirth, realRecord, realRetireAge, realSeason } from '../world/realPlayers';
 import type { Attributes } from '@/types';
 import type { ManagedPlayer, ManagerState, StaffKind, TrainingFocus } from '@/types/manager';
 import { MANAGER } from './config';
@@ -126,8 +127,14 @@ export function agePlayers(draft: ManagerState, rng: { next(): number; spread():
     }
     // Late bloomers and false dawns: hidden potential is never fixed.
     if (p.age <= 24) p.potential = clamp(Math.round(p.potential + rng.spread() * 3), p.overall, 97);
-    const retireChance = p.age >= 39 ? 1 : p.age >= 36 ? 0.35 : p.age >= 34 && p.overall < 62 ? 0.25 : 0;
-    if (rng.chance(retireChance)) {
+    // A real cricketer retires at their own age (as in the career world), so
+    // the veterans of today do not all vanish after one season; generated
+    // players keep the general rule.
+    const rec = p.realId ? realRecord(p.realId) : undefined;
+    const retires = rec
+      ? p.age >= realRetireAge(rec, ageOn(realDateOfBirth(rec), `${realSeason()}-06-01`))
+      : rng.chance(p.age >= 39 ? 1 : p.age >= 36 ? 0.35 : p.age >= 34 && p.overall < 62 ? 0.25 : 0);
+    if (retires) {
       p.retired = true;
       retired.push(p.id);
       if (p.contract) {
