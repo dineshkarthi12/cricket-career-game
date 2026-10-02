@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useGameStore } from './gameStore';
 import { createNewCareer } from '@/engine/newCareer';
-import { cancelAutosave, resetSaveStorageForTests, saveToSlot, setActiveSlot, settleWrites } from '@/save';
+import { cancelAutosave, getActiveSlot, resetSaveStorageForTests, saveToSlot, setActiveSlot, settleWrites } from '@/save';
 
 function reset() {
   cancelAutosave();
@@ -50,6 +50,24 @@ describe('store bootstrap', () => {
     const { state, slot } = useGameStore.getState();
     expect(slot).toBe(2);
     expect(state?.player.firstName).toBe('Arun');
+  });
+
+  it('shows no error when the remembered slot has since been emptied, and forgets it', async () => {
+    setActiveSlot(1);
+    await useGameStore.getState().bootstrap();
+    const { state, lastError, toasts } = useGameStore.getState();
+    expect(state).toBeNull();
+    expect(lastError).toBeNull();
+    expect(toasts.filter((t) => t.tone === 'error')).toEqual([]);
+    expect(getActiveSlot()).toBeNull();
+  });
+
+  it('forgets the remembered slot when its career is deleted', async () => {
+    await saveAndReload(1, 'Arun', '2014-05-02');
+    setActiveSlot(1);
+    await useGameStore.getState().bootstrap();
+    useGameStore.getState().deleteCareer(1);
+    expect(getActiveSlot()).toBeNull();
   });
 
   it('falls back to the first occupied slot when no active slot is remembered', async () => {

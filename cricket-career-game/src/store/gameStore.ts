@@ -4,6 +4,7 @@ import { createDemoCareer } from '@/data/demoCareer';
 import { createNewCareer, type NewCareerOptions } from '@/engine/newCareer';
 import {
   cancelAutosave,
+  clearActiveSlot,
   deleteSlot,
   flushAutosave,
   getActiveSlot,
@@ -235,6 +236,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   resumeLastCareer: () => {
     const slot = getActiveSlot();
     if (slot === null) return false;
+    // The last career played may since have been deleted: nothing to resume, and nothing wrong.
+    if (!listSlots()[slot - 1]) {
+      clearActiveSlot();
+      return false;
+    }
     return get().loadCareer(slot);
   },
 
@@ -257,6 +263,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return false;
     }
     const closingCurrent = get().slot === slot;
+    if (getActiveSlot() === slot) clearActiveSlot();
     if (closingCurrent) cancelAutosave();
     set({
       slots: listSlots(),
