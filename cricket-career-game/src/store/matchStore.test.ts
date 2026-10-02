@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { appointCaptain } from '@/engine/career/captaincy';
+import { MATCH } from '@/engine/config';
 import { recentMatch } from '@/lib/selectors';
 import { cancelAutosave } from '@/save';
 import { useGameStore } from './gameStore';
@@ -92,10 +93,17 @@ describe('match store: career mode', () => {
       else useMatchStore.getState().playBall();
     }
     const innings = useMatchStore.getState().snap!;
-    const balls = [...innings.completed.flatMap((i) => i.deliveries), ...(innings.current?.deliveries ?? [])];
-    const mine = balls.filter((b) => b.strikerId === me);
+    const all = [...innings.completed, ...(innings.current ? [innings.current] : [])];
+    const balls = all.flatMap((i) => i.deliveries);
     const others = balls.filter((b) => b.strikerId !== me && b.isLegalDelivery);
-    if (mine.length > 0) expect(mine.every((b) => b.intent === 'ALL_OUT')).toBe(true);
+    // One level safer while playing themselves in, then the level as set.
+    for (const inn of all) {
+      let faced = 0;
+      for (const b of inn.deliveries.filter((d) => d.strikerId === me)) {
+        expect(b.intent).toBe(faced < MATCH.batting.playInBalls ? 'ATTACKING' : 'ALL_OUT');
+        if (b.isLegalDelivery) faced += 1;
+      }
+    }
     expect(others.some((b) => b.intent !== 'ALL_OUT')).toBe(true);
   }, 60_000);
 

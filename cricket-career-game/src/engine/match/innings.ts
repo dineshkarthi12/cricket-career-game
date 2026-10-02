@@ -107,6 +107,12 @@ export interface BallOverrides {
   bowlerId?: string;
   /** Batting aggression, 1-5. */
   intentLevel?: number;
+  /**
+   * `intentLevel` is the player's standing level rather than a choice for
+   * this one ball, so a new batter plays it one level safer for their first
+   * few balls (see `playInLevel`).
+   */
+  playIn?: boolean;
   /** Bowling aggression, 1-5 (3 is the neutral plan). */
   bowlingAggression?: number;
   /**
@@ -640,7 +646,9 @@ export function stepBall(state: InningsState, rng: Rng, overrides?: BallOverride
   let rotate = own?.rotate ?? false;
   const captainLevel = overrides?.batterLevels?.[striker.id];
   if (own?.intentLevel !== undefined) {
-    approach = byLevel(own.intentLevel);
+    approach = byLevel(
+      own.playIn ? playInLevel(own.intentLevel, state.ballsFaced[striker.id] ?? 0) : own.intentLevel,
+    );
   } else if (captainLevel !== undefined) {
     approach = byLevel(captainLevel);
   } else if (overrides?.instruction || overrides?.targetBowlerId) {
@@ -805,6 +813,15 @@ export function planNextDelivery(state: InningsState, seed: number, intentLevel:
   });
   state.planned = { ballIndex: state.deliveries.length, strikerId: striker.id, bowlerId: bowler.id, bowlerKind: kind, plan };
   return state.planned;
+}
+
+/**
+ * The level a new batter actually plays at a standing aggression: one safer
+ * than chosen (Balanced or above) until they have faced
+ * `MATCH.batting.playInBalls`, exactly as an AI batter plays themselves in.
+ */
+export function playInLevel(level: number, ballsFaced: number): number {
+  return ballsFaced < MATCH.batting.playInBalls && level >= 3 ? level - 1 : level;
 }
 
 /** How dangerous a level of batting aggression is right now. */

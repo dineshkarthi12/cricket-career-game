@@ -1670,3 +1670,18 @@ Saves made before this keep the players they already lost; a new career (or
 a new IPL Manager career) has them. Birth years are still estimated from a
 player's first recorded match, so some are a year early (Kohli 1987 rather
 than 1988); fixing that needs `npm run import:players` with Cricsheet access.
+
+### Fix: the player's batter got out too early
+Every AI batter plays one level safer for their first 8 balls; the player's
+batter played their standing aggression from ball one, so on Balanced or
+above they were out early far more often (T20 at Balanced: 43% of innings
+over inside 10 balls; at Very Aggressive, 76%). Now:
+- `MATCH.batting.playInBalls` (8) and `playInLevel`: the player's standing
+  level (Balanced or above) is played one level safer until they have faced
+  8 balls. A one-ball choice (Attack, Big shot...) is played exactly as
+  picked; Defensive levels are unchanged.
+- The batting panel says so ("Playing yourself in: Defensive for 5 more
+  balls") and the risk label shows the level actually played.
+- Measured over 300 T20s at number 3: out inside 10 balls 43% -> 35%
+  (Balanced), 54% -> 46% (Aggressive), 76% -> 59% (Very Aggressive). AI
+  batting and match balance are untouched.

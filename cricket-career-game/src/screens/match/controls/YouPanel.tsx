@@ -23,6 +23,8 @@ export interface YouPanelProps {
   decisions: PlayerDecisions;
   /** Risk at the player's batting level, while they are at the crease. */
   risk: RiskEstimate | null;
+  /** While the player's batter is playing themselves in: the level played, and for how many more balls. */
+  playIn?: { level: number; ballsLeft: number } | null;
   busy: boolean;
   autoWatch: boolean;
   onPlay: (intent?: BallIntent) => void;
@@ -89,6 +91,7 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
         <BattingControls
           level={decisions.batting}
           risk={props.risk}
+          playIn={props.playIn ?? null}
           shotPreference={decisions.shotPreference}
           onPlay={props.onPlay}
           onLevel={(batting) => props.onDecisions({ batting })}

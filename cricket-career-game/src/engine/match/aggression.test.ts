@@ -8,7 +8,7 @@ import { MATCH } from '../config';
 import { createPitch, createWeather, newBall } from './conditions';
 import { aggressionRiskScale, duelFactors, estimateWicketChance } from './delivery';
 import { placeField } from './field';
-import { createInningsState, stepBall, type BallOverrides, type InningsSetup } from './innings';
+import { createInningsState, playInLevel, stepBall, strikerOf, type BallOverrides, type InningsSetup } from './innings';
 import { createRng } from './rng';
 import { generateXi } from './squad';
 import { INTENT_BY_LEVEL, type DeliveryContext, type SimPlayer } from './types';
@@ -162,6 +162,33 @@ describe('bowling aggression', () => {
     expect(ball?.bowlingAggression).toBe(5);
     const neutral = stepBall(state, rng, { bowlingAggression: 3 });
     expect(neutral?.bowlingAggression).toBeUndefined();
+  });
+
+  it('plays a new batter’s standing level one safer until they are in, as the AI does', () => {
+    const settle = MATCH.batting.playInBalls;
+    expect(playInLevel(4, 0)).toBe(3);
+    expect(playInLevel(3, settle - 1)).toBe(2);
+    expect(playInLevel(5, settle)).toBe(5);
+    // Defensive levels are already playing themselves in.
+    expect(playInLevel(2, 0)).toBe(2);
+    expect(playInLevel(1, 0)).toBe(1);
+
+    for (const playIn of [true, false]) {
+      const state = createInningsState(setupFor(11, 'T20'));
+      const rng = createRng(11);
+      const seen: { faced: number; intent: string }[] = [];
+      for (let i = 0; i < 80 && !state.complete; i += 1) {
+        const faced = state.ballsFaced[strikerOf(state).id] ?? 0;
+        const ball = stepBall(state, rng, { intentLevel: 4, playIn });
+        if (ball?.isLegalDelivery) seen.push({ faced, intent: ball.intent });
+      }
+      const early = seen.filter((b) => b.faced < settle);
+      const later = seen.filter((b) => b.faced >= settle);
+      expect(early.length).toBeGreaterThan(5);
+      expect(later.length).toBeGreaterThan(5);
+      expect(early.every((b) => b.intent === INTENT_BY_LEVEL[playIn ? 2 : 3])).toBe(true);
+      expect(later.every((b) => b.intent === INTENT_BY_LEVEL[3])).toBe(true);
+    }
   });
 
   it('lets a captain set a level for particular batters and bowlers', () => {

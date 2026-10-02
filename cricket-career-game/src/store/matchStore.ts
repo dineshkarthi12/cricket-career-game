@@ -58,18 +58,19 @@ export const BALL_INTENTS: { id: BallIntent; label: string; help: string }[] = [
   { id: 'BIG_SHOT', label: 'Big shot', help: 'Go aerial. Boundaries - and chances.' },
 ];
 
+/** A one-ball choice is played exactly as asked, even by a new batter. */
 function intentOverrides(intent: BallIntent): BallOverrides {
   switch (intent) {
     case 'LEAVE':
-      return { leave: true, intentLevel: 1 };
+      return { leave: true, intentLevel: 1, playIn: false };
     case 'DEFEND':
-      return { intentLevel: 1 };
+      return { intentLevel: 1, playIn: false };
     case 'ROTATE':
-      return { intentLevel: 3, rotate: true };
+      return { intentLevel: 3, rotate: true, playIn: false };
     case 'ATTACK':
-      return { intentLevel: 4 };
+      return { intentLevel: 4, playIn: false };
     case 'BIG_SHOT':
-      return { intentLevel: 5 };
+      return { intentLevel: 5, playIn: false };
   }
 }
 
@@ -280,6 +281,8 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       // Always sent: the player's level holds until they change it. A per-ball
       // choice overrides it for that one ball.
       intentLevel: player.batting,
+      // ...and a new batter plays it one level safer until they are in.
+      playIn: true,
       bowlingAggression: player.bowling,
       farmStrike: player.farmStrike,
       ...perBall,
