@@ -7,7 +7,7 @@ import { memo } from 'react';
 import { FastForward, Play, Shield, Target } from 'lucide-react';
 import type { RiskEstimate } from '@/engine/match/innings';
 import { BALL_INTENTS, type BallIntent } from '@/store/matchStore';
-import { AggressionBar } from './AggressionBar';
+import { AggressionBar, BATTING_LEVELS } from './AggressionBar';
 
 /** Directions the batter can favour, in engine degrees. */
 export const DIRECTIONS = [
@@ -32,6 +32,7 @@ const INTENT_TONE: Record<BallIntent, string> = {
 export const BattingControls = memo(function BattingControls({
   level,
   risk,
+  playIn = null,
   shotPreference,
   onPlay,
   onLevel,
@@ -45,6 +46,8 @@ export const BattingControls = memo(function BattingControls({
   /** The player's batting aggression, 1-5. */
   level: number;
   risk: RiskEstimate | null;
+  /** While playing themselves in: the level actually played, and for how many more balls. */
+  playIn?: { level: number; ballsLeft: number } | null;
   shotPreference: number | null;
   /** Play the next ball at the set level, or with a one-ball intent. */
   onPlay: (intent?: BallIntent) => void;
@@ -66,6 +69,12 @@ export const BattingControls = memo(function BattingControls({
         hotkeys
         onChange={(next) => next !== null && onLevel(next)}
       />
+      {playIn ? (
+        <p className="-mt-2 text-[12px] text-ink-muted">
+          Playing yourself in: {BATTING_LEVELS[playIn.level - 1].name} for {playIn.ballsLeft} more{' '}
+          {playIn.ballsLeft === 1 ? 'ball' : 'balls'}. A shot picked below is played as chosen.
+        </p>
+      ) : null}
 
       <CarryToggle on={farmStrike} onChange={onFarmStrike} />
 

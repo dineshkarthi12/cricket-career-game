@@ -8,8 +8,9 @@
  * controls appear only when the player captains.
  */
 import { useMemo, useState } from 'react';
+import { MATCH } from '@/engine/config';
 import { Card, CardHeader, Tabs, TutorialTip } from '@/components';
-import type { RiskEstimate } from '@/engine/match/innings';
+import { playInLevel, type RiskEstimate } from '@/engine/match/innings';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { FieldSetting, SimPlayer } from '@/engine/match/types';
 import { groundBox, insideCircle } from '@/lib/ground';
@@ -96,9 +97,16 @@ export function InPlay(props: InPlayProps) {
   const leftArmBowler = Boolean(bowler?.bowlingStyle.startsWith('LEFT_ARM'));
   const me = playerById(props.userId);
   const busy = snap.question !== null;
+  // A new batter plays their standing level one safer until they are in.
+  const myBalls = cur.batting.find((b) => b.playerId === props.userId)?.balls ?? 0;
+  const myLevel = playInLevel(props.player.batting, myBalls);
+  const playIn =
+    snap.userBatting && myLevel !== props.player.batting
+      ? { level: myLevel, ballsLeft: MATCH.batting.playInBalls - myBalls }
+      : null;
   const myRisk =
     snap.involvement.atCrease || snap.involvement.onStrike
-      ? props.riskFor(props.userId, props.player.batting)
+      ? props.riskFor(props.userId, myLevel)
       : null;
 
   const battingTeam = props.teamNameOf(cur.battingTeamId);
@@ -202,6 +210,7 @@ export function InPlay(props: InPlayProps) {
       name={props.userName}
       decisions={props.player}
       risk={myRisk}
+      playIn={playIn}
       busy={busy || props.autoPlay}
       autoWatch={props.autoWatch}
       onPlay={props.onPlay}

@@ -10,6 +10,8 @@ import { newId } from './id';
 import { createRng } from './match/rng';
 import { buildCareerPlayer, defaultPlanFor, type CreationRole } from './development';
 import { applySeasonCalendar, emptySeason, seasonYearOf } from './calendar';
+import { REAL_PLAYERS } from './config';
+import { activateRealSeason, realSeasonFor } from './world/realPlayers';
 import type {
   BattingApproach,
   CareerStageId,
@@ -145,8 +147,12 @@ export function createNewCareer(options: NewCareerOptions): GameState {
   stages[startStageId] = { ...stages[startStageId], status: 'CURRENT', enteredOn: startDate };
 
   const seasonYear = seasonYearOf(startDate);
+  // A career begun in a past season plays among that season's real cricketers.
+  const realStartYear = seasonYear < REAL_PLAYERS.seasons.latest ? seasonYear : undefined;
+  activateRealSeason(realSeasonFor(realStartYear, seasonYear));
   const base: GameState = {
     version: SAVE_VERSION,
+    ...(realStartYear !== undefined ? { realStartYear } : {}),
     challenges: { log: [], claimed: [], xpEarned: 0 },
     seed,
     pro: emptyProState(seasonYear),

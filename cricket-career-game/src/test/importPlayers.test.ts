@@ -352,3 +352,54 @@ describe('the conversion', () => {
     expect(jag.g & 1).toBe(0);
   });
 });
+
+describe('a past season (--eras)', () => {
+  const OLD_IND = ['SR Tendulkar', 'VVS Laxman', 'R Dravid', 'OI4', 'OI5', 'OI6', 'OI7', 'OI8', 'OI9', 'OI10', 'OI11'];
+  const OLD_AUS = ['RT Ponting', 'OA2', 'OA3', 'OA4', 'OA5', 'OA6', 'OA7', 'OA8', 'OA9', 'OA10', 'OA11'];
+  const DC = ['AC Gilchrist', 'RG Sharma', 'VVS Laxman', 'DC4', 'DC5', 'DC6', 'DC7', 'DC8', 'DC9', 'DC10', 'DC11'];
+  const MI = ['SR Tendulkar', 'MI2', 'MI3', 'MI4', 'MI5', 'MI6', 'MI7', 'MI8', 'MI9', 'MI10', 'MI11'];
+  function eraDb(): StatsDb {
+    const db = new StatsDb();
+    const matches: [string, Record<string, unknown>][] = [
+      ['10', jsonMatch({ type: 'Test', teamType: 'international', date: '2003-12-04', teams: { India: OLD_IND, Australia: OLD_AUS }, innings: [['India', [['SR Tendulkar', 'RT Ponting', 4], ['VVS Laxman', 'RT Ponting', 1]]]] })],
+      ['11', jsonMatch({ event: 'Indian Premier League', type: 'T20', teamType: 'club', date: '2009-04-20', teams: { 'Deccan Chargers': DC, 'Mumbai Indians': MI }, innings: [['Deccan Chargers', [['AC Gilchrist', 'MI2', 6], ['RG Sharma', 'MI2', 4]]]] })],
+    ];
+    for (const [id, raw] of matches) db.add(summariseMatch(id, raw)!);
+    return db;
+  }
+  const out = convert({
+    db: eraDb(),
+    kaggle: new Map(),
+    ranji: [],
+    vht: [],
+    season: 2009,
+    era: {
+      birthYears: new Map([['id-srtendulkar', 1973]]),
+      homeStates: new Map([['id-srtendulkar', 'Mumbai'], ['id-rgsharma', 'Mumbai'], ['id-vvslaxman', 'Hyderabad']]),
+      lastYears: new Map([['id-srtendulkar', 2013], ['id-vvslaxman', 2012], ['id-rgsharma', 2026]]),
+    },
+  });
+  const byId = new Map([...out.domestic.players, ...out.ipl.players, ...out.international.players].map((p) => [p.id, p]));
+
+  it('fills today\'s franchise slots with the sides of the day', () => {
+    expect(out.ipl.squads['Sunrisers Hyderabad']).toEqual(expect.arrayContaining(['id-acgilchrist', 'id-rgsharma']));
+    expect(out.ipl.squads['Mumbai Indians']).toContain('id-srtendulkar');
+  });
+
+  it('uses real birth years, and does not take a veteran for a 21-year-old debutant', () => {
+    expect(byId.get('id-srtendulkar')!.y).toBe(1973);
+    expect(byId.get('id-srtendulkar')!.g & 1).toBe(0);
+    // Already playing when the scorecards begin: last match at 36 is the earlier estimate.
+    expect(byId.get('id-vvslaxman')!.y).toBe(2012 - 36);
+    // First seen in 2009, well after the scorecards begin: debut at 21.
+    expect(byId.get('id-rgsharma')!.y).toBe(2009 - 21);
+  });
+
+  it('builds state squads from the players of the day and their sides, without lists', () => {
+    expect(out.domestic.squads.Mumbai.ranji).toEqual(expect.arrayContaining(['id-srtendulkar', 'id-rgsharma']));
+    expect(out.domestic.squads.Mumbai.smat).toContain('id-rgsharma');
+    expect(out.domestic.squads.Hyderabad.ranji).toEqual(['id-vvslaxman']);
+    // Dravid's last match by then was in 2003, and his side is unknown here: in no state squad.
+    expect(Object.values(out.domestic.squads).some((s) => s.ranji.includes('id-rdravid'))).toBe(false);
+  });
+});

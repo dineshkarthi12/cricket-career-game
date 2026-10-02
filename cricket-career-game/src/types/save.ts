@@ -54,6 +54,12 @@ export interface GameState {
    * next season rollover (`engine/world/realSeed.ts`).
    */
   realSquadsPending?: boolean;
+  /**
+   * The season a career begun in the past started in. Its real squads follow
+   * real history - each season's own players - up to the latest data
+   * (`engine/world/realPlayers.ts`, `realSeasonFor`). Absent: today's players.
+   */
+  realStartYear?: number;
   /** Daily and weekly challenges (save v10). Optional: an older save gets an empty one. */
   challenges?: ChallengeState;
   settings: GameSettings;

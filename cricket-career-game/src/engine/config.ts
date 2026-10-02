@@ -844,6 +844,12 @@ export const MATCH = {
      * "Balanced" means what a typical batter plays.
      */
     aiIntentStart: 1,
+    /**
+     * The player's own batter plays themselves in the way every AI batter
+     * does: for this many balls their standing aggression (Balanced or
+     * above) is played one level safer. A one-ball choice is played as asked.
+     */
+    playInBalls: 8,
     /** How much harder a batter with wickets in hand goes in the last tenth of the innings. */
     lastOversSurge: 2,
     /** A T20 side reads its wickets this many fewer when deciding to go: the tail swings too. */
@@ -1634,6 +1640,11 @@ export const RETIREMENT = {
  * players ~62-78.
  */
 export const REAL_PLAYERS = {
+  /**
+   * Seasons with real squads: the latest data (`src/data/real/*.json`) and
+   * the past seasons a career can start in (`src/data/real/eras/<year>.json`).
+   */
+  seasons: { first: 2005, latest: 2026 },
   /** Par per competition: batting average, strike rate, bowling runs per ball, bowling average. */
   par: {
     TEST: { avg: 32, sr: 55, rpb: 0.55, bowlAvg: 32 },

@@ -1670,3 +1670,51 @@ Saves made before this keep the players they already lost; a new career (or
 a new IPL Manager career) has them. Birth years are still estimated from a
 player's first recorded match, so some are a year early (Kohli 1987 rather
 than 1988); fixing that needs `npm run import:players` with Cricsheet access.
+
+### Fix: the player's batter got out too early
+Every AI batter plays one level safer for their first 8 balls; the player's
+batter played their standing aggression from ball one, so on Balanced or
+above they were out early far more often (T20 at Balanced: 43% of innings
+over inside 10 balls; at Very Aggressive, 76%). Now:
+- `MATCH.batting.playInBalls` (8) and `playInLevel`: the player's standing
+  level (Balanced or above) is played one level safer until they have faced
+  8 balls. A one-ball choice (Attack, Big shot...) is played exactly as
+  picked; Defensive levels are unchanged.
+- The batting panel says so ("Playing yourself in: Defensive for 5 more
+  balls") and the risk label shows the level actually played.
+- Measured over 300 T20s at number 3: out inside 10 balls 43% -> 35%
+  (Balanced), 54% -> 46% (Aggressive), 76% -> 59% (Very Aggressive). AI
+  batting and match balance are untouched.
+
+### Start a career in a past season, among that season's real cricketers
+Career creation has a Start year (2005-06 to 2026-27). A career begun in a
+past season plays among the real cricketers of that season, and every 1 June
+the real squads (nations, IPL franchises, zones, Rest of India, India A,
+senior state sides) move on to the next season's real players - Tendulkar,
+Dravid and Kumble for India in 2008, Kohli arriving, Sachin leaving in 2013 -
+up to the latest data (2026), after which the players age as before.
+- `npm run import:players -- --eras 2005-2025` writes
+  `src/data/real/eras/<year>.json` from only the matches before 1 June of
+  that year (one lazy chunk each, 60-380 KB). The 2026 files are unchanged.
+- The Cricsheet scorecards begin in 2003 and the Mushtaq Ali ones in 2016, so
+  `scripts/players/legends.ts` has the real birth years of ~240 players of
+  the 2000s and the state sides of the older Indians; anyone else who was
+  already playing in 2003-04 is aged from "last match at 36" when that is
+  earlier than "debut at 21".
+- Past seasons without squad lists build each state's squads from the Indian
+  players of the day with a known side (thin before 2016; generated players
+  fill the rest). Defunct franchises fill today's slots of the day: Deccan
+  Chargers as Sunrisers Hyderabad, Kochi / Gujarat Lions as Gujarat Titans,
+  Pune Warriors / Rising Pune as Lucknow Super Giants; before 2008 the
+  franchises are generated.
+- Engine: `realPlayers.ts` keeps several seasons loaded
+  (`addRealData`, `activateRealSeason`, `realSeasonFor`); a save records
+  `realStartYear`; `advanceWeek` puts the career's season in use and
+  `startNewSeason` switches season and rebuilds the real squads
+  (`realSquadsPending`). With no season that early loaded, sides are
+  generated rather than given future players.
+- Loading: `prepareRealSeasons` (game store: boot, load, import, new career,
+  every week) fetches this season's and next season's file; IPL Manager
+  puts today's players back in use.
+- Tests: the converter's history mode, the wizard starting in 2008, and an
+  engine test (2008 squads, the switch to 2009 on 1 June, no future players).

@@ -7,7 +7,7 @@
  */
 import { S, type PlayerStats, StatsDb, lastTeam, matchesSince, mostUsedName, rawMatches, weightedStats } from './stats.ts';
 import { STAT_FORMATS, type StatFormat } from './cricsheet.ts';
-import { type ListedPlayer, type ListedSquad, gameSideOf } from './squadLists.ts';
+import { GAME_SIDES, type ListedPlayer, type ListedSquad, gameSideOf } from './squadLists.ts';
 import { type Candidate, type MatchResult, editDistance, matchListedName, nameParts, normName, surnameCounts } from './names.ts';
 
 // --- Output shapes ---------------------------------------------------------------------
@@ -43,8 +43,23 @@ export interface ConvertInput {
   manual?: ManualOverrides;
   /** Registry ids of players seen in overseas franchise leagues (so not Indian). */
   abroad?: Set<string>;
+  /**
+   * A past season (`--eras`): the figures stop at its start, today's
+   * franchise slots take the defunct sides of the day, and the state squads
+   * come from who was playing rather than from the squad lists.
+   */
+  era?: EraInput;
   /** The game season the squads are for (default 2026). */
   season?: number;
+}
+
+export interface EraInput {
+  /** Real birth years where the scorecards start too late to estimate one (`LEGEND_BIRTH_YEARS`), by id. */
+  birthYears: Map<string, number>;
+  /** State sides from all the data and `LEGEND_STATES`, by id. */
+  homeStates: Map<string, string>;
+  /** Year of each player's last match in all the data, by id. */
+  lastYears: Map<string, number>;
 }
 
 export interface Report {
@@ -96,6 +111,25 @@ export const FRANCHISE_OF: Record<string, string | null> = {
   'Gujarat Lions': null,
 };
 export const FRANCHISES = [...new Set(Object.values(FRANCHISE_OF).filter((f): f is string => Boolean(f)))];
+
+/**
+ * A past season: the defunct sides fill the slots of the two franchises that
+ * did not exist yet. No two of them played in the same season.
+ */
+export const ERA_FRANCHISE_OF: Record<string, string | null> = {
+  ...FRANCHISE_OF,
+  'Deccan Chargers': 'Sunrisers Hyderabad',
+  'Kochi Tuskers Kerala': 'Gujarat Titans',
+  'Gujarat Lions': 'Gujarat Titans',
+  'Pune Warriors': 'Lucknow Super Giants',
+  'Rising Pune Supergiant': 'Lucknow Super Giants',
+  'Rising Pune Supergiants': 'Lucknow Super Giants',
+};
+
+/** Before this year a player's first scorecard may be years after their debut. */
+const SCORECARDS_FROM = 2004;
+/** Age a player whose debut the scorecards missed is taken to have stopped at. */
+const LAST_MATCH_AGE = 36;
 
 export const SQUAD_LIMITS = { national: 22, iplMin: 22, iplMax: 25, iplOverseas: 8, vht: 20, ranji: 22, smat: 18 };
 const DEBUT_AGE = 21;
@@ -474,10 +508,15 @@ export function convert(input: ConvertInput): ConvertOutput {
     }
     // Age.
     const firstYear = Number(p.firstDate.slice(0, 4));
-    const birthYear = force.birthYear ?? firstYear - DEBUT_AGE;
-    if (!force.birthYear) {
+    const known = force.birthYear ?? input.era?.birthYears.get(id);
+    // A player already playing when the scorecards begin may have started long before:
+    // whichever of "debut at 21" and "last match at 36" is earlier.
+    const lastYear = input.era?.lastYears.get(id);
+    const missedDebut = input.era && firstYear <= SCORECARDS_FROM && lastYear !== undefined;
+    const birthYear = known ?? (missedDebut ? Math.min(firstYear - DEBUT_AGE, lastYear - LAST_MATCH_AGE) : firstYear - DEBUT_AGE);
+    if (!known) {
       g |= 1;
-      report.ageEstimates.push({ id, name: '', birthYear, basis: `first recorded match ${p.firstDate} (debut taken as ${DEBUT_AGE})` });
+      report.ageEstimates.push({ id, name: '', birthYear, basis: missedDebut ? `first recorded match ${p.firstDate}, last ${lastYear} (debut at ${DEBUT_AGE} or last match at ${LAST_MATCH_AGE})` : `first recorded match ${p.firstDate} (debut taken as ${DEBUT_AGE})` });
     }
     const name = force.name ?? listedName.get(id) ?? displayNameFor(cricsheetName, k.full, country);
     let x = 0;
@@ -514,12 +553,13 @@ export function convert(input: ConvertInput): ConvertOutput {
 
   // --- IPL squads ----------------------------------------------------------------------------
   const iplLatest = latest('IPL');
+  const franchiseOf = input.era ? ERA_FRANCHISE_OF : FRANCHISE_OF;
   const iplSquads: Record<string, string[]> = Object.fromEntries(FRANCHISES.map((f) => [f, [] as string[]]));
   const iplPool: Record<string, { id: string; year: number; recent: number }[]> = Object.fromEntries(FRANCHISES.map((f) => [f, []]));
   for (const p of db.players.values()) {
     const last = lastTeam(p, 'IPL');
     if (!last) continue;
-    const franchise = FRANCHISE_OF[last.team];
+    const franchise = franchiseOf[last.team];
     if (!franchise) continue;
     const year = Number(last.date.slice(0, 4));
     if (year < iplLatest - 1) continue;
@@ -592,6 +632,37 @@ export function convert(input: ConvertInput): ConvertOutput {
     smat.forEach(recordFor);
     const smatCaptain = cap.ranji && smat.includes(cap.ranji) ? cap.ranji : cap.vht && smat.includes(cap.vht) ? cap.vht : null;
     domesticSquads[team] = { ranji, vht, smat, captains: { ranji: cap.ranji && ranji.includes(cap.ranji) ? cap.ranji : null, vht: cap.vht && vht.includes(cap.vht) ? cap.vht : null, smat: smatCaptain } };
+  }
+
+  // A past season without squad lists: each side's squads are its players of the day, most experienced first.
+  if (input.era && Object.keys(listed).length === 0) {
+    const eraSide = (p: PlayerStats): string | undefined => {
+      // The side they last played Mushtaq Ali for by then; otherwise the side they are known for.
+      const smat = lastTeam(p, 'SMAT');
+      return (smat ? gameSideOf(smat.team) : null) ?? input.era!.homeStates.get(p.id);
+    };
+    const t20 = (p: PlayerStats) => (['IPL', 'SMAT', 'T20I'] as StatFormat[]).reduce((sum, f) => sum + matchesSince(p, f, season - 4), 0);
+    const bySide = new Map<string, PlayerStats[]>();
+    for (const p of db.players.values()) {
+      if (lastYearOf(p) < season - 2) continue; // not playing any more
+      const indian = p.years.SMAT || p.years.IPL || [...(p.teams.TEST?.keys() ?? []), ...(p.teams.ODI?.keys() ?? []), ...(p.teams.T20I?.keys() ?? [])].includes('India');
+      if (!indian) continue;
+      const side = eraSide(p);
+      if (!side || !(GAME_SIDES as readonly string[]).includes(side)) continue;
+      bySide.set(side, [...(bySide.get(side) ?? []), p]);
+    }
+    for (const [side, players] of [...bySide.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+      const byXp = [...players].sort((a, b) => experience(b.id) - experience(a.id) || a.id.localeCompare(b.id)).map((p) => p.id);
+      const byT20 = [...players].sort((a, b) => t20(b) - t20(a) || experience(b.id) - experience(a.id) || a.id.localeCompare(b.id)).map((p) => p.id);
+      const ranji = byXp.slice(0, SQUAD_LIMITS.ranji);
+      const vht = byXp.slice(0, SQUAD_LIMITS.vht);
+      const smat = byT20.slice(0, SQUAD_LIMITS.smat);
+      const ids = [...new Set([...ranji, ...vht, ...smat])];
+      ids.forEach(recordFor);
+      // Only Indians: a player capped by another country since is not in a state side.
+      const india = (id: string) => records.get(id)?.c === 'India';
+      domesticSquads[side] = { ranji: ranji.filter(india), vht: vht.filter(india), smat: smat.filter(india), captains: { ranji: null, vht: null, smat: null } };
+    }
   }
 
   // Roles for listed players with no figures: fill what the side is short of.

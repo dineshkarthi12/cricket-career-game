@@ -13,6 +13,12 @@
  *   src/data/playerOverrides.json     every guess, for checking; its "manual"
  *                                     section is yours and is kept between runs
  *
+ * npm run import:players -- --eras 2005-2025 [--data <dir>]
+ *
+ * Instead writes one file per past season a career can start in,
+ * src/data/real/eras/<year>.json, from only the matches played before
+ * 1 June of that year (the season's start).
+ *
  * The raw data is never copied into this repo.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -22,12 +28,19 @@ import AdmZip from 'adm-zip';
 import * as yaml from 'js-yaml';
 import { summariseMatch } from './players/cricsheet.ts';
 import { StatsDb } from './players/stats.ts';
-import { parseRanjiList, parseVhtList } from './players/squadLists.ts';
+import { gameSideOf, parseRanjiList, parseVhtList } from './players/squadLists.ts';
 import { convert } from './players/convert.ts';
+import { LEGEND_BIRTH_YEARS, LEGEND_STATES } from './players/legends.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const dataArg = args.includes('--data') ? args[args.indexOf('--data') + 1] : undefined;
+const erasArg = args.includes('--eras') ? args[args.indexOf('--eras') + 1] : undefined;
+const eraRange = erasArg?.match(/^(\d{4})-(\d{4})$/);
+if (erasArg && !eraRange) {
+  console.error(`--eras takes a range of years, e.g. --eras 2005-2025 (got ${erasArg}).`);
+  process.exit(1);
+}
 const dataDir = resolve(dataArg ?? process.env.PLAYER_DATA_DIR ?? join(root, '..', '..', 'Cricket-teams-and-players'));
 if (!existsSync(dataDir)) {
   console.error(`Data folder not found: ${dataDir}\nClone it with:\n  GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/dineshkarthi12/Cricket-teams-and-players\nand pass --data <folder>.`);
@@ -67,6 +80,8 @@ const abroadDone = new Set();
 // --- Matches ------------------------------------------------------------------------------------------
 
 const db = new StatsDb();
+/** Every match kept, for the past seasons. */
+const summaries = [];
 const zips = readdirSync(dataDir).filter((f) => f.endsWith('.zip') && f !== 'archive.zip');
 // JSON first (fast to parse); YAML only fills ids no JSON file had. CSV zips duplicate the others.
 const rank = (f) => (/_csv/.test(f) ? 2 : /_json/.test(f) ? 0 : 1);
@@ -114,6 +129,7 @@ for (const file of zips) {
     const summary = summariseMatch(id, raw);
     if (summary) {
       db.add(summary);
+      if (eraRange) summaries.push(summary);
       added += 1;
     } else db.skip(id);
     parsed += 1;
@@ -215,6 +231,10 @@ if (existsSync(overridesPath)) {
   }
 }
 log(`${abroad.size} players seen in overseas franchise leagues`);
+if (eraRange) {
+  writeEras(Number(eraRange[1]), Number(eraRange[2]));
+  process.exit(0);
+}
 const out = convert({ db, kaggle, ranji, vht, manual, abroad, season: 2026 });
 
 const realDir = join(root, 'src/data/real');
@@ -237,3 +257,51 @@ const overrides = {
 writeFileSync(overridesPath, JSON.stringify(overrides, null, 2) + '\n');
 log(`wrote ${overridesPath}`);
 console.log(JSON.stringify(out.report.summary, null, 2));
+
+// --- Past seasons -------------------------------------------------------------------------------
+
+function writeEras(from, to) {
+  // What all the data knows about each person: when they last played, and their state side.
+  const lastYears = new Map();
+  const homeStates = new Map();
+  const birthYears = new Map();
+  const byName = new Map();
+  for (const p of db.players.values()) {
+    lastYears.set(p.id, Number(p.lastDate.slice(0, 4)));
+    let best = null;
+    for (const [team, date] of p.teams.SMAT ?? []) if (!best || date > best.date) best = { team, date };
+    const side = best ? gameSideOf(best.team) : null;
+    if (side) homeStates.set(p.id, side);
+    for (const name of p.names.keys()) byName.set(name, [...(byName.get(name) ?? []), p]);
+  }
+  // The legends tables are by scorecard name, and are about veterans: the earliest player of that name.
+  const named = (name) => (byName.get(name) ?? []).sort((a, b) => a.firstDate.localeCompare(b.firstDate))[0];
+  const missing = [];
+  for (const [name, year] of Object.entries(LEGEND_BIRTH_YEARS)) {
+    const p = named(name);
+    if (p) birthYears.set(p.id, year);
+    else missing.push(name);
+  }
+  for (const [name, side] of Object.entries(LEGEND_STATES)) {
+    const p = named(name);
+    if (p && !homeStates.has(p.id)) homeStates.set(p.id, side);
+    else if (!p) missing.push(name);
+  }
+  if (missing.length) log(`legends not in the scorecards: ${[...new Set(missing)].join(', ')}`);
+
+  const eraDir = join(root, 'src/data/real/eras');
+  mkdirSync(eraDir, { recursive: true });
+  for (let year = from; year <= to; year += 1) {
+    const cutoff = `${year}-06-01`;
+    const eraDb = new StatsDb();
+    for (const m of summaries) if (m.date < cutoff) eraDb.add(m);
+    // The squad lists are for 2024-26: only the seasons they describe use them.
+    const lists = year >= 2025;
+    const out = convert({ db: eraDb, kaggle, ranji: lists ? ranji : [], vht: lists ? vht : [], manual, abroad, season: year, era: { birthYears, homeStates, lastYears } });
+    const file = { international: out.international, ipl: out.ipl, domestic: out.domestic };
+    const path = join(eraDir, `${year}.json`);
+    writeFileSync(path, JSON.stringify(file) + '\n');
+    const counts = ['international', 'ipl', 'domestic'].map((l) => `${l} ${out[l].players.length}`).join(', ');
+    log(`wrote ${path} (${counts}; ${(JSON.stringify(file).length / 1024).toFixed(0)} KB)`);
+  }
+}
