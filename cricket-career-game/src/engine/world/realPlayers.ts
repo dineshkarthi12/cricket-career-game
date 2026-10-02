@@ -571,7 +571,9 @@ export function realPlayerAt(rec: RealPlayerRecord, options: RealPlayerOptions):
     p = ageRival(p, `${year}-06-01`, year, playerRng(rec.id, year));
     if (p.age >= retireAt) return null;
   }
-  return { ...p, season: emptySeasonLine(options.seasonYear) };
+  // Before the data season (a career begun before the earliest data): the same player, their age then.
+  const age = options.seasonYear < realSeason() ? ageOn(p.dateOfBirth, `${options.seasonYear}-06-01`) : p.age;
+  return { ...p, age, season: emptySeasonLine(options.seasonYear) };
 }
 
 /** A real player's retirement age, from their record (for the yearly progression). */

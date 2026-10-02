@@ -1718,3 +1718,10 @@ up to the latest data (2026), after which the players age as before.
   puts today's players back in use.
 - Tests: the converter's history mode, the wizard starting in 2008, and an
   engine test (2008 squads, the switch to 2009 on 1 June, no future players).
+
+### Birth year instead of a start year
+Career creation asks for the Birth year (1980 onwards) and the age the career
+starts at (8-12); the career starts in the season the player reaches that age
+(born 1985, aged 10: the 1995-96 season). Before 2005, the earliest data, the
+real squads are 2005's (each player at their age that year) until real
+history catches up; from 2005 they follow it season by season as before.

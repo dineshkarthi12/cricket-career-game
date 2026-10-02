@@ -33,7 +33,8 @@ describe('NewCareer wizard', () => {
     renderWizard();
     type('First name', 'Arun');
     type('Last name', 'Rao');
-    type('Age', '11');
+    type('Birth year', '2015');
+    type('Age when the career starts', '11');
     type('Hometown', 'Madurai');
     next();
 
@@ -71,12 +72,12 @@ describe('NewCareer wizard', () => {
     expect(Object.values(state!.fixtures).some((f) => f.kind === 'MATCH')).toBe(true);
   });
 
-  it('starts a career in a past season, among that season\'s cricketers', async () => {
+  it('starts a career in a past season from the birth year, among that season\'s cricketers', async () => {
     renderWizard();
     type('First name', 'Ravi');
-    type('Start year', '2008');
-    type('Age', '10');
-    expect(screen.getByText(/real cricketers of 2008/)).toBeInTheDocument();
+    type('Birth year', '1998');
+    type('Age when the career starts', '10');
+    expect(screen.getByText(/Starts 2008, among that season's real cricketers/)).toBeInTheDocument();
     next();
     next();
     next();
@@ -84,11 +85,36 @@ describe('NewCareer wizard', () => {
     expect(await screen.findByText('Dashboard')).toBeInTheDocument();
 
     const { state } = useGameStore.getState();
-    expect(state?.season.year).toBe(2008);
     expect(state?.season.startDate).toBe('2008-06-01');
     expect(state?.realStartYear).toBe(2008);
+    expect(state?.player.dateOfBirth).toBe('1998-04-12');
     expect(state?.player.age).toBe(10);
-    expect(state?.player.dateOfBirth.startsWith('199')).toBe(true);
+  });
+
+  it('starts before the earliest data with that data\'s squads (born 1985)', async () => {
+    renderWizard();
+    type('First name', 'Salim');
+    type('Birth year', '1985');
+    expect(screen.getByText(/Starts 1995. Real squads of 2005/)).toBeInTheDocument();
+    next();
+    next();
+    next();
+    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
+    expect(await screen.findByText('Dashboard')).toBeInTheDocument();
+    const { state } = useGameStore.getState();
+    expect(state?.season.startDate).toBe('1995-06-01');
+    expect(state?.realStartYear).toBe(1995);
+    expect(state?.player.dateOfBirth).toBe('1985-04-12');
+  });
+
+  it('will not start a career after today\'s season', () => {
+    renderWizard();
+    type('First name', 'Kid');
+    type('Birth year', '2017');
+    next();
+    expect(screen.getByText(/only in 2027/)).toBeInTheDocument();
+    type('Birth year', '1970');
+    expect(screen.getByText(/Pick a year from 1980/)).toBeInTheDocument();
   });
 
   it('will not move on without a name', () => {
@@ -109,7 +135,7 @@ describe('NewCareer wizard', () => {
 
   it('keeps ages to 8-12', () => {
     renderWizard();
-    const ages = Array.from((screen.getByLabelText('Age') as HTMLSelectElement).options).map((o) => o.value);
+    const ages = Array.from((screen.getByLabelText('Age when the career starts') as HTMLSelectElement).options).map((o) => o.value);
     expect(ages).toEqual(['8', '9', '10', '11', '12']);
   });
 
