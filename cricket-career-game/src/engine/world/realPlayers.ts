@@ -49,22 +49,63 @@ interface Registry {
 }
 
 let registry: Registry | null = null;
+/** Every season loaded, by year: today's data, and the past seasons a career can start in. */
+const registries = new Map<number, Registry>();
 
-/** Install (or clear) the real players. Called by the data loader and by tests. */
-export function setRealData(data: RealData | null): void {
-  if (!data) {
-    registry = null;
-    ratingCache.clear();
-    return;
-  }
+function buildRegistry(data: RealData): Registry {
   const byId = new Map<string, RealPlayerRecord>();
   for (const file of [data.international, data.ipl, data.domestic]) for (const p of file.players) byId.set(p.id, p);
   const homeSide = new Map<string, string>();
   for (const [side, squads] of Object.entries(data.domestic.squads)) {
     for (const id of [...squads.ranji, ...squads.vht, ...squads.smat]) if (!homeSide.has(id)) homeSide.set(id, side);
   }
-  registry = { data, byId, homeSide };
+  return { data, byId, homeSide };
+}
+
+/** Install (or clear) the real players and make them the ones in use. Called by the data loader and by tests. */
+export function setRealData(data: RealData | null): void {
   ratingCache.clear();
+  if (!data) {
+    registry = null;
+    registries.clear();
+    return;
+  }
+  registry = buildRegistry(data);
+  registries.set(data.domestic.season, registry);
+}
+
+/** Keep a season's players ready without putting them in use (`activateRealSeason`). */
+export function addRealData(data: RealData): void {
+  registries.set(data.domestic.season, buildRegistry(data));
+}
+
+/** Whether the players of exactly this season are loaded. */
+export function hasRealSeason(season: number): boolean {
+  return registries.has(season);
+}
+
+/**
+ * Put in use the latest loaded season up to `season`. With none loaded that
+ * early, no real players are in use (sides are generated) rather than
+ * players from the future. True when the season in use changed.
+ */
+export function activateRealSeason(season: number): boolean {
+  let best: Registry | null = null;
+  for (const [year, r] of registries) if (year <= season && (!best || year > best.data.domestic.season)) best = r;
+  if (best === registry) return false;
+  registry = best;
+  ratingCache.clear();
+  return true;
+}
+
+/**
+ * The season whose real players a career uses in `seasonYear`. A career
+ * begun in a past season follows real history up to the latest data, and
+ * ages the players from there; any other uses the latest data throughout.
+ */
+export function realSeasonFor(realStartYear: number | undefined, seasonYear: number): number {
+  const latest = REAL_PLAYERS.seasons.latest;
+  return realStartYear === undefined ? latest : Math.max(REAL_PLAYERS.seasons.first, Math.min(seasonYear, latest));
 }
 
 export function realData(): RealData | null {

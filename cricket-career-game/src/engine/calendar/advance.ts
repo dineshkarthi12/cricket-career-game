@@ -6,6 +6,7 @@
  * training, rehab and school are run. Crossing 31 May starts a new season.
  */
 import { seedRealSquads } from '../world/realSeed';
+import { activateRealSeason, realSeasonFor } from '../world/realPlayers';
 import { FITNESS_TEST } from '../config';
 import { newId } from '../id';
 import { createRng, deriveSeed } from '../match/rng';
@@ -236,6 +237,8 @@ function examBetween(state: GameState, from: string, to: string): boolean {
 /** Advance up to a week. Stops on the day of an unplayed match. */
 export function advanceWeek(input: GameState): AdvanceResult {
   let state = input;
+  // This career's real players (another career, or IPL Manager, may have been using others).
+  activateRealSeason(realSeasonFor(state.realStartYear, state.season.year));
   const waiting = pendingMatch(state);
   if (waiting) return { state, stoppedFor: waiting, trial: null, days: 0 };
   const attending = pendingTrial(state);
@@ -484,8 +487,11 @@ export function startNewSeason(state: GameState, year: number): GameState {
     season: emptySeason(year, reviewed.career.currentStageId, addDays(start, -1)),
     calendar: { ...reviewed.calendar, pendingFixtureId: null, pendingTrialId: null },
   };
+  // A career begun in the past follows real history: this season's real
+  // squads, with the players of the day, replace last season's.
+  const newEra = state.realStartYear !== undefined && activateRealSeason(realSeasonFor(state.realStartYear, year));
   // The professional world turns over (it reads last season from the history).
-  const next = seedRealSquads(rolloverPro(rolled, year));
+  const next = seedRealSquads(rolloverPro(newEra ? { ...rolled, realSquadsPending: true } : rolled, year));
   const withCalendar = applySeasonCalendar(next, year, start);
   // Sides with nothing to play this season keep their names, not their squads.
   const active = new Set<string>([...withCalendar.player.currentTeamIds, ...withCalendar.season.tournaments.flatMap((t) => t.groups.flatMap((g) => g.teamIds)), ...proActiveTeamIds(withCalendar)]);

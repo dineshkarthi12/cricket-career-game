@@ -29,7 +29,7 @@ describe('NewCareer wizard', () => {
     useGameStore.setState({ state: null, booted: false, slot: null, slots: [null, null, null], lastError: null });
   });
 
-  it('walks through the four steps and opens the dashboard', () => {
+  it('walks through the four steps and opens the dashboard', async () => {
     renderWizard();
     type('First name', 'Arun');
     type('Last name', 'Rao');
@@ -50,10 +50,13 @@ describe('NewCareer wizard', () => {
     expect(screen.getByText('Starting OVR')).toBeInTheDocument();
     expect(screen.queryByText(/hidden/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard')).toBeInTheDocument();
 
     const { state } = useGameStore.getState();
     expect(state?.player.firstName).toBe('Arun');
+    // Today's season and players unless another year is picked.
+    expect(state?.season.year).toBe(2026);
+    expect(state?.realStartYear).toBeUndefined();
     expect(state?.player.hometown).toBe('Madurai');
     expect(state?.player.state).toBe('Tamil Nadu');
     expect(state?.player.age).toBe(11);
@@ -66,6 +69,26 @@ describe('NewCareer wizard', () => {
     expect(state?.player.record.byFormat.ODI.batting.runs).toBe(0);
     // The season is on the calendar from day one.
     expect(Object.values(state!.fixtures).some((f) => f.kind === 'MATCH')).toBe(true);
+  });
+
+  it('starts a career in a past season, among that season\'s cricketers', async () => {
+    renderWizard();
+    type('First name', 'Ravi');
+    type('Start year', '2008');
+    type('Age', '10');
+    expect(screen.getByText(/real cricketers of 2008/)).toBeInTheDocument();
+    next();
+    next();
+    next();
+    fireEvent.click(screen.getByRole('button', { name: 'Start career' }));
+    expect(await screen.findByText('Dashboard')).toBeInTheDocument();
+
+    const { state } = useGameStore.getState();
+    expect(state?.season.year).toBe(2008);
+    expect(state?.season.startDate).toBe('2008-06-01');
+    expect(state?.realStartYear).toBe(2008);
+    expect(state?.player.age).toBe(10);
+    expect(state?.player.dateOfBirth.startsWith('199')).toBe(true);
   });
 
   it('will not move on without a name', () => {

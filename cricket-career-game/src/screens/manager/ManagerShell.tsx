@@ -3,6 +3,7 @@
  * career - sidebar on desktop, icon rail on tablets, bottom tabs on phones -
  * with the manager's own navigation and top bar.
  */
+import { loadRealData } from '@/data/real';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Navigate, Link, useLocation } from 'react-router-dom';
 import {
@@ -223,6 +224,8 @@ export function ManagerShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void boot();
+    // Today's real players (a career begun in the past may have been using its own season's).
+    void loadRealData();
   }, [boot]);
 
   // Never lose the last change: save on tab hide and before unload.

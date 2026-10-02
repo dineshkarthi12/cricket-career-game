@@ -1,4 +1,4 @@
-import { loadRealData } from '@/data/real';
+import { loadRealData, prepareRealSeasons } from '@/data/real';
 import { create } from 'zustand';
 import { createDemoCareer } from '@/data/demoCareer';
 import { createNewCareer, type NewCareerOptions } from '@/engine/newCareer';
@@ -162,14 +162,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
     const resumed = get().resumeLastCareer();
-    if (resumed) {
-      set({ booted: true });
-      return;
+    if (!resumed) {
+      const slots = listSlots();
+      const firstUsed = SAVE_SLOT_IDS.find((slot) => slots[slot - 1]);
+      if (firstUsed) get().loadCareer(firstUsed);
+      set({ slots });
     }
-    const slots = listSlots();
-    const firstUsed = SAVE_SLOT_IDS.find((slot) => slots[slot - 1]);
-    if (firstUsed) get().loadCareer(firstUsed);
-    set({ booted: true, slots });
+    // A career begun in a past season plays among that season's cricketers.
+    const loaded = get().state;
+    if (loaded) await prepareRealSeasons(loaded.realStartYear, loaded.season.year);
+    set({ booted: true });
   },
 
   loadDemoCareer: (slot = 1) => {
@@ -200,6 +202,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       reportError(result.error);
       return false;
     }
+    void prepareRealSeasons(state.realStartYear, state.season.year);
     setActiveSlot(slot);
     set({
       state,
@@ -225,6 +228,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastError: null,
       lastSavedAt: result.value.meta.savedAt,
     });
+    void prepareRealSeasons(result.value.state.realStartYear, result.value.state.season.year);
     return true;
   },
 
@@ -302,6 +306,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastError: null,
       lastSavedAt: result.value.meta.savedAt,
     });
+    void prepareRealSeasons(result.value.state.realStartYear, result.value.state.season.year);
     return true;
   },
 
@@ -319,6 +324,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const result = advanceCareerWeek(state);
     // A finished training week counts towards today's challenges.
     get().update(() => recordTraining(state, result.state, new Date()));
+    // Next season's players, ready for 1 June.
+    if (result.state.realStartYear !== undefined) void prepareRealSeasons(result.state.realStartYear, result.state.season.year);
     return result;
   },
 
