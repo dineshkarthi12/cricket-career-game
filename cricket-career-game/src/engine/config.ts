@@ -1678,7 +1678,16 @@ export const REAL_PLAYERS = {
   /** Share of their reachable level an established real player keeps (generated players: WORLD.developedShare). */
   developedShare: 0.97,
   /** Retirement age: this range, later for the better players, earlier for fast bowlers. */
-  retireAge: [34, 39] as [number, number],
+  retireAge: [35, 40] as [number, number],
+  /** Extra years for the very best (overall at least `eliteOverall`). */
+  eliteOverall: 86,
+  eliteBonus: 2,
+  /**
+   * A player still active in the data season plays at least this many more
+   * seasons, so the stars of today (Kohli, Rohit, Dhoni...) are in the game
+   * when a career or a manager season starts, not retired before a ball.
+   */
+  minSeasonsLeft: 3,
   /** Smallest competition squad kept by topping up from the rest of the side. */
   competitionSquadMin: 15,
   /** Squad sizes built from the real players. */

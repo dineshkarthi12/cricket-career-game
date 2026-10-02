@@ -428,10 +428,11 @@ export function realPotential(overall: number, age: number): number {
 export function realRetireAge(rec: RealPlayerRecord, ageAtData: number): number {
   const [lo, hi] = REAL_PLAYERS.retireAge;
   let age = playerRng(rec.id, 'retire').int(lo, hi);
-  if (realRatings(rec).overall >= 86) age += 1;
+  if (realRatings(rec).overall >= REAL_PLAYERS.eliteOverall) age += REAL_PLAYERS.eliteBonus;
   if (rec.r === 'PB') age -= 1;
-  // Still playing in the data season, so at least one more.
-  return Math.max(age, ageAtData + 1);
+  // Playing in the data season (or the one before, like a listed IPL veteran), so a few seasons more yet.
+  const active = rec.ly >= realSeason() - 1;
+  return Math.max(age, ageAtData + (active ? REAL_PLAYERS.minSeasonsLeft : 1));
 }
 
 // --- Rival players ------------------------------------------------------------------------------
