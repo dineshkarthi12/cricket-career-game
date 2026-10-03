@@ -1170,13 +1170,20 @@ earn a place like everyone else.
   LEAGUE (14 rounds) -> PLAYOFFS -> SEASON_END. Every rule and balance number
   is in `engine/manager/config.ts`; money is in lakh.
 
-## 8j. Live PvP (Phase 12)
+## 8j. Live PvP (Phases 12-14)
 
-A separate mode at `/pvp`: collectible fictional players (free 45-65, premium
-70-99, 66-69 excluded), packs with published odds, a market, a squad builder,
-and quick 3D one-on-one matches (2 overs, 3 wickets) resolved by an
-authoritative `PvpMatch` built on `resolveDelivery`. The 3D layer
-(`src/game3d`, three.js) only renders the authority's events. Online play runs
+A separate mode at `/pvp`: collectible player cards (fictional players, plus
+real cricketers from verified records with sources), rating tiers Common
+40-55, Uncommon 56-65, Rare 66-79, Epic 80-89, Legendary 90-96, Icon 97-99,
+special editions (Limited, Team of the Tournament, Player of the Match,
+Legends), packs with published odds, a market, a squad builder, and quick
+one-on-one matches (2 overs, 3 wickets) on a 2D ground, resolved by an
+authoritative `PvpMatch` built on `resolveDelivery`. The 2D screen
+(`src/screens/pvp/match`) only renders the authority's events; batting is
+intent + direction + timing, bowling is delivery + line/length + field.
+Matchmaking weighs rating, whole-XI strength, experience and measured
+connection quality. Phase 14 removed the 3D layer (`src/game3d`, three.js).
+Online play runs
 on `server/pvp-server.ts` (WebSocket); without it, an offline demo plays
 practice matches against the AI and never touches ranked. Full design,
 protocol, rules and operations: `docs/LIVE_PVP.md`. Assets and licences:

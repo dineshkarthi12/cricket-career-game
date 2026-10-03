@@ -19,6 +19,7 @@ import {
   claimStarter,
   claimWeekly,
   createProfile,
+  migrateProfile,
   grantDevGems,
   openPack,
   recordMatch,
@@ -86,8 +87,10 @@ export class OfflineBackend implements PvpBackend {
       this.emitter.emit({ type: 'connection', status: 'error', message: 'Local storage is unavailable: your PvP collection will not be saved in this browser.' });
     }
     const now = new Date().toISOString();
-    this.profile = loaded ?? createProfile({ userId: `local-${randomSeed().toString(36)}`, displayName: 'You', friendCode: '—', now });
-    if (!loaded) await this.persist();
+    // A save from an older version is brought up to date (and the change recorded on its ledger).
+    const migrated = loaded ? migrateProfile(loaded, now) : null;
+    this.profile = migrated?.profile ?? createProfile({ userId: `local-${randomSeed().toString(36)}`, displayName: 'You', friendCode: '—', now });
+    if (!loaded || migrated?.changed) await this.persist();
     this.emitter.emit({ type: 'connection', status: 'online' });
     this.emitter.emit({ type: 'profile', profile: this.profile });
     return this.profile;

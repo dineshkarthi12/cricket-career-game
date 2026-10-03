@@ -45,7 +45,10 @@ export function cardAttributes(card: PlayerCard, upgrades: number): Attributes {
       wicketKeeping: card.role === 'WICKET_KEEPER' ? j(field + 4) : j(field - 30),
     },
     physical: { stamina: j(fit), strength: j((fit + bat) / 2), speed: j(fit), durability: j(fit) },
-    mental: { temperament: j(overall), matchAwareness: j(overall), aggression: j(55, 10), discipline: j(overall), leadership: j(overall - 5), workRate: j(60) },
+    mental: {
+      temperament: j(card.mental), matchAwareness: j((card.mental + overall) / 2), aggression: j(55, 10),
+      discipline: j(card.mental), leadership: j(card.mental - 5), workRate: j((card.mental + fit) / 2),
+    },
   };
 }
 

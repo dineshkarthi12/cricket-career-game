@@ -1,7 +1,8 @@
 /**
- * Live PvP screens in jsdom (no WebGL): the offline demo is labelled as such,
- * the starter pack gives a playable XI, the store shows odds, and a practice
- * match runs through the 2D fallback with the authority deciding every ball.
+ * Live PvP screens in jsdom: the offline demo is labelled as such, the
+ * starter pack gives a playable XI, the store shows odds, a practice match
+ * runs on the 2D match screen with the authority deciding every ball, and
+ * the card system renders all ten designs.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
@@ -41,7 +42,7 @@ describe('Live PvP screens', () => {
     expect(screen.getAllByText(/Offline demo/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/^Online server$/)).not.toBeInTheDocument();
     // Ranked is disabled offline.
-    expect(await screen.findByRole('button', { name: /Ranked match/ })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: /Quick Match/ })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Open starter pack' }));
     await screen.findByText('Your Dream XI', {}, { timeout: 4000 });
     const profile = usePvpStore.getState().profile!;

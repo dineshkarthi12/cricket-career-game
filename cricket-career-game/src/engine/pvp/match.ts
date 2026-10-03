@@ -35,6 +35,55 @@ export type PvpShot = 'DEFEND' | 'DRIVE' | 'CUT' | 'PULL' | 'SWEEP' | 'LOFT' | '
 /** What the bat actually did - the 3D batter animates exactly this. */
 export type ContactKind = 'NO_SHOT' | 'MISS' | 'PAD' | 'EDGE' | 'BAT';
 
+/** How hard the batter goes at it - the risk/reward dial. */
+export type BatIntent = 'DEFENSIVE' | 'NORMAL' | 'AGGRESSIVE' | 'LOFTED';
+/** Where the batter aims the shot. */
+export type ShotDirection = 'OFF' | 'STRAIGHT' | 'LEG';
+/** The bowling captain's field for a ball. */
+export type FieldSetting = 'ATTACKING' | 'BALANCED' | 'DEFENSIVE';
+
+export const BAT_INTENTS: BatIntent[] = ['DEFENSIVE', 'NORMAL', 'AGGRESSIVE', 'LOFTED'];
+export const SHOT_DIRECTIONS: ShotDirection[] = ['OFF', 'STRAIGHT', 'LEG'];
+export const FIELD_SETTINGS: FieldSetting[] = ['ATTACKING', 'BALANCED', 'DEFENSIVE'];
+/** Intent -> the engine's approach level (1 block ... 5 all out). */
+export const INTENT_LEVEL: Record<BatIntent, number> = { DEFENSIVE: 1, NORMAL: 3, AGGRESSIVE: 4, LOFTED: 5 };
+/** Field setting -> how aggressively the bowler is trying to take wickets (engine scale 1-5). */
+export const FIELD_AGGRESSION: Record<FieldSetting, number> = { ATTACKING: 4, BALANCED: 3, DEFENSIVE: 2 };
+
+/** The stroke an intent and a direction make. */
+export function composeShot(intent: BatIntent, direction: ShotDirection): PvpShot {
+  switch (intent) {
+    case 'DEFENSIVE':
+      return 'DEFEND';
+    case 'LOFTED':
+      return 'LOFT';
+    case 'NORMAL':
+      return 'DRIVE';
+    case 'AGGRESSIVE':
+      return direction === 'OFF' ? 'CUT' : direction === 'LEG' ? 'PULL' : 'DRIVE';
+  }
+}
+
+/** Playing across or away from the line is harder: how well a direction suits the ball's line, 0-1. */
+export function directionFit(direction: ShotDirection, line: DeliveryLine): number {
+  const off = line === 'WIDE_OFF' ? 2 : line === 'OUTSIDE_OFF' ? 1 : 0;
+  const leg = line === 'DOWN_LEG' ? 2 : line === 'LEG_STUMP' ? 1 : 0;
+  if (direction === 'OFF') return leg === 2 ? 0.3 : leg === 1 ? 0.55 : 1;
+  if (direction === 'LEG') return off === 2 ? 0.3 : off === 1 ? 0.5 : 1;
+  return off === 2 || leg === 2 ? 0.5 : 1;
+}
+
+/**
+ * The engine's named field for a setting and this kind of bowler. Fielding
+ * restrictions still apply on top (placeField pulls fielders into the ring
+ * in the powerplay), so a defensive field there has as many out as allowed.
+ */
+export function fieldPreset(setting: FieldSetting, auto: string, kind: 'PACE' | 'SPIN'): string {
+  if (setting === 'ATTACKING') return kind === 'SPIN' ? 'ATTACKING_SPIN' : 'ATTACKING_NEW_BALL';
+  if (setting === 'DEFENSIVE') return 'BOUNDARY_PROTECTION';
+  return auto;
+}
+
 export const PACE_DELIVERIES: DeliveryType[] = ['FAST', 'YORKER', 'BOUNCER', 'SLOWER', 'SWING'];
 export const SPIN_DELIVERIES: DeliveryType[] = ['STOCK_SPIN', 'FLIGHTED', 'QUICKER', 'MYSTERY'];
 export const PVP_SHOTS: PvpShot[] = ['DEFEND', 'DRIVE', 'CUT', 'PULL', 'SWEEP', 'LOFT', 'LEAVE'];
@@ -144,11 +193,27 @@ type EventBody =
       freeHit: boolean;
       deadlineAt: number;
     }
-  | { kind: 'BALL_RELEASED'; deliveryId: string; deliveryType: DeliveryType; plan: BowlerPlan; window: TimingWindow; runUpMs: number; releaseAt: number; deadlineAt: number; auto: boolean }
+  | {
+      kind: 'BALL_RELEASED';
+      deliveryId: string;
+      deliveryType: DeliveryType;
+      plan: BowlerPlan;
+      window: TimingWindow;
+      runUpMs: number;
+      releaseAt: number;
+      deadlineAt: number;
+      auto: boolean;
+      /** The field the bowling side set for this ball (absent from servers before Phase 14). */
+      fieldSetting?: FieldSetting;
+      field?: FieldView;
+    }
   | {
       kind: 'BALL_RESULT';
       deliveryId: string;
       shot: PvpShot | null;
+      /** The intent and direction the batter chose, when they chose them. */
+      intent?: BatIntent | null;
+      direction?: ShotDirection | null;
       timing: TimingGrade | null;
       contact: ContactKind;
       outcome: PublicOutcome;
@@ -165,8 +230,17 @@ export type MatchEventKind = MatchEvent['kind'];
 
 export type MatchAction =
   | { type: 'SELECT_BOWLER'; actionId: string; bowlerId: string }
-  | { type: 'BOWL'; actionId: string; deliveryId: string; deliveryType: DeliveryType; line: DeliveryLine; length: DeliveryLength }
-  | { type: 'BAT'; actionId: string; deliveryId: string; shot: PvpShot; timingMs: number | null }
+  | { type: 'BOWL'; actionId: string; deliveryId: string; deliveryType: DeliveryType; line: DeliveryLine; length: DeliveryLength; field?: FieldSetting }
+  | {
+      type: 'BAT';
+      actionId: string;
+      deliveryId: string;
+      /** The stroke. When `intent` is given the authority derives the stroke itself (composeShot) and ignores this. */
+      shot: PvpShot;
+      timingMs: number | null;
+      intent?: BatIntent;
+      direction?: ShotDirection;
+    }
   | { type: 'FORFEIT'; actionId: string };
 
 export type SubmitResult = { ok: true; events: MatchEvent[]; duplicate?: boolean } | { ok: false; code: string; message: string };
@@ -344,7 +418,8 @@ export class PvpMatch {
   private current = 0;
   private deliverySeq = 0;
   private deliveryId = '';
-  private plan: { type: DeliveryType; plan: BowlerPlan; window: TimingWindow; releaseAt: number; auto: boolean } | null = null;
+  private plan: { type: DeliveryType; plan: BowlerPlan; window: TimingWindow; releaseAt: number; auto: boolean; fieldSetting: FieldSetting } | null = null;
+  private fieldAuto = 'STANDARD';
   private field: ReturnType<typeof placeField> | null = null;
   private deadlineAt = 0;
   private botDueAt: number | null = null;
@@ -586,6 +661,7 @@ export class PvpMatch {
     const fieldRng = createRng(deriveSeed(this.setup.seed, 20_000 + this.deliverySeq));
     const kind = bowlerKind(bowler.bowlingStyle) ?? 'PACE';
     const preset = chooseField({ phase: this.phaseOfPlay(), bowlerKind: kind, ballAgeOvers: inn.legalBalls / 6, wicketsLost: inn.wickets, runRatePressure: 0.3, unlimitedOvers: false });
+    this.fieldAuto = preset;
     this.field = placeField(preset, this.sims[1 - inn.battingSide], bowler.id, fieldRng, { format: 'T20', over: Math.floor(inn.legalBalls / 6) });
     this.phase = 'AWAIT_BOWL';
     this.plan = null;
@@ -619,13 +695,22 @@ export class PvpMatch {
     const bowler = this.sim(inn.bowlerId!)!;
     if (!allowedDeliveries(bowler).includes(action.deliveryType)) return 'DELIVERY_NOT_ALLOWED';
     if (!LINES.includes(action.line) || !LENGTHS.includes(action.length)) return 'BAD_TARGET';
+    const fieldSetting: FieldSetting = action.field ?? 'BALANCED';
+    if (!FIELD_SETTINGS.includes(fieldSetting)) return 'BAD_FIELD';
+    const over = Math.floor(inn.legalBalls / 6);
+    const bowlKind = bowlerKind(bowler.bowlingStyle) ?? 'PACE';
+    if (fieldSetting !== 'BALANCED') {
+      // The captain's field replaces the automatic one; fielding restrictions still apply (placeField).
+      const fieldRng = createRng(deriveSeed(this.setup.seed, 30_000 + this.deliverySeq));
+      this.field = placeField(fieldPreset(fieldSetting, this.fieldAuto, bowlKind), this.sims[1 - inn.battingSide], bowler.id, fieldRng, { format: 'T20', over });
+    }
     const plan = planFor(bowler, action.deliveryType, action.line, action.length);
     const striker = this.sim(inn.strikerId)!;
     const window = timingWindow({ speedKmh: plan.speed, batterTiming: striker.attributes.batting.timing, batterFootwork: striker.attributes.batting.footwork });
     const kind = bowlerKind(bowler.bowlingStyle) ?? 'PACE';
     const runUpMs = RUN_UP_MS[kind];
     const releaseAt = nowMs + runUpMs;
-    this.plan = { type: action.deliveryType, plan, window, releaseAt, auto };
+    this.plan = { type: action.deliveryType, plan, window, releaseAt, auto, fieldSetting };
     this.phase = 'AWAIT_BAT';
     this.deadlineAt = releaseAt + window.missMs + PVP_FORMAT.batGraceMs;
     this.botDueAt = null;
@@ -634,14 +719,37 @@ export class PvpMatch {
       this.botBat = this.botChooseShot(striker, plan, window);
       this.botDueAt = releaseAt + (this.botBat.timingMs ?? window.missMs + 200);
     }
-    this.emit(nowMs, { kind: 'BALL_RELEASED', deliveryId: this.deliveryId, deliveryType: action.deliveryType, plan, window, runUpMs, releaseAt, deadlineAt: this.deadlineAt, auto });
+    this.emit(nowMs, {
+      kind: 'BALL_RELEASED',
+      deliveryId: this.deliveryId,
+      deliveryType: action.deliveryType,
+      plan,
+      window,
+      runUpMs,
+      releaseAt,
+      deadlineAt: this.deadlineAt,
+      auto,
+      fieldSetting,
+      field: {
+        keeperId: this.field!.keeperId,
+        fielders: this.field!.fielders.map((f) => ({ playerId: f.playerId, name: f.name, position: f.position, angle: f.angle, distance: f.distance })),
+      },
+    });
     return null;
   }
 
   private bat(action: Extract<MatchAction, { type: 'BAT' }>, auto: boolean, nowMs: number): string | null {
     if (this.phase !== 'AWAIT_BAT' || !this.plan) return 'WRONG_PHASE';
     if (action.deliveryId !== this.deliveryId) return 'STALE_DELIVERY';
-    if (!PVP_SHOTS.includes(action.shot)) return 'BAD_SHOT';
+    let shot = action.shot;
+    let choice: { intent: BatIntent; direction: ShotDirection } | null = null;
+    if (action.intent !== undefined || action.direction !== undefined) {
+      if (!BAT_INTENTS.includes(action.intent as BatIntent) || !SHOT_DIRECTIONS.includes(action.direction as ShotDirection)) return 'BAD_SHOT';
+      choice = { intent: action.intent!, direction: action.direction! };
+      // A leave stays a leave; otherwise the stroke follows from the choice, never from the client's say-so.
+      if (shot !== 'LEAVE') shot = composeShot(choice.intent, choice.direction);
+    }
+    if (!PVP_SHOTS.includes(shot)) return 'BAD_SHOT';
     let timingMs = action.timingMs;
     if (timingMs !== null) {
       if (typeof timingMs !== 'number' || !Number.isFinite(timingMs) || timingMs < 0) return 'BAD_TIMING';
@@ -649,7 +757,7 @@ export class PvpMatch {
       if (!auto && nowMs < this.plan.releaseAt + timingMs - PVP_FORMAT.latencyToleranceMs) return 'TOO_EARLY';
       if (timingMs > this.plan.window.missMs) timingMs = null;
     }
-    this.resolve(action.shot, timingMs, auto, nowMs);
+    this.resolve(shot, timingMs, auto, nowMs, shot === 'LEAVE' ? null : choice);
     return null;
   }
 
@@ -705,7 +813,7 @@ export class PvpMatch {
     return { shot, timingMs: Math.max(0, Math.round(window.idealMs + offset)) };
   }
 
-  private resolve(shot: PvpShot, timingMs: number | null, autoBat: boolean, nowMs: number): void {
+  private resolve(shot: PvpShot, timingMs: number | null, autoBat: boolean, nowMs: number, choice: { intent: BatIntent; direction: ShotDirection } | null = null): void {
     const inn = this.inn();
     const planned = this.plan!;
     const striker = this.sim(inn.strikerId)!;
@@ -717,9 +825,10 @@ export class PvpMatch {
     let timing: TimingGrade | null = null;
     if (!noShot) {
       const raw = gradeTiming(timingMs!, planned.window);
-      timing = raw === null ? null : adjustTiming(raw, shotSuitability(shot, planned.plan.length, planned.plan.line), timingMs! - planned.window.idealMs);
+      const fit = shotSuitability(shot, planned.plan.length, planned.plan.line) * (choice ? directionFit(choice.direction, planned.plan.line) : 1);
+      timing = raw === null ? null : adjustTiming(raw, fit, timingMs! - planned.window.idealMs);
     }
-    const level = noShot ? 2 : SHOT_LEVEL[shot];
+    const level = noShot ? 2 : choice ? INTENT_LEVEL[choice.intent] : SHOT_LEVEL[shot];
     const phase = this.phaseOfPlay();
     const ballsLeft = PVP_FORMAT.overs * 6 - inn.legalBalls;
     const required = inn.target === null ? null : inn.target - inn.runs;
@@ -755,8 +864,11 @@ export class PvpMatch {
       freeHit: inn.freeHit,
       reviewsLeft: { batting: 0, bowling: 0 },
       leave: noShot,
-      touch: noShot || timing === null ? null : { side: shotSide(shot, planned.plan.line), timing },
-      bowlingAggression: 3,
+      touch:
+        noShot || timing === null
+          ? null
+          : { side: choice && choice.direction !== 'STRAIGHT' ? choice.direction : shotSide(shot, planned.plan.line), timing },
+      bowlingAggression: FIELD_AGGRESSION[planned.fieldSetting],
     };
     const outcome = resolveDelivery(context, rng);
     const contact = classifyContact(outcome, noShot ? null : shot);
@@ -806,6 +918,8 @@ export class PvpMatch {
       kind: 'BALL_RESULT',
       deliveryId,
       shot: noShot ? null : shot,
+      intent: noShot ? null : (choice?.intent ?? null),
+      direction: noShot ? null : (choice?.direction ?? null),
       // A wide is out of reach: it has a result, not a timing grade.
       timing: outcome.extras?.type === 'WIDE' ? null : timing,
       contact,
@@ -908,6 +1022,7 @@ const ERROR_TEXT: Record<string, string> = {
   DELIVERY_NOT_ALLOWED: 'This bowler cannot bowl that delivery.',
   BAD_TARGET: 'Pick a line and a length.',
   BAD_SHOT: 'Unknown shot.',
+  BAD_FIELD: 'Unknown field setting.',
   BAD_TIMING: 'Invalid timing.',
   TOO_EARLY: 'The ball had not reached you yet.',
 };

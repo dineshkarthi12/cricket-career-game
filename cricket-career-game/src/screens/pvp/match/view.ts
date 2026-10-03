@@ -1,9 +1,32 @@
 /** What the match screen should show, derived only from the authority's events. */
-import type { MatchEvent, PublicPlayer, PublicSide, ScoreView } from '@/engine/pvp/match';
+import type { BowlerPlan } from '@/engine/match/types';
+import type { BatIntent, DeliveryType, FieldSetting, FieldView, MatchEvent, PublicOutcome, PublicPlayer, PublicSide, PvpShot, ScoreView, ShotDirection } from '@/engine/pvp/match';
 
 type Ev<K extends MatchEvent['kind']> = Extract<MatchEvent, { kind: K }>;
 
 export type Phase = 'LOADING' | 'SELECT_BOWLER' | 'AWAIT_BOWL' | 'AWAIT_BAT' | 'BETWEEN' | 'END';
+
+/** One finished ball, everything the timeline, commentary and replay need. */
+export interface BallRecord {
+  deliveryId: string;
+  innings: 0 | 1;
+  /** 0-based over and 1-based ball in it, as bowled. */
+  over: number;
+  ball: number;
+  bowlerId: string;
+  strikerId: string;
+  deliveryType: DeliveryType | null;
+  plan: BowlerPlan | null;
+  fieldSetting: FieldSetting | null;
+  field: FieldView | null;
+  shot: PvpShot | null;
+  intent: BatIntent | null;
+  direction: ShotDirection | null;
+  timing: string | null;
+  outcome: PublicOutcome;
+  symbol: string;
+  score: ScoreView;
+}
 
 export interface MatchView {
   phase: Phase;
@@ -31,6 +54,10 @@ export interface MatchView {
   bowlerId: string | null;
   /** The current over, ball by ball: '•', '1', '4', 'W', 'wd', 'nb'... */
   thisOver: string[];
+  /** Every finished ball of the match, oldest first. */
+  balls: BallRecord[];
+  /** The field for the current ball: the bowling side's choice once bowled, else the automatic one. */
+  field: FieldView | null;
 }
 
 /** Runs per over so far, to two decimals' worth of sense. */
@@ -79,7 +106,10 @@ export function deriveView(events: MatchEvent[]): MatchView {
     nonStrikerId: null,
     bowlerId: null,
     thisOver: [],
+    balls: [],
+    field: null,
   };
+  let lastReleased: Ev<'BALL_RELEASED'> | null = null;
   let lastOpen: Ev<'DELIVERY_OPEN'> | null = null;
   for (const e of events) {
     switch (e.kind) {
@@ -117,12 +147,15 @@ export function deriveView(events: MatchEvent[]): MatchView {
         for (const id of [e.strikerId, e.nonStrikerId]) if (!view.batters.has(id)) view.batters.set(id, { runs: 0, balls: 0, fours: 0, sixes: 0, out: false });
         view.open = e;
         view.released = null;
+        view.field = e.field;
         view.phase = 'AWAIT_BOWL';
         view.actor = (1 - view.battingSide) as 0 | 1;
         view.deadlineAt = e.deadlineAt;
         break;
       case 'BALL_RELEASED':
         view.released = e;
+        lastReleased = e;
+        if (e.field) view.field = e.field;
         view.phase = 'AWAIT_BAT';
         view.actor = view.battingSide;
         view.deadlineAt = e.deadlineAt;
@@ -147,6 +180,26 @@ export function deriveView(events: MatchEvent[]): MatchView {
           if (o.wicket && o.wicket.type !== 'RUN_OUT') bowl.wickets += 1;
           view.bowlers.set(lastOpen.bowlerId, bowl);
           view.thisOver = [...view.thisOver, ballSymbol(e)];
+          const rel = lastReleased && lastReleased.deliveryId === e.deliveryId ? lastReleased : null;
+          view.balls.push({
+            deliveryId: e.deliveryId,
+            innings: lastOpen.innings,
+            over: lastOpen.over,
+            ball: lastOpen.ballInOver,
+            bowlerId: lastOpen.bowlerId,
+            strikerId: lastOpen.strikerId,
+            deliveryType: rel?.deliveryType ?? null,
+            plan: rel?.plan ?? null,
+            fieldSetting: rel?.fieldSetting ?? null,
+            field: rel?.field ?? lastOpen.field,
+            shot: e.shot,
+            intent: e.intent ?? null,
+            direction: e.direction ?? null,
+            timing: e.timing,
+            outcome: o,
+            symbol: ballSymbol(e),
+            score: e.score,
+          });
         }
         view.strikerId = e.strikerId;
         view.nonStrikerId = e.nonStrikerId;
@@ -175,15 +228,3 @@ export function deriveView(events: MatchEvent[]): MatchView {
 export function overs(balls: number): string {
   return `${Math.floor(balls / 6)}.${balls % 6}`;
 }
-
-export const SHOT_KEYS: Record<string, string> = {
-  '1': 'DEFEND',
-  '2': 'DRIVE',
-  ' ': 'DRIVE',
-  '3': 'CUT',
-  '4': 'PULL',
-  '5': 'SWEEP',
-  '6': 'LOFT',
-  '0': 'LEAVE',
-  l: 'LEAVE',
-};

@@ -15,15 +15,22 @@ function rand(seed: number) {
   };
 }
 
-export function CardPortrait({ card, className }: { card: PlayerCard; className?: string }) {
+export function CardPortrait({ card, className, decorative }: { card: PlayerCard; className?: string; decorative?: boolean }) {
   const r = rand(card.portraitSeed);
   const skin = SKIN[Math.floor(r() * SKIN.length)];
   const hair = HAIR[Math.floor(r() * HAIR.length)];
   const beard = r() < 0.35;
   const helmet = card.role === 'BATTER' || card.role === 'WICKET_KEEPER';
-  const id = `p-${card.id}`;
+  const id = `p-${card.id}${decorative ? '-2' : ''}`;
   return (
-    <svg viewBox="0 0 120 120" className={className} role="img" aria-label={`Illustrated portrait of ${card.name} (fictional player)`}>
+    <svg
+      viewBox="0 0 120 120"
+      preserveAspectRatio="xMidYMin slice"
+      className={className}
+      role={decorative ? undefined : 'img'}
+      aria-hidden={decorative || undefined}
+      aria-label={decorative ? undefined : `Illustrated portrait of ${card.name} (fictional player)`}
+    >
       <defs>
         <radialGradient id={`${id}-bg`} cx="50%" cy="35%" r="75%">
           <stop offset="0%" stopColor={card.kit.secondary} stopOpacity="0.55" />

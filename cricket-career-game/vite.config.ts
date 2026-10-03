@@ -38,17 +38,14 @@ function serviceWorker(): Plugin {
 export default defineConfig({
   plugins: [react(), tailwindcss(), serviceWorker()],
   build: {
-    // three.js (with its GLTF loader and orbit controls) is one ~660 kB vendor chunk, fetched only by the Live PvP 3D
-    // screens (match and lab); every other chunk stays under the old 500 kB.
-    chunkSizeWarningLimit: 680,
+    chunkSizeWarningLimit: 500,
     rolldownOptions: {
       output: {
         // The game engine and its static data are shared by every screen of both
         // modes; on their own they keep the screen chunks under the size limit.
         codeSplitting: {
           groups: [
-            // Live PvP: three.js and the PvP engine load only with the PvP screens.
-            { name: 'three', test: /[\\/]node_modules[\\/]three[\\/]/, priority: 5 },
+            // Live PvP: the PvP engine loads only with the PvP screens.
             { name: 'engine-pvp', test: /[\\/]src[\\/]engine[\\/]pvp[\\/]/, priority: 4 },
             { name: 'engine-manager', test: /[\\/]src[\\/]engine[\\/]manager[\\/]/, priority: 3 },
             { name: 'engine-match', test: /[\\/]src[\\/]engine[\\/](match|sim)[\\/]/, priority: 2 },

@@ -20,7 +20,7 @@ import {
 } from '@/engine/pvp';
 import { cn } from '@/lib/cn';
 import { usePvpStore } from '@/store/pvpStore';
-import { PlayerCard3D } from './cards/PlayerCard3D';
+import { PlayerCard } from './cards/PlayerCard';
 import { SectionTitle, ownedCards, primaryButton, secondaryButton } from './ui';
 
 export default function SquadScreen() {
@@ -172,8 +172,8 @@ export default function SquadScreen() {
             )}
           </Card>
           <Card>
-            <CardHeader title="Formation & tactics" subtitle="In the quick format the field is set automatically for each phase (powerplay, middle, death) and bowler type." />
-            <p className="mt-2 text-[12.5px] text-ink-muted">You choose the bowler for each over and every delivery's type, line and length during the match. Captain and vice-captain are shown to your opponent.</p>
+            <CardHeader title="Formation & tactics" subtitle="Set during the match: your bowler each over, then for every ball the delivery, line, length and field (attacking, balanced or defensive)." />
+            <p className="mt-2 text-[12.5px] text-ink-muted">Batting order is the order above. When batting you pick the intent (defend, normal, attack, loft) and the direction, then time the shot. Captain and vice-captain are shown to your opponent.</p>
           </Card>
           {compare.length === 2 ? <Compare a={byId.get(compare[0])!} b={byId.get(compare[1])!} /> : <p className="text-[12px] text-ink-muted"><Scale className="mr-1 inline size-3.5" aria-hidden />Tick two players to compare them.</p>}
         </div>
@@ -184,7 +184,7 @@ export default function SquadScreen() {
         <div className="no-scrollbar mt-3 -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2">
           {pool.map((c) => (
             <div key={c.owned.instanceId} className="snap-start">
-              <PlayerCard3D card={c.card} upgrades={c.owned.upgrades} size="sm" still onClick={() => (slot === null ? undefined : swapIn(c.owned.instanceId))} className={cn(slot === null && 'opacity-80')} />
+              <PlayerCard card={c.card} upgrades={c.owned.upgrades} size="sm" still onClick={() => (slot === null ? undefined : swapIn(c.owned.instanceId))} className={cn(slot === null && 'opacity-80')} />
             </div>
           ))}
           {pool.length === 0 ? <p className="text-[13px] text-ink-muted">Everyone you own is in the XI. Get more players from packs or the market.</p> : null}
@@ -210,6 +210,7 @@ function Compare({ a, b }: { a: ReturnType<typeof ownedCards>[number]; b: Return
     ['Bowling', a.card.bowling, b.card.bowling],
     ['Fielding', a.card.fielding, b.card.fielding],
     ['Fitness', a.card.fitness, b.card.fitness],
+    ['Mental', a.card.mental, b.card.mental],
   ] as const;
   return (
     <Card>

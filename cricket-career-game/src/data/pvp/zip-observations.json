@@ -1,0 +1,1181 @@
+{
+ "_about": "Visual review of every image in public/assets/players/Cricketcareer.zip (moved to assets-src/). Recorded from what is visible: kit text and colours, pose, watermark. No player was identified from facial features. Reviewed 2026-10-03.",
+ "images": {
+  "005acad2-1c28-41f2-8f93-5fe413a20c9f.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "01cb731b-d4a7-48b6-a68a-eefc7ef29115.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "01f830a8-f16a-43c5-b637-4cef41f92b1f.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "03f1d1af-5388-4d2d-b3bd-647bf33010e9.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "059d84b7-67bf-453d-9ed4-3882c18ae7b0.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "05a1795f-c0e6-4fe1-a0b2-70286ee9beb4.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "0753951c-3860-4a88-b40f-07e28a28ed50.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "08b728aa-a706-4387-b726-3ba48e65a06a.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "headshot",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "0d731b8a-1bba-49ad-be59-cc206d1bcb64.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "10ee7a7a-5ae0-49df-be6f-4106739b4b5b.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": "Getty Images",
+   "look": "older colour photo"
+  },
+  "110e8c13-fd8a-4398-8d75-137ed04220a2.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "1256d1d6-187c-4c91-8ece-65d52fc4e3bf.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "125d7709-45fa-49ab-b760-ae08d7ab96cc.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "12912b94-aa5e-44d4-bea7-c47ffa710477.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "131fa051-b072-408b-9786-e231ababfac1.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "trophy-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "134c455d-35b3-4e31-a405-da5a89e815c9.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "14316013-d970-48de-b6b0-8e2cad30ae07.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "156d9f7b-650d-4d89-8fae-1c95fcea4ba9.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "1736f66f-e17c-4d93-ac59-c952187b23a6.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "18949383-2b43-4254-bbd5-0fee245d3f05.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "1973c771-7041-4d42-9ec6-b83c4446a0e2.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "1c2a28eb-d8c4-4e34-96b6-dbd576ea6b5f.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "1dca380e-a7bd-4e98-b684-4f06a15c6f92.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "1f424778-6a8b-4c68-a65c-c7df5e691853.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "trophy-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "black and white archive"
+  },
+  "207f7cf6-df6f-4f28-95c1-ccd2707d8877.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "20c0d88b-2c9e-4e4d-bfcc-621d3ee2e12c.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "27112fce-1cfd-4b25-8426-e21ae2cef225.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "284b4917-f542-44c9-bcac-3b4ce6e0ce26.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "29f62bec-15c5-4554-a5b4-d94b0541e064.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2a857637-2659-4737-8796-1ae5dc22fc0a.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2c08a5bd-caee-44fd-a9ae-7deb7a3b02d7.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2d3877a4-7506-4327-b5a6-d4456f92fdd8.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2d49c704-8aa6-4b66-8da1-f90050477973.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2d4b86c3-65df-4f3b-9730-2f6f10a37d7b.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2ddc3562-6715-44e9-a066-09629f8080bf.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2e39bfd4-968d-499e-901d-ce97d311b6a2.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2e870e0d-2182-4ec7-bb5f-03865360977e.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2eb68e40-16bf-4c4d-9d2c-54b87574fec4.jpeg": {
+   "kitTeam": "Afghanistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "2ef80176-6014-4311-9a99-58c5ac68e8ba.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "3097d138-f89e-4418-99b8-9e0ba12dd3ae.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "31caf9ad-e075-4d39-b158-ce7400fa2caa.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "330ac9ae-37ad-44b9-a9d2-22a467701ee9.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": "Ray Lawrence/TGS Photo/REX",
+   "look": "modern colour"
+  },
+  "36e0cde1-463e-4a6a-b3bf-16d3d3511edc.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "3750f269-1821-4d91-a9da-d8d3edb8152e.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "trophy-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "37be7adf-4b4e-44d6-957a-3b32e248c324.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "38eb3a5b-9f34-461f-b006-a5c8214e6f1c.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "39fc589c-b477-4658-b4b3-60163f62a841.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "3cbde2b4-8dad-4804-b330-9a50e6ee74b9.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "3de45932-b562-4690-bf93-e0bcd699a886.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "491c5560-3698-44fe-869a-2e87d4fad6c8.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "4a405a00-9866-4306-8893-18a4bd3b7d7a.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "4b73981b-d7a7-4bee-9e69-53d73786b7d0.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "black and white archive"
+  },
+  "4e420c81-c6bc-41a4-be3d-9ec34c5e8c1a.jpeg": {
+   "kitTeam": "Sri Lanka",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "trophy-portrait",
+   "imageType": "portrait",
+   "watermark": "Getty Images",
+   "look": "modern colour"
+  },
+  "5010eaaf-5049-4f95-9d38-b851a4c5d1a8.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "5364dea0-169c-4147-9070-0c73dacdd7fa.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "553ac24f-787d-40ec-94ff-aad8ff93bceb.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": "PA",
+   "look": "modern colour"
+  },
+  "57a8e701-75a2-44eb-bd6d-0f63036c403c.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "58dd4753-9681-412d-87b7-a8c8cf89b0c2.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "5aec131a-eddd-4a4e-8870-499f23b46c20.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "5b94f7f1-8f0b-4689-b27c-87596d7ba1b2.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "6033464f-fd6a-4154-ba4b-b4f174aea480.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": "Image Courtesy: ICC",
+   "look": "older colour photo"
+  },
+  "6190b923-0873-4a4c-a73a-84ac25fc32cd.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "636d17e1-d328-48ff-bf2e-91c6aa4db0cb.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "black and white archive"
+  },
+  "65d4b2c0-6e37-4cdd-b39f-c7370b3cc495.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "6753e9e2-112b-480c-a54c-59a6ddb2cfb9.jpeg": {
+   "kitTeam": "Franchise kit (T20 league)",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "6c20d9e8-8bf6-45b3-8b3d-8290c915d173.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "6d27a996-94f1-451c-9f5a-25144f68ccd6.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "70217a87-d514-425b-b54e-12a6fdbea7d3.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "7065ee54-def7-4eb4-988b-95f2886a0d2a.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "708f18b4-3dca-4972-9ed3-4f666581f2ad.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "71c7885b-921c-42b8-8510-2537afe45edc.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "7307b713-1970-47ac-8d0f-34c8f08420fd.jpeg": {
+   "kitTeam": "Sri Lanka",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "73339c17-954b-4072-9b43-5c39bf668599.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "75045d65-79e1-49e5-8a93-f233a963db90.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "76776121-2a9e-4b68-9116-27f923a86713.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "trophy-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "7de06dfe-d4b3-4633-aa4c-b979e440f6e0.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "81692f7e-bc62-434d-bc1f-3f33ae7afb53.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "81a0bef2-6d81-4bd7-9e37-837d4bdf7bf5.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "8501c58a-508a-459b-a180-ac933d62dbe9.jpeg": {
+   "kitTeam": "Sri Lanka",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "85bd774e-c62d-49e7-bc3f-551cf6bd9b5a.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "8808944d-1c1b-40ff-9653-7e5678ed209f.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "880ac2bf-6642-4229-bb95-3ec6f9ff0a29.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "8a606a92-fbfa-4a35-9891-a616749a1bb5.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "8fadd213-86f2-434a-8480-ea21e86bf388.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "919af9db-af86-4380-9a97-74f16f7ed3ae.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "91c1d1c3-94e4-4fbe-a9a0-7688233c5c14.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "929a3bd9-2f86-44c9-aa90-bd16733f739f.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "kit-colours-only",
+   "subject": "trophy-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "92f8f34c-cd1c-4cff-bbc3-737044142f8a.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "94679c34-70f6-4de8-8966-73ac90485864.jpeg": {
+   "kitTeam": "Sri Lanka",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "96563362-ae06-4314-9d14-9b8ce0289c8d.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "998903ab-7789-4558-aadc-fa8cf50cbd1b.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "99b48749-421f-461d-9b65-a735e83efbfb.jpeg": {
+   "kitTeam": "Franchise kit (T20 league)",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "9abf7d2e-b8de-4f02-a1b2-a297f8cddc6e.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "9b02d773-92e1-4e8c-b51b-b5adc4fdfdce.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "9c33b924-5c52-4c9c-bfb4-cc9f88b713e9.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "9cb004de-b058-4821-bb5f-98450fd41cd3.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "9d38eb3d-7444-452e-b4a3-2d39fc856946.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "9db52473-96a9-4263-bde8-96e039fb6186.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "Lasith Malinga dismissed the openers in one over _ Cricinfo_com.jpeg": {
+   "kitTeam": "Sri Lanka",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "a08081b1-6b7b-4d96-8893-3b9a7646afcf.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "a161a115-a67c-45f4-9e9b-a95cd87f5350.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "a32dab17-84b6-4cc8-983b-45e5e5b3e5d8.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "a3743cf2-62a1-4e73-a06f-d1ef50a1b670.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "a6dc7bbe-d690-4d35-9cb1-48bd66a2b45d.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "a849dc0a-61c1-4292-967f-b9588bcc91d1.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "aaec3865-2031-48ef-af35-cc273bbcb988.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "ac5e9a8a-c9f9-44c6-9330-6d54e8ad9f8c.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "ac922681-b8d5-4d7c-9117-d8ca1c16dda9.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "b27e186d-dfbd-4eac-9ab5-62359d7ffe44.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "b959cf1b-7d08-4e8e-87fc-7e01cedb7630.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "ba699c06-936a-470e-b94c-4de49bffd47d.jpeg": {
+   "kitTeam": "Sri Lanka",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "be01bec4-5f41-412b-89cb-5acdc1bc4ff6.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "bfc84866-836c-47cb-9267-dd9073e7f3a2.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "c11b86fb-5fa3-492f-998f-73b4e5609714.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "c3a0d7a3-5a01-41a0-8919-e86406467fa0.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": "PA",
+   "look": "modern colour"
+  },
+  "c3b9fc8f-f2f0-428d-990d-db1c870c43ef.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "c3e17381-5133-42c6-9a11-71e2d991960e.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "c4d5c13b-38de-4519-99f4-4acf761f995e.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "c6652b4b-8123-4d01-8be9-152967ffe7cc.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "c80e776e-55d4-4c2c-9b55-b1296c9f9842.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "kit-colours-only",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "c8fd9410-250b-4bd4-ad11-4df446db72f9.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "c92e7859-3e35-48ba-a32d-498bb2c1d90d.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "cf34e684-47fc-4559-8412-e02c39273bc6.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "d2afe7fc-18a9-451b-a31e-d4f69334f268.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "d47727d1-b55b-4023-abcb-96ba070af393.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "d4922651-4fd0-4522-ac71-7e84b127515d.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "d5c275d3-e974-4da1-9a63-99fe6c611d1f.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "d8466b4d-5a96-444a-a7bd-363aaccb0c0b.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "d8bb4e6c-cebb-4d14-9490-b75af940749b.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "d948fed9-17a6-40e7-b011-d8cdae2f2427.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "dc8b4905-155a-40a9-9a2d-a7df757ac192.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "dd62d47c-00c3-4f56-ae11-4f9d132def72.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "ddc98028-ed39-4d81-b93c-82f57de71f1f.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "e1cddde7-be92-4310-b0e2-65678285120d.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "e5f93b8a-327b-48ef-8d34-b4974de65315.jpeg": {
+   "kitTeam": "West Indies",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "e6ded7b8-873e-4897-89e7-2fe02ad2a9b5.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "ea80109f-f1ae-46bd-82cd-11fcd7fea740.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "posed-portrait",
+   "imageType": "portrait",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "ea87ec8a-a731-4889-93e9-93ba68df1e19.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "older colour photo"
+  },
+  "eb6cb8b6-51d0-4050-87bc-23c06ef4c74b.jpeg": {
+   "kitTeam": "India",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "ecfe1de8-7bae-4e67-8958-245fdd14145d.jpeg": {
+   "kitTeam": "South Africa",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "eeb95821-0b28-4a39-9e00-f29befb72c94.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": "Getty Images",
+   "look": "modern colour"
+  },
+  "efb85923-e95f-41aa-930f-e4680fc03bc0.jpeg": {
+   "kitTeam": null,
+   "kitEvidence": "none",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "f23dde0e-ba7a-481d-be5e-830b257ba233.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "bowling-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "f27f00bd-b5f2-4644-a515-4844e7756412.jpeg": {
+   "kitTeam": "New Zealand",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "action-batting",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "f9166e1b-42bd-45bb-af53-e958624a8214.jpeg": {
+   "kitTeam": "Australia",
+   "kitEvidence": "kit-colours-only",
+   "subject": "action-bowling",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "f9c44b30-1770-44a2-ad70-8f25662763b2.jpeg": {
+   "kitTeam": "Pakistan",
+   "kitEvidence": "team-name-on-kit",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  },
+  "ff3b5a27-bab5-4bae-a050-cf0f5323db48.jpeg": {
+   "kitTeam": "England",
+   "kitEvidence": "kit-colours-only",
+   "subject": "batting-celebration",
+   "imageType": "action-photo",
+   "watermark": null,
+   "look": "modern colour"
+  }
+ }
+}

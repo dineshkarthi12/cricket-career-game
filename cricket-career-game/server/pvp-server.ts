@@ -34,11 +34,13 @@ import {
   eloUpdate,
   grantDevGems,
   isRoomCode,
+  migrateProfile,
   openPack,
   rankedTier,
   recordMatch,
   saveSquad,
   sideFromProfile,
+  squadStrength,
   summarize,
   upgradeCard,
   type ClientMessage,
@@ -82,6 +84,17 @@ export class JsonStore {
         this.data = { users: {} };
       }
     }
+    // Bring older profiles up to date once, at load; each change is on the player's ledger.
+    let migrated = 0;
+    const at = new Date().toISOString();
+    for (const user of Object.values(this.data.users)) {
+      const r = migrateProfile(user.profile, at);
+      if (r.changed) {
+        user.profile = r.profile;
+        migrated += 1;
+      }
+    }
+    if (migrated && file) this.flush();
   }
 
   save(): void {
@@ -137,6 +150,9 @@ interface Conn {
   userId: string | null;
   bucket: Bucket;
   ip: string;
+  /** Measured with WebSocket ping/pong frames (server clock only), for matchmaking. */
+  rttMs: number | null;
+  pingSentAt: number | null;
 }
 
 interface LiveMatch {
@@ -394,8 +410,10 @@ export async function startPvpServer(options: PvpServerOptions = {}): Promise<Pv
       }
       case 'queue.join': {
         if (matchOf.has(userId)) return { ok: false, code: 'IN_MATCH', message: 'You are already in a match.' };
-        if (!sideFromProfile(p, false)) return { ok: false, code: 'NO_SQUAD', message: 'Pick a valid XI first.' };
-        const r = queue.join({ userId, rating: p.rankedRating ?? RANKED.startRating, joinedAt: now() });
+        const side = sideFromProfile(p, false);
+        if (!side) return { ok: false, code: 'NO_SQUAD', message: 'Pick a valid XI first.' };
+        // Strength comes from the server's copy of the collection, never from the client.
+        const r = queue.join({ userId, rating: p.rankedRating ?? RANKED.startRating, joinedAt: now(), squad: squadStrength(side.xi), played: p.stats.played, rttMs: conn.rttMs });
         if (!r.ok) return { ok: false, code: r.code, message: 'You are already searching.' };
         send(conn, { t: 'queue', searching: true });
         return { ok: true, data: { queued: true } };
@@ -492,8 +510,24 @@ export async function startPvpServer(options: PvpServerOptions = {}): Promise<Pv
       return;
     }
     const id = randomBytes(8).toString('hex');
-    const conn: Conn = { ws, userId: null, bucket: new Bucket(12, 40), ip: req.socket.remoteAddress ?? 'unknown' };
+    const conn: Conn = { ws, userId: null, bucket: new Bucket(12, 40), ip: req.socket.remoteAddress ?? 'unknown', rttMs: null, pingSentAt: null };
     conns.set(id, conn);
+    // Connection quality: protocol-level pings the client cannot fake or answer early.
+    const measure = () => {
+      if (ws.readyState !== ws.OPEN) return;
+      conn.pingSentAt = Date.now();
+      ws.ping();
+    };
+    ws.on('pong', () => {
+      if (conn.pingSentAt === null) return;
+      const sample = Date.now() - conn.pingSentAt;
+      conn.pingSentAt = null;
+      conn.rttMs = conn.rttMs === null ? sample : Math.round(conn.rttMs * 0.7 + sample * 0.3);
+      if (conn.userId) queue.setRtt(conn.userId, conn.rttMs);
+    });
+    measure();
+    const pinger = setInterval(measure, 5_000);
+    ws.on('close', () => clearInterval(pinger));
     ws.on('message', (raw) => {
       if (!conn.bucket.take()) {
         send(conn, { t: 'error', code: 'RATE_LIMITED', message: 'Slow down.' });

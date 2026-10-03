@@ -27,7 +27,8 @@ export type TxnKind =
   | 'WEEKLY'
   | 'MATCH_REWARD'
   | 'UPGRADE'
-  | 'DEV_GEMS';
+  | 'DEV_GEMS'
+  | 'MIGRATION';
 
 export interface Transaction {
   id: string;
@@ -59,7 +60,8 @@ export interface MatchSummary {
 }
 
 export interface PvpProfile {
-  schema: 1;
+  /** 2 since the Phase 14 rating tiers; `migrateProfile` upgrades version 1. */
+  schema: 1 | 2;
   userId: string;
   displayName: string;
   /** Short code friends type to add each other. */

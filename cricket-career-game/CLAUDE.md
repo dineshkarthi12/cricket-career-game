@@ -3,7 +3,7 @@
 ## What we are building
 A realistic 2D cricket career simulation web game. The player starts as a young beginner and must earn every step to become an international cricketer. Gameplay style is like cricket management sims (e.g. Cricket Captain): top-down 2D ground with fielders as dots, ball path lines, ball-by-ball text commentary, detailed scorecards and stats. Career Mode and IPL Manager are NOT 3D.
 
-Exception: the separate **Live PvP** mode (`/pvp`, Phase 12) is a 3D one-on-one match game built on three.js (`src/game3d`), with its own engine (`src/engine/pvp`), store, saves and a WebSocket server (`server/`). Keep three.js out of the career and manager screens. Live PvP players are fictional by design (see `docs/LIVE_PVP.md`).
+The separate **Live PvP** mode (`/pvp`, Phases 12-14) is a collectible-card, one-on-one online match game with its own engine (`src/engine/pvp`), store, saves and a WebSocket server (`server/`). Since Phase 14 its match is 2D too (`src/screens/pvp/match`); the old three.js layer was removed - 3D-style effects live only on the cards. Its players are mostly fictional; real cricketers come only from verified, sourced records in `src/data/pvp/real-players.json`, and a real player's photo is shown only once it is labelled and its rights are confirmed (see `docs/LIVE_PVP.md`, `docs/assets/ASSET_MANIFEST.md`). Keep Live PvP code out of the career and manager screens.
 
 ## Source documents (read these before any phase)
 - `CAREER_MODE.md` – the full 20-stage career path and game rules
@@ -32,9 +32,10 @@ Exception: the separate **Live PvP** mode (`/pvp`, Phase 12) is a 3D one-on-one 
 - `/src/store` – Zustand stores
 - `/src/components` – reusable UI components
 - `/src/screens` – pages
-- `/public/assets` – images (`public/assets/players/third-party` – licensed 3D test fixtures, see `docs/assets/ASSET_MANIFEST.md`)
-- `/src/engine/pvp` – Live PvP rules, economy and the authoritative match (pure TS, shared with the server)
-- `/src/game3d` – Live PvP 3D: rig, clips, stadium, director, cameras
+- `/public/assets` – images, all precached by the PWA (keep big source files out: `assets-src/` holds the uploaded player-photo ZIP, `design/cards/` the card reference designs); `public/assets/players/portraits/` – approved player photos only, written by `npm run pvp:assets`
+- `/src/engine/pvp` – Live PvP rules, tiers, economy, real cards and the authoritative match (pure TS, shared with the server)
+- `/src/data/pvp` – Live PvP real-player records (facts + sources), photo reviews and labels, generated asset manifest
+- `/src/screens/pvp/cards` – the one PlayerCard layout and its ten designs (`cardThemes.ts`)
 - `/src/pvp` – Live PvP client backends (offline demo, WebSocket)
 - `/server` – Live PvP WebSocket server (`npm run pvp:server`)
 

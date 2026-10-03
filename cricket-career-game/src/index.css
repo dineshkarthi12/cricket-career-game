@@ -264,84 +264,16 @@ html[data-reduce-motion='true'] *::after {
 }
 
 /* ------------------------------------------------------------------ *
- * Live PvP: 3D collectible cards
+ * Live PvP: pack opening and highlights (the cards themselves live in
+ * src/screens/pvp/cards/player-card.css)
  * ------------------------------------------------------------------ */
-.card3d {
-  perspective: 900px;
+@keyframes pvp-pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
-.card3d-inner {
-  position: relative;
-  transform-style: preserve-3d;
-  transform: rotateX(var(--rx)) rotateY(var(--ry));
-  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
-  will-change: auto;
-}
-.card3d-inner.is-active {
-  transition: transform 0.08s linear;
-  will-change: transform;
-}
-.card3d-inner.is-flipped {
-  transform: rotateX(var(--rx)) rotateY(calc(var(--ry) + 180deg));
-}
-.card3d-face {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.card3d-back {
-  transform: rotateY(180deg);
-}
-.card3d-layer-2 {
-  transform: translateZ(18px);
-}
-.card3d-inner.is-active .card3d-layer {
-  transform: scale(1.04) translate(calc((var(--mx) - 50%) * -0.04), calc((var(--my) - 50%) * -0.04));
-}
-.card3d-layer {
-  transition: transform 0.2s ease-out;
-}
-.card3d-foil {
-  mix-blend-mode: color-dodge;
-  opacity: 0.35;
-  transition: opacity 0.3s;
-}
-.card3d-inner.is-active .card3d-foil {
-  opacity: 0.75;
-}
-.foil-silver {
-  background: radial-gradient(circle at var(--mx) var(--my), rgb(255 255 255 / 0.55), transparent 45%);
-}
-.foil-gold {
-  background:
-    radial-gradient(circle at var(--mx) var(--my), rgb(255 236 160 / 0.8), transparent 40%),
-    linear-gradient(115deg, transparent 30%, rgb(245 197 24 / 0.35) 45%, transparent 60%);
-}
-.foil-rainbow {
-  background:
-    radial-gradient(circle at var(--mx) var(--my), rgb(255 255 255 / 0.6), transparent 38%),
-    repeating-linear-gradient(115deg, rgb(255 0 128 / 0.28) 0%, rgb(255 200 0 / 0.28) 8%, rgb(0 255 160 / 0.28) 16%, rgb(0 160 255 / 0.28) 24%, rgb(200 0 255 / 0.28) 32%);
-  background-size: 100% 100%, 220% 220%;
-  background-position: center, var(--mx) var(--my);
-}
-.foil-icon {
-  box-shadow: 0 0 24px rgb(168 85 247 / 0.45), inset 0 0 0 2px rgb(245 197 24 / 0.6);
-}
-@keyframes card-reveal {
-  0% {
-    transform: rotateY(180deg) scale(0.85);
-    opacity: 0;
-  }
-  40% {
-    opacity: 1;
-  }
-  100% {
-    transform: rotateY(0deg) scale(1);
-    opacity: 1;
-  }
-}
-.card-reveal {
-  animation: card-reveal 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.pvp-pop {
+  animation: pvp-pop 0.35s ease-out both;
 }
 @keyframes pack-shake {
   0%, 100% { transform: rotate(0deg) scale(1); }
@@ -360,25 +292,13 @@ html[data-reduce-motion='true'] *::after {
 .pvp-glow {
   animation: pvp-glow 1.8s ease-in-out infinite;
 }
-html[data-reduce-motion='true'] .card3d-inner,
-html[data-reduce-motion='true'] .card3d-layer {
-  transform: none !important;
-  transition: none !important;
-}
-html[data-reduce-motion='true'] .card3d-inner.is-flipped {
-  transform: rotateY(180deg) !important;
-}
-html[data-reduce-motion='true'] .card-reveal,
 html[data-reduce-motion='true'] .pack-shake,
+html[data-reduce-motion='true'] .pvp-pop,
 html[data-reduce-motion='true'] .pvp-glow {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .card3d-inner,
-  .card3d-layer {
-    transition: none;
-  }
-  .card-reveal,
+  .pvp-pop,
   .pack-shake,
   .pvp-glow {
     animation: none;

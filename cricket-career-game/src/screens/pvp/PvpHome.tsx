@@ -3,7 +3,7 @@
  * collection, featured packs, legends, recent matches, rewards and the
  * connection settings.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CalendarCheck, Gift, Loader2, PackageOpen, Radio, Server, Sparkles, Swords, Trophy, Users } from 'lucide-react';
 import { Badge, Card, CardHeader, ProgressBar } from '@/components';
@@ -20,9 +20,25 @@ import {
 } from '@/engine/pvp';
 import { cn } from '@/lib/cn';
 import { usePvpStore } from '@/store/pvpStore';
-import { PlayerCard3D } from './cards/PlayerCard3D';
+import { PlayerCard } from './cards/PlayerCard';
 import { ModeBadge } from './PvpShell';
 import { Price, ownedCards, primaryButton, secondaryButton } from './ui';
+
+/** While searching: how long, and what the search is matching on. */
+function SearchStatus() {
+  const [since] = useState(() => Date.now());
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const secs = Math.floor((Date.now() - since) / 1000);
+  return (
+    <p role="status" className="mt-2 max-w-xl rounded-lg bg-white/10 px-3 py-2 text-[12.5px] text-white/85">
+      Searching for {secs}s. Opponents are matched on ranked rating, the strength of the whole XI (not your best card), experience and connection quality; the search widens the longer you wait.
+    </p>
+  );
+}
 
 export default function PvpHome() {
   const profile = usePvpStore((s) => s.profile)!;
@@ -70,7 +86,7 @@ export default function PvpHome() {
               Live PvP <span className="text-brand-gold">Cricket</span>
             </h1>
             <p className="mt-2 max-w-xl text-[14px] text-white/80">
-              Bowl, bat and time every ball in a 3D stadium. Two overs a side, three wickets. Your XI of collectible players against theirs.
+              Set your field, bowl to a spot, pick your shot and time it - ball by ball against a real opponent. Two overs a side, three wickets. Your XI of collectible players against theirs.
             </p>
             {!online ? (
               <p className="mt-2 max-w-xl rounded-lg bg-white/10 px-3 py-2 text-[12.5px] text-white/85">
@@ -96,14 +112,15 @@ export default function PvpHome() {
                   className={primaryButton()}
                 >
                   <Radio className="size-4" aria-hidden />
-                  Ranked match
+                  Quick Match (ranked)
                 </button>
               )}
               <Link to="/pvp/friends" className={secondaryButton('bg-white/15 text-white hover:bg-white/25')}>
                 <Users className="size-4" aria-hidden />
-                Private room
+                Invite a friend
               </Link>
             </div>
+            {searching ? <SearchStatus /> : null}
             {!profile.squad ? <p className="mt-2 text-[12.5px] text-brand-gold">Open your free starter pack below to get an XI.</p> : null}
           </div>
           <div className="grid grid-cols-2 gap-2 self-end">
@@ -134,7 +151,7 @@ export default function PvpHome() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[16px] font-bold text-ink">Your free starter pack</p>
-              <p className="text-[13px] text-ink-muted">Fourteen free players (rated 45-59): two keepers, five batters, three all-rounders and four bowlers - a full playing XI and a bench.</p>
+              <p className="text-[13px] text-ink-muted">Fourteen free players (Common and Uncommon, rated 40-65): two keepers, five batters, three all-rounders and four bowlers - a full playing XI and a bench.</p>
             </div>
             <button type="button" disabled={busy !== null} onClick={() => run('starter', () => economy('claimStarter'))} className={primaryButton()}>
               <PackageOpen className="size-4" aria-hidden />
@@ -151,7 +168,7 @@ export default function PvpHome() {
             <div className="no-scrollbar mt-3 -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
               {xi.map((c) => (
                 <div key={c!.owned.instanceId} className="snap-start">
-                  <PlayerCard3D card={c!.card} upgrades={c!.owned.upgrades} size="sm" still />
+                  <PlayerCard card={c!.card} upgrades={c!.owned.upgrades} size="sm" still />
                   {profile.squad?.captain === c!.owned.instanceId ? <p className="mt-1 text-center text-[11px] font-bold text-brand-blue">Captain</p> : profile.squad?.viceCaptain === c!.owned.instanceId ? <p className="mt-1 text-center text-[11px] font-semibold text-ink-muted">Vice-captain</p> : null}
                 </div>
               ))}
@@ -175,14 +192,14 @@ export default function PvpHome() {
               <Reward
                 icon={Trophy}
                 title="Weekly mission: win 3 matches"
-                detail={weekly.claimed ? 'Reward claimed this week' : `${ECONOMY.weeklyMission.gems} gems + ${ECONOMY.weeklyMission.eventTokens} event token`}
+                detail={weekly.claimed ? 'Reward claimed this week' : `${ECONOMY.weeklyMission.gems} gems + ${ECONOMY.weeklyMission.eventTokens} event token + a Team of the Tournament card`}
                 action={!weekly.claimed && weekly.wins >= ECONOMY.weeklyMission.winsNeeded ? { label: 'Claim', run: () => run('weekly', () => economy('claimWeekly')) } : null}
                 busy={busy === 'weekly'}
               />
               <ProgressBar value={Math.min(100, (weekly.wins / ECONOMY.weeklyMission.winsNeeded) * 100)} tone="green" className="mt-2" label={`${Math.min(weekly.wins, 3)} of 3 wins`} />
             </div>
             <Reward icon={Sparkles} title="Opening Week event" detail={`${profile.eventTokens} event token${profile.eventTokens === 1 ? '' : 's'} - spend in the store`} action={{ label: 'Store', run: () => navigate('/pvp/store') }} />
-            <p className="text-[11.5px] text-ink-muted">Match rewards: win {ECONOMY.matchReward.WIN.coins}, tie {ECONOMY.matchReward.TIE.coins}, loss {ECONOMY.matchReward.LOSS.coins} coins. Ranked wins add {ECONOMY.matchReward.rankedWinBonusCoins} coins and {ECONOMY.matchReward.rankedWinGems} gems.</p>
+            <p className="text-[11.5px] text-ink-muted">Match rewards: win {ECONOMY.matchReward.WIN.coins}, tie {ECONOMY.matchReward.TIE.coins}, loss {ECONOMY.matchReward.LOSS.coins} coins. Ranked wins add {ECONOMY.matchReward.rankedWinBonusCoins} coins and {ECONOMY.matchReward.rankedWinGems} gems. Every {ECONOMY.matchReward.playerOfMatchEveryWins}th win earns a Player of the Match card.</p>
           </div>
         </Card>
       </div>
@@ -192,7 +209,7 @@ export default function PvpHome() {
         <div className="no-scrollbar mt-3 -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pt-2 pb-3">
           {cards.slice(0, 10).map((c) => (
             <div key={c.owned.instanceId} className="snap-start">
-              <PlayerCard3D card={c.card} upgrades={c.owned.upgrades} />
+              <PlayerCard card={c.card} upgrades={c.owned.upgrades} size="md" />
             </div>
           ))}
           {cards.length === 0 ? <p className="text-[13px] text-ink-muted">No players yet.</p> : null}
@@ -215,13 +232,13 @@ export default function PvpHome() {
           </div>
         </Card>
         <Card>
-          <CardHeader title="Legends market" subtitle="Fictional retired greats, rated 80-99" action={{ label: 'Market', to: '/pvp/market?tab=legends' }} />
+          <CardHeader title="Legends market" subtitle="Retired greats, rated 80-99" action={{ label: 'Market', to: '/pvp/market?tab=legends' }} />
           <div className="no-scrollbar mt-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {CATALOG.filter((c) => c.era === 'LEGEND')
               .sort((a, b) => b.overall - a.overall)
               .slice(0, 5)
               .map((c) => (
-                <PlayerCard3D key={c.id} card={c} size="sm" owned={profile.inventory.some((o) => o.cardId === c.id)} onClick={() => navigate('/pvp/market?tab=legends')} />
+                <PlayerCard key={c.id} card={c} size="sm" still owned={profile.inventory.some((o) => o.cardId === c.id)} onClick={() => navigate('/pvp/market?tab=legends')} />
               ))}
           </div>
         </Card>
@@ -254,7 +271,7 @@ export default function PvpHome() {
         <ConnectionCard />
       </div>
       <p className="text-center text-[11px] text-ink-muted">
-        All Live PvP players are fictional, with original illustrated portraits. Ratings are gameplay values. Gems are a development currency: no real-money purchases exist. Ranked starts at {RANKED.startRating}.
+        Most Live PvP players are fictional, with illustrated portraits; real cricketers carry their verified record and sources on the back of the card. Ratings are game-design values, not official statistics, and a higher rating never guarantees a win. Gems are a development currency: no real-money purchases exist. Ranked starts at {RANKED.startRating}.
       </p>
     </div>
   );

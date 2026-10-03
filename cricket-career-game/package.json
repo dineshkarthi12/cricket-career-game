@@ -15,7 +15,8 @@
     "import:players": "node scripts/import-players.mjs",
     "pvp:server": "tsx --tsconfig tsconfig.server.json server/pvp-server.ts",
     "pvp:server:dev": "tsx --tsconfig tsconfig.server.json server/pvp-server.ts --dev-gems",
-    "qa:pvp": "node scripts/qa-pvp.mjs"
+    "qa:pvp": "node scripts/qa-pvp.mjs",
+    "pvp:assets": "node scripts/pvp-assets.mjs"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.3.0",
@@ -26,7 +27,6 @@
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
     "recharts": "^3.10.1",
-    "three": "^0.186.1",
     "ws": "^8.22.0",
     "zustand": "^5.0.15"
   },
@@ -38,7 +38,6 @@
     "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/three": "^0.186.0",
     "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.1",

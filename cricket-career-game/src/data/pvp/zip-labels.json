@@ -1,0 +1,740 @@
+{
+ "_about": "Fill this in to put a photo on a card. player: an id from real-players.json (or null). rightsConfirmed: set true only once you hold the right to use the photo in the game (many are agency press photos - see the watermark field in zip-observations.json). Then run `npm run pvp:assets`.",
+ "labels": {
+  "005acad2-1c28-41f2-8f93-5fe413a20c9f.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "01cb731b-d4a7-48b6-a68a-eefc7ef29115.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "01f830a8-f16a-43c5-b637-4cef41f92b1f.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "03f1d1af-5388-4d2d-b3bd-647bf33010e9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "059d84b7-67bf-453d-9ed4-3882c18ae7b0.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "05a1795f-c0e6-4fe1-a0b2-70286ee9beb4.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "0753951c-3860-4a88-b40f-07e28a28ed50.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "08b728aa-a706-4387-b726-3ba48e65a06a.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "0d731b8a-1bba-49ad-be59-cc206d1bcb64.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "10ee7a7a-5ae0-49df-be6f-4106739b4b5b.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "110e8c13-fd8a-4398-8d75-137ed04220a2.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "1256d1d6-187c-4c91-8ece-65d52fc4e3bf.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "125d7709-45fa-49ab-b760-ae08d7ab96cc.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "12912b94-aa5e-44d4-bea7-c47ffa710477.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "131fa051-b072-408b-9786-e231ababfac1.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "134c455d-35b3-4e31-a405-da5a89e815c9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "14316013-d970-48de-b6b0-8e2cad30ae07.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "156d9f7b-650d-4d89-8fae-1c95fcea4ba9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "1736f66f-e17c-4d93-ac59-c952187b23a6.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "18949383-2b43-4254-bbd5-0fee245d3f05.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "1973c771-7041-4d42-9ec6-b83c4446a0e2.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "1c2a28eb-d8c4-4e34-96b6-dbd576ea6b5f.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "1dca380e-a7bd-4e98-b684-4f06a15c6f92.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "1f424778-6a8b-4c68-a65c-c7df5e691853.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "207f7cf6-df6f-4f28-95c1-ccd2707d8877.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "20c0d88b-2c9e-4e4d-bfcc-621d3ee2e12c.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "27112fce-1cfd-4b25-8426-e21ae2cef225.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "284b4917-f542-44c9-bcac-3b4ce6e0ce26.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "29f62bec-15c5-4554-a5b4-d94b0541e064.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2a857637-2659-4737-8796-1ae5dc22fc0a.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2c08a5bd-caee-44fd-a9ae-7deb7a3b02d7.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2d3877a4-7506-4327-b5a6-d4456f92fdd8.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2d49c704-8aa6-4b66-8da1-f90050477973.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2d4b86c3-65df-4f3b-9730-2f6f10a37d7b.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2ddc3562-6715-44e9-a066-09629f8080bf.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2e39bfd4-968d-499e-901d-ce97d311b6a2.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2e870e0d-2182-4ec7-bb5f-03865360977e.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2eb68e40-16bf-4c4d-9d2c-54b87574fec4.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "2ef80176-6014-4311-9a99-58c5ac68e8ba.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "3097d138-f89e-4418-99b8-9e0ba12dd3ae.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "31caf9ad-e075-4d39-b158-ce7400fa2caa.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "330ac9ae-37ad-44b9-a9d2-22a467701ee9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "36e0cde1-463e-4a6a-b3bf-16d3d3511edc.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "3750f269-1821-4d91-a9da-d8d3edb8152e.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "37be7adf-4b4e-44d6-957a-3b32e248c324.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "38eb3a5b-9f34-461f-b006-a5c8214e6f1c.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "39fc589c-b477-4658-b4b3-60163f62a841.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "3cbde2b4-8dad-4804-b330-9a50e6ee74b9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "3de45932-b562-4690-bf93-e0bcd699a886.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "491c5560-3698-44fe-869a-2e87d4fad6c8.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "4a405a00-9866-4306-8893-18a4bd3b7d7a.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "4b73981b-d7a7-4bee-9e69-53d73786b7d0.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "4e420c81-c6bc-41a4-be3d-9ec34c5e8c1a.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "5010eaaf-5049-4f95-9d38-b851a4c5d1a8.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "5364dea0-169c-4147-9070-0c73dacdd7fa.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "553ac24f-787d-40ec-94ff-aad8ff93bceb.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "57a8e701-75a2-44eb-bd6d-0f63036c403c.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "58dd4753-9681-412d-87b7-a8c8cf89b0c2.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "5aec131a-eddd-4a4e-8870-499f23b46c20.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "5b94f7f1-8f0b-4689-b27c-87596d7ba1b2.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "6033464f-fd6a-4154-ba4b-b4f174aea480.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "6190b923-0873-4a4c-a73a-84ac25fc32cd.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "636d17e1-d328-48ff-bf2e-91c6aa4db0cb.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "65d4b2c0-6e37-4cdd-b39f-c7370b3cc495.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "6753e9e2-112b-480c-a54c-59a6ddb2cfb9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "6c20d9e8-8bf6-45b3-8b3d-8290c915d173.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "6d27a996-94f1-451c-9f5a-25144f68ccd6.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "70217a87-d514-425b-b54e-12a6fdbea7d3.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "7065ee54-def7-4eb4-988b-95f2886a0d2a.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "708f18b4-3dca-4972-9ed3-4f666581f2ad.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "71c7885b-921c-42b8-8510-2537afe45edc.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "7307b713-1970-47ac-8d0f-34c8f08420fd.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "73339c17-954b-4072-9b43-5c39bf668599.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "75045d65-79e1-49e5-8a93-f233a963db90.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "76776121-2a9e-4b68-9116-27f923a86713.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "7de06dfe-d4b3-4633-aa4c-b979e440f6e0.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "81692f7e-bc62-434d-bc1f-3f33ae7afb53.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "81a0bef2-6d81-4bd7-9e37-837d4bdf7bf5.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "8501c58a-508a-459b-a180-ac933d62dbe9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "85bd774e-c62d-49e7-bc3f-551cf6bd9b5a.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "8808944d-1c1b-40ff-9653-7e5678ed209f.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "880ac2bf-6642-4229-bb95-3ec6f9ff0a29.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "8a606a92-fbfa-4a35-9891-a616749a1bb5.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "8fadd213-86f2-434a-8480-ea21e86bf388.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "919af9db-af86-4380-9a97-74f16f7ed3ae.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "91c1d1c3-94e4-4fbe-a9a0-7688233c5c14.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "929a3bd9-2f86-44c9-aa90-bd16733f739f.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "92f8f34c-cd1c-4cff-bbc3-737044142f8a.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "94679c34-70f6-4de8-8966-73ac90485864.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "96563362-ae06-4314-9d14-9b8ce0289c8d.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "998903ab-7789-4558-aadc-fa8cf50cbd1b.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "99b48749-421f-461d-9b65-a735e83efbfb.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "9abf7d2e-b8de-4f02-a1b2-a297f8cddc6e.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "9b02d773-92e1-4e8c-b51b-b5adc4fdfdce.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "9c33b924-5c52-4c9c-bfb4-cc9f88b713e9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "9cb004de-b058-4821-bb5f-98450fd41cd3.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "9d38eb3d-7444-452e-b4a3-2d39fc856946.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "9db52473-96a9-4263-bde8-96e039fb6186.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "Lasith Malinga dismissed the openers in one over _ Cricinfo_com.jpeg": {
+   "player": "real-lasith-malinga",
+   "rightsConfirmed": false,
+   "note": "Named in the file name (an ESPNcricinfo caption). Press photograph; usage rights not confirmed."
+  },
+  "a08081b1-6b7b-4d96-8893-3b9a7646afcf.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "a161a115-a67c-45f4-9e9b-a95cd87f5350.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "a32dab17-84b6-4cc8-983b-45e5e5b3e5d8.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "a3743cf2-62a1-4e73-a06f-d1ef50a1b670.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "a6dc7bbe-d690-4d35-9cb1-48bd66a2b45d.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "a849dc0a-61c1-4292-967f-b9588bcc91d1.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "aaec3865-2031-48ef-af35-cc273bbcb988.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "ac5e9a8a-c9f9-44c6-9330-6d54e8ad9f8c.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "ac922681-b8d5-4d7c-9117-d8ca1c16dda9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "b27e186d-dfbd-4eac-9ab5-62359d7ffe44.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "b959cf1b-7d08-4e8e-87fc-7e01cedb7630.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "ba699c06-936a-470e-b94c-4de49bffd47d.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "be01bec4-5f41-412b-89cb-5acdc1bc4ff6.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "bfc84866-836c-47cb-9267-dd9073e7f3a2.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c11b86fb-5fa3-492f-998f-73b4e5609714.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c3a0d7a3-5a01-41a0-8919-e86406467fa0.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c3b9fc8f-f2f0-428d-990d-db1c870c43ef.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c3e17381-5133-42c6-9a11-71e2d991960e.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c4d5c13b-38de-4519-99f4-4acf761f995e.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c6652b4b-8123-4d01-8be9-152967ffe7cc.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c80e776e-55d4-4c2c-9b55-b1296c9f9842.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c8fd9410-250b-4bd4-ad11-4df446db72f9.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "c92e7859-3e35-48ba-a32d-498bb2c1d90d.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "cf34e684-47fc-4559-8412-e02c39273bc6.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "d2afe7fc-18a9-451b-a31e-d4f69334f268.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "d47727d1-b55b-4023-abcb-96ba070af393.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "d4922651-4fd0-4522-ac71-7e84b127515d.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "d5c275d3-e974-4da1-9a63-99fe6c611d1f.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "d8466b4d-5a96-444a-a7bd-363aaccb0c0b.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "d8bb4e6c-cebb-4d14-9490-b75af940749b.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "d948fed9-17a6-40e7-b011-d8cdae2f2427.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "dc8b4905-155a-40a9-9a2d-a7df757ac192.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "dd62d47c-00c3-4f56-ae11-4f9d132def72.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "ddc98028-ed39-4d81-b93c-82f57de71f1f.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "e1cddde7-be92-4310-b0e2-65678285120d.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "e5f93b8a-327b-48ef-8d34-b4974de65315.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "e6ded7b8-873e-4897-89e7-2fe02ad2a9b5.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "ea80109f-f1ae-46bd-82cd-11fcd7fea740.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "ea87ec8a-a731-4889-93e9-93ba68df1e19.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "eb6cb8b6-51d0-4050-87bc-23c06ef4c74b.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "ecfe1de8-7bae-4e67-8958-245fdd14145d.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "eeb95821-0b28-4a39-9e00-f29befb72c94.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "efb85923-e95f-41aa-930f-e4680fc03bc0.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "f23dde0e-ba7a-481d-be5e-830b257ba233.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "f27f00bd-b5f2-4644-a515-4844e7756412.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "f9166e1b-42bd-45bb-af53-e958624a8214.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "f9c44b30-1770-44a2-ad70-8f25662763b2.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  },
+  "ff3b5a27-bab5-4bae-a050-cf0f5323db48.jpeg": {
+   "player": null,
+   "rightsConfirmed": false,
+   "note": ""
+  }
+ }
+}

@@ -33,7 +33,7 @@ const StatsScreen = lazy(() => import('./screens/stats/StatsScreen'));
 // IPL Manager: a separate mode with its own shell, store and saves.
 const ManagerStart = lazy(() => import('./screens/manager/ManagerStart'));
 const ManagerRoutes = lazy(() => import('./screens/manager/ManagerRoutes'));
-// Live PvP: a separate mode with its own shell, store, collection and 3D match.
+// Live PvP: a separate mode with its own shell, store, collection and 2D match.
 const PvpRoutes = lazy(() => import('./screens/pvp/PvpRoutes'));
 
 export default function App() {

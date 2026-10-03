@@ -7,9 +7,10 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { Card, CardHeader, ConfirmDialog, Tabs } from '@/components';
-import { CATALOG, ECONOMY, ROLE_LABEL, TIER_RULES, type CardRole, type PlayerCard } from '@/engine/pvp';
+import { CATALOG, ROLE_LABEL, TIER_ORDER, inMarket, marketPrice, type CardRole, type PlayerCard as Card_ } from '@/engine/pvp';
 import { usePvpStore } from '@/store/pvpStore';
-import { PlayerCard3D } from './cards/PlayerCard3D';
+import { PlayerCard } from './cards/PlayerCard';
+import { cardLabel } from './cards/cardThemes';
 import { InspectModal } from './CollectionScreen';
 import { Price, SectionTitle, chip, formatNumber } from './ui';
 
@@ -23,34 +24,33 @@ export default function MarketScreen() {
   const [query, setQuery] = useState('');
   const [role, setRole] = useState<CardRole | 'ALL'>('ALL');
   const [band, setBand] = useState<'ALL' | 'FREE' | 'PREMIUM'>('ALL');
-  const [buy, setBuy] = useState<PlayerCard | null>(null);
-  const [inspect, setInspect] = useState<PlayerCard | null>(null);
+  const [buy, setBuy] = useState<Card_ | null>(null);
+  const [inspect, setInspect] = useState<Card_ | null>(null);
   const owned = useMemo(() => new Set(profile.inventory.map((o) => o.cardId)), [profile.inventory]);
 
   const featured = useMemo(() => {
     // A rotating daily selection: one card from each tier.
     const day = Math.floor(Date.now() / 86_400_000);
-    return Object.keys(TIER_RULES).map((t) => {
-      const pool = CATALOG.filter((c) => c.tier === t);
-      return pool[day % pool.length];
-    });
+    return TIER_ORDER.map((t) => CATALOG.filter((c) => c.tier === t && inMarket(c)))
+      .filter((pool) => pool.length > 0)
+      .map((pool) => pool[day % pool.length]);
   }, []);
 
   const list =
     tab === 'featured'
       ? featured
-      : CATALOG.filter((c) => (tab === 'legends' ? c.era === 'LEGEND' : c.era === 'CURRENT'))
+      : CATALOG.filter((c) => inMarket(c) && (tab === 'legends' ? c.era === 'LEGEND' : c.era === 'CURRENT'))
           .filter((c) => role === 'ALL' || c.role === role)
           .filter((c) => band === 'ALL' || c.cls === band)
           .filter((c) => !query || c.name.toLowerCase().includes(query.toLowerCase()))
           .sort((a, b) => b.overall - a.overall);
 
-  const price = buy ? ECONOMY.marketPrice[buy.tier] : null;
+  const price = buy ? marketPrice(buy) : null;
   const balance = price ? (price.currency === 'COINS' ? profile.coins : profile.gems) : 0;
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionTitle title="Player Market" subtitle="Fixed prices, no auctions, no randomness. Free players for coins; premium players and legends for gems." />
+      <SectionTitle title="Player Market" subtitle="Fixed prices, no auctions, no randomness. Free players for coins; premium players for gems. Reward and Limited Edition cards are not sold here." />
       <Tabs
         tabs={[
           { id: 'current', label: 'Current era' },
@@ -102,7 +102,7 @@ export default function MarketScreen() {
                 {tab === 'current'
                   ? (['ALL', 'FREE', 'PREMIUM'] as const).map((b) => (
                       <button key={b} type="button" className={chip(band === b)} onClick={() => setBand(b)}>
-                        {b === 'ALL' ? 'All ratings' : b === 'FREE' ? 'Free 45-65' : 'Premium 70-99'}
+                        {b === 'ALL' ? 'All players' : b === 'FREE' ? 'Free (coins)' : 'Premium (gems)'}
                       </button>
                     ))
                   : null}
@@ -111,13 +111,13 @@ export default function MarketScreen() {
           ) : (
             <p className="text-[13px] text-ink-muted">One player from every tier, changing daily.</p>
           )}
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] justify-items-center gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(176px,1fr))]">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] justify-items-center gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
             {list.map((c) => {
-              const p = ECONOMY.marketPrice[c.tier];
+              const p = marketPrice(c);
               const have = owned.has(c.id);
               return (
-                <div key={c.id} className="flex w-full max-w-[176px] flex-col gap-1.5">
-                  <PlayerCard3D card={c} owned={have} onClick={() => setInspect(c)} className="w-full" still />
+                <div key={c.id} className="flex w-full max-w-[210px] flex-col gap-1.5">
+                  <PlayerCard card={c} owned={have} onClick={() => setInspect(c)} size="md" className="w-full" still />
                   <button
                     type="button"
                     disabled={have}
@@ -140,7 +140,7 @@ export default function MarketScreen() {
       <ConfirmDialog
         open={Boolean(buy)}
         title={buy ? `Buy ${buy.name}?` : ''}
-        message={buy && price ? `${TIER_RULES[buy.tier].label} ${ROLE_LABEL[buy.role]}, rated ${buy.overall}. Price: ${formatNumber(price.amount)} ${price.currency === 'COINS' ? 'coins' : 'gems'}. You have ${formatNumber(balance)}.${balance < price.amount ? ' Not enough to buy.' : ''}` : ''}
+        message={buy && price ? `${cardLabel(buy)} ${ROLE_LABEL[buy.role]}, rated ${buy.overall}. Price: ${formatNumber(price.amount)} ${price.currency === 'COINS' ? 'coins' : 'gems'}. You have ${formatNumber(balance)}.${balance < price.amount ? ' Not enough to buy.' : ''}` : ''}
         confirmLabel="Buy player"
         onConfirm={async () => {
           const c = buy;

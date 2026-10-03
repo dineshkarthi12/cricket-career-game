@@ -33,6 +33,8 @@ export class OnlineBackend implements PvpBackend {
   private pending = new Map<string, Pending>();
   private seq = 0;
   private offset = 0;
+  /** Last measured round trip to the server, ms (shown in the lobby). */
+  rttMs: number | null = null;
   private retries = 0;
   private closed = false;
   private ready: Promise<PvpProfile> | null = null;
@@ -118,6 +120,8 @@ export class OnlineBackend implements PvpBackend {
         // Resend anything that was in flight when the line dropped.
         for (const p of this.pending.values()) this.raw(p.msg);
         if (this.live) void this.call('match.resume', { matchId: this.live.matchId, sinceSeq: this.live.seq });
+        // Measure the clock offset now (and every 15 s), compensating for the round trip.
+        this.raw({ t: 'ping', at: Date.now() });
         this.pingTimer = setInterval(() => this.raw({ t: 'ping', at: Date.now() }), 15_000);
         break;
       }
@@ -150,9 +154,13 @@ export class OnlineBackend implements PvpBackend {
       case 'queue':
         this.emitter.emit({ type: 'queue', searching: msg.searching });
         break;
-      case 'pong':
-        this.offset = msg.serverTime - Date.now();
+      case 'pong': {
+        // The server read its clock about half a round trip ago.
+        const rtt = Math.max(0, Date.now() - msg.at);
+        this.offset = msg.serverTime + rtt / 2 - Date.now();
+        this.rttMs = rtt;
         break;
+      }
       case 'error':
         if (msg.code === 'BAD_TOKEN') {
           // The server no longer knows this account: start a fresh guest.

@@ -8,10 +8,19 @@
 import { useState } from 'react';
 import { ChevronDown, Gem, Info, PackageOpen, Sparkles } from 'lucide-react';
 import { Badge, Card, Modal } from '@/components';
-import { CATALOG_BY_ID, ECONOMY, PACKS, TIER_RULES, type PackDefinition, type Transaction } from '@/engine/pvp';
+import { CATALOG_BY_ID, ECONOMY, PACKS, TIER_RULES, packPool, type CardTier, type PackDefinition, type Transaction } from '@/engine/pvp';
+
+/** The ratings a pack can actually roll in a tier (its pool may be narrower than the tier). */
+function poolRange(pack: PackDefinition, tier: CardTier): string {
+  const ratings = packPool(pack, tier).map((c) => c.overall);
+  if (!ratings.length) return 'none';
+  const lo = Math.min(...ratings);
+  const hi = Math.max(...ratings);
+  return lo === hi ? String(lo) : `${lo}-${hi}`;
+}
 import { cn } from '@/lib/cn';
 import { usePvpStore } from '@/store/pvpStore';
-import { PlayerCard3D } from './cards/PlayerCard3D';
+import { PlayerCard } from './cards/PlayerCard';
 import { Price, SectionTitle, formatNumber, primaryButton, secondaryButton } from './ui';
 
 export default function StoreScreen() {
@@ -51,7 +60,7 @@ export default function StoreScreen() {
                 setBusy(true);
                 const r = await economy('claimStarter');
                 setBusy(false);
-                if (r.ok && r.data.txn) setOpening({ pack: { id: 'starter', name: 'Starter Pack', description: '', currency: 'COINS', price: 0, eras: ['CURRENT'], slots: [], guarantee: null }, txn: r.data.txn });
+                if (r.ok && r.data.txn) setOpening({ pack: { id: 'starter', name: 'Starter Pack', description: '', currency: 'COINS', price: 0, pool: { eras: ['CURRENT'], cls: 'FREE', editions: ['STANDARD'] }, slots: [], guarantee: null }, txn: r.data.txn });
               }}
             >
               Open free
@@ -171,7 +180,7 @@ function OddsTable({ pack }: { pack: PackDefinition }) {
             <tr key={`${g.label}-${o.tier}`} className="border-t border-line">
               <td className="py-1 text-ink-muted">{i === 0 ? g.label : ''}</td>
               <td className="py-1">
-                {TIER_RULES[o.tier].label} ({TIER_RULES[o.tier].min}-{TIER_RULES[o.tier].max})
+                {TIER_RULES[o.tier].label} ({poolRange(pack, o.tier)})
               </td>
               <td className="py-1 text-right font-semibold">{o.percent}%</td>
             </tr>
@@ -205,7 +214,7 @@ function Reveal({ pack, txn, onClose }: { pack: PackDefinition; txn: Transaction
               const card = CATALOG_BY_ID[id];
               if (i >= shown) {
                 return (
-                  <button key={`${id}-${i}`} type="button" onClick={() => setShown(i + 1)} className="grid aspect-[5/7] w-[150px] place-items-center rounded-[14px] bg-gradient-to-br from-brand-blue to-brand-navy text-white shadow-xl ring-2 ring-white/20 hover:ring-brand-gold" aria-label={`Reveal card ${i + 1}`}>
+                  <button key={`${id}-${i}`} type="button" onClick={() => setShown(i + 1)} className="grid aspect-[2/3] w-[min(190px,42vw)] place-items-center rounded-[14px] bg-gradient-to-br from-brand-blue to-brand-navy text-white shadow-xl ring-2 ring-white/20 hover:ring-brand-gold" aria-label={`Reveal card ${i + 1}`}>
                     <span className="text-[13px] font-semibold">Tap to reveal</span>
                   </button>
                 );
@@ -214,8 +223,8 @@ function Reveal({ pack, txn, onClose }: { pack: PackDefinition; txn: Transaction
               const duplicate = dupIndex >= 0;
               if (duplicate) dupes.splice(dupIndex, 1);
               return (
-                <div key={`${id}-${i}`} className="card-reveal flex flex-col items-center gap-1">
-                  <PlayerCard3D card={card} size="md" className="w-[150px]" />
+                <div key={`${id}-${i}`} className="flex flex-col items-center gap-1">
+                  <PlayerCard card={card} size="md" reveal className="w-[min(190px,42vw)]" />
                   <Badge tone={duplicate ? 'grey' : 'green'} className="text-[11px]">
                     {duplicate ? `Duplicate → ${ECONOMY.duplicateCoins[card.tier]} coins` : 'New!'}
                   </Badge>

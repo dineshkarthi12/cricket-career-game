@@ -1,6 +1,8 @@
 /** Live PvP: pure game logic shared by the browser and the server. */
 export * from './config';
 export * from './catalog';
+export * from './realCards';
+export { tierOfRating, type CardAttributes } from './weights';
 export * from './rules';
 export * from './types';
 export * from './squad';

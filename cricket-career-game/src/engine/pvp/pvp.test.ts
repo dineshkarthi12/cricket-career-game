@@ -55,39 +55,44 @@ describe('rating bands', () => {
     expect(problems).toEqual([]);
   });
 
-  it('free players are 45-65, premium 70-99, and nobody is 66-69', () => {
-    for (const card of CATALOG) {
-      if (card.cls === 'FREE') {
-        expect(card.overall).toBeGreaterThanOrEqual(45);
-        expect(card.overall).toBeLessThanOrEqual(65);
-      } else {
-        expect(card.overall).toBeGreaterThanOrEqual(70);
-        expect(card.overall).toBeLessThanOrEqual(99);
-      }
-      expect([66, 67, 68, 69]).not.toContain(card.overall);
+  it('the rating tiers are the configured ranges, contiguous from 40 to 99', () => {
+    expect(TIER_RULES.COMMON).toMatchObject({ min: 40, max: 55 });
+    expect(TIER_RULES.UNCOMMON).toMatchObject({ min: 56, max: 65 });
+    expect(TIER_RULES.RARE).toMatchObject({ min: 66, max: 79 });
+    expect(TIER_RULES.EPIC).toMatchObject({ min: 80, max: 89 });
+    expect(TIER_RULES.LEGENDARY).toMatchObject({ min: 90, max: 96 });
+    expect(TIER_RULES.ICON).toMatchObject({ min: 97, max: 99 });
+    // No gaps, no overlaps: every rating from the floor to the ceiling has exactly one tier.
+    for (let r = RATING_RULES.min; r <= RATING_RULES.max; r += 1) {
+      expect(Object.values(TIER_RULES).filter((t) => r >= t.min && r <= t.max)).toHaveLength(1);
     }
-    expect(RATING_RULES.excluded).toEqual([66, 67, 68, 69]);
-    for (const r of [66, 67, 68, 69]) expect(tierForRating(r)).toBeNull();
-    expect(tierForRating(65)).toBe('RARE_FREE');
-    expect(tierForRating(70)).toBe('PREMIUM');
-    expect(tierForRating(99)).toBe('ICON');
+    const boundaries: [number, string | null][] = [
+      [39, null], [40, 'COMMON'], [55, 'COMMON'], [56, 'UNCOMMON'], [65, 'UNCOMMON'], [66, 'RARE'], [79, 'RARE'],
+      [80, 'EPIC'], [89, 'EPIC'], [90, 'LEGENDARY'], [96, 'LEGENDARY'], [97, 'ICON'], [99, 'ICON'], [100, null], [72.5, null],
+    ];
+    for (const [rating, tier] of boundaries) expect(tierForRating(rating)).toBe(tier);
+    for (const card of CATALOG) expect(tierForRating(card.overall)).toBe(card.tier);
   });
 
-  it('every tier has batters, bowlers, all-rounders and keepers among free players', () => {
+  it('free and premium cards cover every role, and free cards reach Rare and beyond through rewards', () => {
     for (const role of ['BATTER', 'BOWLER', 'ALL_ROUNDER', 'WICKET_KEEPER'] as const) {
       expect(CATALOG.some((c) => c.cls === 'FREE' && c.role === role)).toBe(true);
       expect(CATALOG.some((c) => c.cls === 'PREMIUM' && c.role === role)).toBe(true);
     }
     expect(CATALOG.some((c) => c.era === 'LEGEND')).toBe(true);
-    expect(CATALOG.every((c) => c.fictional)).toBe(true);
+    // A free route to a strong card: reward editions are FREE and reach Epic.
+    expect(CATALOG.some((c) => c.cls === 'FREE' && c.tier === 'EPIC' && c.edition === 'TEAM_OF_TOURNAMENT')).toBe(true);
+    for (const e of ['STANDARD', 'LIMITED', 'TEAM_OF_TOURNAMENT', 'PLAYER_OF_MATCH', 'LEGENDS'] as const) expect(CATALOG.some((c) => c.edition === e)).toBe(true);
   });
 
-  it('rejects a card whose rating breaks its class', () => {
-    const card = { ...CATALOG.find((c) => c.cls === 'FREE')! };
+  it('rejects a card whose rating breaks its tier, and a real card without a record', () => {
+    const card = { ...CATALOG.find((c) => c.tier === 'COMMON')! };
     card.overall = 67;
-    expect(validateCard(card).map((i) => i.code)).toContain('RATING');
-    const premium = { ...CATALOG.find((c) => c.cls === 'PREMIUM')!, overall: 64 };
-    expect(validateCard(premium).length).toBeGreaterThan(0);
+    expect(validateCard(card).map((i) => i.code)).toContain('TIER_RANGE');
+    const tooLow = { ...CATALOG.find((c) => c.tier === 'EPIC')!, overall: 30 };
+    expect(validateCard(tooLow).map((i) => i.code)).toContain('RATING');
+    const fakeReal = { ...CATALOG.find((c) => c.fictional)!, id: 'real-nobody', fictional: false, country: 'India' };
+    expect(validateCard(fakeReal).map((i) => i.code)).toContain('REAL_RECORD');
   });
 
   it('pure batters and keepers can never bowl', () => {
@@ -220,9 +225,9 @@ describe('economy', () => {
     expect(b.profile.stats.played).toBe(1);
   });
 
-  it('upgrades stop at 65 for free cards and at the tier ceiling for premium', () => {
-    const rare = CATALOG.find((c) => c.tier === 'RARE_FREE' && c.overall === 64)!;
-    let p: PvpProfile = { ...starter(), coins: 1_000_000 };
+  it('upgrades stop at the tier ceiling: training never moves a card up a tier', () => {
+    const rare = CATALOG.find((c) => c.tier === 'RARE' && c.overall === 78 && c.acquisition.includes('MARKET_GEMS'))!;
+    let p: PvpProfile = { ...starter(), coins: 1_000_000, gems: 100_000 };
     const bought = buyCard(p, { requestId: 'buy-rare-1', cardId: rare.id }, ctx());
     expect(bought.ok).toBe(true);
     if (!bought.ok) return;

@@ -1,46 +1,62 @@
 /**
  * Live PvP: every tunable rule of the mode in one place.
  *
- * The rating bands are a hard gameplay rule: free players are rated 45-65,
- * premium players 70-99, and 66-69 belongs to nobody unless this file says
- * otherwise. `rules.ts` enforces them everywhere (catalog, packs, market,
- * upgrades, saves, the server) - never the UI alone.
+ * The rating tiers below are the ONLY place rating ranges live. Every other
+ * file (catalog, packs, market, upgrades, the card UI, the server) asks
+ * `rules.ts`, which reads this table - never a copy of the numbers.
+ *
+ * A rating is a game-design value. For real cricketers it is derived from
+ * their record by a published formula (`realCards.ts`); it is never an
+ * official statistic.
  */
 
+/** How a card is obtained: earnable with coins and play (FREE) or with gems (PREMIUM). */
 export type CardClass = 'FREE' | 'PREMIUM';
-export type CardTier = 'COMMON' | 'UNCOMMON' | 'RARE_FREE' | 'PREMIUM' | 'ELITE' | 'LEGENDARY' | 'ICON';
+export type CardTier = 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'ICON';
+/**
+ * Special printings. A card's look follows its edition when it has one, and
+ * its tier otherwise; the layout is the same for all of them.
+ */
+export type CardEdition = 'STANDARD' | 'LIMITED' | 'TEAM_OF_TOURNAMENT' | 'PLAYER_OF_MATCH' | 'LEGENDS';
 export type CardEra = 'CURRENT' | 'LEGEND';
 export type CardRole = 'BATTER' | 'BOWLER' | 'ALL_ROUNDER' | 'WICKET_KEEPER';
 export type Currency = 'COINS' | 'GEMS' | 'EVENT_TOKENS';
 
 export interface TierRule {
   tier: CardTier;
-  cls: CardClass;
   label: string;
   min: number;
   max: number;
 }
 
+/** Overall rating ranges. Contiguous from `RATING_RULES.min` to `.max`; tests check there are no gaps. */
 export const TIER_RULES: Record<CardTier, TierRule> = {
-  COMMON: { tier: 'COMMON', cls: 'FREE', label: 'Common', min: 45, max: 54 },
-  UNCOMMON: { tier: 'UNCOMMON', cls: 'FREE', label: 'Uncommon', min: 55, max: 59 },
-  RARE_FREE: { tier: 'RARE_FREE', cls: 'FREE', label: 'Rare', min: 60, max: 65 },
-  PREMIUM: { tier: 'PREMIUM', cls: 'PREMIUM', label: 'Premium', min: 70, max: 79 },
-  ELITE: { tier: 'ELITE', cls: 'PREMIUM', label: 'Elite', min: 80, max: 89 },
-  LEGENDARY: { tier: 'LEGENDARY', cls: 'PREMIUM', label: 'Legendary', min: 90, max: 96 },
-  ICON: { tier: 'ICON', cls: 'PREMIUM', label: 'Icon', min: 97, max: 99 },
+  COMMON: { tier: 'COMMON', label: 'Common', min: 40, max: 55 },
+  UNCOMMON: { tier: 'UNCOMMON', label: 'Uncommon', min: 56, max: 65 },
+  RARE: { tier: 'RARE', label: 'Rare', min: 66, max: 79 },
+  EPIC: { tier: 'EPIC', label: 'Epic', min: 80, max: 89 },
+  LEGENDARY: { tier: 'LEGENDARY', label: 'Legendary', min: 90, max: 96 },
+  ICON: { tier: 'ICON', label: 'Icon', min: 97, max: 99 },
 };
 
-export const TIER_ORDER: CardTier[] = ['COMMON', 'UNCOMMON', 'RARE_FREE', 'PREMIUM', 'ELITE', 'LEGENDARY', 'ICON'];
+export const TIER_ORDER: CardTier[] = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY', 'ICON'];
+
+export const EDITION_LABEL: Record<CardEdition, string> = {
+  STANDARD: 'Standard',
+  LIMITED: 'Limited Edition',
+  TEAM_OF_TOURNAMENT: 'Team of the Tournament',
+  PLAYER_OF_MATCH: 'Player of the Match',
+  LEGENDS: 'Legends · All-Time Greats',
+};
 
 export const RATING_RULES = {
-  free: { min: 45, max: 65 },
-  premium: { min: 70, max: 99 },
-  /** Ratings nobody may hold. Change only on purpose: tests pin the default. */
-  excluded: [66, 67, 68, 69] as number[],
+  min: 40,
+  max: 99,
+  /** Ratings nobody may hold (none by default; kept as a lever for designers). */
+  excluded: [] as number[],
   /**
    * Upgrades add one overall point each, up to `maxLevel`, and never lift a
-   * card past its class cap (65 for free) or its tier's ceiling (premium).
+   * card past its tier's ceiling: training never turns a Rare into an Epic.
    */
   upgrades: { maxLevel: 5 },
 };
@@ -50,7 +66,8 @@ export const ECONOMY = {
   startingCoins: 1500,
   startingGems: 0,
   dailyReward: { coins: 200 },
-  weeklyMission: { winsNeeded: 3, gems: 60, eventTokens: 1 },
+  /** Weekly mission: wins needed, plus one Team of the Tournament card - a free route to a strong card. */
+  weeklyMission: { winsNeeded: 3, gems: 60, eventTokens: 1, cardEdition: 'TEAM_OF_TOURNAMENT' as CardEdition },
   /** Match rewards, paid by the match authority exactly once per player per match. */
   matchReward: {
     WIN: { coins: 150 },
@@ -58,27 +75,23 @@ export const ECONOMY = {
     LOSS: { coins: 60 },
     rankedWinBonusCoins: 40,
     rankedWinGems: 5,
+    /** Every Nth win (all modes) also grants a Player of the Match card. */
+    playerOfMatchEveryWins: 5,
   },
-  /** Coins for a pack card already in the collection. */
+  /** Coins for a card already in the collection. */
   duplicateCoins: {
     COMMON: 40,
     UNCOMMON: 80,
-    RARE_FREE: 150,
-    PREMIUM: 400,
-    ELITE: 900,
+    RARE: 200,
+    EPIC: 900,
     LEGENDARY: 2000,
     ICON: 4000,
   } satisfies Record<CardTier, number>,
-  /** Direct purchase prices in the player market. */
+  /** Direct purchase prices in the player market: free cards cost coins, premium cards gems. */
   marketPrice: {
-    COMMON: { currency: 'COINS', amount: 300 },
-    UNCOMMON: { currency: 'COINS', amount: 700 },
-    RARE_FREE: { currency: 'COINS', amount: 1500 },
-    PREMIUM: { currency: 'GEMS', amount: 400 },
-    ELITE: { currency: 'GEMS', amount: 1200 },
-    LEGENDARY: { currency: 'GEMS', amount: 3000 },
-    ICON: { currency: 'GEMS', amount: 6000 },
-  } satisfies Record<CardTier, { currency: Currency; amount: number }>,
+    FREE: { COMMON: 300, UNCOMMON: 700, RARE: 1500, EPIC: 4500, LEGENDARY: 9000, ICON: 15000 },
+    PREMIUM: { COMMON: 100, UNCOMMON: 200, RARE: 400, EPIC: 1200, LEGENDARY: 3000, ICON: 6000 },
+  } satisfies Record<CardClass, Record<CardTier, number>>,
   /** Training a card one level: coins per level, multiplied by the level reached. */
   upgradeCost: { FREE: 250, PREMIUM: 600 } satisfies Record<CardClass, number>,
   /** A development-only gem grant, so premium flows can be tested without payments. */
@@ -86,6 +99,11 @@ export const ECONOMY = {
   ledgerLimit: 300,
   historyLimit: 30,
 };
+
+/** The currency a card sells for in the market. */
+export function marketCurrency(cls: CardClass): Currency {
+  return cls === 'FREE' ? 'COINS' : 'GEMS';
+}
 
 export interface OddsEntry {
   tier: CardTier;
@@ -104,8 +122,8 @@ export interface PackDefinition {
   description: string;
   currency: Currency;
   price: number;
-  /** Which era of player the pack draws from. */
-  eras: CardEra[];
+  /** Which cards the pack draws from. */
+  pool: { eras: CardEra[]; cls: CardClass; editions: CardEdition[] };
   slots: PackSlot[];
   /** What is promised whatever the roll, in words, for the odds disclosure. */
   guarantee: string | null;
@@ -114,10 +132,26 @@ export interface PackDefinition {
   featured?: boolean;
 }
 
+const FREE_POOL = { eras: ['CURRENT'] as CardEra[], cls: 'FREE' as CardClass, editions: ['STANDARD'] as CardEdition[] };
 const BRONZE_ODDS: OddsEntry[] = [
   { tier: 'COMMON', percent: 70 },
   { tier: 'UNCOMMON', percent: 25 },
-  { tier: 'RARE_FREE', percent: 5 },
+  { tier: 'RARE', percent: 5 },
+];
+const SILVER_ODDS: OddsEntry[] = [
+  { tier: 'COMMON', percent: 45 },
+  { tier: 'UNCOMMON', percent: 38 },
+  { tier: 'RARE', percent: 17 },
+];
+const PREMIUM_ODDS: OddsEntry[] = [
+  { tier: 'RARE', percent: 80 },
+  { tier: 'EPIC', percent: 18 },
+  { tier: 'LEGENDARY', percent: 2 },
+];
+const LEGENDS_ODDS: OddsEntry[] = [
+  { tier: 'EPIC', percent: 60 },
+  { tier: 'LEGENDARY', percent: 33 },
+  { tier: 'ICON', percent: 7 },
 ];
 
 export const PACKS: PackDefinition[] = [
@@ -127,7 +161,7 @@ export const PACKS: PackDefinition[] = [
     description: 'Three free-tier players. Earn the coins by playing.',
     currency: 'COINS',
     price: 500,
-    eras: ['CURRENT'],
+    pool: FREE_POOL,
     slots: [
       { label: 'Card 1', odds: BRONZE_ODDS },
       { label: 'Card 2', odds: BRONZE_ODDS },
@@ -141,13 +175,13 @@ export const PACKS: PackDefinition[] = [
     description: 'Five free-tier players with at least one Uncommon or better.',
     currency: 'COINS',
     price: 1500,
-    eras: ['CURRENT'],
+    pool: FREE_POOL,
     slots: [
-      { label: 'Cards 1-4', odds: [{ tier: 'COMMON', percent: 45 }, { tier: 'UNCOMMON', percent: 38 }, { tier: 'RARE_FREE', percent: 17 }] },
-      { label: 'Cards 1-4', odds: [{ tier: 'COMMON', percent: 45 }, { tier: 'UNCOMMON', percent: 38 }, { tier: 'RARE_FREE', percent: 17 }] },
-      { label: 'Cards 1-4', odds: [{ tier: 'COMMON', percent: 45 }, { tier: 'UNCOMMON', percent: 38 }, { tier: 'RARE_FREE', percent: 17 }] },
-      { label: 'Cards 1-4', odds: [{ tier: 'COMMON', percent: 45 }, { tier: 'UNCOMMON', percent: 38 }, { tier: 'RARE_FREE', percent: 17 }] },
-      { label: 'Card 5 (guaranteed)', odds: [{ tier: 'UNCOMMON', percent: 70 }, { tier: 'RARE_FREE', percent: 30 }] },
+      { label: 'Cards 1-4', odds: SILVER_ODDS },
+      { label: 'Cards 1-4', odds: SILVER_ODDS },
+      { label: 'Cards 1-4', odds: SILVER_ODDS },
+      { label: 'Cards 1-4', odds: SILVER_ODDS },
+      { label: 'Card 5 (guaranteed)', odds: [{ tier: 'UNCOMMON', percent: 70 }, { tier: 'RARE', percent: 30 }] },
     ],
     guarantee: 'Card 5 is always Uncommon or Rare.',
   },
@@ -157,42 +191,52 @@ export const PACKS: PackDefinition[] = [
     description: 'Featured event: three free-tier players, one guaranteed Rare. Costs one event token from the weekly mission.',
     currency: 'EVENT_TOKENS',
     price: 1,
-    eras: ['CURRENT'],
+    pool: FREE_POOL,
     slots: [
       { label: 'Card 1', odds: BRONZE_ODDS },
       { label: 'Card 2', odds: BRONZE_ODDS },
-      { label: 'Card 3 (guaranteed)', odds: [{ tier: 'RARE_FREE', percent: 100 }] },
+      { label: 'Card 3 (guaranteed)', odds: [{ tier: 'RARE', percent: 100 }] },
     ],
-    guarantee: 'Card 3 is always Rare (60-65).',
+    guarantee: 'Card 3 is always Rare (66-79).',
     featured: true,
   },
   {
     id: 'premium',
     name: 'Premium Pack',
-    description: 'Three current-era premium players rated 70 or more.',
+    description: 'Three current-era premium players rated 73 or more.',
     currency: 'GEMS',
     price: 300,
-    eras: ['CURRENT'],
+    pool: { eras: ['CURRENT'], cls: 'PREMIUM', editions: ['STANDARD'] },
     slots: [
-      { label: 'Card 1', odds: [{ tier: 'PREMIUM', percent: 80 }, { tier: 'ELITE', percent: 18 }, { tier: 'LEGENDARY', percent: 2 }] },
-      { label: 'Card 2', odds: [{ tier: 'PREMIUM', percent: 80 }, { tier: 'ELITE', percent: 18 }, { tier: 'LEGENDARY', percent: 2 }] },
-      { label: 'Card 3', odds: [{ tier: 'PREMIUM', percent: 80 }, { tier: 'ELITE', percent: 18 }, { tier: 'LEGENDARY', percent: 2 }] },
+      { label: 'Card 1', odds: PREMIUM_ODDS },
+      { label: 'Card 2', odds: PREMIUM_ODDS },
+      { label: 'Card 3', odds: PREMIUM_ODDS },
     ],
-    guarantee: 'Every card is rated 70 or more.',
+    guarantee: 'Every card is a premium player rated 73 or more.',
   },
   {
     id: 'legends',
     name: 'Legends Pack',
-    description: 'Two retired legends (fictional), Elite or better.',
+    description: 'Two retired legends, Epic or better.',
     currency: 'GEMS',
     price: 900,
-    eras: ['LEGEND'],
+    pool: { eras: ['LEGEND'], cls: 'PREMIUM', editions: ['LEGENDS'] },
     slots: [
-      { label: 'Card 1', odds: [{ tier: 'ELITE', percent: 60 }, { tier: 'LEGENDARY', percent: 33 }, { tier: 'ICON', percent: 7 }] },
-      { label: 'Card 2', odds: [{ tier: 'ELITE', percent: 60 }, { tier: 'LEGENDARY', percent: 33 }, { tier: 'ICON', percent: 7 }] },
+      { label: 'Card 1', odds: LEGENDS_ODDS },
+      { label: 'Card 2', odds: LEGENDS_ODDS },
     ],
     guarantee: 'Every card is a legend rated 80 or more.',
     featured: true,
+  },
+  {
+    id: 'limited-s1',
+    name: 'Limited Edition · Season 1',
+    description: 'One Limited Edition printing (Epic or Legendary). Only sold in this pack.',
+    currency: 'GEMS',
+    price: 1200,
+    pool: { eras: ['CURRENT'], cls: 'PREMIUM', editions: ['LIMITED'] },
+    slots: [{ label: 'Card 1', odds: [{ tier: 'EPIC', percent: 75 }, { tier: 'LEGENDARY', percent: 25 }] }],
+    guarantee: 'The card is a Limited Edition rated 84 or more.',
   },
 ];
 
@@ -231,6 +275,22 @@ export const RANKED = {
   ],
   /** Matchmaking: the rating gap allowed grows the longer a player waits. */
   matchmaking: { baseWindow: 75, growPerSecond: 15, maxWindow: 600 },
+};
+
+/**
+ * Fair matchmaking beyond rating (see ranked.ts `matchCost`). Squad strength
+ * is the whole XI - mostly its average, a little its best three - never the
+ * single best card. Each window widens with waiting so nobody waits forever.
+ */
+export const MATCHMAKING = {
+  /** Weight of the XI's average vs its best three in squad strength. */
+  strength: { averageWeight: 0.75, topThreeWeight: 0.25 },
+  /** Allowed squad-strength gap (overall points). */
+  squad: { baseWindow: 5, growPerSecond: 0.4, maxWindow: 30 },
+  /** Matches played: newcomers are kept away from veterans while others are waiting. */
+  experience: { newcomerBelow: 10, veteranFrom: 50, mismatchCost: 0.6 },
+  /** Round-trip time: a pair whose combined latency is high costs more; beyond `maxPairMs` they are not paired. */
+  connection: { costPer100Ms: 0.15, maxPairMs: 900, unknownMs: 250 },
 };
 
 export function rankedTier(rating: number): string {

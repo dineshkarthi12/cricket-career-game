@@ -111,11 +111,11 @@ async function playOut(a: Client, b: Client, onBall?: (n: number) => Promise<voi
     if (last.kind === 'BOWLER_NEEDED') {
       await bowling.call('match.action', { matchId: bowling.matchId, action: { type: 'SELECT_BOWLER', actionId: `sel-${last.seq}`, bowlerId: last.eligible[0] } });
     } else if (last.kind === 'DELIVERY_OPEN') {
-      await bowling.call('match.action', { matchId: bowling.matchId, action: { type: 'BOWL', actionId: `bowl-${last.seq}`, deliveryId: last.deliveryId, deliveryType: last.allowed[0], line: 'OFF_STUMP', length: 'GOOD' } });
+      await bowling.call('match.action', { matchId: bowling.matchId, action: { type: 'BOWL', actionId: `bowl-${last.seq}`, deliveryId: last.deliveryId, deliveryType: last.allowed[0], line: 'OFF_STUMP', length: 'GOOD', field: (['ATTACKING', 'BALANCED', 'DEFENSIVE'] as const)[last.seq % 3] } });
     } else if (last.kind === 'BALL_RELEASED' && !done) {
       // Wait (on the server's clock) until the ball arrives, then play.
       skew += Math.max(0, last.releaseAt + last.window.idealMs - clock());
-      const r = await batting.call('match.action', { matchId: batting.matchId, action: { type: 'BAT', actionId: `bat-${last.seq}`, deliveryId: last.deliveryId, shot: 'DRIVE', timingMs: last.window.idealMs } });
+      const r = await batting.call('match.action', { matchId: batting.matchId, action: { type: 'BAT', actionId: `bat-${last.seq}`, deliveryId: last.deliveryId, shot: 'DRIVE', timingMs: last.window.idealMs, intent: (['NORMAL', 'AGGRESSIVE', 'LOFTED'] as const)[last.seq % 3], direction: 'STRAIGHT' } });
       expect(r.ok).toBe(true);
       balls += 1;
       if (onBall) await onBall(balls);
@@ -216,6 +216,14 @@ describe('PvP server with two real clients', () => {
     expect(seqB).toEqual(seqA);
     const end = a.events.at(-1)!;
     expect(end.kind).toBe('MATCH_END');
+    // The 2D controls went through the authority: every ball carries the field and the batter's choice.
+    const releases = a.events.filter((e) => e.kind === 'BALL_RELEASED') as Extract<MatchEvent, { kind: 'BALL_RELEASED' }>[];
+    expect(releases.length).toBeGreaterThan(0);
+    expect(new Set(releases.map((e) => e.fieldSetting)).size).toBeGreaterThan(1);
+    expect(releases.every((e) => e.field && e.field.fielders.length === 9)).toBe(true);
+    const played = a.events.filter((e) => e.kind === 'BALL_RESULT' && e.shot !== null) as Extract<MatchEvent, { kind: 'BALL_RESULT' }>[];
+    expect(played.length).toBeGreaterThan(0);
+    expect(played.every((e) => e.intent && e.direction === 'STRAIGHT')).toBe(true);
 
     // The server rated and paid both players exactly once.
     await a.waitFor((m) => m.t === 'profile' && m.profile.stats.played === 1);
@@ -267,4 +275,31 @@ describe('PvP server with two real clients', () => {
     host.close();
     guest.close();
   }, 30_000);
+});
+
+describe('PvP server storage', () => {
+  it('brings a version 1 profile up to date when it loads, keeping every card', async () => {
+    const { mkdtempSync, readFileSync: read, writeFileSync: write } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+    const { createProfile, claimStarter, CATALOG } = await import('../src/engine/pvp');
+    const { createRng } = await import('../src/engine/match/rng');
+    const dir = mkdtempSync(join(tmpdir(), 'pvp-'));
+    const file = join(dir, 'db.json');
+    const now = new Date().toISOString();
+    const started = claimStarter(createProfile({ userId: 'u-old', displayName: 'Old', friendCode: 'OLD123', now }), { requestId: 'starter-old' }, { now, rng: createRng(5) });
+    if (!started.ok) throw new Error('starter');
+    const card = CATALOG.find((c) => c.tier === 'COMMON' && c.overall === 55)!;
+    const v1 = { ...started.profile, schema: 1, inventory: [...started.profile.inventory, { instanceId: 'u-old-99', cardId: card.id, upgrades: 4, acquiredVia: 'COIN_PACK', acquiredAt: now }] };
+    write(file, JSON.stringify({ users: { 'u-old': { userId: 'u-old', tokenHash: 'x', profile: v1, friends: [], createdAt: now } } }));
+    const s = await startPvpServer({ port: 0, dataFile: file });
+    const p = s.store.data.users['u-old'].profile;
+    expect(p.schema).toBe(2);
+    expect(p.inventory).toHaveLength(v1.inventory.length);
+    expect(p.inventory.find((o) => o.instanceId === 'u-old-99')!.upgrades).toBe(0);
+    expect(p.coins).toBeGreaterThan(v1.coins);
+    await s.close();
+    // Written back to disk.
+    expect(JSON.parse(read(file, 'utf8')).users['u-old'].profile.schema).toBe(2);
+  });
 });

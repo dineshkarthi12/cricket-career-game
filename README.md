@@ -28,12 +28,16 @@ bloomers break through, and most careers never reach India.
   franchises, pick the XI and the plan, manage matchdays ball by ball (with
   the same Ball / Over / Wicket / Auto bar and match sound as a career match), and
   climb from Head of Scouting to Director of Cricket - with its own saves.
-- **Live PvP (3D).** A third mode: collect fictional players (free players
-  rated 45-65, premium 70-99), open packs with published odds, build an XI,
-  and play quick one-on-one matches in a 3D stadium - choose the bowler, the
-  delivery's type, line and length, or pick a shot and time it as the ball
-  arrives. Practice against the AI offline, or run the PvP server for ranked
-  matchmaking, private rooms and friends. See
+- **Live PvP.** A third mode built around collectible player cards: ten card
+  designs (Common, Uncommon, Rare, Epic, Legendary, Icon, Limited Edition,
+  Team of the Tournament, Player of the Match, Legends) with tilt, foil and
+  flip effects; rating tiers 40-55 / 56-65 / 66-79 / 80-89 / 90-96 / 97-99;
+  packs with published odds, a market, card rewards, and a squad builder. Play
+  quick one-on-one matches on a 2D ground: pick the bowler, set the field and
+  bowl to a spot on the pitch map, or choose intent and direction and time
+  the shot as the ball arrives. Practice against the AI offline, or run the
+  PvP server for ranked matchmaking (rating, whole-XI strength, experience
+  and connection), private rooms and friends. See
   `cricket-career-game/docs/LIVE_PVP.md`.
 - **Plays offline.** Install it to a phone's home screen; careers are saved in
   the browser (IndexedDB) in three slots with export and import.
@@ -59,7 +63,8 @@ Other scripts:
 | `npm run lint` | Type-checks without building |
 | `npm run qa` | Browser QA: plays a demo career in Chromium and screenshots every screen at 1440, 820 and 390 px into `qa-screenshots/` (needs `npm run build` first) |
 | `npm run pvp:server` | Starts the Live PvP WebSocket server on ws://localhost:8787 (`pvp:server:dev` also enables development gems) |
-| `npm run qa:pvp` | Browser QA for Live PvP: visits every PvP screen and plays part of a 3D practice match (needs `npm run build`; set `CHROMIUM_PATH` if Playwright's browser is not installed) |
+| `npm run qa:pvp` | Browser QA for Live PvP: visits every PvP screen, the ten card designs, and plays two complete 2D practice matches (needs `npm run build`; set `CHROMIUM_PATH` if Playwright's browser is not installed) |
+| `npm run pvp:assets` | Rebuilds the player-photo manifest from `assets-src/players/Cricketcareer.zip` and publishes the photos you have labelled and cleared (`--check` only verifies) |
 
 In a development build (`npm run dev`), Settings has developer tools,
 including a fast-forward that jumps a career to later stages.
@@ -90,7 +95,7 @@ Or from the command line: `npm i -g vercel`, then `vercel` (preview) and
 ## Tech stack
 
 - React 19, TypeScript, Vite
-- three.js for the Live PvP 3D match (loaded only by that mode); `ws` + `tsx` for its server
+- `ws` + `tsx` for the Live PvP server
 - Tailwind CSS v4, lucide-react icons, recharts for charts
 - Zustand for state, React Router for screens
 - IndexedDB via `idb-keyval` for saves
@@ -110,7 +115,8 @@ Paths below are inside `cricket-career-game/`.
 | `src/store` | Zustand stores bridging the engine and the UI |
 | `src/components`, `src/layout`, `src/screens` | The UI |
 | `scripts/` | Icon rendering, the service worker template, browser QA |
-| `src/engine/pvp`, `src/game3d`, `src/pvp`, `src/screens/pvp` | Live PvP: rules and authoritative match, the 3D layer, client backends, screens |
+| `src/engine/pvp`, `src/data/pvp`, `src/pvp`, `src/screens/pvp` | Live PvP: rules and authoritative match, real-player data, client backends, screens (cards, 2D match) |
+| `assets-src/`, `design/cards/` | Source assets kept out of the build: the uploaded player photos, the card reference designs |
 | `server/` | The Live PvP WebSocket server |
 
 In `cricket-career-game/`, `CAREER_MODE.md` describes the career rules, `GAME_SPEC.md` the technical

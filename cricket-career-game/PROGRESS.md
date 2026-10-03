@@ -1822,3 +1822,68 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   cricketers and licensed cricket mocap would need a manual download (Mixamo,
   Fab, Sketchfab are login-gated and blocked here); see the asset manifest.
 
+
+## ✅ Phase 14 — Live PvP: real player cards, 2D online battles
+
+Player cards become the heart of Live PvP, and the match moves from 3D to a
+clean 2D battle screen. Career Mode and IPL Manager are untouched.
+
+**Assets and data**
+- The uploaded `Cricketcareer.zip` was inspected file by file: 147 JPEG
+  photographs of international cricketers (120 action, 27 portraits), UUID
+  file names, no metadata, 7 with press-agency watermarks. Nobody was
+  identified from their face; kit, pose and watermark are recorded per photo
+  (`src/data/pvp/zip-observations.json`). One photo is named after its player
+  in its file name (Lasith Malinga); 146 await labelling.
+- `npm run pvp:assets` builds `src/data/pvp/asset-manifest.json` and publishes
+  only photos that are labelled with a known player AND whose rights are
+  confirmed. Today: 0 published (rights not confirmed).
+- The ZIP moved to `assets-src/` and the card references to `design/cards/`:
+  everything under `public/` is precached by the PWA (they were ~45 MB).
+- `src/data/pvp/real-players.json`: verified facts with format labels and
+  sources (Lasith Malinga: Tests/ODIs/T20Is matches and wickets corroborated;
+  averages and bests single-source; batting figures not collected = null).
+  `realCards.ts` derives game ratings by a published formula.
+
+**Cards**
+- Rating tiers Common 40-55, Uncommon 56-65, Rare 66-79, Epic 80-89,
+  Legendary 90-96, Icon 97-99 (one table in `config.ts`), five attributes
+  including mental with role weights, editions (Limited, Team of the
+  Tournament, Player of the Match, Legends), 24 new edition cards appended to
+  the seeded catalog (existing card ids keep their names and roles).
+- One `PlayerCard` layout with ten data-driven designs matching the
+  references; CSS 3D tilt and parallax, light sweep, holographic foil, glow,
+  sparkle, flip, pack reveal with a burst for top cards; all off for reduced
+  motion. The old `PlayerCard3D` was replaced.
+- Collection: filters by rating, role, rarity, edition and country; compare;
+  ownership and transaction history; a gallery of the ten designs.
+- Rewards: a Team of the Tournament card with the weekly mission, a Player of
+  the Match card every 5th win - both inside the existing once-only
+  transactions. Limited Editions only in their pack; rewards not sold.
+- Save migration v1 -> v2: cards kept, training above a new ceiling refunded,
+  one ledger entry; runs in the browser and on server load.
+
+**Match**
+- Removed: `src/game3d` (rig, clips, stadium, cameras), the 3D match screen,
+  the 3D Lab, `three`/`@types/three`, the RiggedFigure test fixture.
+- New `MatchScreen2D`: scoreboard (CRR, target, RRR, need), the ground from
+  above with the bowling side's field and every shot's path, a pitch strip
+  with line, length, flight, turn and stumps, batter and bowler cards,
+  commentary, overs, scorecard, squads, innings break, result, replay.
+- Authority: `BAT` takes intent (defend/normal/attack/loft) and direction
+  (off/straight/leg) and derives the stroke itself; `BOWL` takes a field
+  (attacking/balanced/defensive) that moves the fielders and the bowler's
+  aggression. Both validated; old clients still work.
+- Matchmaking: rating, whole-XI strength (not the best card), experience and
+  server-measured connection quality, all widening with waiting. The client
+  clock offset now compensates for round-trip time.
+
+**Tests**: `src/engine/pvp/phase14.test.ts`, `src/screens/pvp/cards/cards.test.tsx`,
+`server/assets.test.ts`, extended `server/pvp-server.test.ts`; browser QA plays
+two complete practice matches (`npm run qa:pvp`).
+
+**Still needs you**
+- Label the 146 unidentified photos and confirm usage rights before any photo
+  appears on a card (`docs/assets/ASSET_MANIFEST.md`).
+- Online play needs the PvP server deployed on a long-running host with TLS;
+  Vercel serves only the static app (see `docs/LIVE_PVP.md`).

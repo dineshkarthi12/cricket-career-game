@@ -1,0 +1,41 @@
+{
+  "_about": "Real cricketers available as Live PvP cards. Facts only: every number carries its format and the sources it was checked against. Game ratings are NOT stored here - src/engine/pvp/realCards.ts derives them from these figures with a published formula, and they are game design values, not official statistics. Unknown facts are null, never guessed. To add a player, add an entry here, label their photo in zip-labels.json, and run `npm run pvp:assets`.",
+  "schema": 1,
+  "players": [
+    {
+      "id": "real-lasith-malinga",
+      "name": "Lasith Malinga",
+      "fullName": "Separamadu Lasith Malinga",
+      "born": "1983-08-28",
+      "country": "Sri Lanka",
+      "team": "Sri Lanka",
+      "role": "BOWLER",
+      "battingHand": "RIGHT_HAND_BAT",
+      "bowlingStyle": "RIGHT_ARM_FAST",
+      "status": "RETIRED",
+      "statusNote": "Announced retirement from all forms of cricket on 14 September 2021.",
+      "cricsheetName": "SL Malinga",
+      "formats": {
+        "TEST": { "matches": 30, "wickets": 101, "bowlingAverage": 33.15, "bestBowling": "5/50", "fiveWicketHauls": null, "runs": null, "battingAverage": null },
+        "ODI": { "matches": 226, "wickets": 338, "bowlingAverage": 28.87, "bestBowling": "6/38", "fiveWicketHauls": 8, "runs": null, "battingAverage": null },
+        "T20I": { "matches": 84, "wickets": 107, "bowlingAverage": 20.79, "bestBowling": "5/6", "fiveWicketHauls": 2, "runs": null, "battingAverage": null }
+      },
+      "achievements": [
+        { "text": "Captained Sri Lanka to the 2014 ICC World Twenty20 title", "sources": ["search-summary"] },
+        { "text": "Five international hat-tricks (three in ODIs, two in T20Is)", "sources": ["icc-retirement", "search-summary"] },
+        { "text": "Took 100 or more wickets in all three international formats", "sources": ["icc-retirement", "search-summary"] }
+      ],
+      "verification": {
+        "checkedOn": "2026-10-03",
+        "corroborated": ["matches per format", "wickets per format", "retirement date", "hat-tricks"],
+        "singleSource": ["bowlingAverage", "bestBowling", "fiveWicketHauls", "born", "fullName"],
+        "notes": "Primary pages (ESPNcricinfo, ICC, Wikipedia) could not be fetched from the build environment's network; figures come from search-result summaries of those pages. Batting figures were not collected and are null. Batting hand and bowling style also match the Cricsheet-derived squads in src/data/real/eras."
+      },
+      "sources": {
+        "icc-retirement": "https://www.icc-cricket.com/news/lasith-malinga-announces-retirement-from-all-forms-of-cricket",
+        "espncricinfo-profile": "https://www.espncricinfo.com/srilanka/content/player/49758.html",
+        "search-summary": "https://en.wikipedia.org/wiki/Lasith_Malinga"
+      }
+    }
+  ]
+}

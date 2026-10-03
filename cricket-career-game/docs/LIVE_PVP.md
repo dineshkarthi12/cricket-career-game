@@ -1,32 +1,33 @@
 # Live PvP: design and operations
 
 Live PvP is the third game mode, alongside Career Mode and IPL Manager. You
-collect fictional players, build an XI, and play quick 3D one-on-one matches:
-two overs a side, three wickets. It has its own routes (`/pvp/*`), store
-(`src/store/pvpStore.ts`), saves and economy. It never reads or writes career
-or IPL Manager saves.
+collect player cards, build an XI, and play quick one-on-one matches on a 2D
+ground against another person: two overs a side, three wickets. It has its own
+routes (`/pvp/*`), store (`src/store/pvpStore.ts`), saves and economy. It never
+reads or writes career or IPL Manager saves.
+
+Phase 14 removed the 3D match (three.js, `src/game3d`) and replaced it with a
+2D battle screen; premium 3D-style effects now live on the cards only.
 
 ## Architecture
 
 ```
 src/engine/pvp/       pure TypeScript, shared by browser and server
-  config.ts           rating bands, tiers, packs and odds, rewards, match format
-  catalog.ts          154 fictional cards, generated from a fixed seed
-  rules.ts            the one validation service (ratings, tiers, roles, upgrades)
-  economy.ts          idempotent, ledgered operations (packs, market, rewards, upgrades)
+  config.ts           rating tiers, editions, packs and odds, rewards, match format, matchmaking
+  catalog.ts          178 fictional cards from a fixed seed + the real cards
+  realCards.ts        real cricketers: verified records -> cards, by a published formula
+  weights.ts          role weights for the overall rating, rating -> tier
+  rules.ts            the one validation service (ratings, tiers, roles, upgrades, real records)
+  economy.ts          idempotent, ledgered operations (packs, market, rewards, upgrades, migration)
   squad.ts            XI rules (11 players, a keeper, 5 bowling options, captain/vice)
   match.ts            PvpMatch: the authoritative match (uses the Career Mode resolveDelivery)
-  ranked.ts           Elo and the matchmaking queue
+  ranked.ts           Elo, squad strength and the matchmaking queue
   protocol.ts         the WebSocket message types
 src/pvp/              client backends: OfflineBackend (demo) and OnlineBackend (WebSocket)
-src/game3d/           the 3D layer (three.js)
-  characters/         procedural rig, props, Cricketer, GLB inspection
-  animation/          keyframe clips, AnimationController, two-bone IK, state table
-  physics/            ball flight segments
-  choreography.ts     what everyone does after a ball, derived from the authority's result
-  scene/              Stadium, MatchScene (the director), LabScene
-  camera/, render/    camera rig, renderer (adaptive quality, WebGL detection)
 src/screens/pvp/      the UI
+  cards/              PlayerCard (one layout, ten designs in cardThemes.ts), flags, icons
+  match/              MatchScreen2D, PitchView (ground + pitch strip), controls, view.ts
+src/data/pvp/         real-players.json, photo reviews/labels, generated manifest
 server/pvp-server.ts  the Node WebSocket server
 ```
 
@@ -37,9 +38,19 @@ server/pvp-server.ts  the Node WebSocket server
 1. `SELECT_BOWLER`: only the fielding side, and only players who can bowl.
    Pure batters and keepers are refused by the authority itself, not just
    hidden in the UI.
-2. `BOWL` (type, line, length), checked against the bowler's style. A spinner
-   cannot bowl a bouncer.
-3. `BAT` (shot, timing in ms after the ball left the hand).
+2. `BOWL` (type, line, length, field), checked against the bowler's style. A
+   spinner cannot bowl a bouncer. The field is `ATTACKING` (catchers in),
+   `BALANCED` (the automatic field for the phase) or `DEFENSIVE` (boundary
+   riders); it moves the fielders the engine resolves against and sets how
+   hard the bowler attacks the stumps. Powerplay restrictions still apply.
+3. `BAT` (intent, direction, timing in ms after the ball left the hand).
+   Intent is `DEFENSIVE`, `NORMAL`, `AGGRESSIVE` or `LOFTED` (the engine's
+   approach level 1/3/4/5: more runs, more risk); direction is `OFF`,
+   `STRAIGHT` or `LEG`. The authority derives the stroke itself from the two
+   (`composeShot`) and ignores any stroke the client claims. Playing against
+   the line (leg side to a wide one) costs timing (`directionFit`), as does a
+   stroke that does not suit the length (`shotSuitability`). A `LEAVE` lets the
+   ball go. Older clients may still send a bare stroke.
 
 Each delivery has a unique id. The authority accepts a `BOWL` and a `BAT`
 only for the live id, once each, and in the right phase. Actions carry an
@@ -55,70 +66,123 @@ the odds but guarantees nothing. A poorly chosen shot (pulling a yorker)
 loses a grade of timing.
 
 The authority emits events: `MATCH_START`, `BOWLER_NEEDED`, `DELIVERY_OPEN`,
-`BALL_RELEASED`, `BALL_RESULT`, `INNINGS_END` and `MATCH_END`. Every client,
-the 3D scene included, renders only these. `classifyContact` turns the
-engine's outcome into what the bat did (`NO_SHOT`, `MISS`, `PAD`, `EDGE`,
-`BAT`). `choreography.ts` turns that into animations and a ball path, and the
-tests check over hundreds of real outcomes that:
+`BALL_RELEASED` (with the field the bowling side set), `BALL_RESULT` (with
+the batter's intent and direction), `INNINGS_END` and `MATCH_END`. Every
+client renders only these. `classifyContact` turns the engine's outcome into
+what the bat did (`NO_SHOT`, `MISS`, `PAD`, `EDGE`, `BAT`), and the tests check
+that the score is always the running sum of the deliveries.
 
-- a miss never deflects off the bat
-- a boundary is never caught
-- only a recorded catch shows a catch, by the fielder the engine named
-- the score is the running sum of the deliveries
+### The 2D match screen
 
-### The 3D timeline
+`MatchScreen2D` renders only the authority's events (`deriveView`):
 
-`MatchScene` processes events in order. On `BALL_RELEASED` the bowler runs
-in, the delivery clip starts so the release frame lands on time, and the ball
-leaves the bowler's actual hand. It reaches the batter at the timing window's
-ideal moment, so the timing meter, the ball and the authority agree. A local
-press starts the chosen shot at once, so early and late swings look early and
-late. If the result is a miss, the clip switches to the missed-shot version
-at the same moment. Fielders run to where the engine sent the ball, catches
-happen where the hands are, and batters run the number of runs scored. After
-each ball the authority pauses before the next clock starts, so every client
-can show the replay. A new ball cuts any replay still running.
+- **Scoreboard**: score, wickets, overs, CRR; in a chase the target, RRR and
+  "need N from M balls".
+- **Ground** (`PitchView.GroundView`, SVG in metres via `src/lib/ground`): the
+  rope, the 30-yard circle, the field the bowling side set (every fielder),
+  keeper, both batters and the bowler. After each ball the shot is drawn from
+  the bat along the engine's `shotAngle` and `shotDistance`, coloured by
+  outcome; a four or six runs to the rope, the fielder who took it turns gold.
+- **Pitch strip** (`PitchStrip`): the 22 yards up close - the ball's flight
+  from release to the bat, where it pitched (line and length), swing or turn
+  after pitching, and the stumps falling for a bowled ball.
+- **Ball timing**: the ball reaches the bat at `releaseAt + window.idealMs` on
+  the authority's clock (`backend.serverNow()`, RTT-compensated online), so the
+  ball on screen, the timing meter and the authority agree.
+- **Controls** (`controls.tsx`): bowler picker (cards of eligible bowlers);
+  bowling - delivery type from the bowler's pace or spin repertoire, a
+  tappable line x length pitch map, the field, Bowl; batting - intent and
+  direction (chosen while the bowler sets up), a timing meter, Play shot,
+  Leave. Keyboard: Space plays, L leaves, 1-4 intent, arrows direction.
+- **Cards**: the striker's and bowler's player cards with live figures.
+- **Feeds**: ball-by-ball commentary, an over-by-over log, a scorecard for
+  both innings, and both squads.
+- **States**: innings break with the target, the result with top performers,
+  then back to the lobby, play again (practice), find another match (ranked)
+  or a new private room. A replay button re-runs the last ball's flight and
+  shot. Online, a lost connection shows "reconnecting" and the client resumes
+  from the last event it saw. Pause exists only in the offline demo.
 
-The camera director (`camera/CameraRig.ts`) follows a cue list that
-`planAfterContact` writes for each ball: RUNUP while the bowler waits and runs
-in, DELIVERY (batter-facing, from behind the bowler's end) for the ball,
-SIDE_ON at contact, BALL_FOLLOW (high for sixes and skiers), RUNNING for both
-batters, CLOSE_UP for catches, wickets, appeals and celebrations, and WIDE
-between balls. Each shot names the box it must frame, and the field of view is
-solved for the screen's aspect ratio, so an upright phone frames the batter as
-well as a desktop. Moves use critically damped springs; changes of angle cut.
-
-Swing and spin only shape the path (`movementFor`, `deliveryPath`): the ball
-still arrives where the authority placed it. Contact is played at the bat's
-sweet spot. On a run-out the dismissed batter is still short of the crease
-when the bails come off (`runLegs`). The scorebug holds back a result until
-the scene shows it, so the score never runs ahead of the picture.
-
-The match screen offers replay of the last ball, pause (offline demo only:
-pausing stops the authority's clock too), and settings for camera, graphics
-quality, lighting and a frame-rate readout (kept in localStorage).
+Reduced motion (the OS setting or the in-game toggle) turns off the card
+effects and the result pop; the ball's flight is gameplay and stays.
 
 ## Ratings and economy rules
 
-- Free players: 45-65 (Common 45-54, Uncommon 55-59, Rare 60-65).
-- Premium players: 70-99 (Premium 70-79, Elite 80-89, Legendary 90-96,
-  Icon 97-99).
-- Nobody may be rated 66-69. This lives in `RATING_RULES.excluded`, and the
-  tests pin it.
-- Upgrades add one overall point per level, up to 5 levels. They never take a
-  free player past 65, or a premium player past their tier's ceiling.
+Rating tiers (`config.ts`, the only place they live):
+
+| Tier | Overall |
+|---|---|
+| Common | 40-55 |
+| Uncommon | 56-65 |
+| Rare | 66-79 |
+| Epic | 80-89 |
+| Legendary | 90-96 |
+| Icon | 97-99 |
+
+- The tiers are contiguous from 40 to 99; the tests check every boundary.
+- The overall is computed from five attributes - batting, bowling, fielding,
+  fitness, mental - with role weights (`weights.ts`): a bowler's batting does
+  not count, a keeper's fielding counts more. The catalog check fails any card
+  whose attributes do not add up to its overall.
+- **Class** is how a card is obtained, not how good it is: FREE cards come
+  from coins, play and rewards; PREMIUM cards from gems. Free cards reach Rare
+  in packs and Epic through rewards.
+- **Editions** are special printings with their own design: Limited Edition
+  (only in the Limited pack), Team of the Tournament (weekly mission reward),
+  Player of the Match (every 5th win), Legends (retired greats).
+- Upgrades add one overall point per level, up to 5, and never past the
+  card's tier ceiling: training never moves a card up a tier.
 - Ratings are always computed from the catalog plus validated upgrades, never
   stored. A save that claims an unknown card, a bad upgrade or a negative
   balance is reported, and those cards are quarantined (kept out of matches).
-  Nothing is silently rewritten.
 - Every economy change is a ledger transaction keyed by a client request id
   that is applied at most once. Match rewards are keyed by match id, so they
-  can only be paid once.
-- Packs publish exact per-slot odds, which add up to 100%. A test rolls them
-  40,000 times and checks the results against the published numbers.
+  (and any reward card in them) can only be paid once.
+- Packs publish exact per-slot odds, which add up to 100%, and the store shows
+  the rating range a pack can actually roll in each tier.
 - Gems are a **development currency**. No real-money purchase exists. The
   offline demo can grant development gems; a server does so only with
   `PVP_DEV_GEMS=1`.
+
+### Real cricketers
+
+`src/data/pvp/real-players.json` holds facts only - every figure labelled by
+format (Test, ODI, T20I) with its sources and the date checked; unknown
+facts are null. `realCards.ts` turns each record into a card with a published
+formula (bowling from average and wickets per match against format
+benchmarks, batting from batting average, plus a longevity bonus; fielding,
+fitness and mental use stated design defaults because the data has no basis
+for them). A player whose record cannot rate their main skill is left out,
+not guessed. The ratings are game-design values, not official statistics.
+Photos: see `docs/assets/ASSET_MANIFEST.md` (none is shown until it is
+labelled and its rights are confirmed).
+
+### Save migration
+
+Profiles are `schema: 2` since the tier change. `migrateProfile` upgrades a
+version 1 profile when it loads (offline in the browser, online in the
+server's store): every card is kept, ratings simply follow the catalog,
+training levels above a card's new tier ceiling are reduced and refunded in
+full, and the change is one `MIGRATION` ledger entry.
+
+## Matchmaking
+
+`ranked.ts` `matchCost` pairs the longest-waiting player with the cheapest
+acceptable opponent:
+
+- **Rating**: Elo gap within a window that widens with waiting (75 -> 600).
+- **Squad strength**: 75% the XI's average overall + 25% its best three -
+  never the single best card. Gap window 5 -> 30 points as players wait.
+  Computed on the server from its own copy of the collection.
+- **Experience**: a newcomer (under 10 matches) paired with a veteran (50+)
+  costs extra, so they meet only if nobody closer is waiting.
+- **Connection**: the server measures each connection's round trip with
+  WebSocket ping frames; high combined latency costs more, and above 900 ms
+  the pair is refused.
+
+All numbers are in `MATCHMAKING` / `RANKED` in `config.ts`. The lobby shows
+searching (with elapsed time and what is matched on), matched (the match
+opens), reconnecting, completed and error states.
 
 ## Offline demo vs online server
 
@@ -187,14 +251,19 @@ Server environment variables:
   authority (score consistency, single resolution per delivery, out-of-turn,
   stale, duplicate and too-early actions, bowler eligibility, replay
   determinism), and matchmaking.
-- `src/game3d/game3d.test.ts`: the skinned rig, clips (every track hits a real
-  bone), mirroring, the controller (no duplicate one-shots, stale completions
-  ignored, disposal), batting IK (hands on the handle for both handedness),
-  the GLB pipeline on a real file, ball flight, and choreography against
-  hundreds of real engine outcomes.
+- `src/engine/pvp/phase14.test.ts`: real cards and their formula, the v1 -> v2
+  migration, reward cards paid once, market limits, pack pools, intent and
+  direction, the field setting, matchmaking costs, and 60 bot matches showing
+  a stronger XI usually wins while a Common XI still wins some and hits
+  boundaries (and every score is the sum of its balls).
+- `src/screens/pvp/cards/cards.test.tsx`: all ten designs render live data,
+  every card maps to one design, portraits only for approved photos.
+- `server/assets.test.ts`: the photo pipeline against the real ZIP.
 - `server/pvp-server.test.ts`: two real WebSocket clients against the real
-  server. They play a full ranked match, see identical event streams,
-  reconnect mid-match, and try forged and duplicate requests. Also covers
-  rooms and friends.
-- `scripts/qa-pvp.mjs`: browser QA in Chromium (WebGL) with screenshots. Run
-  `npm run build && CHROMIUM_PATH=/path/to/chromium npm run qa:pvp`.
+  server. They play a full ranked match with the 2D controls (field settings,
+  intent and direction), see identical event streams, reconnect mid-match,
+  and try forged and duplicate requests. Also rooms and friends, and the
+  migration of a version 1 profile when the server loads its data.
+- `scripts/qa-pvp.mjs`: browser QA in Chromium with screenshots, including
+  the ten card designs and two complete practice matches (desktop and phone).
+  Run `npm run build && CHROMIUM_PATH=/path/to/chromium npm run qa:pvp`.

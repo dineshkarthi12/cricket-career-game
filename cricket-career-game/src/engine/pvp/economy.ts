@@ -12,7 +12,7 @@
  */
 import type { Rng } from '../match/rng';
 import { CATALOG, CATALOG_BY_ID, type AcquisitionMethod, type PlayerCard } from './catalog';
-import { ECONOMY, PACKS_BY_ID, TIER_RULES, type CardTier, type Currency, type PackDefinition } from './config';
+import { ECONOMY, PACKS_BY_ID, TIER_RULES, marketCurrency, type CardEdition, type CardTier, type Currency, type PackDefinition } from './config';
 import { maxUpgradeLevel, validateCard, validateUpgrade, type RuleIssue } from './rules';
 import { autoPickSquad, validateSquad } from './squad';
 import type { MatchSummary, OwnedCard, PvpProfile, SquadSelection, Transaction, TxnKind } from './types';
@@ -29,9 +29,12 @@ export type OpResult =
 
 const fail = (code: string, message: string): OpResult => ({ ok: false, code, message });
 
+/** The current profile version. Older saves are brought up to date by `migrateProfile`. */
+export const PROFILE_SCHEMA = 2;
+
 export function createProfile(input: { userId: string; displayName: string; friendCode: string; now: string }): PvpProfile {
   return {
-    schema: 1,
+    schema: PROFILE_SCHEMA,
     userId: input.userId,
     displayName: input.displayName.trim().slice(0, 24) || 'Player',
     friendCode: input.friendCode,
@@ -150,8 +153,13 @@ function charge(currency: Currency, amount: number): Pick<Grant, 'coins' | 'gems
   return currency === 'COINS' ? { coins: -amount } : currency === 'GEMS' ? { gems: -amount } : { eventTokens: -amount };
 }
 
+/** The cards a pack can hand out for one tier. */
+export function packPool(pack: PackDefinition, tier: CardTier): PlayerCard[] {
+  return CATALOG.filter((c) => c.tier === tier && pack.pool.eras.includes(c.era) && c.cls === pack.pool.cls && pack.pool.editions.includes(c.edition));
+}
+
 function pickCard(rng: Rng, tier: CardTier, pack: PackDefinition): PlayerCard {
-  const pool = CATALOG.filter((c) => c.tier === tier && pack.eras.includes(c.era));
+  const pool = packPool(pack, tier);
   if (pool.length === 0) throw new Error(`Pack ${pack.id} has no ${tier} cards`);
   return rng.pick(pool);
 }
@@ -163,7 +171,8 @@ export function rollTier(rng: Rng, odds: { tier: CardTier; percent: number }[]):
 
 export function packAcquisition(pack: PackDefinition): AcquisitionMethod {
   if (pack.currency === 'EVENT_TOKENS') return 'EVENT_PACK';
-  if (pack.eras.includes('LEGEND')) return 'LEGENDS_PACK';
+  if (pack.pool.editions.includes('LIMITED')) return 'LIMITED_PACK';
+  if (pack.pool.eras.includes('LEGEND')) return 'LEGENDS_PACK';
   return pack.currency === 'GEMS' ? 'PREMIUM_PACK' : 'COIN_PACK';
 }
 
@@ -195,7 +204,7 @@ export function claimStarter(profile: PvpProfile, req: { requestId: string }, ct
   const prior = replay(profile, req.requestId);
   if (prior) return prior;
   if (profile.starterClaimed) return fail('ALREADY_CLAIMED', 'The starter pack has already been opened.');
-  const free = CATALOG.filter((c) => (c.tier === 'COMMON' || c.tier === 'UNCOMMON') && c.era === 'CURRENT');
+  const free = CATALOG.filter((c) => (c.tier === 'COMMON' || c.tier === 'UNCOMMON') && c.era === 'CURRENT' && c.edition === 'STANDARD' && c.fictional && c.acquisition.includes('STARTER_PACK'));
   const need: { role: PlayerCard['role']; count: number }[] = [
     { role: 'WICKET_KEEPER', count: 2 },
     { role: 'BATTER', count: 5 },
@@ -220,6 +229,27 @@ export function claimStarter(profile: PvpProfile, req: { requestId: string }, ct
   return { ok: true, profile: { ...granted, starterClaimed: true, squad }, txn, replayed: false };
 }
 
+/** Market cards: only those whose acquisition includes the market (rewards and Limited Editions are not sold). */
+export function inMarket(card: PlayerCard): boolean {
+  return card.acquisition.includes('MARKET_COINS') || card.acquisition.includes('MARKET_GEMS');
+}
+
+export function marketPrice(card: PlayerCard): { currency: Currency; amount: number } {
+  return { currency: marketCurrency(card.cls), amount: ECONOMY.marketPrice[card.cls][card.tier] };
+}
+
+/**
+ * A reward card of an edition: one the player does not own yet when possible,
+ * chosen by the authority's rng. Null if the edition has no cards.
+ */
+export function rewardCard(profile: PvpProfile, edition: CardEdition, rng: Rng): PlayerCard | null {
+  const pool = CATALOG.filter((c) => c.edition === edition && c.cls === 'FREE');
+  if (pool.length === 0) return null;
+  const owned = new Set(profile.inventory.map((o) => o.cardId));
+  const fresh = pool.filter((c) => !owned.has(c.id));
+  return rng.pick(fresh.length ? fresh : pool);
+}
+
 export function buyCard(profile: PvpProfile, req: { requestId: string; cardId: string }, ctx: OpContext): OpResult {
   if (!validRequestId(req.requestId)) return fail('BAD_REQUEST', 'Missing request id.');
   const prior = replay(profile, req.requestId);
@@ -227,8 +257,9 @@ export function buyCard(profile: PvpProfile, req: { requestId: string; cardId: s
   const card = CATALOG_BY_ID[req.cardId];
   if (!card) return fail('UNKNOWN_CARD', 'That player does not exist.');
   if (validateCard(card).length) return fail('INVALID_CARD', 'That card is not available.');
+  if (!inMarket(card)) return fail('NOT_FOR_SALE', `${card.name} is not sold in the market.`);
   if (profile.inventory.some((o) => o.cardId === card.id)) return fail('ALREADY_OWNED', `${card.name} is already in your collection.`);
-  const price = ECONOMY.marketPrice[card.tier];
+  const price = marketPrice(card);
   if (balanceOf(profile, price.currency) < price.amount) return fail('INSUFFICIENT_FUNDS', `Not enough ${price.currency.toLowerCase()}.`);
   const via: AcquisitionMethod = price.currency === 'COINS' ? 'MARKET_COINS' : 'MARKET_GEMS';
   const { profile: next, txn } = commit(profile, req.requestId, { kind: 'MARKET', ...charge(price.currency, price.amount), cards: [{ cardId: card.id, via }], note: `Bought ${card.name}` }, ctx.now);
@@ -258,10 +289,17 @@ export function claimWeekly(profile: PvpProfile, req: { requestId: string }, ctx
   const weekly = currentWeekly(profile, ctx.now);
   if (weekly.claimed) return fail('ALREADY_CLAIMED', 'This week’s mission reward has been claimed.');
   if (weekly.wins < ECONOMY.weeklyMission.winsNeeded) return fail('NOT_COMPLETE', `Win ${ECONOMY.weeklyMission.winsNeeded} matches this week first.`);
+  const card = rewardCard(profile, ECONOMY.weeklyMission.cardEdition, ctx.rng);
   const { profile: next, txn } = commit(
     profile,
     req.requestId,
-    { kind: 'WEEKLY', gems: ECONOMY.weeklyMission.gems, eventTokens: ECONOMY.weeklyMission.eventTokens, note: 'Weekly mission reward' },
+    {
+      kind: 'WEEKLY',
+      gems: ECONOMY.weeklyMission.gems,
+      eventTokens: ECONOMY.weeklyMission.eventTokens,
+      cards: card ? [{ cardId: card.id, via: 'WEEKLY_MISSION' }] : [],
+      note: card ? `Weekly mission reward: ${card.name} (Team of the Tournament)` : 'Weekly mission reward',
+    },
     ctx.now,
   );
   return { ok: true, profile: { ...next, weekly: { ...weekly, claimed: true } }, txn, replayed: false };
@@ -331,7 +369,21 @@ export function recordMatch(
   const win = input.summary.outcome === 'WIN';
   const coins = base.coins + (input.ranked && win ? ECONOMY.matchReward.rankedWinBonusCoins : 0);
   const gems = input.ranked && win ? ECONOMY.matchReward.rankedWinGems : 0;
-  const { profile: next, txn } = commit(profile, requestId, { kind: 'MATCH_REWARD', coins, gems, note: `${input.summary.result} vs ${input.summary.opponent}` }, ctx.now);
+  // Every Nth win also earns a Player of the Match card - in the same transaction, so it too is paid once.
+  const milestone = win && (profile.stats.won + 1) % ECONOMY.matchReward.playerOfMatchEveryWins === 0;
+  const card = milestone ? rewardCard(profile, 'PLAYER_OF_MATCH', ctx.rng) : null;
+  const { profile: next, txn } = commit(
+    profile,
+    requestId,
+    {
+      kind: 'MATCH_REWARD',
+      coins,
+      gems,
+      cards: card ? [{ cardId: card.id, via: 'MATCH_MILESTONE' }] : [],
+      note: `${input.summary.result} vs ${input.summary.opponent}${card ? ` · win ${profile.stats.won + 1}: ${card.name} (Player of the Match)` : ''}`,
+    },
+    ctx.now,
+  );
   const weekly = currentWeekly(next, ctx.now);
   const stats = { ...next.stats, played: next.stats.played + 1 };
   if (input.summary.outcome === 'WIN') stats.won += 1;
@@ -352,13 +404,47 @@ export function recordMatch(
 }
 
 /**
+ * Bring an older saved profile up to date. Never drops a card or a coin
+ * silently: what changes is recorded as one ledger transaction.
+ *
+ * v1 -> v2 (Phase 14, new rating tiers): ratings are always computed from the
+ * catalog, so cards simply show their new values. Training levels a card can
+ * no longer hold under its new tier ceiling are reduced, and the coins paid
+ * for those levels are refunded in full.
+ */
+export function migrateProfile(profile: PvpProfile, now: string): { profile: PvpProfile; changed: boolean; notes: string[] } {
+  const schema = (profile as { schema: number }).schema;
+  if (schema === PROFILE_SCHEMA) return { profile, changed: false, notes: [] };
+  if (schema !== 1) return { profile, changed: false, notes: [`Unknown profile version ${String(schema)}; left unchanged.`] };
+  let refund = 0;
+  const notes: string[] = [];
+  const inventory = profile.inventory.map((o) => {
+    const card = CATALOG_BY_ID[o.cardId];
+    if (!card) return o;
+    const cap = maxUpgradeLevel(card);
+    if (o.upgrades <= cap) return o;
+    let paid = 0;
+    for (let level = cap + 1; level <= o.upgrades; level += 1) paid += upgradeCost(card, level);
+    refund += paid;
+    notes.push(`${card.name}: training ${o.upgrades} -> ${cap} (new tier ceiling), ${paid} coins refunded`);
+    return { ...o, upgrades: cap };
+  });
+  let next: PvpProfile = { ...profile, schema: PROFILE_SCHEMA, inventory };
+  const requestId = 'migration-v2';
+  if (!next.requests[requestId]) {
+    next = commit(next, requestId, { kind: 'MIGRATION', coins: refund, note: notes.length ? `New rating tiers: ${notes.join('; ')}` : 'New rating tiers (Phase 14): no changes needed' }, now).profile;
+  }
+  return { profile: next, changed: true, notes };
+}
+
+/**
  * Integrity check for a loaded profile. Problems are reported, not "fixed":
  * a save that claims a card that does not exist or an upgrade beyond its cap
  * is shown as a problem and those cards cannot be picked.
  */
 export function auditProfile(profile: PvpProfile): RuleIssue[] {
   const issues: RuleIssue[] = [];
-  if (profile.schema !== 1) issues.push({ code: 'SCHEMA', message: `Unknown profile version ${String(profile.schema)}.` });
+  if (profile.schema !== PROFILE_SCHEMA) issues.push({ code: 'SCHEMA', message: `Unknown profile version ${String(profile.schema)}.` });
   for (const key of ['coins', 'gems', 'eventTokens'] as const) {
     if (!Number.isInteger(profile[key]) || profile[key] < 0) issues.push({ code: 'BALANCE', message: `${key} balance ${profile[key]} is not valid.` });
   }
