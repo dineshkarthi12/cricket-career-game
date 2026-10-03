@@ -1,15 +1,17 @@
 /**
  * Procedural rigged cricketers.
  *
- * Each character is a real `THREE.SkinnedMesh` bound to a real `THREE.Skeleton`:
- * the body is built from simple solids, every vertex is skinned to one or two
- * bones, and keyframe clips (`animation/clips.ts`) rotate the bones. This is
- * an original, procedural model - not a scanned or purchased asset - and the
- * Lab screen labels it as such.
+ * Each character is a real `THREE.SkinnedMesh` bound to a real `THREE.Skeleton`.
+ * The body is modelled from anatomical shapes (a lathed torso, tapered limbs
+ * with rounded joints, a head with a face, hands and shoes) and skinned
+ * automatically: every vertex of a flexible part is weighted between its bone
+ * and the neighbouring bones by distance to each bone's segment, so shoulders,
+ * elbows, wrists, the spine, hips and knees bend smoothly instead of folding
+ * like hinges. Equipment (pads, helmet, gloves, shoes) is rigid.
  *
- * Bone names follow the Mixamo convention (Hips, Spine, LeftArm, ...), so a
- * licensed Mixamo-rigged GLB and its clips can replace it later: see
- * `characters/gltfInspect.ts` and docs/assets/ASSET_MANIFEST.md.
+ * This is an original, procedural model - not a scanned or purchased asset -
+ * and the Lab labels it as such. Bone names follow the Mixamo convention so a
+ * licensed rigged model can drive or replace it (`characters/retarget.ts`).
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -58,6 +60,7 @@ export const REQUIRED_BONES = [
 ];
 
 export type Outfit = 'BATTER' | 'KEEPER' | 'FIELDER' | 'BOWLER' | 'UMPIRE';
+export type Detail = 'low' | 'high';
 
 export interface Kit {
   shirt: string;
@@ -65,18 +68,11 @@ export interface Kit {
   trousers: string;
   skin: string;
   helmet: string;
+  /** Hair colour; defaults to near-black. */
+  hair?: string;
 }
 
-interface Part {
-  bone: string;
-  geometry: THREE.BufferGeometry;
-  /** Offset from the bone's rest world position. */
-  at: [number, number, number];
-  color: string;
-  /** Blend the far end of a limb into its child bone so joints bend smoothly. */
-  blend?: { child: string; axis: 'y'; from: number; to: number };
-  rotate?: [number, number, number];
-}
+// ------------------------------------------------------------------ rest pose
 
 function restWorldPositions(): Map<string, THREE.Vector3> {
   const map = new Map<string, THREE.Vector3>();
@@ -89,126 +85,286 @@ function restWorldPositions(): Map<string, THREE.Vector3> {
 }
 
 const REST = restWorldPositions();
+const P = (name: string) => REST.get(name)!.clone();
 
 /** World position of a bone in the rest pose (used by IK and tests). */
 export function restPosition(name: string): THREE.Vector3 {
-  return REST.get(name)!.clone();
+  return P(name);
 }
 
-function capsule(radius: number, length: number, cap = 6, radial = 10): THREE.BufferGeometry {
-  return new THREE.CapsuleGeometry(radius, Math.max(0.001, length), cap, radial);
+/** Each bone's segment in the rest pose: from the joint to its child (or a leaf extension). */
+const LEAF_END: Record<string, [number, number, number]> = {
+  Head: [0, 0.2, 0.02],
+  LeftHand: [0, -0.1, 0],
+  RightHand: [0, -0.1, 0],
+  LeftToeBase: [0, -0.01, 0.08],
+  RightToeBase: [0, -0.01, 0.08],
+};
+const SEGMENT = new Map<string, [THREE.Vector3, THREE.Vector3]>();
+for (const b of BONES) {
+  const a = P(b.name);
+  const child = BONES.find((c) => c.parent === b.name && !c.name.includes('Shoulder') && !c.name.includes('UpLeg'));
+  const end = child ? P(child.name) : a.clone().add(new THREE.Vector3(...(LEAF_END[b.name] ?? [0, 0.05, 0])));
+  SEGMENT.set(b.name, [a, end]);
 }
 
-function box(w: number, h: number, d: number): THREE.BufferGeometry {
-  return new THREE.BoxGeometry(w, h, d, 2, 2, 2);
+const _ab = new THREE.Vector3();
+const _ap = new THREE.Vector3();
+function distToSegment(p: THREE.Vector3, bone: string): number {
+  const [a, b] = SEGMENT.get(bone)!;
+  _ab.subVectors(b, a);
+  _ap.subVectors(p, a);
+  const t = Math.max(0, Math.min(1, _ap.dot(_ab) / Math.max(1e-9, _ab.lengthSq())));
+  return _ap.sub(_ab.multiplyScalar(t)).length();
 }
 
-function sphere(r: number, w = 14, h = 10, phiLength = Math.PI * 2, thetaLength = Math.PI): THREE.BufferGeometry {
-  return new THREE.SphereGeometry(r, w, h, 0, phiLength, 0, thetaLength);
+// ------------------------------------------------------------------ shape helpers
+
+/** A tapered tube from a to b with rounded ends, in rest-pose world space. */
+function tube(a: THREE.Vector3, b: THREE.Vector3, r0: number, r1: number, radial: number, rings = 4, caps = true): THREE.BufferGeometry {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  const parts: THREE.BufferGeometry[] = [new THREE.CylinderGeometry(r1, r0, len, radial, rings, true)];
+  if (caps) {
+    const top = new THREE.SphereGeometry(r1, radial, Math.max(3, radial / 3), 0, Math.PI * 2, 0, Math.PI / 2);
+    top.translate(0, len / 2, 0);
+    const bottom = new THREE.SphereGeometry(r0, radial, Math.max(3, radial / 3), 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+    bottom.translate(0, -len / 2, 0);
+    parts.push(top, bottom);
+  }
+  const g = mergeGeometries(parts.map((p) => p.toNonIndexed()))!;
+  parts.forEach((p) => p.dispose());
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  g.applyQuaternion(q);
+  g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+  return g;
 }
 
-function partsFor(outfit: Outfit, kit: Kit): Part[] {
+function ellipsoid(c: THREE.Vector3, rx: number, ry: number, rz: number, w: number, h: number): THREE.BufferGeometry {
+  const g = new THREE.SphereGeometry(1, w, h);
+  g.scale(rx, ry, rz);
+  g.translate(c.x, c.y, c.z);
+  return g;
+}
+
+function roundedBox(c: THREE.Vector3, sx: number, sy: number, sz: number, round = 0.35, seg = 3): THREE.BufferGeometry {
+  // A box pushed toward an ellipsoid: soft edges without many triangles.
+  const g = new THREE.BoxGeometry(1, 1, 1, seg, seg, seg);
+  const pos = g.getAttribute('position');
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i += 1) {
+    v.fromBufferAttribute(pos, i);
+    const s = v.clone().normalize().multiplyScalar(0.5);
+    v.lerp(s.multiplyScalar(1.15), round);
+    pos.setXYZ(i, v.x * sx, v.y * sy, v.z * sz);
+  }
+  g.computeVertexNormals();
+  g.translate(c.x, c.y, c.z);
+  return g;
+}
+
+/** A body shell turned on the Y axis from (radius, height) pairs, squashed front-to-back. */
+function lathe(profile: [number, number][], depth: number, radial: number, cx = 0, cz = 0): THREE.BufferGeometry {
+  const g = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), radial);
+  g.scale(1, 1, depth);
+  g.translate(cx, 0, cz);
+  return g;
+}
+
+// ------------------------------------------------------------------ parts
+
+interface Part {
+  geometry: THREE.BufferGeometry;
+  color: string;
+  /** Bones this part may be weighted to (by distance). One bone = rigid. */
+  bones: string[];
+  /** Shading variation: darken toward the bottom of the part. */
+  shade?: number;
+}
+
+const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+
+function partsFor(outfit: Outfit, kit: Kit, detail: Detail): Part[] {
+  const R = detail === 'high' ? 14 : 9;
   const padded = outfit === 'BATTER' || outfit === 'KEEPER';
   const umpire = outfit === 'UMPIRE';
-  const shirt = umpire ? '#f4f1e8' : kit.shirt;
-  const trousers = umpire ? '#1d2433' : kit.trousers;
-  const parts: Part[] = [
-    { bone: 'Hips', geometry: capsule(0.15, 0.08), at: [0, 0, 0], color: trousers, rotate: [0, 0, Math.PI / 2] },
-    { bone: 'Spine', geometry: capsule(0.145, 0.1), at: [0, 0.08, 0], color: shirt },
-    { bone: 'Spine1', geometry: capsule(0.16, 0.08), at: [0, 0.08, 0], color: shirt },
-    { bone: 'Spine2', geometry: box(0.38, 0.22, 0.22), at: [0, 0.08, 0], color: shirt },
-    { bone: 'Spine2', geometry: box(0.39, 0.035, 0.225), at: [0, 0.0, 0], color: umpire ? '#1d2433' : kit.trim },
-    { bone: 'Neck', geometry: capsule(0.05, 0.06), at: [0, 0.03, 0], color: kit.skin },
-    { bone: 'Head', geometry: sphere(0.105), at: [0, 0.1, 0.0], color: kit.skin },
-    // A nose so the facing reads at a distance.
-    { bone: 'Head', geometry: box(0.03, 0.04, 0.04), at: [0, 0.09, 0.105], color: kit.skin },
-  ];
+  const shirt = umpire ? '#f3efe3' : kit.shirt;
+  const trousers = umpire ? '#1c2232' : kit.trousers;
+  const shoe = umpire ? '#14181f' : '#f4f4f2';
+  const hair = kit.hair ?? '#17110d';
+  const parts: Part[] = [];
+  const add = (geometry: THREE.BufferGeometry, color: string, bones: string[], shade = 0) => parts.push({ geometry, color, bones, shade });
+
+  // --- torso: shirt from the waist to the collar, trousers below ---------------
+  add(
+    lathe(
+      [
+        [0.001, 0.93], [0.152, 0.93], [0.156, 0.99], [0.146, 1.07], [0.15, 1.16], [0.168, 1.26], [0.185, 1.36], [0.19, 1.43],
+        [0.17, 1.49], [0.12, 1.525], [0.07, 1.545], [0.001, 1.548],
+      ],
+      0.62,
+      R + 4,
+    ),
+    shirt,
+    ['Hips', 'Spine', 'Spine1', 'Spine2'],
+    0.12,
+  );
+  if (umpire) {
+    // The umpire's coat hangs to mid-thigh.
+    add(lathe([[0.172, 0.74], [0.178, 0.86], [0.17, 0.98], [0.162, 1.08], [0.001, 1.081]], 0.7, R + 4), '#f3efe3', ['Hips', 'Spine'], 0.15);
+  }
+  add(lathe([[0.001, 0.82], [0.135, 0.82], [0.158, 0.9], [0.158, 0.98], [0.001, 0.981]], 0.7, R + 4), trousers, ['Hips', 'LeftUpLeg', 'RightUpLeg'], 0.1);
+  add(lathe([[0.16, 0.955], [0.161, 0.985], [0.001, 0.986]], 0.68, R + 4), umpire ? '#111' : '#1a1a1a', ['Hips']);
+  // Collar and a trim stripe across the chest.
+  add(new THREE.TorusGeometry(0.075, 0.016, 6, R + 2).rotateX(Math.PI / 2).scale(1, 1, 0.8).translate(0, 1.535, 0), umpire ? '#1c2232' : kit.trim, ['Spine2', 'Neck']);
+  if (!umpire) add(lathe([[0.188, 1.405], [0.19, 1.425], [0.001, 1.426]], 0.63, R + 4), kit.trim, ['Spine2']);
+
+  // --- neck and head ---------------------------------------------------------------
+  add(tube(v(0, 1.5, -0.005), v(0, 1.66, 0.005), 0.052, 0.046, R), kit.skin, ['Spine2', 'Neck', 'Head']);
+  const head = v(0, 1.72, 0.012);
+  add(ellipsoid(head, 0.094, 0.112, 0.105, R + 2, R), kit.skin, ['Head']);
+  add(ellipsoid(v(0, 1.655, 0.045), 0.07, 0.05, 0.07, R, 6), kit.skin, ['Head']); // jaw
+  add(new THREE.ConeGeometry(0.016, 0.04, 6).rotateX(Math.PI / 2).translate(0, 1.71, 0.125), kit.skin, ['Head']); // nose
+  for (const s of [-1, 1]) {
+    add(ellipsoid(v(s * 0.094, 1.715, 0.005), 0.012, 0.026, 0.018, 6, 5), kit.skin, ['Head']); // ears
+    add(ellipsoid(v(s * 0.034, 1.735, 0.1), 0.012, 0.009, 0.006, 6, 4), '#f5f2ea', ['Head']); // eyes
+    add(ellipsoid(v(s * 0.034, 1.735, 0.105), 0.006, 0.007, 0.004, 5, 4), '#1d1410', ['Head']);
+    add(new THREE.BoxGeometry(0.032, 0.007, 0.01).rotateZ(s * -0.12).translate(s * 0.034, 1.758, 0.104), hair, ['Head']); // brows
+  }
+  add(new THREE.BoxGeometry(0.036, 0.006, 0.008).translate(0, 1.67, 0.108), '#7a3f33', ['Head']); // mouth
+
   if (padded) {
-    parts.push(
-      { bone: 'Head', geometry: sphere(0.122, 14, 8, Math.PI * 2, Math.PI * 0.55), at: [0, 0.115, -0.01], color: kit.helmet },
-      { bone: 'Head', geometry: box(0.2, 0.012, 0.12), at: [0, 0.1, 0.08], color: kit.helmet },
-      // Face grille.
-      { bone: 'Head', geometry: box(0.17, 0.012, 0.012), at: [0, 0.07, 0.125], color: '#c9ced8' },
-      { bone: 'Head', geometry: box(0.17, 0.012, 0.012), at: [0, 0.03, 0.12], color: '#c9ced8' },
-    );
+    // Helmet: shell, peak, grille bars, ear guards, neck guard.
+    const shell = new THREE.SphereGeometry(0.128, R + 2, 8, 0, Math.PI * 2, 0, Math.PI * 0.58).scale(1, 1.02, 1.08).translate(0, 1.722, 0.0);
+    add(shell, kit.helmet, ['Head']);
+    add(new THREE.CylinderGeometry(0.135, 0.135, 0.01, R + 2, 1, false, -Math.PI * 0.45, Math.PI * 0.9).scale(1, 1, 1.2).translate(0, 1.762, 0.03), kit.helmet, ['Head']);
+    for (const y of [1.705, 1.672, 1.64]) add(new THREE.TorusGeometry(0.128, 0.0045, 4, R + 2, Math.PI * 0.8).rotateX(Math.PI / 2).rotateY(Math.PI * 0.1).scale(1, 1, 1.12).translate(0, y, 0.0), '#c9ced8', ['Head']);
+    add(new THREE.BoxGeometry(0.006, 0.08, 0.006).translate(0, 1.672, 0.142), '#c9ced8', ['Head']);
+    for (const s of [-1, 1]) add(ellipsoid(v(s * 0.122, 1.69, 0.005), 0.012, 0.05, 0.05, 8, 6), kit.helmet, ['Head']);
+    add(new THREE.BoxGeometry(0.13, 0.05, 0.012).translate(0, 1.64, -0.105), kit.helmet, ['Head']);
   } else if (umpire) {
-    parts.push(
-      { bone: 'Head', geometry: sphere(0.115, 14, 8, Math.PI * 2, Math.PI * 0.5), at: [0, 0.12, 0], color: '#f4f1e8' },
-      { bone: 'Head', geometry: new THREE.CylinderGeometry(0.2, 0.2, 0.012, 20), at: [0, 0.13, 0], color: '#f4f1e8' },
-    );
+    add(new THREE.CylinderGeometry(0.1, 0.11, 0.08, R + 2).translate(0, 1.8, 0.0), '#f3efe3', ['Head']);
+    add(new THREE.CylinderGeometry(0.21, 0.21, 0.01, R + 4).translate(0, 1.765, 0.01), '#f3efe3', ['Head']);
+    add(new THREE.CylinderGeometry(0.102, 0.102, 0.018, R + 2).translate(0, 1.775, 0), '#1c2232', ['Head']);
   } else {
-    parts.push(
-      { bone: 'Head', geometry: sphere(0.112, 14, 8, Math.PI * 2, Math.PI * 0.5), at: [0, 0.12, 0], color: kit.shirt },
-      { bone: 'Head', geometry: box(0.15, 0.012, 0.11), at: [0, 0.135, 0.12], color: kit.trim },
-    );
+    add(new THREE.SphereGeometry(0.114, R + 2, 7, 0, Math.PI * 2, 0, Math.PI * 0.5).scale(1, 0.85, 1.05).translate(0, 1.745, 0.0), kit.shirt, ['Head']);
+    add(new THREE.CylinderGeometry(0.12, 0.12, 0.01, R + 2, 1, false, -Math.PI * 0.4, Math.PI * 0.8).scale(1, 1, 1.45).translate(0, 1.75, 0.055), kit.trim, ['Head']);
+    // Hair below the cap.
+    add(new THREE.SphereGeometry(0.098, R, 6, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.3).scale(1, 1, 1.05).translate(0, 1.73, -0.006), hair, ['Head']);
   }
+
+  // --- arms -----------------------------------------------------------------------
   for (const s of ['Left', 'Right'] as const) {
-    const glove = padded ? '#f5f5f2' : kit.skin;
-    parts.push(
-      { bone: `${s}Shoulder`, geometry: capsule(0.06, 0.08), at: [side(s, 0.07), -0.01, 0], color: shirt, rotate: [0, 0, Math.PI / 2] },
-      { bone: `${s}Arm`, geometry: capsule(0.052, 0.22), at: [0, -0.15, 0], color: shirt, blend: { child: `${s}ForeArm`, axis: 'y', from: -0.22, to: -0.32 } },
-      { bone: `${s}ForeArm`, geometry: capsule(0.043, 0.21), at: [0, -0.135, 0], color: kit.skin, blend: { child: `${s}Hand`, axis: 'y', from: -0.21, to: -0.29 } },
-      { bone: `${s}Hand`, geometry: box(padded ? 0.085 : 0.07, 0.1, padded ? 0.085 : 0.05), at: [0, -0.05, 0], color: glove },
-      { bone: `${s}UpLeg`, geometry: capsule(0.075, 0.32), at: [0, -0.22, 0], color: trousers, blend: { child: `${s}Leg`, axis: 'y', from: -0.34, to: -0.46 } },
-      { bone: `${s}Leg`, geometry: capsule(0.058, 0.32), at: [0, -0.21, 0], color: trousers, blend: { child: `${s}Foot`, axis: 'y', from: -0.36, to: -0.44 } },
-      { bone: `${s}Foot`, geometry: box(0.1, 0.07, 0.26), at: [0, -0.045, 0.06], color: umpire ? '#151a24' : '#f2f2f2' },
-    );
-    if (padded) {
-      parts.push(
-        { bone: `${s}Leg`, geometry: box(0.15, 0.46, 0.12), at: [0, -0.2, 0.05], color: '#f7f7f4' },
-        { bone: `${s}Leg`, geometry: box(0.16, 0.1, 0.14), at: [0, 0.03, 0.05], color: '#ebebe6' },
-      );
-    }
+    const sh = P(`${s}Shoulder`);
+    const arm = P(`${s}Arm`);
+    const elbow = P(`${s}ForeArm`);
+    const wrist = P(`${s}Hand`);
+    const sign = s === 'Left' ? 1 : -1;
+    // Deltoid: the shoulder cap where the arm meets the torso.
+    add(ellipsoid(v(arm.x - sign * 0.01, arm.y - 0.02, 0), 0.07, 0.07, 0.068, R, 7), shirt, [`${s}Shoulder`, `${s}Arm`, 'Spine2']);
+    add(tube(sh, arm, 0.06, 0.06, R, 2, false), shirt, ['Spine2', `${s}Shoulder`, `${s}Arm`]);
+    // Short sleeve, then the bare upper arm and forearm.
+    const sleeveEnd = arm.clone().lerp(elbow, 0.5);
+    add(tube(arm, sleeveEnd, 0.058, 0.054, R, 3), shirt, [`${s}Shoulder`, `${s}Arm`]);
+    add(tube(sleeveEnd, elbow, 0.044, 0.038, R, 3), kit.skin, [`${s}Arm`, `${s}ForeArm`]);
+    add(tube(elbow, wrist, 0.039, 0.028, R, 4), kit.skin, [`${s}Arm`, `${s}ForeArm`, `${s}Hand`]);
+    // Hand: palm, fingers curled forward, thumb - or a glove.
+    const gloved = padded;
+    const glove = outfit === 'KEEPER' ? '#e8e2d6' : '#f6f6f2';
+    const hc = gloved ? glove : kit.skin;
+    const g = gloved ? 1.25 : 1;
+    add(roundedBox(v(wrist.x, wrist.y - 0.05, 0.004), 0.07 * g, 0.085 * g, 0.03 * g), hc, [`${s}Hand`]);
+    add(roundedBox(v(wrist.x, wrist.y - 0.105, 0.022), 0.066 * g, 0.05 * g, 0.034 * g).rotateX(0), hc, [`${s}Hand`]);
+    add(tube(v(wrist.x + sign * 0.03 * g, wrist.y - 0.03, 0.01), v(wrist.x + sign * 0.035 * g, wrist.y - 0.075, 0.035), 0.012 * g, 0.011 * g, 6, 2), hc, [`${s}Hand`]);
+    if (gloved) add(tube(v(wrist.x, wrist.y + 0.01, 0), v(wrist.x, wrist.y - 0.025, 0), 0.042, 0.042, R, 1), outfit === 'KEEPER' ? '#a0522d' : kit.trim, [`${s}Hand`]);
   }
-  if (outfit === 'UMPIRE') {
-    // Umpire's coat skirt.
-    parts.push({ bone: 'Hips', geometry: box(0.36, 0.2, 0.25), at: [0, -0.02, 0], color: '#f4f1e8' });
+
+  // --- legs -----------------------------------------------------------------------
+  for (const s of ['Left', 'Right'] as const) {
+    const hip = P(`${s}UpLeg`);
+    const knee = P(`${s}Leg`);
+    const ankle = P(`${s}Foot`);
+    add(tube(v(hip.x * 0.92, hip.y + 0.02, 0), knee, 0.088, 0.06, R, 5), trousers, ['Hips', `${s}UpLeg`, `${s}Leg`]);
+    add(ellipsoid(knee, 0.06, 0.06, 0.062, R, 6), trousers, [`${s}UpLeg`, `${s}Leg`]);
+    add(tube(knee, v(ankle.x, ankle.y + 0.04, 0), 0.058, 0.042, R, 5), trousers, [`${s}UpLeg`, `${s}Leg`, `${s}Foot`]);
+    // Calf.
+    add(ellipsoid(v(knee.x, knee.y - 0.14, -0.018), 0.05, 0.1, 0.045, R, 6), trousers, [`${s}Leg`]);
+    // Shoe: upper, sole and toe cap.
+    add(roundedBox(v(ankle.x, 0.055, 0.045), 0.098, 0.085, 0.24, 0.45), shoe, [`${s}Foot`]);
+    add(roundedBox(v(ankle.x, 0.012, 0.05), 0.104, 0.024, 0.262, 0.3), umpire ? '#0a0a0a' : '#c9cdd4', [`${s}Foot`]);
+    add(roundedBox(v(ankle.x, 0.045, 0.16), 0.09, 0.06, 0.07, 0.5), shoe, [`${s}ToeBase`]);
+    if (padded) {
+      // Batting pads: curved front, vertical ribs, knee roll, straps.
+      const pad = new THREE.BoxGeometry(0.17, 0.52, 0.06, 4, 8, 1);
+      const pp = pad.getAttribute('position');
+      for (let i = 0; i < pp.count; i += 1) pp.setZ(i, pp.getZ(i) - (pp.getX(i) * pp.getX(i)) * 3.2);
+      pad.computeVertexNormals();
+      pad.translate(knee.x, knee.y - 0.2, 0.075);
+      const padColour = outfit === 'KEEPER' ? '#f1ece0' : '#fafaf7';
+      add(pad, padColour, [`${s}Leg`]);
+      for (const x of [-0.045, 0, 0.045]) add(new THREE.CylinderGeometry(0.014, 0.014, 0.42, 6).translate(knee.x + x, knee.y - 0.2, 0.1), '#ececE6', [`${s}Leg`]);
+      add(new THREE.CylinderGeometry(0.045, 0.045, 0.17, 8).rotateZ(Math.PI / 2).translate(knee.x, knee.y + 0.01, 0.075), padColour, [`${s}Leg`]);
+      add(new THREE.BoxGeometry(0.16, 0.11, 0.05).rotateX(-0.25).translate(knee.x, knee.y + 0.1, 0.07), padColour, [`${s}Leg`]);
+      for (const y of [-0.08, -0.3]) add(new THREE.BoxGeometry(0.2, 0.02, 0.13).translate(knee.x, knee.y + y, 0.02), '#2a2f3a', [`${s}Leg`]);
+    }
   }
   return parts;
 }
 
-function buildGeometry(outfit: Outfit, kit: Kit): THREE.BufferGeometry {
+function buildGeometry(outfit: Outfit, kit: Kit, detail: Detail): THREE.BufferGeometry {
   const index = new Map(BONE_NAMES.map((n, i) => [n, i]));
   const pieces: THREE.BufferGeometry[] = [];
   const color = new THREE.Color();
-  for (const part of partsFor(outfit, kit)) {
-    let g = part.geometry.index ? part.geometry.toNonIndexed() : part.geometry;
-    g.deleteAttribute('uv');
-    if (part.rotate) g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...part.rotate)));
-    const origin = REST.get(part.bone)!.clone().add(new THREE.Vector3(...part.at));
-    g.translate(origin.x, origin.y, origin.z);
+  const p = new THREE.Vector3();
+  for (const part of partsFor(outfit, kit, detail)) {
+    const g = part.geometry.index ? part.geometry.toNonIndexed() : part.geometry;
+    if (g !== part.geometry) part.geometry.dispose();
+    if (g.getAttribute('uv')) g.deleteAttribute('uv');
+    if (!g.getAttribute('normal')) g.computeVertexNormals();
     const pos = g.getAttribute('position');
+    const nrm = g.getAttribute('normal');
     const n = pos.count;
     const colors = new Float32Array(n * 3);
     const skinIndex = new Uint16Array(n * 4);
     const skinWeight = new Float32Array(n * 4);
     color.set(part.color).convertSRGBToLinear();
-    const bone = index.get(part.bone)!;
-    const boneRest = REST.get(part.bone)!;
+    let minY = Infinity;
+    let maxY = -Infinity;
     for (let i = 0; i < n; i += 1) {
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
-      skinIndex[i * 4] = bone;
-      skinWeight[i * 4] = 1;
-      if (part.blend) {
-        // Vertices near the joint share their weight with the next bone.
-        const local = pos.getY(i) - boneRest.y;
-        const t = Math.max(0, Math.min(1, (part.blend.from - local) / (part.blend.from - part.blend.to)));
-        const w = t * t * (3 - 2 * t) * 0.5;
-        skinIndex[i * 4 + 1] = index.get(part.blend.child)!;
-        skinWeight[i * 4] = 1 - w;
-        skinWeight[i * 4 + 1] = w;
+      minY = Math.min(minY, pos.getY(i));
+      maxY = Math.max(maxY, pos.getY(i));
+    }
+    for (let i = 0; i < n; i += 1) {
+      p.fromBufferAttribute(pos, i);
+      // Gentle baked shading: a little darker underneath and lower down.
+      const t = maxY > minY ? (p.y - minY) / (maxY - minY) : 1;
+      const k = (1 - (part.shade ?? 0) * (1 - t)) * (0.94 + 0.06 * nrm.getY(i));
+      colors[i * 3] = color.r * k;
+      colors[i * 3 + 1] = color.g * k;
+      colors[i * 3 + 2] = color.b * k;
+      if (part.bones.length === 1) {
+        skinIndex[i * 4] = index.get(part.bones[0])!;
+        skinWeight[i * 4] = 1;
+        continue;
       }
+      // Automatic weights: inverse fourth power of the distance to each bone segment, best two kept.
+      const ws = part.bones
+        .map((b) => ({ b, w: 1 / (Math.pow(distToSegment(p, b), 4) + 1e-7) }))
+        .sort((x, y) => y.w - x.w)
+        .slice(0, 2);
+      const total = ws.reduce((a, x) => a + x.w, 0);
+      ws.forEach((x, j) => {
+        skinIndex[i * 4 + j] = index.get(x.b)!;
+        skinWeight[i * 4 + j] = x.w / total;
+      });
     }
     g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4));
     g.setAttribute('skinWeight', new THREE.BufferAttribute(skinWeight, 4));
     pieces.push(g);
-    if (g !== part.geometry) part.geometry.dispose();
   }
   const merged = mergeGeometries(pieces, false);
-  for (const p of pieces) p.dispose();
+  for (const piece of pieces) piece.dispose();
   if (!merged) throw new Error('rig: could not merge body parts');
   merged.computeBoundingSphere();
   return merged;
@@ -216,11 +372,11 @@ function buildGeometry(outfit: Outfit, kit: Kit): THREE.BufferGeometry {
 
 const geometryCache = new Map<string, THREE.BufferGeometry>();
 
-function cachedGeometry(outfit: Outfit, kit: Kit): THREE.BufferGeometry {
-  const key = `${outfit}|${kit.shirt}|${kit.trim}|${kit.trousers}|${kit.skin}|${kit.helmet}`;
+function cachedGeometry(outfit: Outfit, kit: Kit, detail: Detail): THREE.BufferGeometry {
+  const key = `${outfit}|${kit.shirt}|${kit.trim}|${kit.trousers}|${kit.skin}|${kit.helmet}|${kit.hair ?? ''}|${detail}`;
   let g = geometryCache.get(key);
   if (!g) {
-    g = buildGeometry(outfit, kit);
+    g = buildGeometry(outfit, kit, detail);
     geometryCache.set(key, g);
   }
   return g;
@@ -241,13 +397,15 @@ export interface RiggedCharacter {
   /** A node the batting clips animate: the bat handle's position and direction. */
   batControl: THREE.Object3D;
   material: THREE.Material;
+  /** Number of triangles in the body mesh. */
+  triangles: number;
 }
 
 let sharedMaterial: THREE.MeshStandardMaterial | null = null;
 
 function material(): THREE.MeshStandardMaterial {
   if (!sharedMaterial) {
-    sharedMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.02 });
+    sharedMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.68, metalness: 0.0 });
   }
   return sharedMaterial;
 }
@@ -258,7 +416,7 @@ export function disposeRigMaterial(): void {
 }
 
 /** Build one skinned, rigged character. Geometry and material are shared; the skeleton is its own. */
-export function createCharacter(outfit: Outfit, kit: Kit, name = 'Character'): RiggedCharacter {
+export function createCharacter(outfit: Outfit, kit: Kit, name = 'Character', detail: Detail = 'high'): RiggedCharacter {
   const bones: Record<string, THREE.Bone> = {};
   for (const spec of BONES) {
     const bone = new THREE.Bone();
@@ -268,7 +426,8 @@ export function createCharacter(outfit: Outfit, kit: Kit, name = 'Character'): R
     if (spec.parent) bones[spec.parent].add(bone);
   }
   const skeleton = new THREE.Skeleton(BONE_NAMES.map((n) => bones[n]));
-  const mesh = new THREE.SkinnedMesh(cachedGeometry(outfit, kit), material());
+  const geometry = cachedGeometry(outfit, kit, detail);
+  const mesh = new THREE.SkinnedMesh(geometry, material());
   mesh.name = `${name}-mesh`;
   mesh.castShadow = true;
   mesh.frustumCulled = false;
@@ -280,9 +439,10 @@ export function createCharacter(outfit: Outfit, kit: Kit, name = 'Character'): R
   const batControl = new THREE.Object3D();
   batControl.name = 'BatControl';
   root.add(batControl);
-  return { root, mesh, skeleton, bones, batControl, material: mesh.material as THREE.Material };
+  return { root, mesh, skeleton, bones, batControl, material: mesh.material as THREE.Material, triangles: geometry.getAttribute('position').count / 3 };
 }
 
 export const DEFAULT_KIT: Kit = { shirt: '#1e5ef0', trim: '#f5c518', trousers: '#16336f', skin: '#b07a52', helmet: '#0f1b33' };
 
 export const SKIN_TONES = ['#8d5a3b', '#b07a52', '#c99a72', '#e0b896', '#6b4429', '#a36b45'];
+export const HAIR_COLOURS = ['#17110d', '#2b1d14', '#3d2a1c', '#0b0b0b', '#5a3d26'];

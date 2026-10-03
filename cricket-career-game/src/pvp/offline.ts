@@ -51,6 +51,25 @@ export class OfflineBackend implements PvpBackend {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private saving: Promise<void> = Promise.resolve();
   private persistent = true;
+  /** Paused time is cut out of the match clock, so deadlines never expire during a pause. */
+  private pausedAt: number | null = null;
+  private pausedTotal = 0;
+  readonly pausable = true;
+
+  private now(): number {
+    return (this.pausedAt ?? Date.now()) - this.pausedTotal;
+  }
+
+  setPaused(paused: boolean): void {
+    if (paused && this.pausedAt === null) {
+      this.pausedAt = Date.now();
+      this.stopTimer();
+    } else if (!paused && this.pausedAt !== null) {
+      this.pausedTotal += Date.now() - this.pausedAt;
+      this.pausedAt = null;
+      this.schedule();
+    }
+  }
 
   private db(): UseStore {
     return (this.store ??= createStore('cricket-career-pvp', 'pvp'));
@@ -156,7 +175,7 @@ export class OfflineBackend implements PvpBackend {
     const seed = randomSeed();
     this.stopTimer();
     const matchId = `practice-${seed.toString(36)}`;
-    this.match = new PvpMatch({ matchId, seed, mode: 'PRACTICE', sides: [me, botSide(seed ^ 0x5bd1e995, new Date().toISOString())] }, Date.now());
+    this.match = new PvpMatch({ matchId, seed, mode: 'PRACTICE', sides: [me, botSide(seed ^ 0x5bd1e995, new Date().toISOString())] }, this.now());
     this.emitter.emit({ type: 'events', matchId, events: this.match.events });
     this.schedule();
     return { ok: true, data: { matchId, events: this.match.events } };
@@ -165,7 +184,7 @@ export class OfflineBackend implements PvpBackend {
   async sendAction(matchId: string, action: MatchAction): Promise<CallResult> {
     const m = this.match;
     if (!m || m.matchId !== matchId || !this.profile) return { ok: false, code: 'NO_MATCH', message: 'That match is not running.' };
-    const r = m.submit(this.profile.userId, action, Date.now());
+    const r = m.submit(this.profile.userId, action, this.now());
     if (!r.ok) return { ok: false, code: r.code, message: r.message };
     if (r.events.length) this.emitter.emit({ type: 'events', matchId, events: r.events });
     this.afterEvents();
@@ -182,16 +201,16 @@ export class OfflineBackend implements PvpBackend {
   private schedule(): void {
     this.stopTimer();
     const m = this.match;
-    if (!m || m.complete) return;
+    if (!m || m.complete || this.pausedAt !== null) return;
     const wake = m.nextWakeAt();
     if (wake === null) return;
     this.timer = setTimeout(() => {
       if (this.match !== m) return;
-      const events = m.tick(Date.now());
+      const events = m.tick(this.now());
       if (events.length) this.emitter.emit({ type: 'events', matchId: m.matchId, events });
       this.afterEvents();
       this.schedule();
-    }, Math.max(15, wake - Date.now()));
+    }, Math.max(15, wake - this.now()));
   }
 
   /** Pay out once the match is over - once, keyed by match id. */
@@ -204,7 +223,7 @@ export class OfflineBackend implements PvpBackend {
   }
 
   serverNow(): number {
-    return Date.now();
+    return this.now();
   }
 
   on(listener: Parameters<Emitter['on']>[0]): () => void {

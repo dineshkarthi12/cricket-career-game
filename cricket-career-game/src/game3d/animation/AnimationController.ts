@@ -63,6 +63,11 @@ export class AnimationController {
     return Boolean(info?.clip && this.actions.has(info.clip));
   }
 
+  /** Change the playing state's speed without restarting it (locomotion sync). */
+  setTimeScale(scale: number): void {
+    this.current?.action.setEffectiveTimeScale(scale);
+  }
+
   /** Current time into the playing clip, seconds. */
   get time(): number {
     return this.current?.action.time ?? 0;

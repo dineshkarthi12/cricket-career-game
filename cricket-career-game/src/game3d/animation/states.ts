@@ -30,8 +30,11 @@ export const ANIMATION_STATES: StateInfo[] = [
   { state: 'BowlingRunUp', clip: 'BowlingRunUp', loop: true, source: P, note: 'Run cycle; the scene moves the bowler to the crease.' },
   { state: 'BowlingDelivery', clip: 'BowlingDelivery', loop: false, source: P, note: 'Pace action: bound, coil, release at 0.42 s, follow-through.' },
   { state: 'SpinDelivery', clip: 'SpinDelivery', loop: false, source: P, note: 'Spinner’s shorter action, release at 0.40 s.' },
-  { state: 'BattingDefence', clip: 'BattingDefence', loop: false, source: P, note: 'Front-foot block, dead bat.' },
-  { state: 'BattingDrive', clip: 'BattingDrive', loop: false, source: P, note: 'Front-foot drive, contact at 0.42 s.' },
+  { state: 'BattingReady', clip: 'BattingReady', loop: false, source: P, note: 'Trigger movement and backlift as the bowler arrives.' },
+  { state: 'BattingDefence', clip: 'BattingDefence', loop: false, source: P, note: 'Front-foot defence, dead bat.' },
+  { state: 'BattingBackDefence', clip: 'BattingBackDefence', loop: false, source: P, note: 'Back-foot defence: back and across, bat under the eyes.' },
+  { state: 'BattingDrive', clip: 'BattingDrive', loop: false, source: P, note: 'Straight drive, contact at 0.42 s.' },
+  { state: 'BattingCoverDrive', clip: 'BattingCoverDrive', loop: false, source: P, note: 'Cover drive: stride to the off side, bat through to cover.' },
   { state: 'BattingPull', clip: 'BattingPull', loop: false, source: P, note: 'Back-foot pull, horizontal bat to leg.' },
   { state: 'BattingCut', clip: 'BattingCut', loop: false, source: P, note: 'Back-foot cut to the off side.' },
   { state: 'BattingSweep', clip: 'BattingSweep', loop: false, source: P, note: 'Down on one knee, sweeping to leg.' },
@@ -40,6 +43,8 @@ export const ANIMATION_STATES: StateInfo[] = [
   { state: 'MissedShot', clip: 'MissedShot', loop: false, source: P, note: 'Swing inside the line; only played when the engine records a miss.' },
   { state: 'Contact', clip: null, loop: false, source: 'SYSTEM', note: 'Not a clip: the moment the engine’s outcome says bat met ball (sound, ball deflection).' },
   { state: 'RunBetweenWickets', clip: 'RunBetweenWickets', loop: true, source: P, note: 'Run cycle carrying the bat.' },
+  { state: 'RunTurn', clip: 'RunTurn', loop: false, source: P, note: 'Ground the bat and turn at the crease.' },
+  { state: 'SlideBat', clip: 'SlideBat', loop: false, source: P, note: 'Slide the bat into the crease to finish a run.' },
   { state: 'Sprint', clip: 'Sprint', loop: true, source: P, note: 'Fielder chasing.' },
   { state: 'FieldingReady', clip: 'FieldingReady', loop: true, source: P, note: 'Crouched, walking in.' },
   { state: 'FieldingStop', clip: 'FieldingStop', loop: false, source: P, note: 'Bend and gather.' },
@@ -48,6 +53,9 @@ export const ANIMATION_STATES: StateInfo[] = [
   { state: 'Throwing', clip: 'Throwing', loop: false, source: P, note: 'Side-on overarm throw.' },
   { state: 'WicketkeeperReady', clip: 'WicketkeeperReady', loop: true, source: P, note: 'Deep crouch.' },
   { state: 'WicketkeeperAction', clip: 'WicketkeeperAction', loop: false, source: P, note: 'Rise and take the ball.' },
+  { state: 'WicketkeeperCollect', clip: 'WicketkeeperCollect', loop: false, source: P, note: 'Take the throw and sweep the gloves to the stumps.' },
+  { state: 'BowlerAppeal', clip: 'BowlerAppeal', loop: false, source: P, note: 'Turn and appeal, arms up.' },
+  { state: 'Disappointment', clip: 'Disappointment', loop: false, source: P, note: 'Hands on head after a near miss or a boundary.' },
   { state: 'Celebration', clip: 'Celebration', loop: false, source: P, note: 'Jump, arms up.' },
   { state: 'DismissalReaction', clip: 'DismissalReaction', loop: false, source: P, note: 'Head down, hands on hips.' },
   { state: 'WalkBack', clip: 'WalkBack', loop: true, source: P, note: 'Head-down walk off.' },
@@ -57,6 +65,8 @@ export const ANIMATION_STATES: StateInfo[] = [
   { state: 'UmpireFour', clip: 'UmpireFour', loop: false, source: P, note: 'Arm waved across the body.' },
   { state: 'UmpireSix', clip: 'UmpireSix', loop: false, source: P, note: 'Both arms raised.' },
   { state: 'UmpireWide', clip: 'UmpireWide', loop: false, source: P, note: 'Arms out to the sides.' },
+  { state: 'UmpireNoBall', clip: 'UmpireNoBall', loop: false, source: P, note: 'One arm out horizontally.' },
+  { state: 'UmpireBye', clip: 'UmpireBye', loop: false, source: P, note: 'Open hand raised.' },
   { state: 'Transition', clip: null, loop: false, source: 'SYSTEM', note: 'Not a clip: cross-fades between any two states (AnimationController).' },
 ];
 
@@ -64,7 +74,7 @@ export const STATE_INFO: Record<string, StateInfo> = Object.fromEntries(ANIMATIO
 
 /** States that use the bat-and-IK batting rig. */
 export const BATTING_STATES = new Set([
-  'BattingIdle', 'BattingDefence', 'BattingDrive', 'BattingPull', 'BattingCut', 'BattingSweep', 'BattingLoftedShot', 'BattingLeave', 'MissedShot',
+  'BattingIdle', 'BattingReady', 'BattingBackDefence', 'BattingCoverDrive', 'BattingDefence', 'BattingDrive', 'BattingPull', 'BattingCut', 'BattingSweep', 'BattingLoftedShot', 'BattingLeave', 'MissedShot',
 ]);
 
 /** Motion that the brief asked for but no licensed asset was found for. Listed in the Lab. */

@@ -33,6 +33,9 @@ export interface PvpBackend {
   connect(): Promise<PvpProfile>;
   call(op: RequestOp, args?: RequestArgs): Promise<CallResult>;
   sendAction(matchId: string, action: MatchAction): Promise<CallResult>;
+  /** Only the offline demo can pause a match; an online match has another player. */
+  readonly pausable?: boolean;
+  setPaused?(paused: boolean): void;
   /** The authority's clock, ms - event times are on this clock. */
   serverNow(): number;
   on(listener: (event: BackendEvent) => void): () => void;

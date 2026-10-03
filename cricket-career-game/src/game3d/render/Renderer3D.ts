@@ -91,7 +91,9 @@ export class Renderer3D {
     this.last = performance.now();
     this.renderer.setAnimationLoop((now: number) => {
       if (this.paused) return;
-      const dt = Math.min(0.1, Math.max(0, (now - this.last) / 1000));
+      // Slow devices still play a ball in real time (the authority's deadlines do not wait);
+      // only a long stall (a hidden tab) is cut short.
+      const dt = Math.min(0.25, Math.max(0, (now - this.last) / 1000));
       this.last = now;
       this.frame?.(dt, now);
       this.measure(dt);

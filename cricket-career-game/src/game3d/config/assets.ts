@@ -45,7 +45,7 @@ export const ASSETS: AssetEntry[] = [
     path: null,
     format: 'Generated at runtime (THREE.SkinnedMesh)',
     skeleton: '22 bones, Mixamo-style names (Hips, Spine, Spine1, Spine2, Neck, Head, Left/Right Shoulder, Arm, ForeArm, Hand, UpLeg, Leg, Foot, ToeBase)',
-    clips: '30 hand-keyed clips (clips.ts) - procedural, not motion capture',
+    clips: '41 hand-keyed clips (clips.ts), spline-smoothed - procedural, not motion capture',
     cricketSpecific: true,
     notes: 'Low-poly stylised players. Used for every character in the match scene.',
   },

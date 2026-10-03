@@ -45,23 +45,39 @@ export function createStadium(scene: THREE.Scene, quality: Quality, time: TimeOf
   };
 
   // --- Outfield ------------------------------------------------------------
+  const gsize = quality === 'high' ? 2048 : 1024;
   const grass = track(
-    canvasTexture(1024, 1024, (ctx) => {
-      ctx.fillStyle = '#3f8f3a';
-      ctx.fillRect(0, 0, 1024, 1024);
-      for (let i = 0; i < 16; i += 1) {
-        ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.045)';
-        ctx.fillRect(i * 64, 0, 64, 1024);
+    canvasTexture(gsize, gsize, (ctx) => {
+      const S = gsize;
+      ctx.fillStyle = '#3d8b37';
+      ctx.fillRect(0, 0, S, S);
+      // Mowing: wide straight stripes across the ground and a lighter square in the middle.
+      const bands = 18;
+      for (let i = 0; i < bands; i += 1) {
+        ctx.fillStyle = i % 2 ? 'rgba(255,255,240,0.07)' : 'rgba(0,30,0,0.06)';
+        ctx.fillRect((i * S) / bands, 0, S / bands, S);
       }
-      // Fine noise so the grass is not flat colour.
-      const img = ctx.getImageData(0, 0, 1024, 1024);
-      for (let p = 0; p < img.data.length; p += 4) {
-        const n = (Math.random() - 0.5) * 14;
-        img.data[p] += n;
-        img.data[p + 1] += n;
-        img.data[p + 2] += n * 0.5;
+      ctx.fillStyle = 'rgba(255,255,220,0.05)';
+      ctx.fillRect(S * 0.42, S * 0.3, S * 0.16, S * 0.4);
+      // Blades: thousands of short strokes in slightly different greens.
+      const blades = quality === 'low' ? 30000 : 90000;
+      for (let i = 0; i < blades; i += 1) {
+        const g = 110 + Math.random() * 60;
+        ctx.strokeStyle = `rgba(${40 + Math.random() * 30},${g},${30 + Math.random() * 25},0.35)`;
+        ctx.lineWidth = 1;
+        const x = Math.random() * S;
+        const y = Math.random() * S;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + (Math.random() - 0.5) * 2, y + 2 + Math.random() * 3);
+        ctx.stroke();
       }
-      ctx.putImageData(img, 0, 0);
+      // A worn, slightly darker edge where the rope is.
+      const edge = ctx.createRadialGradient(S / 2, S / 2, S * 0.44, S / 2, S / 2, S * 0.5);
+      edge.addColorStop(0, 'rgba(0,0,0,0)');
+      edge.addColorStop(1, 'rgba(10,30,5,0.25)');
+      ctx.fillStyle = edge;
+      ctx.fillRect(0, 0, S, S);
     }),
   );
   const field = new THREE.Mesh(
@@ -78,9 +94,25 @@ export function createStadium(scene: THREE.Scene, quality: Quality, time: TimeOf
       const scale = 2048 / 24;
       ctx.fillStyle = '#c9b183';
       ctx.fillRect(0, 0, 256, 2048);
-      for (let i = 0; i < 2500; i += 1) {
+      for (let i = 0; i < 4500; i += 1) {
         ctx.fillStyle = `rgba(${90 + Math.random() * 60},${70 + Math.random() * 40},40,${Math.random() * 0.12})`;
         ctx.fillRect(Math.random() * 256, Math.random() * 2048, 2 + Math.random() * 6, 1 + Math.random() * 3);
+      }
+      // Wisps of live grass left on the surface.
+      for (let i = 0; i < 1800; i += 1) {
+        ctx.fillStyle = `rgba(90,${120 + Math.random() * 40},60,${0.1 + Math.random() * 0.15})`;
+        ctx.fillRect(Math.random() * 256, Math.random() * 2048, 1, 2 + Math.random() * 3);
+      }
+      // Wear: footmarks at both creases and the bowlers' landing area.
+      for (const end of [-1, 1]) {
+        for (const [m, w, a] of [[end * 8.9, 120, 0.25], [end * 6.5, 160, 0.12], [end * 9.6, 200, 0.18]] as const) {
+          const cy = 1024 - m * scale;
+          const g = ctx.createRadialGradient(128, cy, 4, 128, cy, w);
+          g.addColorStop(0, `rgba(120,90,55,${a})`);
+          g.addColorStop(1, 'rgba(120,90,55,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, cy - w, 256, w * 2);
+        }
       }
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 5;
@@ -174,10 +206,27 @@ export function createStadium(scene: THREE.Scene, quality: Quality, time: TimeOf
   }
   const outer = inner + 1.6 + tiers * 1.6;
   profile.push(new THREE.Vector2(outer, 1.2 + tiers * 1.05 + 4), new THREE.Vector2(outer + 2, 0));
-  const stands = new THREE.Mesh(
-    track(new THREE.LatheGeometry(profile, quality === 'low' ? 48 : 96)),
-    track(new THREE.MeshStandardMaterial({ color: '#2c3a57', roughness: 0.9, side: THREE.DoubleSide })),
-  );
+  const standGeo = track(new THREE.LatheGeometry(profile, quality === 'low' ? 48 : 96));
+  {
+    // Seat rows: each tier alternates blue and navy; risers are darker than seats.
+    const pos = standGeo.getAttribute('position');
+    const nrm = standGeo.getAttribute('normal');
+    const colors = new Float32Array(pos.count * 3);
+    const seatA = new THREE.Color('#2b4a8c');
+    const seatB = new THREE.Color('#1f3463');
+    const riser = new THREE.Color('#14203a');
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i += 1) {
+      const tier = Math.floor((pos.getY(i) - 1.2) / 1.05 + 0.01);
+      const flat = Math.abs(nrm.getY(i)) > 0.5;
+      c.copy(flat ? (tier % 2 ? seatA : seatB) : riser);
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    standGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  }
+  const stands = new THREE.Mesh(standGeo, track(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide })));
   stands.receiveShadow = quality === 'high';
   group.add(stands);
   // Roof ring.
@@ -213,10 +262,33 @@ export function createStadium(scene: THREE.Scene, quality: Quality, time: TimeOf
   }
   crowd.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   group.add(crowd);
+  // Heads in a range of skin tones (a second instanced draw call).
+  const headGeo = track(new THREE.SphereGeometry(0.15, 6, 5));
+  const heads = new THREE.InstancedMesh(headGeo, crowdMat, seats.length);
+  const tones = ['#8d5a3b', '#b07a52', '#c99a72', '#e0b896', '#6b4429'].map((t) => new THREE.Color(t));
+  seats.forEach((st, i) => {
+    m.makeTranslation(st.x, st.y + 0.55, st.z);
+    heads.setMatrixAt(i, m);
+    heads.setColorAt(i, tones[i % tones.length]);
+  });
+  heads.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  group.add(heads);
 
   // --- Floodlights ------------------------------------------------------------
   const towerMat = track(new THREE.MeshStandardMaterial({ color: '#9aa3b5', metalness: 0.4, roughness: 0.5 }));
   const lampMat = track(new THREE.MeshStandardMaterial({ color: '#fffbe8', emissive: '#fff6d0', emissiveIntensity: time === 'night' ? 2.2 : 0.2 }));
+  const glowTex = track(
+    canvasTexture(64, 64, (ctx) => {
+      const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      g.addColorStop(0, 'rgba(255,250,225,0.9)');
+      g.addColorStop(0.35, 'rgba(255,245,200,0.35)');
+      g.addColorStop(1, 'rgba(255,240,200,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 64, 64);
+    }),
+  );
+  const glowMat = track(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  const glows: THREE.Sprite[] = [];
   for (let i = 0; i < 4; i += 1) {
     const a = Math.PI / 4 + (i * Math.PI) / 2;
     const r = outer + 6;
@@ -226,6 +298,11 @@ export function createStadium(scene: THREE.Scene, quality: Quality, time: TimeOf
     lamp.position.set(Math.sin(a) * (r - 1), 47, Math.cos(a) * (r - 1));
     lamp.lookAt(0, 0, 0);
     group.add(tower, lamp);
+    const glow = new THREE.Sprite(glowMat);
+    glow.position.copy(lamp.position).multiplyScalar(0.985);
+    glow.scale.set(26, 18, 1);
+    glows.push(glow);
+    group.add(glow);
   }
 
   // --- Scoreboard -------------------------------------------------------------
@@ -303,6 +380,7 @@ export function createStadium(scene: THREE.Scene, quality: Quality, time: TimeOf
       sun.intensity = 2.8;
       sun.color.set('#f4f1ff');
       lampMat.emissiveIntensity = 2.2;
+      for (const g of glows) g.visible = true;
       scene.fog = new THREE.Fog('#0b1630', 180, 420);
     } else {
       skyMat.uniforms.top.value.set('#3f7fe0');
@@ -312,6 +390,7 @@ export function createStadium(scene: THREE.Scene, quality: Quality, time: TimeOf
       sun.intensity = 2.4;
       sun.color.set('#fff6e6');
       lampMat.emissiveIntensity = 0.2;
+      for (const g of glows) g.visible = false;
       scene.fog = new THREE.Fog('#cfe3ff', 220, 460);
     }
   };
@@ -330,15 +409,20 @@ export function createStadium(scene: THREE.Scene, quality: Quality, time: TimeOf
       // Only a slice of the crowd is animated - enough to read as a cheer.
       for (let i = 0; i < crowdLimit; i += 1) {
         const s = seats[i];
-        m.makeTranslation(s.x, s.y + Math.max(0, Math.sin(t * 9 + s.phase)) * 0.35 * cheer, s.z);
+        const jump = Math.max(0, Math.sin(t * 9 + s.phase)) * 0.35 * cheer;
+        m.makeTranslation(s.x, s.y + jump, s.z);
         crowd.setMatrixAt(i, m);
+        m.makeTranslation(s.x, s.y + 0.55 + jump, s.z);
+        heads.setMatrixAt(i, m);
       }
       crowd.instanceMatrix.needsUpdate = true;
+      heads.instanceMatrix.needsUpdate = true;
     },
     dispose() {
       scene.remove(group);
       for (const d of disposables) d.dispose();
       crowd.dispose();
+      heads.dispose();
       dots.dispose();
       strikerStumps.group.traverse((o) => o instanceof THREE.Mesh && o.geometry.dispose());
       bowlerStumps.group.traverse((o) => o instanceof THREE.Mesh && o.geometry.dispose());

@@ -50,11 +50,72 @@ export function batQuaternion(dir: V3, roll = 0): THREE.Quaternion {
   return q;
 }
 
+const SAMPLE_FPS = 30;
+
+/**
+ * Resample a keyframe track with a Hermite spline whose tangents come from
+ * the neighbouring keys (non-uniform Catmull-Rom). Motion keeps its velocity
+ * through each key instead of moving at constant speed between poses and
+ * snapping - the main cause of a "robotic" look. One-shot clips ease in and
+ * out at their ends; looping clips wrap their tangents so the cycle is seamless.
+ */
+export function smoothValues(times: number[], values: number[], stride: number, loop: boolean, quaternion: boolean): { times: number[]; values: number[] } {
+  const n = times.length;
+  if (n < 3) return { times, values };
+  const at = (i: number, c: number) => values[i * stride + c];
+  const tangent = (i: number, c: number): number => {
+    if (i === 0 || i === n - 1) {
+      if (!loop) return 0;
+      // Loop: neighbours across the seam (first and last keys hold the same pose).
+      const span = times[1] - times[0] + (times[n - 1] - times[n - 2]);
+      return (at(1, c) - at(n - 2, c)) / span;
+    }
+    return (at(i + 1, c) - at(i - 1, c)) / (times[i + 1] - times[i - 1]);
+  };
+  const outT: number[] = [];
+  const outV: number[] = [];
+  const duration = times[n - 1];
+  const steps = Math.max(n, Math.round(duration * SAMPLE_FPS));
+  let seg = 0;
+  for (let s = 0; s <= steps; s += 1) {
+    const t = (duration * s) / steps;
+    while (seg < n - 2 && t > times[seg + 1]) seg += 1;
+    const t0 = times[seg];
+    const t1 = times[seg + 1];
+    const h = t1 - t0;
+    const u = h > 0 ? Math.min(1, Math.max(0, (t - t0) / h)) : 0;
+    const u2 = u * u;
+    const u3 = u2 * u;
+    const h00 = 2 * u3 - 3 * u2 + 1;
+    const h10 = u3 - 2 * u2 + u;
+    const h01 = -2 * u3 + 3 * u2;
+    const h11 = u3 - u2;
+    outT.push(t);
+    const start = outV.length;
+    for (let c = 0; c < stride; c += 1) {
+      outV.push(h00 * at(seg, c) + h10 * h * tangent(seg, c) + h01 * at(seg + 1, c) + h11 * h * tangent(seg + 1, c));
+    }
+    if (quaternion) {
+      const len = Math.hypot(outV[start], outV[start + 1], outV[start + 2], outV[start + 3]) || 1;
+      for (let c = 0; c < 4; c += 1) outV[start + c] /= len;
+    }
+  }
+  return { times: outT, values: outV };
+}
+
+function smoothTrack(track: THREE.KeyframeTrack, loop: boolean): THREE.KeyframeTrack {
+  const quaternion = track instanceof THREE.QuaternionKeyframeTrack;
+  const stride = quaternion ? 4 : 3;
+  const r = smoothValues(Array.from(track.times), Array.from(track.values), stride, loop, quaternion);
+  return quaternion ? new THREE.QuaternionKeyframeTrack(track.name, r.times, r.values) : new THREE.VectorKeyframeTrack(track.name, r.times, r.values);
+}
+
 /**
  * Build a clip from poses. Bones missing from a key are at rest in that key,
- * so every key is a complete pose and clips start and end cleanly.
+ * so every key is a complete pose and clips start and end cleanly. Tracks are
+ * spline-smoothed (`smoothValues`).
  */
-export function buildClip(name: string, keys: Key[]): THREE.AnimationClip {
+export function buildClip(name: string, keys: Key[], options: { loop?: boolean } = {}): THREE.AnimationClip {
   const times = keys.map((k) => k.t);
   const tracks: THREE.KeyframeTrack[] = [];
   const used = new Set<string>();
@@ -96,7 +157,7 @@ export function buildClip(name: string, keys: Key[]): THREE.AnimationClip {
     tracks.push(new THREE.VectorKeyframeTrack('BatControl.position', times, pos));
     tracks.push(new THREE.QuaternionKeyframeTrack('BatControl.quaternion', times, rot));
   }
-  return new THREE.AnimationClip(name, keys[keys.length - 1].t, tracks);
+  return new THREE.AnimationClip(name, keys[keys.length - 1].t, tracks.map((t) => smoothTrack(t, Boolean(options.loop))));
 }
 
 // ------------------------------------------------------------------ poses
@@ -177,26 +238,49 @@ const LEAVE_POSE: Pose = { hips: [-0.02, -0.06, 0], bones: { ...BACK_FOOT, Spine
 // ------------------------------------------------------------------ cycles
 
 function runCycle(name: string, period: number, stride: number, armSwing: number, lean: number, batArm = false): THREE.AnimationClip {
-  const a = (s: number): Pose => ({
-    hips: [0, s === 0 || s === 2 ? -0.03 : 0.035, 0],
-    bones: {
-      LeftUpLeg: [s === 0 ? -stride : s === 2 ? stride * 0.6 : -stride * 0.2, 0, 3],
-      RightUpLeg: [s === 0 ? stride * 0.6 : s === 2 ? -stride : -stride * 0.2, 0, -3],
-      LeftLeg: [s === 0 ? 25 : s === 2 ? 75 : 50, 0, 0],
-      RightLeg: [s === 0 ? 75 : s === 2 ? 25 : 50, 0, 0],
-      LeftArm: [s === 0 ? armSwing : s === 2 ? -armSwing : 0, 0, 8],
-      RightArm: batArm ? [-35, 0, -10] : [s === 0 ? -armSwing : s === 2 ? armSwing : 0, 0, -8],
-      LeftForeArm: [-80, 0, 0], RightForeArm: [batArm ? -55 : -80, 0, 0],
-      Spine: [lean, 0, 0], Spine2: [4, s === 0 ? -8 : s === 2 ? 8 : 0, 0],
-    },
-  });
-  return buildClip(name, [
-    { t: 0, pose: a(0) },
-    { t: period * 0.25, pose: a(1) },
-    { t: period * 0.5, pose: a(2) },
-    { t: period * 0.75, pose: a(1) },
-    { t: period, pose: a(0) },
-  ]);
+  // Four poses per step (contact, down, passing, up); the second step mirrors the first.
+  const step = (left: boolean, phase: 0 | 1 | 2 | 3): Pose => {
+    const f = left ? 'Left' : 'Right';
+    const b = left ? 'Right' : 'Left';
+    const reach = [-stride, -stride * 0.55, -stride * 0.1, stride * 0.15][phase];
+    const back = [stride * 0.55, stride * 0.3, -stride * 0.45, -stride * 0.85][phase];
+    const frontKnee = [12, 38, 70, 95][phase];
+    const backKnee = [35, 20, 95, 70][phase];
+    const swing = left ? armSwing : -armSwing;
+    const bones: Partial<Record<string, V3>> = {
+      [`${f}UpLeg`]: [reach, 0, left ? 3 : -3],
+      [`${b}UpLeg`]: [back, 0, left ? -3 : 3],
+      [`${f}Leg`]: [frontKnee, 0, 0],
+      [`${b}Leg`]: [backKnee, 0, 0],
+      [`${f}Foot`]: [phase === 0 ? -12 : phase === 1 ? 5 : 20, 0, 0],
+      [`${b}Foot`]: [phase === 0 ? 25 : phase === 1 ? 35 : -5, 0, 0],
+      LeftArm: [swing * (phase < 2 ? 1 : 0.4), 0, 9],
+      RightArm: batArm ? [-38, 0, -10] : [-swing * (phase < 2 ? 1 : 0.4), 0, -9],
+      LeftForeArm: [-82, 0, 0],
+      RightForeArm: [batArm ? -50 : -82, 0, 0],
+      Hips: [0, left ? -6 : 6, 0],
+      Spine: [lean, 0, 0],
+      Spine2: [3, left ? 10 : -10, 0],
+      Neck: [-lean * 0.5, left ? -4 : 4, 0],
+    };
+    return { hips: [0, [-0.035, -0.06, 0.01, 0.04][phase], 0], bones };
+  };
+  const q = period / 8;
+  return buildClip(
+    name,
+    [
+      { t: 0, pose: step(true, 0) },
+      { t: q, pose: step(true, 1) },
+      { t: 2 * q, pose: step(true, 2) },
+      { t: 3 * q, pose: step(true, 3) },
+      { t: 4 * q, pose: step(false, 0) },
+      { t: 5 * q, pose: step(false, 1) },
+      { t: 6 * q, pose: step(false, 2) },
+      { t: 7 * q, pose: step(false, 3) },
+      { t: period, pose: step(true, 0) },
+    ],
+    { loop: true },
+  );
 }
 
 function walkCycle(name: string, headDown = 0): THREE.AnimationClip {
@@ -214,7 +298,7 @@ function walkCycle(name: string, headDown = 0): THREE.AnimationClip {
     { t: 0, pose: a(true) },
     { t: 0.55, pose: a(false) },
     { t: 1.1, pose: a(true) },
-  ]);
+  ], { loop: true });
 }
 
 // ------------------------------------------------------------------ bowling
@@ -343,7 +427,7 @@ function idle(): THREE.AnimationClip {
     { t: 0, pose: a },
     { t: 1.5, pose: b },
     { t: 3, pose: a },
-  ]);
+  ], { loop: true });
 }
 
 function battingIdle(): THREE.AnimationClip {
@@ -352,7 +436,7 @@ function battingIdle(): THREE.AnimationClip {
     { t: 0, pose: STANCE },
     { t: 0.8, pose: tap },
     { t: 1.6, pose: STANCE },
-  ]);
+  ], { loop: true });
 }
 
 function keeperIdle(): THREE.AnimationClip {
@@ -360,7 +444,7 @@ function keeperIdle(): THREE.AnimationClip {
     { t: 0, pose: KEEPER_READY },
     { t: 1, pose: { ...KEEPER_READY, hips: [0, -0.5, 0] } },
     { t: 2, pose: KEEPER_READY },
-  ]);
+  ], { loop: true });
 }
 
 function fieldingReady(): THREE.AnimationClip {
@@ -368,7 +452,7 @@ function fieldingReady(): THREE.AnimationClip {
     { t: 0, pose: READY },
     { t: 0.6, pose: { ...READY, hips: [0, -0.1, 0] } },
     { t: 1.2, pose: READY },
-  ]);
+  ], { loop: true });
 }
 
 function umpire(name: string, signal: Pose, wave = false): THREE.AnimationClip {
@@ -383,6 +467,99 @@ function umpire(name: string, signal: Pose, wave = false): THREE.AnimationClip {
   }
   keys.push({ t: 1.9, pose: signal }, { t: 2.4, pose: {} });
   return buildClip(name, keys);
+}
+
+
+// ------------------------------------------------------------------ more batting
+
+/** The batter's trigger as the bowler arrives: a small back-and-across step and the backlift. */
+function battingReady(): THREE.AnimationClip {
+  const trigger: Pose = {
+    hips: [-0.02, -0.08, 0.02],
+    bones: { ...STANCE.bones, RightUpLeg: [-18, 0, -6], LeftUpLeg: [-12, 0, 7], Spine2: [10, -6, 0] },
+    bat: { pos: [-0.14, 1.12, 0.25], dir: [-0.5, 0.82, -0.05], roll: 0 },
+  };
+  return buildClip('BattingReady', [
+    { t: 0, pose: STANCE },
+    { t: 0.3, pose: trigger },
+    { t: 0.55, pose: BACKLIFT },
+    { t: 1.2, pose: BACKLIFT },
+  ]);
+}
+
+const BACK_DEFENCE: Pose = { hips: [-0.06, -0.05, 0.05], bones: { ...BACK_FOOT, Spine: [8, 0, 0], Spine2: [10, -6, 0], Neck: [14, 36, 0], Head: [12, 34, 0] }, bat: { pos: [0.06, 0.98, 0.37], dir: [0.02, -1, 0.06], roll: 90 } };
+
+const COVER_BODY = (lean: number): Partial<Record<string, V3>> => ({
+  LeftUpLeg: [-30, 0, 22], RightUpLeg: [-2, 0, -12],
+  LeftLeg: [38, 0, 0], RightLeg: [16, 0, 0],
+  LeftFoot: [-14, 0, 0], RightFoot: [-6, 0, 0],
+  Spine: [14 + lean, -6, -8], Spine2: [18 + lean, -12, -6],
+  Neck: [18, 40, 0], Head: [16, 34, 0],
+});
+const COVER_CONTACT: Pose = { hips: [0.13, -0.14, 0.06], bones: COVER_BODY(6), bat: { pos: [0.22, 0.74, 0.47], dir: [0.12, -1, 0.18], roll: 70 } };
+const COVER_FOLLOW: Pose = { hips: [0.14, -0.1, 0.06], bones: { ...COVER_BODY(2), Spine2: [10, 10, -6] }, bat: { pos: [0.12, 1.34, 0.42], dir: [0.3, 0.75, 0.6], roll: 70 } };
+
+// ------------------------------------------------------------------ running
+
+function runTurn(): THREE.AnimationClip {
+  const reach: Pose = {
+    hips: [0, -0.22, 0],
+    bones: { Spine: [38, 0, 0], Spine2: [12, 0, 0], LeftUpLeg: [-70, 0, 6], LeftLeg: [85, 0, 0], RightUpLeg: [15, 0, -6], RightLeg: [60, 0, 0], RightArm: [-70, 0, -8], RightForeArm: [-15, 0, 0], LeftArm: [25, 0, 12], LeftForeArm: [-40, 0, 0] },
+  };
+  return buildClip('RunTurn', [
+    { t: 0, pose: { bones: { Spine: [16, 0, 0], RightArm: [-38, 0, -10], RightForeArm: [-50, 0, 0], LeftForeArm: [-82, 0, 0] } } },
+    { t: 0.22, pose: reach },
+    { t: 0.5, pose: { hips: [0, -0.06, 0], bones: { Spine: [18, 0, 0], RightArm: [-38, 0, -10], RightForeArm: [-50, 0, 0], LeftForeArm: [-82, 0, 0] } } },
+  ]);
+}
+
+function slideBat(): THREE.AnimationClip {
+  const slide: Pose = {
+    hips: [0, -0.3, 0],
+    bones: { Spine: [45, 0, 0], Spine2: [12, 0, 0], Neck: [-25, 0, 0], LeftUpLeg: [-78, 0, 8], LeftLeg: [70, 0, 0], RightUpLeg: [30, 0, -6], RightLeg: [35, 0, 0], RightFoot: [30, 0, 0], RightArm: [-82, 0, -6], RightForeArm: [-6, 0, 0], LeftArm: [30, 0, 20], LeftForeArm: [-30, 0, 0] },
+  };
+  return buildClip('SlideBat', [
+    { t: 0, pose: { hips: [0, -0.03, 0], bones: { Spine: [16, 0, 0], RightArm: [-38, 0, -10], RightForeArm: [-50, 0, 0] } } },
+    { t: 0.28, pose: slide },
+    { t: 1.0, pose: slide },
+    { t: 1.5, pose: { hips: [0, -0.02, 0], bones: { Spine: [6, 0, 0], RightArm: [-20, 0, -8], RightForeArm: [-30, 0, 0] } } },
+  ]);
+}
+
+// ------------------------------------------------------------------ reactions
+
+function appeal(): THREE.AnimationClip {
+  const shout: Pose = {
+    hips: [0, -0.04, 0],
+    bones: { Hips: [0, 20, 0], Spine: [-8, 0, 0], Spine2: [-12, 10, 0], Neck: [-18, 0, 0], LeftArm: [-165, 0, 25], RightArm: [-150, 0, -30], LeftForeArm: [-15, 0, 0], RightForeArm: [-20, 0, 0], LeftUpLeg: [-30, 0, 5], LeftLeg: [40, 0, 0], RightUpLeg: [5, 0, -4] },
+  };
+  return buildClip('BowlerAppeal', [
+    { t: 0, pose: {} },
+    { t: 0.22, pose: shout },
+    { t: 0.5, pose: { ...shout, bones: { ...shout.bones, LeftArm: [-175, 0, 20], RightArm: [-160, 0, -25] } } },
+    { t: 1.3, pose: shout },
+  ]);
+}
+
+function disappointment(): THREE.AnimationClip {
+  const hands: Pose = { bones: { Neck: [-22, 0, 0], Head: [-10, 0, 0], Spine2: [-6, 0, 0], LeftArm: [-140, 0, 45], RightArm: [-140, 0, -45], LeftForeArm: [-125, 0, 0], RightForeArm: [-125, 0, 0] } };
+  return buildClip('Disappointment', [
+    { t: 0, pose: {} },
+    { t: 0.35, pose: hands },
+    { t: 1.4, pose: { ...hands, bones: { ...hands.bones, Neck: [-10, 15, 0] } } },
+    { t: 2.0, pose: { bones: { Neck: [15, 0, 0], LeftArm: [5, 0, 30], RightArm: [5, 0, -30], LeftForeArm: [-90, 0, 0], RightForeArm: [-90, 0, 0] } } },
+  ]);
+}
+
+function keeperCollect(): THREE.AnimationClip {
+  const take: Pose = { hips: [0, -0.32, 0], bones: { ...KEEPER_READY.bones, LeftUpLeg: [-55, 0, 25], RightUpLeg: [-55, 0, -25], LeftLeg: [70, 0, 0], RightLeg: [70, 0, 0], Spine: [18, 0, 0], LeftArm: [-80, 0, -10], RightArm: [-80, 0, 10], LeftForeArm: [-55, 0, 0], RightForeArm: [-55, 0, 0] } };
+  const toStumps: Pose = { hips: [0, -0.2, 0.2], bones: { ...take.bones, Spine: [35, 0, 0], Spine2: [0, 25, 0], LeftArm: [-70, 25, -10], RightArm: [-70, 25, 10], LeftForeArm: [-25, 0, 0], RightForeArm: [-25, 0, 0] } };
+  return buildClip('WicketkeeperCollect', [
+    { t: 0, pose: KEEPER_READY },
+    { t: 0.22, pose: take },
+    { t: 0.5, pose: toStumps },
+    { t: 1.2, pose: toStumps },
+  ]);
 }
 
 // ------------------------------------------------------------------ registry
@@ -424,6 +601,16 @@ export function cricketClips(mirrored = false): Record<string, THREE.AnimationCl
     idle(),
     battingIdle(),
     shot('BattingDrive', DRIVE_CONTACT, DRIVE_FOLLOW),
+    shot('BattingCoverDrive', COVER_CONTACT, COVER_FOLLOW),
+    shot('BattingBackDefence', BACK_DEFENCE, BACK_DEFENCE, [{ t: 0.62, pose: BACK_DEFENCE }]),
+    battingReady(),
+    runTurn(),
+    slideBat(),
+    appeal(),
+    disappointment(),
+    keeperCollect(),
+    umpire('UmpireNoBall', { bones: { RightArm: [0, 0, -88], RightForeArm: [0, 0, 0] } }),
+    umpire('UmpireBye', { bones: { RightArm: [-165, 0, -12], RightForeArm: [-8, 0, 0] } }),
     shot('BattingDefence', DEFENCE_CONTACT, { ...DEFENCE_CONTACT, bat: { pos: [0.18, 0.8, 0.36], dir: [0.02, -1, 0.04], roll: 90 } }, [{ t: 0.62, pose: DEFENCE_CONTACT }]),
     shot('BattingLoftedShot', LOFT_CONTACT, LOFT_FOLLOW),
     shot('BattingCut', CUT_CONTACT, CUT_FOLLOW),
@@ -454,7 +641,7 @@ export function cricketClips(mirrored = false): Record<string, THREE.AnimationCl
     keeperCatch(),
     celebration(),
     dismissal(),
-    buildClip('UmpireIdle', [{ t: 0, pose: { bones: { LeftArm: [-8, 0, 10], RightArm: [-8, 0, -10], LeftForeArm: [-60, 0, 0], RightForeArm: [-60, 0, 0] } } }, { t: 2, pose: { bones: { LeftArm: [-10, 0, 10], RightArm: [-10, 0, -10], LeftForeArm: [-62, 0, 0], RightForeArm: [-62, 0, 0] } } }]),
+    buildClip('UmpireIdle', [{ t: 0, pose: { bones: { LeftArm: [-8, 0, 10], RightArm: [-8, 0, -10], LeftForeArm: [-60, 0, 0], RightForeArm: [-60, 0, 0] } } }, { t: 1, pose: { hips: [0, -0.01, 0], bones: { LeftArm: [-11, 0, 10], RightArm: [-11, 0, -10], LeftForeArm: [-64, 0, 0], RightForeArm: [-64, 0, 0], Head: [0, 8, 0] } } }, { t: 2, pose: { bones: { LeftArm: [-8, 0, 10], RightArm: [-8, 0, -10], LeftForeArm: [-60, 0, 0], RightForeArm: [-60, 0, 0] } } }], { loop: true }),
     umpire('UmpireOut', { bones: { RightArm: [-178, 0, 4], RightForeArm: [0, 0, 0], Neck: [-5, 0, 0] } }),
     umpire('UmpireFour', { bones: { RightArm: [-90, 45, 0] } }, true),
     umpire('UmpireSix', { bones: { LeftArm: [0, 0, 175], RightArm: [0, 0, -175] } }),

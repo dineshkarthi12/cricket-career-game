@@ -7,14 +7,16 @@ import { describe, expect, it } from 'vitest';
 import { PvpMatch, autoPickSquad, claimStarter, createProfile, type MatchEvent, type MatchSetup, type PvpProfile, type SideSetup } from '@/engine/pvp';
 import { createRng } from '@/engine/match/rng';
 import { AnimationController } from './animation/AnimationController';
-import { cricketClips, mirrorClip, SHOT_CONTACT_SEC } from './animation/clips';
+import { cricketClips, mirrorClip, smoothValues, SHOT_CONTACT_SEC } from './animation/clips';
 import { ANIMATION_STATES, STATE_INFO } from './animation/states';
 import { Cricketer } from './characters/Cricketer';
 import { GRIP } from './characters/props';
 import { BONES, BONE_NAMES, DEFAULT_KIT, createCharacter } from './characters/rig';
 import { inspectSkeleton, parseGlb } from './characters/gltfInspect';
-import { batterStateFor, planAfterContact, type Spot } from './choreography';
-import { PITCH, deliveryPath, pointOnPath, ropeCrossing, radius } from './physics/ballFlight';
+import { RUN_MS, batterStateFor, planAfterContact, runLegs, runOutEnd, type Spot } from './choreography';
+import { PITCH, deliveryPath, movementFor, pointOn, pointOnPath, ropeCrossing, radius } from './physics/ballFlight';
+import { deriveView } from '@/screens/pvp/match/view';
+import { seedEvents } from '@/screens/pvp/match/MatchScreen3D';
 
 describe('rig', () => {
   it('builds a skinned mesh bound to a full skeleton', () => {
@@ -203,10 +205,10 @@ describe('choreography follows the engine', () => {
         });
         // A miss or a leave never shows a shot that connects.
         if (r.contact === 'MISS' || r.contact === 'NO_SHOT' || r.contact === 'PAD') {
-          expect(['BattingLeave', 'MissedShot', 'BattingDefence']).toContain(plan.batterState);
+          expect(['BattingLeave', 'MissedShot', 'BattingDefence', 'BattingBackDefence']).toContain(plan.batterState);
           expect(['KEEPER', 'STUMPS', 'PAD', 'BYES']).toContain(plan.end);
         }
-        expect(plan.batterState).toBe(batterStateFor(r.shot, r.contact));
+        expect(plan.batterState).toBe(batterStateFor(r.shot, r.contact, { angle: r.outcome.shotAngle }));
         // A boundary is never caught, and only a recorded catch shows a catch.
         if (r.outcome.isBoundaryFour || r.outcome.isBoundarySix) {
           expect(['FOUR', 'SIX']).toContain(plan.end);
@@ -229,11 +231,135 @@ describe('choreography follows the engine', () => {
         expect(plan.runs).toBeLessThanOrEqual(r.outcome.runsOffBat + (r.outcome.extras?.runs ?? 0));
         expect(plan.endMs).toBeGreaterThan(1000);
         for (const seg of plan.ballPath) expect(seg.t1).toBeGreaterThanOrEqual(seg.t0);
+        // The camera script is in time order, ends wide, and shows what happened.
+        for (let i = 1; i < plan.cues.length; i += 1) expect(plan.cues[i].at).toBeGreaterThanOrEqual(plan.cues[i - 1].at);
+        expect(plan.cues.some((c) => c.shot === 'WIDE')).toBe(true);
+        if (r.outcome.wicket) expect(plan.cues.some((c) => c.shot === 'CLOSE_UP')).toBe(true);
+        if (r.outcome.isBoundarySix) expect(plan.cues.some((c) => c.shot === 'BALL_FOLLOW' && c.high)).toBe(true);
+        if (plan.runs > 0 && !r.outcome.wicket) expect(plan.cues.some((c) => c.shot === 'RUNNING')).toBe(true);
+        if (r.outcome.wicket?.type === 'RUN_OUT') expect(plan.runOutEnd).not.toBeNull();
       }
     });
   }
 
   it('animation states in the table are consistent', () => {
     for (const s of ANIMATION_STATES) expect(STATE_INFO[s.state]).toBe(s);
+  });
+});
+
+describe('clip smoothing', () => {
+  it('passes through every key and keeps quaternions unit length', () => {
+    const q1 = new THREE.Quaternion();
+    const q2 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.8, 0.2, 0));
+    const q3 = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.3, 0.6, 0.4));
+    const times = [0, 0.3, 0.7];
+    const values = [...q1.toArray(), ...q2.toArray(), ...q3.toArray()];
+    const r = smoothValues(times, values, 4, false, true);
+    for (const [k, t] of times.entries()) {
+      const i = r.times.findIndex((x) => Math.abs(x - t) < 1e-6);
+      expect(i, `key ${k}`).toBeGreaterThanOrEqual(0);
+      for (let c = 0; c < 4; c += 1) expect(r.values[i * 4 + c]).toBeCloseTo(values[k * 4 + c], 4);
+    }
+    for (let i = 0; i < r.times.length; i += 1) expect(Math.hypot(...r.values.slice(i * 4, i * 4 + 4))).toBeCloseTo(1, 5);
+  });
+
+  it('has no jumps between samples (continuous motion)', () => {
+    const times = [0, 0.2, 0.5, 0.6, 1];
+    const values = [0, 0, 0, 1, 0.5, 0, -0.2, 0.3, 0, 0.4, 0, 0, 0, 0, 0];
+    const r = smoothValues(times, values, 3, true, false);
+    for (let i = 1; i < r.times.length; i += 1) {
+      const dt = r.times[i] - r.times[i - 1];
+      for (let c = 0; c < 3; c += 1) expect(Math.abs(r.values[i * 3 + c] - r.values[(i - 1) * 3 + c]) / dt).toBeLessThan(15);
+    }
+  });
+});
+
+describe('running between the wickets', () => {
+  it('both batters run every completed run and finish with the bat slid in', () => {
+    const legs = runLegs({ runs: 2, startMs: 1000, strikerId: 's', nonStrikerId: 'n', runOutId: null, bailsAtMs: null });
+    for (const id of ['s', 'n']) {
+      const mine = legs.filter((l) => l.batterId === id);
+      expect(mine.map((l) => l.finish)).toEqual(['TURN', 'SLIDE']);
+      expect(mine[0].endMs - mine[0].startMs).toBe(RUN_MS);
+    }
+    // Two runs: everyone is back where they started.
+    expect(legs.filter((l) => l.batterId === 's').at(-1)!.to).toBe('STRIKER');
+    expect(legs.filter((l) => l.batterId === 'n').at(-1)!.to).toBe('BOWLER');
+  });
+
+  it('a run-out batter is still short of the crease when the bails come off', () => {
+    const bailsAtMs = 1000 + RUN_MS + 2000;
+    const legs = runLegs({ runs: 1, startMs: 1000, strikerId: 's', nonStrikerId: 'n', runOutId: 'n', bailsAtMs });
+    const short = legs.find((l) => l.finish === 'SHORT')!;
+    expect(short.batterId).toBe('n');
+    expect(short.endMs).toBeGreaterThan(bailsAtMs);
+    // The dismissed non-striker was heading back to the striker's end on the second run.
+    expect(short.to).toBe(runOutEnd(1, false));
+    expect(runOutEnd(0, true)).toBe('BOWLER');
+    expect(runOutEnd(0, false)).toBe('STRIKER');
+    expect(runOutEnd(1, true)).toBe('STRIKER');
+  });
+});
+
+describe('swing and spin', () => {
+  const release = { x: 0.4, y: 2.2, z: PITCH.bowlerStumpsZ - 1 };
+  for (const [name, move] of [
+    ['swing', { swing: 0.35, turn: 0 }],
+    ['turn', { swing: 0, turn: 0.3 }],
+  ] as const) {
+    it(`${name} bends the path but the ball still arrives where the authority said`, () => {
+      const plain = deliveryPath({ release, releaseMs: 0, arrivalMs: 700, line: 'OFF_STUMP', length: 'GOOD', leftHanded: false, spin: name === 'turn' });
+      const moved = deliveryPath({ release, releaseMs: 0, arrivalMs: 700, line: 'OFF_STUMP', length: 'GOOD', leftHanded: false, spin: name === 'turn', ...move });
+      const a = plain.at(-1)!.to;
+      const b = moved.at(-1)!.to;
+      expect(b.x).toBeCloseTo(a.x, 6);
+      expect(b.z).toBeCloseTo(a.z, 6);
+      if (name === 'swing') expect(Math.abs(pointOn(moved[0], (moved[0].t0 + moved[0].t1) / 2).x - pointOn(plain[0], (plain[0].t0 + plain[0].t1) / 2).x)).toBeGreaterThan(0.1);
+      else expect(Math.abs(moved[0].to.x - plain[0].to.x)).toBeGreaterThan(0.2);
+    });
+  }
+
+  it('movement follows the delivery and the bowler', () => {
+    expect(movementFor({ deliveryType: 'SWING', bowlingStyle: 'RIGHT_ARM_FAST', speed: 135, seed: 7 }).swing).not.toBe(0);
+    const off = movementFor({ deliveryType: 'STOCK_SPIN', bowlingStyle: 'OFF_SPIN', speed: 85, seed: 1 }).turn;
+    const leg = movementFor({ deliveryType: 'STOCK_SPIN', bowlingStyle: 'LEG_SPIN', speed: 85, seed: 1 }).turn;
+    expect(Math.sign(off)).toBe(-Math.sign(leg));
+    expect(movementFor({ deliveryType: 'YORKER', bowlingStyle: 'RIGHT_ARM_FAST', speed: 140, seed: 3 })).toEqual({ swing: 0, turn: 0 });
+  });
+});
+
+describe('match view and scene seeding', () => {
+  for (const seed of [3, 11, 19]) {
+    it(`batters' and bowlers' figures add up to the score (seed ${seed})`, () => {
+      const all = events(seed);
+      // Stop at the end of the first innings, so the figures belong to it.
+      const cut = all.findIndex((e) => e.kind === 'INNINGS_END');
+      const view = deriveView(all.slice(0, cut + 1));
+      let bat = 0;
+      for (const b of view.batters.values()) bat += b.runs;
+      let conceded = 0;
+      let legal = 0;
+      for (const b of view.bowlers.values()) {
+        conceded += b.runs;
+        legal += b.balls;
+      }
+      const results = all.slice(0, cut).filter((e): e is Extract<MatchEvent, { kind: 'BALL_RESULT' }> => e.kind === 'BALL_RESULT');
+      const byes = results.reduce((n, r) => n + (r.outcome.extras && (r.outcome.extras.type === 'BYE' || r.outcome.extras.type === 'LEG_BYE') ? r.outcome.extras.runs : 0), 0);
+      const extras = results.reduce((n, r) => n + (r.outcome.extras && (r.outcome.extras.type === 'WIDE' || r.outcome.extras.type === 'NO_BALL') ? r.outcome.extras.runs : 0), 0);
+      expect(bat + extras + byes).toBe(view.score.runs);
+      expect(conceded + byes).toBe(view.score.runs);
+      expect(legal).toBe(view.score.balls);
+    });
+  }
+
+  it('seeds a new scene with the match as it stands, never a finished ball', () => {
+    const all = events(5);
+    const mid = all.findIndex((e, i) => e.kind === 'BALL_RELEASED' && i > all.length / 2);
+    const seeded = seedEvents(all.slice(0, mid + 1));
+    expect(seeded.map((e) => e.kind)).toEqual(['MATCH_START', 'INNINGS_START', 'DELIVERY_OPEN', 'BALL_RELEASED']);
+    const resolved = seedEvents(all.slice(0, mid + 2).concat(all.slice(mid + 1).find((e) => e.kind === 'BALL_RESULT') ?? []));
+    expect(resolved.some((e) => e.kind === 'BALL_RELEASED')).toBe(false);
+    const innings = [...all.slice(0, mid + 1)].reverse().find((e) => e.kind === 'INNINGS_START');
+    expect(seeded[1]).toBe(innings);
   });
 });

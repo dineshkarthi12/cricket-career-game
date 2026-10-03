@@ -1786,3 +1786,39 @@ routes, store, saves and economy). Design and operations: `docs/LIVE_PVP.md`;
 **Tests**: `src/engine/pvp/pvp.test.ts`, `src/game3d/game3d.test.ts`,
 `server/pvp-server.test.ts` (two real WebSocket clients play a ranked match);
 browser QA `scripts/qa-pvp.mjs`.
+
+## ✅ Phase 13 — Live PvP: gameplay, motion and camera upgrade
+
+The 3D match looked like a demo: the camera sat about 27 m back (the batter
+filled about 13% of the frame), bodies were capsules with rigid skinning, and
+clips moved linearly between sparse keys. This phase rebuilt those parts.
+
+**Done**
+- Anatomical procedural characters with role kit and automatic two-bone skin
+  weights; low-detail builds for distant fielders.
+- 41 spline-smoothed clips / 43 states: ready stance, front and back-foot
+  defence, straight and cover drive, pull, cut, sweep, loft, miss; run, turn,
+  slide the bat in; keeper collect; dive, catch, throw; appeal, celebration,
+  disappointment; umpire out/four/six/wide/no-ball/bye. Run cycles are speed
+  matched, heads track the ball, contact is at the bat's sweet spot.
+- Camera director with 7 states driven by per-ball cues, framing solved for the
+  screen's aspect ratio (desktop and upright phones checked in the browser).
+- Ball flight: swing in the air, turn off the pitch, a seam that spins, a trail
+  and a ground shadow; the ball still arrives where the authority placed it.
+- Running and run-outs follow the engine (`runLegs`, `runOutEnd`).
+- Stadium: grass and pitch wear, crowd colour variation, contact shadows,
+  pooled particles (pitch dust, confetti, fireworks, wicket debris).
+- Match screen: light scorebug (score, overs, CRR, target, RRR, need, striker
+  and non-striker with runs and balls, bowler figures, this over), commentary,
+  replay, pause (offline demo), settings, loading screen. The scorebug never
+  runs ahead of the scene. The bowl panel stays open while the last ball plays
+  out, and slow devices play in real time (frame step limit 0.25 s), so a slow
+  phone no longer misses its bowling deadline.
+- Tests: smoothing, run legs, camera cues, swing and turn, scorecard sums,
+  scene seeding. Full suite and build pass.
+
+**Procedural fallbacks / still needs external assets**
+- All characters and motion are procedural (no motion capture). Realistic GLB
+  cricketers and licensed cricket mocap would need a manual download (Mixamo,
+  Fab, Sketchfab are login-gated and blocked here); see the asset manifest.
+

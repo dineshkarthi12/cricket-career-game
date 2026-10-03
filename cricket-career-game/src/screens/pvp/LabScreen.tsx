@@ -23,11 +23,11 @@ const SOURCE_TONE: Record<AnimationSource, 'blue' | 'green' | 'gold' | 'grey' | 
 };
 
 const OUTFIT_STATES: Record<Outfit, string[]> = {
-  BATTER: ['BattingIdle', 'BattingDefence', 'BattingDrive', 'BattingPull', 'BattingCut', 'BattingSweep', 'BattingLoftedShot', 'BattingLeave', 'MissedShot', 'RunBetweenWickets', 'DismissalReaction', 'WalkBack', 'Idle'],
-  BOWLER: ['Idle', 'BowlingRunUp', 'BowlingDelivery', 'SpinDelivery', 'Walk', 'Celebration'],
+  BATTER: ['BattingIdle', 'BattingReady', 'BattingDefence', 'BattingBackDefence', 'BattingDrive', 'BattingCoverDrive', 'BattingPull', 'BattingCut', 'BattingSweep', 'BattingLoftedShot', 'BattingLeave', 'MissedShot', 'RunBetweenWickets', 'RunTurn', 'SlideBat', 'DismissalReaction', 'Disappointment', 'Celebration', 'WalkBack', 'Idle'],
+  BOWLER: ['Idle', 'BowlingRunUp', 'BowlingDelivery', 'SpinDelivery', 'BowlerAppeal', 'Disappointment', 'Walk', 'Celebration'],
   FIELDER: ['FieldingReady', 'Sprint', 'FieldingStop', 'FieldingDive', 'Catching', 'Throwing', 'Celebration'],
-  KEEPER: ['WicketkeeperReady', 'WicketkeeperAction', 'Celebration'],
-  UMPIRE: ['UmpireIdle', 'UmpireOut', 'UmpireFour', 'UmpireSix', 'UmpireWide'],
+  KEEPER: ['WicketkeeperReady', 'WicketkeeperAction', 'WicketkeeperCollect', 'BowlerAppeal', 'Celebration'],
+  UMPIRE: ['UmpireIdle', 'UmpireOut', 'UmpireFour', 'UmpireSix', 'UmpireWide', 'UmpireNoBall', 'UmpireBye'],
 };
 
 export default function LabScreen() {

@@ -20,22 +20,30 @@ Status values:
 | Asset | Status | Licence | Used for |
 |---|---|---|---|
 | Procedural cricketer rig (`src/game3d/characters/rig.ts`) | BUILT IN (PROCEDURAL) | This project | Every player, keeper and umpire in the match scene |
-| 30 procedural keyframe clips (`src/game3d/animation/clips.ts`) | BUILT IN (PROCEDURAL) | This project | All batting, bowling, fielding, keeping, celebration and umpire motion |
+| 41 procedural keyframe clips (`src/game3d/animation/clips.ts`) | BUILT IN (PROCEDURAL) | This project | All batting, bowling, fielding, keeping, running, appeal, reaction and umpire motion |
 | Procedural stadium (`src/game3d/scene/Stadium.ts`) | BUILT IN (PROCEDURAL) | This project | Ground, pitch, stands, crowd, lights, scoreboard |
 | Khronos **RiggedFigure** GLB | DOWNLOADED AND VERIFIED | CC BY 4.0, (c) 2017 Cesium | Test fixture for the GLB pipeline only, never shown as a cricketer |
 
 **The rig.** One `THREE.SkinnedMesh` per player, bound to a 22-bone
 `THREE.Skeleton`. Bones use Mixamo names: `Hips, Spine, Spine1, Spine2, Neck,
 Head`, plus `Left/Right` + `Shoulder, Arm, ForeArm, Hand, UpLeg, Leg, Foot,
-ToeBase`. Vertices near the elbows, knees and ankles are weighted across two
-bones so the joints bend smoothly. Kits are vertex colours, and each team and
-outfit shares one geometry.
+ToeBase`. The body is modelled anatomically from lathed and ellipsoid parts
+(torso with chest and shoulders, tapered limbs, hands, a head with nose, ears
+and hair), plus role kit: batting pads, gloves and helmet; keeping pads and
+gauntlets; the umpire's hat and coat. Skin weights are computed automatically
+from each vertex's distance to the nearest two bone segments, so the shoulders,
+elbows, hips and knees bend smoothly. Kits are vertex colours with baked
+shading, and each team and outfit shares one geometry. Distant fielders use a
+lower-detail build.
 
 **The clips.** These are hand-keyed in code, not motion capture: quaternion
 tracks per bone, played and cross-faded by a `THREE.AnimationMixer`. In the
 batting clips the clip keys the bat itself (`BatControl`), and two-bone arm IK
 puts both hands on the handle. Left-handers get properly mirrored clips
-(Left/Right tracks swapped and reflected), not a negative scale.
+(Left/Right tracks swapped and reflected), not a negative scale. Every track
+is resampled with a Hermite spline (`smoothValues`), so motion eases through
+the keys instead of moving linearly between poses. Run cycles are timed to the
+ground speed so feet do not slide, and heads turn to track the ball.
 
 ## Sources searched
 
@@ -55,7 +63,9 @@ cracked or re-hosted copy was used.
 No licensed motion capture of these could be obtained, so each is a
 procedural clip:
 
-- batting shots (drive, pull, cut, sweep, lofted drive, defence, leave, play and miss)
+- batting shots (stance, ready, front- and back-foot defence, straight and cover drive, pull, cut, sweep, lofted drive, leave, play and miss)
+- running between the wickets, turning and sliding the bat in
+- appeals, celebrations and disappointment
 - fast and spin bowling actions, the run-up and release
 - wicketkeeping, diving stops, catching and throwing
 - umpire signals

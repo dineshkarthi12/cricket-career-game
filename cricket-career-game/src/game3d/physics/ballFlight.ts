@@ -19,6 +19,11 @@ export interface Segment {
   t1: number;
   /** Extra height at the middle of the segment (a parabola), metres. */
   apex: number;
+  /**
+   * Sideways movement through the air (swing), metres: the ball starts and
+   * ends on its line but bends between, most late in the flight.
+   */
+  curve?: number;
 }
 
 export const GRAVITY = 9.81;
@@ -44,8 +49,10 @@ export function lerp(a: number, b: number, t: number): number {
 /** Position along a segment at time `t` (clamped to the segment). */
 export function pointOn(seg: Segment, t: number): Vec3 {
   const u = seg.t1 <= seg.t0 ? 1 : Math.max(0, Math.min(1, (t - seg.t0) / (seg.t1 - seg.t0)));
+  // u - u^3 peaks at u = 0.58: the bend comes late, like swing.
+  const bend = seg.curve ? seg.curve * 2.6 * (u - u * u * u) : 0;
   return {
-    x: lerp(seg.from.x, seg.to.x, u),
+    x: lerp(seg.from.x, seg.to.x, u) + bend,
     y: lerp(seg.from.y, seg.to.y, u) + 4 * seg.apex * u * (1 - u),
     z: lerp(seg.from.z, seg.to.z, u),
   };
@@ -113,20 +120,25 @@ export function deliveryPath(input: {
   spin: boolean;
   wide?: boolean;
   bouncer?: boolean;
+  /** Swing in the air, metres sideways at most (+X positive). */
+  swing?: number;
+  /** Turn off the pitch, metres sideways between bounce and bat (+X positive). */
+  turn?: number;
 }): Segment[] {
   const x = input.wide ? lineX('WIDE_OFF', input.leftHanded) * 1.25 : lineX(input.line, input.leftHanded);
   const arriveY = input.bouncer ? 1.75 : HEIGHT_AT_BAT[input.length];
   const arrival = v3(x, arriveY, PITCH.strikerZ + 0.25);
   const bounceDist = BOUNCE_FROM_STUMPS[input.length];
   if (bounceDist === null) {
-    return [{ from: input.release, to: arrival, t0: input.releaseMs, t1: input.arrivalMs, apex: input.spin ? 0.5 : 0.15 }];
+    return [{ from: input.release, to: arrival, t0: input.releaseMs, t1: input.arrivalMs, apex: input.spin ? 0.5 : 0.15, curve: input.swing ?? 0 }];
   }
-  const bounce = v3(x * 0.85, 0, PITCH.strikerStumpsZ + bounceDist);
+  // A spinning ball pitches off the line and turns back onto it.
+  const bounce = v3(x * 0.85 - (input.turn ?? 0), 0, PITCH.strikerStumpsZ + bounceDist);
   const total = Math.hypot(arrival.z - input.release.z, arrival.x - input.release.x);
   const first = Math.hypot(bounce.z - input.release.z, bounce.x - input.release.x);
   const tb = input.releaseMs + (input.arrivalMs - input.releaseMs) * Math.min(0.95, first / total);
   return [
-    { from: input.release, to: bounce, t0: input.releaseMs, t1: tb, apex: input.spin ? 0.7 : 0.18 },
+    { from: input.release, to: bounce, t0: input.releaseMs, t1: tb, apex: input.spin ? 0.7 : 0.18, curve: input.swing ?? 0 },
     { from: bounce, to: arrival, t0: tb, t1: input.arrivalMs, apex: Math.max(0.05, (arrival.y - 0) * 0.35) },
   ];
 }
@@ -166,4 +178,35 @@ export function ropeCrossing(angleDeg: number, leftHanded: boolean, beyond = 0):
   const c = sz * sz - PITCH.boundaryRadius * PITCH.boundaryRadius;
   const t = (-b + Math.sqrt(b * b - 4 * c)) / 2 + beyond;
   return v3(d.x * t, 0, sz + d.z * t);
+}
+
+/**
+ * How a delivery moves, for the picture: swing for seamers, turn for
+ * spinners, from the delivery type and the bowler's arm. The authority has
+ * already decided the line the ball arrives on; this only shapes the path to it.
+ */
+export function movementFor(input: { deliveryType: string; bowlingStyle: string; speed: number; seed: number }): { swing: number; turn: number } {
+  const left = input.bowlingStyle.startsWith('LEFT_ARM');
+  const r = ((input.seed >>> 0) % 1000) / 1000;
+  switch (input.deliveryType) {
+    case 'SWING':
+      return { swing: (r < 0.5 ? -1 : 1) * (0.22 + r * 0.18), turn: 0 };
+    case 'FAST':
+    case 'SLOWER':
+      return { swing: (r - 0.5) * 0.12, turn: 0 };
+    case 'STOCK_SPIN':
+    case 'FLIGHTED':
+    case 'QUICKER':
+    case 'MYSTERY': {
+      // Finger spin from a right-armer turns into a right-hander (+X); wrist spin away (-X).
+      const wrist = input.bowlingStyle === 'LEG_SPIN' || input.bowlingStyle === 'LEFT_ARM_WRIST_SPIN';
+      let dir = wrist ? -1 : 1;
+      if (left) dir *= -1;
+      if (input.deliveryType === 'MYSTERY') dir *= -1;
+      const amount = input.deliveryType === 'QUICKER' ? 0.08 : input.deliveryType === 'FLIGHTED' ? 0.32 : 0.22;
+      return { swing: 0, turn: dir * amount };
+    }
+    default:
+      return { swing: 0, turn: 0 };
+  }
 }

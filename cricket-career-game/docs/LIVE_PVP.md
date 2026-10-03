@@ -79,6 +79,25 @@ happen where the hands are, and batters run the number of runs scored. After
 each ball the authority pauses before the next clock starts, so every client
 can show the replay. A new ball cuts any replay still running.
 
+The camera director (`camera/CameraRig.ts`) follows a cue list that
+`planAfterContact` writes for each ball: RUNUP while the bowler waits and runs
+in, DELIVERY (batter-facing, from behind the bowler's end) for the ball,
+SIDE_ON at contact, BALL_FOLLOW (high for sixes and skiers), RUNNING for both
+batters, CLOSE_UP for catches, wickets, appeals and celebrations, and WIDE
+between balls. Each shot names the box it must frame, and the field of view is
+solved for the screen's aspect ratio, so an upright phone frames the batter as
+well as a desktop. Moves use critically damped springs; changes of angle cut.
+
+Swing and spin only shape the path (`movementFor`, `deliveryPath`): the ball
+still arrives where the authority placed it. Contact is played at the bat's
+sweet spot. On a run-out the dismissed batter is still short of the crease
+when the bails come off (`runLegs`). The scorebug holds back a result until
+the scene shows it, so the score never runs ahead of the picture.
+
+The match screen offers replay of the last ball, pause (offline demo only:
+pausing stops the authority's clock too), and settings for camera, graphics
+quality, lighting and a frame-rate readout (kept in localStorage).
+
 ## Ratings and economy rules
 
 - Free players: 45-65 (Common 45-54, Uncommon 55-59, Rare 60-65).

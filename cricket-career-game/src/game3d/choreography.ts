@@ -7,6 +7,7 @@
  * catch only happens when the engine recorded one, at the fielder it named.
  */
 import type { ContactKind, PublicOutcome, PvpShot } from '@/engine/pvp/match';
+import type { DeliveryLength } from '@/types';
 import {
   PITCH,
   apexForFlight,
@@ -20,7 +21,23 @@ import {
 } from './physics/ballFlight';
 
 export type BallEnd = 'KEEPER' | 'STUMPS' | 'PAD' | 'BYES' | 'GROUND' | 'CATCH' | 'DROPPED' | 'FOUR' | 'SIX' | 'RUN_OUT';
-export type CameraShot = 'BROADCAST' | 'RUNUP' | 'BALL_FOLLOW' | 'AERIAL' | 'BOUNDARY' | 'WICKET_REPLAY';
+/**
+ * Camera states. WIDE: the stadium between balls. RUNUP: behind the bowler.
+ * DELIVERY: the batter-facing broadcast view the ball is played in. SIDE_ON:
+ * the shot seen square of the wicket. BALL_FOLLOW: chasing the ball (high for
+ * big hits). RUNNING: both batters between the wickets. CLOSE_UP: a catch,
+ * a wicket, an appeal or a celebration.
+ */
+export type CameraShot = 'WIDE' | 'RUNUP' | 'DELIVERY' | 'SIDE_ON' | 'BALL_FOLLOW' | 'RUNNING' | 'CLOSE_UP';
+
+export interface CameraCue {
+  at: number;
+  shot: CameraShot;
+  /** A player id, or a place: the striker's or bowler's stumps. */
+  focus?: string;
+  /** Ball-follow from high up (sixes, skiers). */
+  high?: boolean;
+}
 
 export interface Spot {
   id: string;
@@ -47,11 +64,18 @@ export interface AfterPlan {
   runs: number;
   runOutId: string | null;
   bailsAtMs: number | null;
-  umpireSignal: 'UmpireOut' | 'UmpireFour' | 'UmpireSix' | 'UmpireWide' | null;
+  umpireSignal: 'UmpireOut' | 'UmpireFour' | 'UmpireSix' | 'UmpireWide' | 'UmpireNoBall' | 'UmpireBye' | null;
   umpireAtMs: number;
   celebrate: boolean;
   dismissedId: string | null;
-  camera: CameraShot;
+  /** The camera script for this ball, in time order. */
+  cues: CameraCue[];
+  /** When the fielding side appeals (lbw, caught behind, stumping), or null. */
+  appealAtMs: number | null;
+  /** The bowler's reaction to a boundary or a dropped catch. */
+  bowlerReaction: 'Disappointment' | null;
+  /** For a run-out: which end the batter was beaten to. */
+  runOutEnd: 'STRIKER' | 'BOWLER' | null;
   endMs: number;
 }
 
@@ -69,6 +93,8 @@ export interface AfterInput {
   bowler: Spot;
   fielders: Spot[];
   strikerId: string;
+  /** Delivery length, to tell a front-foot shot from a back-foot one. */
+  length?: DeliveryLength;
 }
 
 export const RUN_MS = 2400;
@@ -83,11 +109,59 @@ const SHOT_STATE: Record<PvpShot, string> = {
   LEAVE: 'BattingLeave',
 };
 
-/** The batter's animation for a resolved ball. The only place that maps contact to a clip. */
-export function batterStateFor(shot: PvpShot | null, contact: ContactKind): string {
+const BACK_FOOT_LENGTHS: DeliveryLength[] = ['SHORT', 'SHORT_OF_GOOD'];
+
+/**
+ * The batter's animation for a resolved ball - the only place that maps a
+ * result to a clip. A miss is never a connecting shot. The shot the engine
+ * resolved picks the variant: back-foot defence to a short ball, a cover
+ * drive when the ball went square on the off side.
+ */
+export function batterStateFor(shot: PvpShot | null, contact: ContactKind, ctx: { angle?: number | null; length?: DeliveryLength } = {}): string {
   if (contact === 'NO_SHOT' || shot === null || shot === 'LEAVE') return 'BattingLeave';
-  if (contact === 'MISS' || contact === 'PAD') return shot === 'DEFEND' ? 'BattingDefence' : 'MissedShot';
+  const backFoot = ctx.length !== undefined && BACK_FOOT_LENGTHS.includes(ctx.length);
+  if (contact === 'MISS' || contact === 'PAD') return shot === 'DEFEND' ? (backFoot ? 'BattingBackDefence' : 'BattingDefence') : 'MissedShot';
+  if (shot === 'DEFEND' && backFoot) return 'BattingBackDefence';
+  if (shot === 'DRIVE' && ctx.angle !== null && ctx.angle !== undefined && ctx.angle > 28 && ctx.angle < 150) return 'BattingCoverDrive';
   return SHOT_STATE[shot];
+}
+
+export interface RunLeg {
+  batterId: string;
+  /** Which crease this leg ends at. */
+  to: 'STRIKER' | 'BOWLER';
+  startMs: number;
+  endMs: number;
+  /** The last leg finishes with the bat slid in; a run-out leg falls short. */
+  finish: 'TURN' | 'SLIDE' | 'SHORT';
+}
+
+/**
+ * The batters' running, leg by leg. Both run `runs` completed runs; on a
+ * run-out the dismissed batter sets off for one more and arrives only after
+ * the bails are off, so the picture agrees with the engine's decision.
+ */
+export function runLegs(input: { runs: number; startMs: number; strikerId: string; nonStrikerId: string; runOutId: string | null; bailsAtMs: number | null }): RunLeg[] {
+  const legs: RunLeg[] = [];
+  const attempted = input.runs + (input.runOutId ? 1 : 0);
+  for (const id of [input.strikerId, input.nonStrikerId]) {
+    const fromStriker = id === input.strikerId;
+    for (let n = 0; n < attempted; n += 1) {
+      const startMs = input.startMs + n * RUN_MS;
+      const toBowler = (n % 2 === 0) === fromStriker;
+      const last = n === attempted - 1;
+      const short = last && input.runOutId !== null && n === input.runs && id === input.runOutId;
+      legs.push({
+        batterId: id,
+        to: toBowler ? 'BOWLER' : 'STRIKER',
+        startMs,
+        // The run-out leg is still in progress when the bails come off.
+        endMs: short && input.bailsAtMs !== null ? Math.max(startMs + RUN_MS, input.bailsAtMs + 350) : startMs + RUN_MS,
+        finish: short ? 'SHORT' : last ? 'SLIDE' : 'TURN',
+      });
+    }
+  }
+  return legs;
 }
 
 /** The state to start the moment a player presses, before the result is known. */
@@ -115,10 +189,56 @@ function dist(a: Vec3, b: Vec3): number {
 const keeperGloves = (k: Spot): Vec3 => v3(k.pos.x, 0.75, k.pos.z + 0.4);
 const stumps = (z: number): Vec3 => v3(0, 0.45, z);
 
+type CorePlan = Omit<AfterPlan, 'cues' | 'appealAtMs' | 'bowlerReaction' | 'runOutEnd'> & { camera: 'BROADCAST' | 'BALL_FOLLOW' | 'AERIAL' | 'BOUNDARY' | 'WICKET_REPLAY' };
+
+/** Which end a run-out happens at: where the dismissed batter was heading on the extra run. */
+export function runOutEnd(runs: number, dismissedIsStriker: boolean): 'STRIKER' | 'BOWLER' {
+  const strikerHeadsToBowler = (runs + 1) % 2 === 1;
+  return strikerHeadsToBowler === dismissedIsStriker ? 'BOWLER' : 'STRIKER';
+}
+
 export function planAfterContact(input: AfterInput): AfterPlan {
+  const core = planCore(input);
+  const { camera, ...rest } = core;
+  const t0 = input.contactMs;
+  const o = input.outcome;
+  const wicket = o.wicket?.type ?? null;
+  const plan: AfterPlan = { ...rest, cues: [], appealAtMs: null, bowlerReaction: null, runOutEnd: null };
+  if (wicket === 'RUN_OUT') plan.runOutEnd = runOutEnd(core.runs, (o.dismissedPlayerId ?? input.strikerId) === input.strikerId);
+  if (wicket === 'LBW' || wicket === 'CAUGHT_BEHIND' || wicket === 'STUMPED') plan.appealAtMs = t0 + 250;
+  if (o.isBoundaryFour || o.isBoundarySix || o.dropped) plan.bowlerReaction = 'Disappointment';
+
+  // The camera script.
+  const cues: CameraCue[] = [];
+  const catcher = core.tasks.find((t) => t.action === 'Catching');
+  if (o.isBoundarySix || o.isBoundaryFour) {
+    cues.push({ at: t0, shot: 'SIDE_ON' }, { at: t0 + 350, shot: 'BALL_FOLLOW', high: o.isBoundarySix });
+  } else if (catcher) {
+    cues.push({ at: t0, shot: 'SIDE_ON' }, { at: t0 + 350, shot: 'BALL_FOLLOW', high: true }, { at: Math.max(t0 + 600, catcher.arriveMs - 250), shot: 'CLOSE_UP', focus: catcher.id });
+  } else if (wicket === 'BOWLED' || wicket === 'HIT_WICKET') {
+    cues.push({ at: t0, shot: 'SIDE_ON' }, { at: t0 + 300, shot: 'CLOSE_UP', focus: 'STUMPS_STRIKER' });
+  } else if (wicket === 'RUN_OUT') {
+    cues.push({ at: t0, shot: 'SIDE_ON' }, { at: t0 + 450, shot: 'BALL_FOLLOW' }, { at: (core.bailsAtMs ?? t0 + 2000) - 700, shot: 'CLOSE_UP', focus: plan.runOutEnd === 'BOWLER' ? 'STUMPS_BOWLER' : 'STUMPS_STRIKER' });
+  } else if (core.runs > 0) {
+    cues.push({ at: t0, shot: 'SIDE_ON' }, { at: t0 + 450, shot: 'BALL_FOLLOW' }, { at: t0 + 1300, shot: 'RUNNING' });
+  } else if (core.end === 'GROUND' || core.end === 'BYES') {
+    cues.push({ at: t0, shot: 'SIDE_ON' }, { at: t0 + 900, shot: 'BALL_FOLLOW' });
+  } else {
+    // Defended, left, beaten, padded: the shot itself is the picture.
+    cues.push({ at: t0, shot: 'SIDE_ON' });
+  }
+  if (wicket || core.celebrate) cues.push({ at: Math.max(t0 + 900, core.umpireAtMs - 300), shot: 'CLOSE_UP', focus: o.dismissedPlayerId ?? input.strikerId });
+  if (o.isBoundaryFour || o.isBoundarySix) cues.push({ at: core.umpireAtMs - 200, shot: 'CLOSE_UP', focus: input.strikerId });
+  cues.push({ at: Math.max(t0 + 1200, core.endMs - 900), shot: 'WIDE' });
+  plan.cues = cues.sort((a, b) => a.at - b.at);
+  void camera;
+  return plan;
+}
+
+function planCore(input: AfterInput): CorePlan {
   const { outcome, contactMs: t0, arrival, leftHanded } = input;
-  const plan: AfterPlan = {
-    batterState: batterStateFor(input.shot, input.contact),
+  const plan: CorePlan = {
+    batterState: batterStateFor(input.shot, input.contact, { angle: outcome.shotAngle, length: input.length }),
     contact: input.contact,
     ballPath: [],
     end: 'KEEPER',
@@ -292,7 +412,8 @@ export function planAfterContact(input: AfterInput): AfterPlan {
     plan.tasks.push({ id: fielder.id, runTo: end, arriveMs: t0 + rollMs, action: far ? 'FieldingDive' : 'FieldingStop', actionMs: t0 + rollMs - 250 });
     // The throw back to the keeper's end (or at the stumps for a run-out).
     const throwAt = t0 + rollMs + (far ? 1100 : 500);
-    const target = wicket === 'RUN_OUT' ? stumps(PITCH.bowlerStumpsZ * (plan.runs % 2 === 0 ? 1 : -1)) : keeperGloves(input.keeper);
+    const outEnd = wicket === 'RUN_OUT' ? runOutEnd(plan.runs, (outcome.dismissedPlayerId ?? input.strikerId) === input.strikerId) : null;
+    const target = outEnd ? stumps(outEnd === 'BOWLER' ? PITCH.bowlerStumpsZ : PITCH.strikerStumpsZ) : keeperGloves(input.keeper);
     const throwMs = 250 + dist(end, target) * 26;
     plan.tasks.push({ id: fielder.id, runTo: end, arriveMs: throwAt, action: 'Throwing', actionMs: throwAt - 400 });
     plan.ballPath.push({ from: end, to: end, t0: t0 + rollMs, t1: throwAt, apex: 0 });
