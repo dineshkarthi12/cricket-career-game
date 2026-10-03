@@ -1725,3 +1725,100 @@ starts at (8-12); the career starts in the season the player reaches that age
 (born 1985, aged 10: the 1995-96 season). Before 2005, the earliest data, the
 real squads are 2005's (each player at their age that year) until real
 history catches up; from 2005 they follow it season by season as before.
+
+## ✅ Phase 12 — Live PvP: 3D matches, collectible players, online play
+
+A third game mode at `/pvp`, separate from Career Mode and IPL Manager (own
+routes, store, saves and economy). Design and operations: `docs/LIVE_PVP.md`;
+3D assets and licences: `docs/assets/ASSET_MANIFEST.md`.
+
+**Inspection findings (before building)**
+- No 3D engine, models or animation files existed; the game was 2D by design
+  (`CLAUDE.md`). Live PvP adds three.js for this mode only - Career Mode and
+  IPL Manager are unchanged and stay 2D.
+- No backend existed. A Node WebSocket server was added (`server/`).
+- Mixamo, Kenney, Quaternius, Fab and Sketchfab are unreachable from the build
+  environment (network policy) and/or need an account; no cricket motion
+  capture could be obtained. The Khronos glTF sample models (GitHub) were
+  reachable.
+
+**Engine (`src/engine/pvp`, pure TypeScript, shared by browser and server)**
+- Rating bands enforced centrally (`rules.ts`): free 45-65, premium 70-99,
+  66-69 excluded; tier mapping, role and bowling-style rules, upgrade caps.
+- 154 fictional cards (free, premium, retired legends) generated from a fixed
+  seed; original procedural portraits; no real names or statistics.
+- Economy (`economy.ts`): starter XI, coin/gem/event packs with published
+  per-slot odds, market, daily and weekly rewards, match rewards, training -
+  every change a ledger transaction, idempotent by request id; saves audited
+  and bad cards quarantined, never silently rewritten.
+- `PvpMatch`: the authoritative match (2 overs, 3 wickets) on the Career Mode
+  `resolveDelivery`, with delivery ids, phase checks, duplicate/stale/too-early
+  rejection, deadlines and bot play, deterministic replay; Elo and a
+  matchmaking queue (`ranked.ts`).
+
+**3D (`src/game3d`, three.js)**
+- Procedural skinned cricketers on a 22-bone Mixamo-named skeleton; 30
+  procedural keyframe clips (batting shots, pace and spin actions, run-up,
+  running, fielding, keeping, catching, throwing, celebrations, umpire
+  signals); two-bone arm IK so both hands hold the bat; mirrored clip sets for
+  left-handers; an `AnimationController` with cross-fades, one-shot tokens and
+  stale-completion protection.
+- Procedural stadium (stands, instanced crowd, floodlights, boards, live
+  scoreboard, day/night), broadcast/run-up/ball-follow/aerial/boundary/wicket
+  cameras, adaptive quality, WebGL detection and fallback.
+- `choreography.ts` derives every animation and ball path from the
+  authority's result; `MatchScene` plays them on one timeline.
+- GLB pipeline (`gltfInspect.ts`) with explicit skeleton-compatibility reports,
+  verified on the Khronos RiggedFigure GLB (CC BY 4.0).
+
+**Online (`server/pvp-server.ts`)**
+- Guest accounts with hashed tokens, persistent profiles (JSON store),
+  server-side economy, ranked queue, private rooms, friends and invites,
+  reconnection with event resume, disconnect forfeits, rate limits, JSON logs.
+
+**UI (`src/screens/pvp`)**
+- Live PvP home, 3D match, Collection (3D tilt cards, inspection, flip,
+  training), Market (current/legends/featured/transactions), Packs & Store
+  (odds disclosure, confirmation, opening and reveal), Squad Builder, Rankings,
+  Friends, 3D Lab. Offline demo vs online server always labelled.
+- Entry points on the title screen and in the career navigation.
+
+**Tests**: `src/engine/pvp/pvp.test.ts`, `src/game3d/game3d.test.ts`,
+`server/pvp-server.test.ts` (two real WebSocket clients play a ranked match);
+browser QA `scripts/qa-pvp.mjs`.
+
+## ✅ Phase 13 — Live PvP: gameplay, motion and camera upgrade
+
+The 3D match looked like a demo: the camera sat about 27 m back (the batter
+filled about 13% of the frame), bodies were capsules with rigid skinning, and
+clips moved linearly between sparse keys. This phase rebuilt those parts.
+
+**Done**
+- Anatomical procedural characters with role kit and automatic two-bone skin
+  weights; low-detail builds for distant fielders.
+- 41 spline-smoothed clips / 43 states: ready stance, front and back-foot
+  defence, straight and cover drive, pull, cut, sweep, loft, miss; run, turn,
+  slide the bat in; keeper collect; dive, catch, throw; appeal, celebration,
+  disappointment; umpire out/four/six/wide/no-ball/bye. Run cycles are speed
+  matched, heads track the ball, contact is at the bat's sweet spot.
+- Camera director with 7 states driven by per-ball cues, framing solved for the
+  screen's aspect ratio (desktop and upright phones checked in the browser).
+- Ball flight: swing in the air, turn off the pitch, a seam that spins, a trail
+  and a ground shadow; the ball still arrives where the authority placed it.
+- Running and run-outs follow the engine (`runLegs`, `runOutEnd`).
+- Stadium: grass and pitch wear, crowd colour variation, contact shadows,
+  pooled particles (pitch dust, confetti, fireworks, wicket debris).
+- Match screen: light scorebug (score, overs, CRR, target, RRR, need, striker
+  and non-striker with runs and balls, bowler figures, this over), commentary,
+  replay, pause (offline demo), settings, loading screen. The scorebug never
+  runs ahead of the scene. The bowl panel stays open while the last ball plays
+  out, and slow devices play in real time (frame step limit 0.25 s), so a slow
+  phone no longer misses its bowling deadline.
+- Tests: smoothing, run legs, camera cues, swing and turn, scorecard sums,
+  scene seeding. Full suite and build pass.
+
+**Procedural fallbacks / still needs external assets**
+- All characters and motion are procedural (no motion capture). Realistic GLB
+  cricketers and licensed cricket mocap would need a manual download (Mixamo,
+  Fab, Sketchfab are login-gated and blocked here); see the asset manifest.
+

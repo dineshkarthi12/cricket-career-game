@@ -1,7 +1,9 @@
 # Cricket Career – Project Guide for Claude Code
 
 ## What we are building
-A realistic 2D cricket career simulation web game. The player starts as a young beginner and must earn every step to become an international cricketer. Gameplay style is like cricket management sims (e.g. Cricket Captain): top-down 2D ground with fielders as dots, ball path lines, ball-by-ball text commentary, detailed scorecards and stats. NOT 3D.
+A realistic 2D cricket career simulation web game. The player starts as a young beginner and must earn every step to become an international cricketer. Gameplay style is like cricket management sims (e.g. Cricket Captain): top-down 2D ground with fielders as dots, ball path lines, ball-by-ball text commentary, detailed scorecards and stats. Career Mode and IPL Manager are NOT 3D.
+
+Exception: the separate **Live PvP** mode (`/pvp`, Phase 12) is a 3D one-on-one match game built on three.js (`src/game3d`), with its own engine (`src/engine/pvp`), store, saves and a WebSocket server (`server/`). Keep three.js out of the career and manager screens. Live PvP players are fictional by design (see `docs/LIVE_PVP.md`).
 
 ## Source documents (read these before any phase)
 - `CAREER_MODE.md` – the full 20-stage career path and game rules
@@ -30,7 +32,11 @@ A realistic 2D cricket career simulation web game. The player starts as a young 
 - `/src/store` – Zustand stores
 - `/src/components` – reusable UI components
 - `/src/screens` – pages
-- `/public/assets` – images
+- `/public/assets` – images (`public/assets/players/third-party` – licensed 3D test fixtures, see `docs/assets/ASSET_MANIFEST.md`)
+- `/src/engine/pvp` – Live PvP rules, economy and the authoritative match (pure TS, shared with the server)
+- `/src/game3d` – Live PvP 3D: rig, clips, stadium, director, cameras
+- `/src/pvp` – Live PvP client backends (offline demo, WebSocket)
+- `/server` – Live PvP WebSocket server (`npm run pvp:server`)
 
 ## Assets (already present)
 - `public/assets/hero-bg.jpg` – Home hero banner background (sunset stadium)

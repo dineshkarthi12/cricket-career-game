@@ -1,0 +1,14 @@
+RiggedFigure.glb
+
+Source:  Khronos Group glTF-Sample-Assets
+         https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/RiggedFigure
+File:    Models/RiggedFigure/glTF-Binary/RiggedFigure.glb (50,116 bytes)
+SHA-256: d6be85417d3e256861ee733eea6916093a7af7c79c16366181fd8abcaeb38cf5
+
+Licence: Creative Commons Attribution 4.0 International (CC BY 4.0)
+         https://creativecommons.org/licenses/by/4.0/legalcode
+Credit:  (c) 2017 Cesium. "RiggedFigure" by Cesium, via the Khronos glTF Sample Assets.
+
+Use in Cricket Career 26: a test fixture for the imported-model pipeline only
+(GLB loading, skeleton inspection, clip detection). It is not a cricketer and
+is never shown in a match. Unmodified.

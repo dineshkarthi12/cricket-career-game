@@ -28,6 +28,13 @@ bloomers break through, and most careers never reach India.
   franchises, pick the XI and the plan, manage matchdays ball by ball (with
   the same Ball / Over / Wicket / Auto bar and match sound as a career match), and
   climb from Head of Scouting to Director of Cricket - with its own saves.
+- **Live PvP (3D).** A third mode: collect fictional players (free players
+  rated 45-65, premium 70-99), open packs with published odds, build an XI,
+  and play quick one-on-one matches in a 3D stadium - choose the bowler, the
+  delivery's type, line and length, or pick a shot and time it as the ball
+  arrives. Practice against the AI offline, or run the PvP server for ranked
+  matchmaking, private rooms and friends. See
+  `cricket-career-game/docs/LIVE_PVP.md`.
 - **Plays offline.** Install it to a phone's home screen; careers are saved in
   the browser (IndexedDB) in three slots with export and import.
 
@@ -51,6 +58,8 @@ Other scripts:
 | `npm test` | Runs the unit and component tests (Vitest) |
 | `npm run lint` | Type-checks without building |
 | `npm run qa` | Browser QA: plays a demo career in Chromium and screenshots every screen at 1440, 820 and 390 px into `qa-screenshots/` (needs `npm run build` first) |
+| `npm run pvp:server` | Starts the Live PvP WebSocket server on ws://localhost:8787 (`pvp:server:dev` also enables development gems) |
+| `npm run qa:pvp` | Browser QA for Live PvP: visits every PvP screen and plays part of a 3D practice match (needs `npm run build`; set `CHROMIUM_PATH` if Playwright's browser is not installed) |
 
 In a development build (`npm run dev`), Settings has developer tools,
 including a fast-forward that jumps a career to later stages.
@@ -81,6 +90,7 @@ Or from the command line: `npm i -g vercel`, then `vercel` (preview) and
 ## Tech stack
 
 - React 19, TypeScript, Vite
+- three.js for the Live PvP 3D match (loaded only by that mode); `ws` + `tsx` for its server
 - Tailwind CSS v4, lucide-react icons, recharts for charts
 - Zustand for state, React Router for screens
 - IndexedDB via `idb-keyval` for saves
@@ -100,6 +110,8 @@ Paths below are inside `cricket-career-game/`.
 | `src/store` | Zustand stores bridging the engine and the UI |
 | `src/components`, `src/layout`, `src/screens` | The UI |
 | `scripts/` | Icon rendering, the service worker template, browser QA |
+| `src/engine/pvp`, `src/game3d`, `src/pvp`, `src/screens/pvp` | Live PvP: rules and authoritative match, the 3D layer, client backends, screens |
+| `server/` | The Live PvP WebSocket server |
 
 In `cricket-career-game/`, `CAREER_MODE.md` describes the career rules, `GAME_SPEC.md` the technical
 design, and `PROGRESS.md` what each development phase delivered.
