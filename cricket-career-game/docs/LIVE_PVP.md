@@ -1,7 +1,7 @@
 # Live PvP: design and operations
 
 Live PvP is the third game mode, alongside Career Mode and IPL Manager. You
-collect fictional players, build an XI, and play quick 3D one-on-one matches:
+collect real international cricketers, build an XI, and play quick 3D one-on-one matches:
 two overs a side, three wickets. It has its own routes (`/pvp/*`), store
 (`src/store/pvpStore.ts`), saves and economy. It never reads or writes career
 or IPL Manager saves.
@@ -11,7 +11,7 @@ or IPL Manager saves.
 ```
 src/engine/pvp/       pure TypeScript, shared by browser and server
   config.ts           rating bands, tiers, packs and odds, rewards, match format
-  catalog.ts          154 fictional cards, generated from a fixed seed
+  catalog.ts          the real-player cards, built from src/data/pvp/players.json
   rules.ts            the one validation service (ratings, tiers, roles, upgrades)
   economy.ts          idempotent, ledgered operations (packs, market, rewards, upgrades)
   squad.ts            XI rules (11 players, a keeper, 5 bowling options, captain/vice)
@@ -98,10 +98,42 @@ The match screen offers replay of the last ball, pause (offline demo only:
 pausing stops the authority's clock too), and settings for camera, graphics
 quality, lighting and a frame-rate readout (kept in localStorage).
 
+## The players and their cards
+
+Every card is a real cricketer whose photo is in
+`public/assets/players/Cricketcareer.zip`.
+
+1. Each photo is tagged with the player it shows
+   (`scripts/players/photo-tags.json`, exported from the tagging page).
+2. `npm run cards:build` (`scripts/build-pvp-cards.ts`) looks every tagged
+   name up in the real player data (`src/data/real`, 2005-2026) and writes
+   `src/data/pvp/players.json`: country, role, styles and skills from the
+   player's record, then a card rating placed by rank within his role, so
+   every tier holds batters, bowlers, all-rounders and keepers. Players in the
+   current international squads are *current*; everyone else is a *legend*
+   (their best season counts). Greats from before 2005 are entered by hand in
+   `scripts/players/pvp-overrides.ts`, which also fixes display names.
+3. `python scripts/players/cutouts.py` cuts each player out of his photo and
+   aligns the face, into `public/assets/players/cards/<id>.webp`.
+4. The best current players also get special editions: Team of the
+   Tournament, Player of the Match and Limited Edition (+3 overall). Two
+   cards of the same player never play in one XI (`personId`).
+
+The card face (`src/screens/pvp/cards/CardFace.tsx`) puts the photo inside
+one of ten frames (`public/assets/cards/frames`, the original card art with
+the window cut out and the numbers removed) and draws the rating, flag, name,
+styles and the five stats on top as SVG. Which frame: Common, Uncommon, Rare,
+Epic (70-79), Legendary (80-96, labelled Elite or Legendary), Icon (97-99),
+Legends for retired players, and the three edition frames.
+
+Saves from before the real players keep their collection: each old card
+becomes a real player of the same tier, era and role (`migrateProfile`, run
+when the offline demo or the server loads a profile).
+
 ## Ratings and economy rules
 
 - Free players: 45-65 (Common 45-54, Uncommon 55-59, Rare 60-65).
-- Premium players: 70-99 (Premium 70-79, Elite 80-89, Legendary 90-96,
+- Premium players: 70-99 (Epic 70-79, Elite 80-89, Legendary 90-96,
   Icon 97-99).
 - Nobody may be rated 66-69. This lives in `RATING_RULES.excluded`, and the
   tests pin it.

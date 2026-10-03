@@ -1,0 +1,3017 @@
+{
+ "note": "PLACEHOLDER until the photos in Cricketcareer.zip are tagged: real players from the data, no photos yet. Regenerate with npm run cards:build.",
+ "players": [
+  {
+   "id": "an-petersen",
+   "name": "AN Petersen",
+   "country": "South Africa",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 81,
+   "skills": {
+    "batting": 87,
+    "bowling": 41,
+    "fielding": 77,
+    "fitness": 77,
+    "mental": 81
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 99
+  },
+  {
+   "id": "andrew-tye",
+   "name": "Andrew Tye",
+   "country": "Australia",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 82,
+   "skills": {
+    "batting": 63,
+    "bowling": 84,
+    "fielding": 83,
+    "fitness": 91,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 99
+  },
+  {
+   "id": "abbas-afridi",
+   "name": "Abbas Afridi",
+   "country": "Pakistan",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 77,
+   "skills": {
+    "batting": 63,
+    "bowling": 80,
+    "fielding": 76,
+    "fitness": 85,
+    "mental": 79
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 98
+  },
+  {
+   "id": "atharva-ankolekar",
+   "name": "Atharva Ankolekar",
+   "country": "India",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "LEGEND",
+   "real": 76,
+   "skills": {
+    "batting": 77,
+    "bowling": 74,
+    "fielding": 81,
+    "fitness": 85,
+    "mental": 82
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 98
+  },
+  {
+   "id": "jasprit-bumrah",
+   "name": "Jasprit Bumrah",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 93,
+   "skills": {
+    "batting": 65,
+    "bowling": 95,
+    "fielding": 99,
+    "fitness": 99,
+    "mental": 99
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 98
+  },
+  {
+   "id": "joe-root",
+   "name": "Joe Root",
+   "country": "England",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 93,
+   "skills": {
+    "batting": 97,
+    "bowling": 60,
+    "fielding": 93,
+    "fitness": 93,
+    "mental": 94
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 98
+  },
+  {
+   "id": "ravindra-jadeja",
+   "name": "Ravindra Jadeja",
+   "country": "India",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 91,
+   "skills": {
+    "batting": 95,
+    "bowling": 86,
+    "fielding": 99,
+    "fitness": 99,
+    "mental": 97
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 98
+  },
+  {
+   "id": "ankit-sharma",
+   "name": "Ankit Sharma",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "LEGEND",
+   "real": 75,
+   "skills": {
+    "batting": 62,
+    "bowling": 77,
+    "fielding": 77,
+    "fitness": 81,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 97
+  },
+  {
+   "id": "ayush-mhatre",
+   "name": "Ayush Mhatre",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 75,
+   "skills": {
+    "batting": 81,
+    "bowling": 30,
+    "fielding": 71,
+    "fitness": 74,
+    "mental": 76
+   },
+   "photo": "",
+   "tier": "ICON",
+   "overall": 97
+  },
+  {
+   "id": "a-singhania",
+   "name": "A Singhania",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 71,
+   "skills": {
+    "batting": 57,
+    "bowling": 72,
+    "fielding": 70,
+    "fitness": 80,
+    "mental": 73
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 96
+  },
+  {
+   "id": "aishwary-mourya",
+   "name": "Aishwary Mourya",
+   "country": "India",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 73,
+   "skills": {
+    "batting": 78,
+    "bowling": 68,
+    "fielding": 75,
+    "fitness": 77,
+    "mental": 75
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 96
+  },
+  {
+   "id": "arpit-vasavada",
+   "name": "Arpit Vasavada",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 72,
+   "skills": {
+    "batting": 77,
+    "bowling": 36,
+    "fielding": 68,
+    "fitness": 71,
+    "mental": 71
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 96
+  },
+  {
+   "id": "axar-patel",
+   "name": "Axar Patel",
+   "country": "India",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 90,
+   "skills": {
+    "batting": 92,
+    "bowling": 86,
+    "fielding": 99,
+    "fitness": 99,
+    "mental": 97
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 96
+  },
+  {
+   "id": "harry-brook",
+   "name": "Harry Brook",
+   "country": "England",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 92,
+   "skills": {
+    "batting": 97,
+    "bowling": 55,
+    "fielding": 93,
+    "fitness": 92,
+    "mental": 92
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 96
+  },
+  {
+   "id": "jacob-duffy",
+   "name": "Jacob Duffy",
+   "country": "New Zealand",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 89,
+   "skills": {
+    "batting": 65,
+    "bowling": 91,
+    "fielding": 92,
+    "fitness": 99,
+    "mental": 94
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 96
+  },
+  {
+   "id": "phil-salt",
+   "name": "Phil Salt",
+   "country": "England",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 89,
+   "skills": {
+    "batting": 89,
+    "bowling": 35,
+    "fielding": 91,
+    "fitness": 86,
+    "mental": 87
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 96
+  },
+  {
+   "id": "aa-bamal",
+   "name": "AA Bamal",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 71,
+   "skills": {
+    "batting": 59,
+    "bowling": 72,
+    "fielding": 71,
+    "fitness": 80,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 95
+  },
+  {
+   "id": "aakash-chopra",
+   "name": "Aakash Chopra",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 69,
+   "skills": {
+    "batting": 75,
+    "bowling": 32,
+    "fielding": 67,
+    "fitness": 69,
+    "mental": 69
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 94
+  },
+  {
+   "id": "josh-hazlewood",
+   "name": "Josh Hazlewood",
+   "country": "Australia",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 89,
+   "skills": {
+    "batting": 61,
+    "bowling": 91,
+    "fielding": 92,
+    "fitness": 99,
+    "mental": 93
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 94
+  },
+  {
+   "id": "virat-kohli",
+   "name": "Virat Kohli",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 91,
+   "skills": {
+    "batting": 96,
+    "bowling": 57,
+    "fielding": 89,
+    "fitness": 90,
+    "mental": 89
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 94
+  },
+  {
+   "id": "amarjeet-singh",
+   "name": "Amarjeet Singh",
+   "country": "India",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 69,
+   "skills": {
+    "batting": 70,
+    "bowling": 5,
+    "fielding": 72,
+    "fitness": 67,
+    "mental": 67
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 93
+  },
+  {
+   "id": "an-chauhan",
+   "name": "AN Chauhan",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 71,
+   "skills": {
+    "batting": 59,
+    "bowling": 72,
+    "fielding": 70,
+    "fitness": 80,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 93
+  },
+  {
+   "id": "abhisek-das",
+   "name": "Abhisek Das",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 69,
+   "skills": {
+    "batting": 75,
+    "bowling": 16,
+    "fielding": 68,
+    "fitness": 70,
+    "mental": 70
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 92
+  },
+  {
+   "id": "abrar-ahmed",
+   "name": "Abrar Ahmed",
+   "country": "Pakistan",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "LEG_SPIN",
+   "era": "CURRENT",
+   "real": 86,
+   "skills": {
+    "batting": 61,
+    "bowling": 87,
+    "fielding": 91,
+    "fitness": 94,
+    "mental": 97
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 92
+  },
+  {
+   "id": "ankit-soni",
+   "name": "Ankit Soni",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "LEG_SPIN",
+   "era": "LEGEND",
+   "real": 71,
+   "skills": {
+    "batting": 61,
+    "bowling": 72,
+    "fielding": 73,
+    "fitness": 75,
+    "mental": 81
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 92
+  },
+  {
+   "id": "shubman-gill",
+   "name": "Shubman Gill",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 90,
+   "skills": {
+    "batting": 96,
+    "bowling": 46,
+    "fielding": 88,
+    "fitness": 89,
+    "mental": 92
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 92
+  },
+  {
+   "id": "amit-parashar",
+   "name": "Amit Parashar",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 69,
+   "skills": {
+    "batting": 75,
+    "bowling": 15,
+    "fielding": 67,
+    "fitness": 69,
+    "mental": 70
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 90
+  },
+  {
+   "id": "arshin-kulkarni",
+   "name": "Arshin Kulkarni",
+   "country": "India",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_MEDIUM",
+   "era": "LEGEND",
+   "real": 70,
+   "skills": {
+    "batting": 74,
+    "bowling": 63,
+    "fielding": 74,
+    "fitness": 77,
+    "mental": 71
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 90
+  },
+  {
+   "id": "ashith-rajiv",
+   "name": "Ashith Rajiv",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 71,
+   "skills": {
+    "batting": 60,
+    "bowling": 72,
+    "fielding": 71,
+    "fitness": 80,
+    "mental": 73
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 90
+  },
+  {
+   "id": "ben-duckett",
+   "name": "Ben Duckett",
+   "country": "England",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 88,
+   "skills": {
+    "batting": 95,
+    "bowling": 35,
+    "fielding": 85,
+    "fitness": 87,
+    "mental": 90
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 90
+  },
+  {
+   "id": "ben-stokes",
+   "name": "Ben Stokes",
+   "country": "England",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 88,
+   "skills": {
+    "batting": 92,
+    "bowling": 81,
+    "fielding": 90,
+    "fitness": 92,
+    "mental": 89
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 90
+  },
+  {
+   "id": "kl-rahul",
+   "name": "KL Rahul",
+   "country": "India",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 88,
+   "skills": {
+    "batting": 89,
+    "bowling": 23,
+    "fielding": 89,
+    "fitness": 85,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 90
+  },
+  {
+   "id": "mitchell-starc",
+   "name": "Mitchell Starc",
+   "country": "Australia",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 86,
+   "skills": {
+    "batting": 61,
+    "bowling": 88,
+    "fielding": 86,
+    "fitness": 97,
+    "mental": 88
+   },
+   "photo": "",
+   "tier": "LEGENDARY",
+   "overall": 90
+  },
+  {
+   "id": "abhishek-mohan",
+   "name": "Abhishek Mohan",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 70,
+   "skills": {
+    "batting": 59,
+    "bowling": 71,
+    "fielding": 69,
+    "fitness": 80,
+    "mental": 70
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 89
+  },
+  {
+   "id": "abhishek-reddy",
+   "name": "Abhishek Reddy",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 68,
+   "skills": {
+    "batting": 74,
+    "bowling": 15,
+    "fielding": 64,
+    "fitness": 66,
+    "mental": 68
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 89
+  },
+  {
+   "id": "daryl-mitchell",
+   "name": "Daryl Mitchell",
+   "country": "New Zealand",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 88,
+   "skills": {
+    "batting": 93,
+    "bowling": 57,
+    "fielding": 85,
+    "fitness": 85,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 89
+  },
+  {
+   "id": "glenn-maxwell",
+   "name": "Glenn Maxwell",
+   "country": "Australia",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 88,
+   "skills": {
+    "batting": 95,
+    "bowling": 77,
+    "fielding": 91,
+    "fitness": 94,
+    "mental": 92
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 89
+  },
+  {
+   "id": "nathan-lyon",
+   "name": "Nathan Lyon",
+   "country": "Australia",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 86,
+   "skills": {
+    "batting": 61,
+    "bowling": 87,
+    "fielding": 92,
+    "fitness": 94,
+    "mental": 97
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 89
+  },
+  {
+   "id": "quinton-de-kock",
+   "name": "Quinton de Kock",
+   "country": "South Africa",
+   "role": "WICKET_KEEPER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 87,
+   "skills": {
+    "batting": 87,
+    "bowling": 21,
+    "fielding": 89,
+    "fitness": 84,
+    "mental": 85
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 89
+  },
+  {
+   "id": "shaheen-shah-afridi",
+   "name": "Shaheen Shah Afridi",
+   "country": "Pakistan",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 86,
+   "skills": {
+    "batting": 62,
+    "bowling": 89,
+    "fielding": 85,
+    "fitness": 97,
+    "mental": 88
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 87
+  },
+  {
+   "id": "suryakumar-yadav",
+   "name": "Suryakumar Yadav",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 88,
+   "skills": {
+    "batting": 93,
+    "bowling": 51,
+    "fielding": 84,
+    "fitness": 86,
+    "mental": 88
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 87
+  },
+  {
+   "id": "abhishek-sakuja",
+   "name": "Abhishek Sakuja",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 69,
+   "skills": {
+    "batting": 60,
+    "bowling": 70,
+    "fielding": 69,
+    "fitness": 79,
+    "mental": 71
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 86
+  },
+  {
+   "id": "amit-shukla",
+   "name": "Amit Shukla",
+   "country": "India",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 68,
+   "skills": {
+    "batting": 68,
+    "bowling": 68,
+    "fielding": 73,
+    "fitness": 75,
+    "mental": 70
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 85
+  },
+  {
+   "id": "anubhav-agarwal",
+   "name": "Anubhav Agarwal",
+   "country": "India",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 69,
+   "skills": {
+    "batting": 70,
+    "bowling": 5,
+    "fielding": 69,
+    "fitness": 67,
+    "mental": 67
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 85
+  },
+  {
+   "id": "anuj-thakral",
+   "name": "Anuj Thakral",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 68,
+   "skills": {
+    "batting": 74,
+    "bowling": 15,
+    "fielding": 66,
+    "fitness": 68,
+    "mental": 68
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 85
+  },
+  {
+   "id": "hardik-pandya",
+   "name": "Hardik Pandya",
+   "country": "India",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 88,
+   "skills": {
+    "batting": 93,
+    "bowling": 81,
+    "fielding": 90,
+    "fitness": 93,
+    "mental": 91
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 85
+  },
+  {
+   "id": "shreyas-iyer",
+   "name": "Shreyas Iyer",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 87,
+   "skills": {
+    "batting": 93,
+    "bowling": 45,
+    "fielding": 85,
+    "fitness": 86,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 85
+  },
+  {
+   "id": "varun-chakravarthy",
+   "name": "Varun Chakravarthy",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "LEG_SPIN",
+   "era": "CURRENT",
+   "real": 86,
+   "skills": {
+    "batting": 61,
+    "bowling": 87,
+    "fielding": 91,
+    "fitness": 94,
+    "mental": 96
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 85
+  },
+  {
+   "id": "ahitesh-varma",
+   "name": "Ahitesh Varma",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 69,
+   "skills": {
+    "batting": 49,
+    "bowling": 71,
+    "fielding": 70,
+    "fitness": 80,
+    "mental": 72
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 83
+  },
+  {
+   "id": "aiden-markram",
+   "name": "Aiden Markram",
+   "country": "South Africa",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 90,
+    "bowling": 58,
+    "fielding": 82,
+    "fitness": 83,
+    "mental": 85
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 82
+  },
+  {
+   "id": "kyle-jamieson",
+   "name": "Kyle Jamieson",
+   "country": "New Zealand",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 65,
+    "bowling": 87,
+    "fielding": 85,
+    "fitness": 96,
+    "mental": 89
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 82
+  },
+  {
+   "id": "ahmed-shah",
+   "name": "Ahmed Shah",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "LEGEND",
+   "real": 67,
+   "skills": {
+    "batting": 74,
+    "bowling": 15,
+    "fielding": 63,
+    "fitness": 65,
+    "mental": 67
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 80
+  },
+  {
+   "id": "avinov-choudhury",
+   "name": "Avinov Choudhury",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "LEGEND",
+   "real": 69,
+   "skills": {
+    "batting": 49,
+    "bowling": 71,
+    "fielding": 70,
+    "fitness": 80,
+    "mental": 72
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 80
+  },
+  {
+   "id": "fakhar-zaman",
+   "name": "Fakhar Zaman",
+   "country": "Pakistan",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 91,
+    "bowling": 41,
+    "fielding": 82,
+    "fitness": 84,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 80
+  },
+  {
+   "id": "jamie-smith",
+   "name": "Jamie Smith",
+   "country": "England",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 84,
+   "skills": {
+    "batting": 85,
+    "bowling": 18,
+    "fielding": 86,
+    "fitness": 81,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 80
+  },
+  {
+   "id": "matthew-kuhnemann",
+   "name": "Matthew Kuhnemann",
+   "country": "Australia",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 62,
+    "bowling": 85,
+    "fielding": 90,
+    "fitness": 93,
+    "mental": 97
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 80
+  },
+  {
+   "id": "rachin-ravindra",
+   "name": "Rachin Ravindra",
+   "country": "New Zealand",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 88,
+   "skills": {
+    "batting": 96,
+    "bowling": 76,
+    "fielding": 91,
+    "fitness": 94,
+    "mental": 92
+   },
+   "photo": "",
+   "tier": "ELITE",
+   "overall": 80
+  },
+  {
+   "id": "glenn-phillips",
+   "name": "Glenn Phillips",
+   "country": "New Zealand",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 87,
+   "skills": {
+    "batting": 95,
+    "bowling": 75,
+    "fielding": 93,
+    "fitness": 94,
+    "mental": 91
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 79
+  },
+  {
+   "id": "mohammed-siraj",
+   "name": "Mohammed Siraj",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 84,
+   "skills": {
+    "batting": 51,
+    "bowling": 87,
+    "fielding": 85,
+    "fitness": 95,
+    "mental": 88
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 79
+  },
+  {
+   "id": "rinku-singh",
+   "name": "Rinku Singh",
+   "country": "India",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 90,
+    "bowling": 44,
+    "fielding": 85,
+    "fitness": 85,
+    "mental": 87
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 79
+  },
+  {
+   "id": "tim-seifert",
+   "name": "Tim Seifert",
+   "country": "New Zealand",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 84,
+   "skills": {
+    "batting": 84,
+    "bowling": 19,
+    "fielding": 85,
+    "fitness": 82,
+    "mental": 85
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 79
+  },
+  {
+   "id": "dewald-brevis",
+   "name": "Dewald Brevis",
+   "country": "South Africa",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 84,
+   "skills": {
+    "batting": 89,
+    "bowling": 42,
+    "fielding": 84,
+    "fitness": 83,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 78
+  },
+  {
+   "id": "nathan-ellis",
+   "name": "Nathan Ellis",
+   "country": "Australia",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 84,
+   "skills": {
+    "batting": 60,
+    "bowling": 86,
+    "fielding": 84,
+    "fitness": 94,
+    "mental": 87
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 78
+  },
+  {
+   "id": "wiaan-mulder",
+   "name": "Wiaan Mulder",
+   "country": "South Africa",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 87,
+   "skills": {
+    "batting": 91,
+    "bowling": 81,
+    "fielding": 91,
+    "fitness": 92,
+    "mental": 88
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 77
+  },
+  {
+   "id": "mark-chapman",
+   "name": "Mark Chapman",
+   "country": "New Zealand",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 84,
+   "skills": {
+    "batting": 89,
+    "bowling": 42,
+    "fielding": 83,
+    "fitness": 83,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 76
+  },
+  {
+   "id": "william-orourke",
+   "name": "William O'Rourke",
+   "country": "New Zealand",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 84,
+   "skills": {
+    "batting": 52,
+    "bowling": 87,
+    "fielding": 86,
+    "fitness": 95,
+    "mental": 88
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 76
+  },
+  {
+   "id": "akeal-hosein",
+   "name": "Akeal Hosein",
+   "country": "West Indies",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 83,
+   "skills": {
+    "batting": 64,
+    "bowling": 84,
+    "fielding": 87,
+    "fitness": 91,
+    "mental": 94
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 75
+  },
+  {
+   "id": "corbin-bosch",
+   "name": "Corbin Bosch",
+   "country": "South Africa",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 84,
+    "bowling": 85,
+    "fielding": 89,
+    "fitness": 91,
+    "mental": 89
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 75
+  },
+  {
+   "id": "mushfiqur-rahim",
+   "name": "Mushfiqur Rahim",
+   "country": "Bangladesh",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 82,
+    "bowling": 15,
+    "fielding": 82,
+    "fitness": 77,
+    "mental": 80
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 75
+  },
+  {
+   "id": "tristan-stubbs",
+   "name": "Tristan Stubbs",
+   "country": "South Africa",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 84,
+   "skills": {
+    "batting": 89,
+    "bowling": 42,
+    "fielding": 84,
+    "fitness": 83,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 75
+  },
+  {
+   "id": "zak-foulkes",
+   "name": "Zak Foulkes",
+   "country": "New Zealand",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 83,
+   "skills": {
+    "batting": 63,
+    "bowling": 85,
+    "fielding": 81,
+    "fitness": 94,
+    "mental": 83
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 74
+  },
+  {
+   "id": "adil-rashid",
+   "name": "Adil Rashid",
+   "country": "England",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "LEG_SPIN",
+   "era": "CURRENT",
+   "real": 82,
+   "skills": {
+    "batting": 62,
+    "bowling": 83,
+    "fielding": 87,
+    "fitness": 86,
+    "mental": 91
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 73
+  },
+  {
+   "id": "charith-asalanka",
+   "name": "Charith Asalanka",
+   "country": "Sri Lanka",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 86,
+    "bowling": 62,
+    "fielding": 77,
+    "fitness": 77,
+    "mental": 79
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 73
+  },
+  {
+   "id": "jacob-bethell",
+   "name": "Jacob Bethell",
+   "country": "England",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 93,
+    "bowling": 73,
+    "fielding": 90,
+    "fitness": 92,
+    "mental": 89
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 72
+  },
+  {
+   "id": "saim-ayub",
+   "name": "Saim Ayub",
+   "country": "Pakistan",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 86,
+    "bowling": 63,
+    "fielding": 77,
+    "fitness": 77,
+    "mental": 80
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 72
+  },
+  {
+   "id": "josh-tongue",
+   "name": "Josh Tongue",
+   "country": "England",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 82,
+   "skills": {
+    "batting": 56,
+    "bowling": 85,
+    "fielding": 84,
+    "fitness": 92,
+    "mental": 85
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 71
+  },
+  {
+   "id": "dinesh-chandimal",
+   "name": "Dinesh Chandimal",
+   "country": "Sri Lanka",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 80,
+   "skills": {
+    "batting": 81,
+    "bowling": 15,
+    "fielding": 82,
+    "fitness": 77,
+    "mental": 79
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 70
+  },
+  {
+   "id": "gudakesh-motie",
+   "name": "Gudakesh Motie",
+   "country": "West Indies",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 66,
+    "bowling": 83,
+    "fielding": 85,
+    "fitness": 85,
+    "mental": 91
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 70
+  },
+  {
+   "id": "jason-holder",
+   "name": "Jason Holder",
+   "country": "West Indies",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 85,
+    "bowling": 85,
+    "fielding": 89,
+    "fitness": 91,
+    "mental": 88
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 70
+  },
+  {
+   "id": "tom-banton",
+   "name": "Tom Banton",
+   "country": "England",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 87,
+    "bowling": 28,
+    "fielding": 79,
+    "fitness": 78,
+    "mental": 81
+   },
+   "photo": "",
+   "tier": "PREMIUM",
+   "overall": 70
+  },
+  {
+   "id": "connor-esterhuizen",
+   "name": "Connor Esterhuizen",
+   "country": "South Africa",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 78,
+   "skills": {
+    "batting": 79,
+    "bowling": 12,
+    "fielding": 79,
+    "fitness": 76,
+    "mental": 76
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 65
+  },
+  {
+   "id": "michael-bracewell",
+   "name": "Michael Bracewell",
+   "country": "New Zealand",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 85,
+   "skills": {
+    "batting": 88,
+    "bowling": 81,
+    "fielding": 92,
+    "fitness": 94,
+    "mental": 92
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 65
+  },
+  {
+   "id": "shoriful-islam",
+   "name": "Shoriful Islam",
+   "country": "Bangladesh",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 57,
+    "bowling": 84,
+    "fielding": 80,
+    "fitness": 90,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 65
+  },
+  {
+   "id": "towhid-hridoy",
+   "name": "Towhid Hridoy",
+   "country": "Bangladesh",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 80,
+   "skills": {
+    "batting": 86,
+    "bowling": 28,
+    "fielding": 78,
+    "fitness": 78,
+    "mental": 79
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 65
+  },
+  {
+   "id": "alzarri-joseph",
+   "name": "Alzarri Joseph",
+   "country": "West Indies",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 80,
+   "skills": {
+    "batting": 58,
+    "bowling": 83,
+    "fielding": 80,
+    "fitness": 89,
+    "mental": 82
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 64
+  },
+  {
+   "id": "justin-greaves",
+   "name": "Justin Greaves",
+   "country": "West Indies",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_MEDIUM",
+   "era": "CURRENT",
+   "real": 83,
+   "skills": {
+    "batting": 88,
+    "bowling": 76,
+    "fielding": 87,
+    "fitness": 90,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 64
+  },
+  {
+   "id": "will-young",
+   "name": "Will Young",
+   "country": "New Zealand",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 80,
+   "skills": {
+    "batting": 86,
+    "bowling": 26,
+    "fielding": 78,
+    "fitness": 78,
+    "mental": 81
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 64
+  },
+  {
+   "id": "beau-webster",
+   "name": "Beau Webster",
+   "country": "Australia",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_MEDIUM",
+   "era": "CURRENT",
+   "real": 82,
+   "skills": {
+    "batting": 87,
+    "bowling": 75,
+    "fielding": 88,
+    "fitness": 86,
+    "mental": 83
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 63
+  },
+  {
+   "id": "brian-bennett",
+   "name": "Brian Bennett",
+   "country": "Zimbabwe",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 79,
+   "skills": {
+    "batting": 84,
+    "bowling": 52,
+    "fielding": 75,
+    "fitness": 78,
+    "mental": 79
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 63
+  },
+  {
+   "id": "jaker-ali",
+   "name": "Jaker Ali",
+   "country": "Bangladesh",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 77,
+   "skills": {
+    "batting": 78,
+    "bowling": 12,
+    "fielding": 80,
+    "fitness": 73,
+    "mental": 75
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 63
+  },
+  {
+   "id": "mominul-haque",
+   "name": "Mominul Haque",
+   "country": "Bangladesh",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 79,
+   "skills": {
+    "batting": 84,
+    "bowling": 56,
+    "fielding": 75,
+    "fitness": 77,
+    "mental": 76
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 63
+  },
+  {
+   "id": "naseem-shah",
+   "name": "Naseem Shah",
+   "country": "Pakistan",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 80,
+   "skills": {
+    "batting": 60,
+    "bowling": 83,
+    "fielding": 79,
+    "fitness": 89,
+    "mental": 81
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 63
+  },
+  {
+   "id": "prabath-jayasuriya",
+   "name": "Prabath Jayasuriya",
+   "country": "Sri Lanka",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 80,
+   "skills": {
+    "batting": 56,
+    "bowling": 83,
+    "fielding": 84,
+    "fitness": 85,
+    "mental": 89
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 63
+  },
+  {
+   "id": "brandon-king",
+   "name": "Brandon King",
+   "country": "West Indies",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 78,
+   "skills": {
+    "batting": 84,
+    "bowling": 24,
+    "fielding": 75,
+    "fitness": 78,
+    "mental": 79
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 62
+  },
+  {
+   "id": "shamar-joseph",
+   "name": "Shamar Joseph",
+   "country": "West Indies",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 80,
+   "skills": {
+    "batting": 62,
+    "bowling": 82,
+    "fielding": 79,
+    "fitness": 88,
+    "mental": 82
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 62
+  },
+  {
+   "id": "dasun-shanaka",
+   "name": "Dasun Shanaka",
+   "country": "Sri Lanka",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_MEDIUM",
+   "era": "CURRENT",
+   "real": 82,
+   "skills": {
+    "batting": 87,
+    "bowling": 74,
+    "fielding": 86,
+    "fitness": 86,
+    "mental": 83
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 61
+  },
+  {
+   "id": "nazmul-hossain-shanto",
+   "name": "Nazmul Hossain Shanto",
+   "country": "Bangladesh",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 78,
+   "skills": {
+    "batting": 83,
+    "bowling": 55,
+    "fielding": 75,
+    "fitness": 77,
+    "mental": 76
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 61
+  },
+  {
+   "id": "xavier-bartlett",
+   "name": "Xavier Bartlett",
+   "country": "Australia",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 80,
+   "skills": {
+    "batting": 62,
+    "bowling": 82,
+    "fielding": 80,
+    "fitness": 88,
+    "mental": 81
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 61
+  },
+  {
+   "id": "amir-jangoo",
+   "name": "Amir Jangoo",
+   "country": "West Indies",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 76,
+   "skills": {
+    "batting": 76,
+    "bowling": 11,
+    "fielding": 77,
+    "fitness": 74,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 60
+  },
+  {
+   "id": "dhananjaya-de-silva",
+   "name": "Dhananjaya de Silva",
+   "country": "Sri Lanka",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 82,
+   "skills": {
+    "batting": 90,
+    "bowling": 70,
+    "fielding": 89,
+    "fitness": 87,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 60
+  },
+  {
+   "id": "hasan-mahmud",
+   "name": "Hasan Mahmud",
+   "country": "Bangladesh",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 79,
+   "skills": {
+    "batting": 56,
+    "bowling": 82,
+    "fielding": 78,
+    "fitness": 90,
+    "mental": 80
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 60
+  },
+  {
+   "id": "matthew-short",
+   "name": "Matthew Short",
+   "country": "Australia",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 77,
+   "skills": {
+    "batting": 81,
+    "bowling": 58,
+    "fielding": 74,
+    "fitness": 73,
+    "mental": 76
+   },
+   "photo": "",
+   "tier": "RARE_FREE",
+   "overall": 60
+  },
+  {
+   "id": "brendan-taylor",
+   "name": "Brendan Taylor",
+   "country": "Zimbabwe",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 76,
+    "bowling": 24,
+    "fielding": 78,
+    "fitness": 74,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 59
+  },
+  {
+   "id": "keacy-carty",
+   "name": "Keacy Carty",
+   "country": "West Indies",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 76,
+   "skills": {
+    "batting": 81,
+    "bowling": 40,
+    "fielding": 72,
+    "fitness": 75,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 59
+  },
+  {
+   "id": "matheesha-pathirana",
+   "name": "Matheesha Pathirana",
+   "country": "Sri Lanka",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 79,
+   "skills": {
+    "batting": 59,
+    "bowling": 81,
+    "fielding": 78,
+    "fitness": 90,
+    "mental": 80
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 59
+  },
+  {
+   "id": "romario-shepherd",
+   "name": "Romario Shepherd",
+   "country": "West Indies",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 82,
+   "skills": {
+    "batting": 84,
+    "bowling": 80,
+    "fielding": 86,
+    "fitness": 87,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 59
+  },
+  {
+   "id": "cooper-connolly",
+   "name": "Cooper Connolly",
+   "country": "Australia",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 89,
+    "bowling": 69,
+    "fielding": 85,
+    "fitness": 86,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 58
+  },
+  {
+   "id": "dushmantha-chameera",
+   "name": "Dushmantha Chameera",
+   "country": "Sri Lanka",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 78,
+   "skills": {
+    "batting": 55,
+    "bowling": 81,
+    "fielding": 77,
+    "fitness": 89,
+    "mental": 79
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 58
+  },
+  {
+   "id": "harshit-rana",
+   "name": "Harshit Rana",
+   "country": "India",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST",
+   "era": "CURRENT",
+   "real": 78,
+   "skills": {
+    "batting": 62,
+    "bowling": 80,
+    "fielding": 76,
+    "fitness": 88,
+    "mental": 79
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 58
+  },
+  {
+   "id": "matthew-breetzke",
+   "name": "Matthew Breetzke",
+   "country": "South Africa",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 76,
+   "skills": {
+    "batting": 82,
+    "bowling": 25,
+    "fielding": 73,
+    "fitness": 76,
+    "mental": 76
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 58
+  },
+  {
+   "id": "lorcan-tucker",
+   "name": "Lorcan Tucker",
+   "country": "Ireland",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 76,
+    "bowling": 9,
+    "fielding": 79,
+    "fitness": 74,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 57
+  },
+  {
+   "id": "matthew-forde",
+   "name": "Matthew Forde",
+   "country": "West Indies",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 78,
+   "skills": {
+    "batting": 64,
+    "bowling": 80,
+    "fielding": 77,
+    "fitness": 88,
+    "mental": 80
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 57
+  },
+  {
+   "id": "parvez-hossain-emon",
+   "name": "Parvez Hossain Emon",
+   "country": "Bangladesh",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 81,
+    "bowling": 20,
+    "fielding": 71,
+    "fitness": 75,
+    "mental": 77
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 57
+  },
+  {
+   "id": "pavan-rathnayake",
+   "name": "Pavan Rathnayake",
+   "country": "Sri Lanka",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 80,
+    "bowling": 38,
+    "fielding": 71,
+    "fitness": 74,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 57
+  },
+  {
+   "id": "prenelan-subrayen",
+   "name": "Prenelan Subrayen",
+   "country": "South Africa",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 78,
+   "skills": {
+    "batting": 61,
+    "bowling": 79,
+    "fielding": 80,
+    "fitness": 83,
+    "mental": 87
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 57
+  },
+  {
+   "id": "brad-evans",
+   "name": "Brad Evans",
+   "country": "Zimbabwe",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 63,
+    "bowling": 76,
+    "fielding": 74,
+    "fitness": 85,
+    "mental": 78
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 56
+  },
+  {
+   "id": "mahedi-hasan",
+   "name": "Mahedi Hasan",
+   "country": "Bangladesh",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 81,
+    "bowling": 80,
+    "fielding": 87,
+    "fitness": 88,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 56
+  },
+  {
+   "id": "richard-ngarava",
+   "name": "Richard Ngarava",
+   "country": "Zimbabwe",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 78,
+   "skills": {
+    "batting": 57,
+    "bowling": 80,
+    "fielding": 77,
+    "fitness": 89,
+    "mental": 81
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 56
+  },
+  {
+   "id": "shadman-islam",
+   "name": "Shadman Islam",
+   "country": "Bangladesh",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 81,
+    "bowling": 20,
+    "fielding": 73,
+    "fitness": 75,
+    "mental": 77
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 56
+  },
+  {
+   "id": "eshan-malinga",
+   "name": "Eshan Malinga",
+   "country": "Sri Lanka",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 60,
+    "bowling": 76,
+    "fielding": 74,
+    "fitness": 86,
+    "mental": 77
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 55
+  },
+  {
+   "id": "harry-tector",
+   "name": "Harry Tector",
+   "country": "Ireland",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 74,
+   "skills": {
+    "batting": 78,
+    "bowling": 53,
+    "fielding": 72,
+    "fitness": 73,
+    "mental": 75
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 55
+  },
+  {
+   "id": "mark-adair",
+   "name": "Mark Adair",
+   "country": "Ireland",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 82,
+    "bowling": 82,
+    "fielding": 85,
+    "fitness": 86,
+    "mental": 86
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 55
+  },
+  {
+   "id": "usman-khan",
+   "name": "Usman Khan",
+   "country": "Pakistan",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 76,
+    "bowling": 9,
+    "fielding": 78,
+    "fitness": 74,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "UNCOMMON",
+   "overall": 55
+  },
+  {
+   "id": "jordan-hermann",
+   "name": "Jordan Hermann",
+   "country": "South Africa",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 74,
+   "skills": {
+    "batting": 80,
+    "bowling": 21,
+    "fielding": 72,
+    "fitness": 74,
+    "mental": 77
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 54
+  },
+  {
+   "id": "joshua-little",
+   "name": "Joshua Little",
+   "country": "Ireland",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "LEFT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 59,
+    "bowling": 77,
+    "fielding": 74,
+    "fitness": 86,
+    "mental": 77
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 54
+  },
+  {
+   "id": "lahiru-udara",
+   "name": "Lahiru Udara",
+   "country": "Sri Lanka",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 73,
+   "skills": {
+    "batting": 74,
+    "bowling": 8,
+    "fielding": 75,
+    "fitness": 69,
+    "mental": 72
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 54
+  },
+  {
+   "id": "roston-chase",
+   "name": "Roston Chase",
+   "country": "West Indies",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 81,
+   "skills": {
+    "batting": 88,
+    "bowling": 71,
+    "fielding": 86,
+    "fitness": 87,
+    "mental": 85
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 54
+  },
+  {
+   "id": "alick-athanaze",
+   "name": "Alick Athanaze",
+   "country": "West Indies",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 73,
+   "skills": {
+    "batting": 78,
+    "bowling": 59,
+    "fielding": 70,
+    "fitness": 69,
+    "mental": 71
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 53
+  },
+  {
+   "id": "matthew-humphreys",
+   "name": "Matthew Humphreys",
+   "country": "Ireland",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 75,
+   "skills": {
+    "batting": 57,
+    "bowling": 77,
+    "fielding": 78,
+    "fitness": 81,
+    "mental": 84
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 53
+  },
+  {
+   "id": "gareth-delany",
+   "name": "Gareth Delany",
+   "country": "Ireland",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "LEG_SPIN",
+   "era": "CURRENT",
+   "real": 79,
+   "skills": {
+    "batting": 85,
+    "bowling": 70,
+    "fielding": 83,
+    "fitness": 87,
+    "mental": 82
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 52
+  },
+  {
+   "id": "azan-awais",
+   "name": "Azan Awais",
+   "country": "Pakistan",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 73,
+   "skills": {
+    "batting": 80,
+    "bowling": 20,
+    "fielding": 69,
+    "fitness": 71,
+    "mental": 75
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 51
+  },
+  {
+   "id": "luke-wood",
+   "name": "Luke Wood",
+   "country": "England",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 73,
+   "skills": {
+    "batting": 61,
+    "bowling": 75,
+    "fielding": 71,
+    "fitness": 80,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 51
+  },
+  {
+   "id": "ben-curran",
+   "name": "Ben Curran",
+   "country": "Zimbabwe",
+   "role": "BATTER",
+   "bat": "L",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 72,
+   "skills": {
+    "batting": 78,
+    "bowling": 18,
+    "fielding": 69,
+    "fitness": 72,
+    "mental": 74
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 50
+  },
+  {
+   "id": "clive-madande",
+   "name": "Clive Madande",
+   "country": "Zimbabwe",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 70,
+   "skills": {
+    "batting": 70,
+    "bowling": 7,
+    "fielding": 73,
+    "fitness": 70,
+    "mental": 67
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 50
+  },
+  {
+   "id": "liam-dawson",
+   "name": "Liam Dawson",
+   "country": "England",
+   "role": "ALL_ROUNDER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 79,
+   "skills": {
+    "batting": 80,
+    "bowling": 77,
+    "fielding": 85,
+    "fitness": 88,
+    "mental": 82
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 50
+  },
+  {
+   "id": "wellington-masakadza",
+   "name": "Wellington Masakadza",
+   "country": "Zimbabwe",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 71,
+   "skills": {
+    "batting": 56,
+    "bowling": 72,
+    "fielding": 74,
+    "fitness": 75,
+    "mental": 80
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 50
+  },
+  {
+   "id": "dion-myers",
+   "name": "Dion Myers",
+   "country": "Zimbabwe",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 72,
+   "skills": {
+    "batting": 78,
+    "bowling": 37,
+    "fielding": 69,
+    "fitness": 72,
+    "mental": 71
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 49
+  },
+  {
+   "id": "tinotenda-maposa",
+   "name": "Tinotenda Maposa",
+   "country": "Zimbabwe",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 70,
+   "skills": {
+    "batting": 60,
+    "bowling": 72,
+    "fielding": 70,
+    "fitness": 81,
+    "mental": 70
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 49
+  },
+  {
+   "id": "ben-calitz",
+   "name": "Ben Calitz",
+   "country": "Ireland",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 71,
+   "skills": {
+    "batting": 78,
+    "bowling": 18,
+    "fielding": 70,
+    "fitness": 69,
+    "mental": 71
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 48
+  },
+  {
+   "id": "khary-pierre",
+   "name": "Khary Pierre",
+   "country": "West Indies",
+   "role": "BOWLER",
+   "bat": "L",
+   "bowl": "LEFT_ARM_ORTHODOX",
+   "era": "CURRENT",
+   "real": 69,
+   "skills": {
+    "batting": 61,
+    "bowling": 69,
+    "fielding": 73,
+    "fitness": 73,
+    "mental": 76
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 48
+  },
+  {
+   "id": "wessly-madhevere",
+   "name": "Wessly Madhevere",
+   "country": "Zimbabwe",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "OFF_SPIN",
+   "era": "CURRENT",
+   "real": 77,
+   "skills": {
+    "batting": 81,
+    "bowling": 68,
+    "fielding": 82,
+    "fitness": 82,
+    "mental": 80
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 47
+  },
+  {
+   "id": "ben-white",
+   "name": "Ben White",
+   "country": "Ireland",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "LEG_SPIN",
+   "era": "CURRENT",
+   "real": 68,
+   "skills": {
+    "batting": 59,
+    "bowling": 70,
+    "fielding": 69,
+    "fitness": 71,
+    "mental": 76
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 46
+  },
+  {
+   "id": "tim-tector",
+   "name": "Tim Tector",
+   "country": "Ireland",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 70,
+   "skills": {
+    "batting": 76,
+    "bowling": 16,
+    "fielding": 69,
+    "fitness": 71,
+    "mental": 70
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 46
+  },
+  {
+   "id": "curtis-campher",
+   "name": "Curtis Campher",
+   "country": "Ireland",
+   "role": "ALL_ROUNDER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_MEDIUM",
+   "era": "CURRENT",
+   "real": 76,
+   "skills": {
+    "batting": 81,
+    "bowling": 68,
+    "fielding": 79,
+    "fitness": 82,
+    "mental": 77
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 45
+  },
+  {
+   "id": "liam-mccarthy",
+   "name": "Liam McCarthy",
+   "country": "Ireland",
+   "role": "BOWLER",
+   "bat": "R",
+   "bowl": "RIGHT_ARM_FAST_MEDIUM",
+   "era": "CURRENT",
+   "real": 67,
+   "skills": {
+    "batting": 59,
+    "bowling": 68,
+    "fielding": 64,
+    "fitness": 75,
+    "mental": 69
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 45
+  },
+  {
+   "id": "stephen-doheny",
+   "name": "Stephen Doheny",
+   "country": "Ireland",
+   "role": "WICKET_KEEPER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 68,
+   "skills": {
+    "batting": 69,
+    "bowling": 5,
+    "fielding": 69,
+    "fitness": 65,
+    "mental": 66
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 45
+  },
+  {
+   "id": "tony-munyonga",
+   "name": "Tony Munyonga",
+   "country": "Zimbabwe",
+   "role": "BATTER",
+   "bat": "R",
+   "bowl": "NONE",
+   "era": "CURRENT",
+   "real": 68,
+   "skills": {
+    "batting": 74,
+    "bowling": 34,
+    "fielding": 65,
+    "fitness": 66,
+    "mental": 67
+   },
+   "photo": "",
+   "tier": "COMMON",
+   "overall": 45
+  }
+ ],
+ "editions": [
+  {
+   "person": "joe-root",
+   "edition": "TOTT",
+   "overall": 99
+  },
+  {
+   "person": "jasprit-bumrah",
+   "edition": "TOTT",
+   "overall": 99
+  },
+  {
+   "person": "ravindra-jadeja",
+   "edition": "TOTT",
+   "overall": 99
+  },
+  {
+   "person": "harry-brook",
+   "edition": "TOTT",
+   "overall": 99
+  },
+  {
+   "person": "axar-patel",
+   "edition": "TOTT",
+   "overall": 99
+  },
+  {
+   "person": "jacob-duffy",
+   "edition": "POTM",
+   "overall": 99
+  },
+  {
+   "person": "phil-salt",
+   "edition": "POTM",
+   "overall": 99
+  },
+  {
+   "person": "virat-kohli",
+   "edition": "POTM",
+   "overall": 97
+  },
+  {
+   "person": "josh-hazlewood",
+   "edition": "POTM",
+   "overall": 97
+  },
+  {
+   "person": "shubman-gill",
+   "edition": "POTM",
+   "overall": 95
+  },
+  {
+   "person": "abrar-ahmed",
+   "edition": "LIMITED",
+   "overall": 95
+  },
+  {
+   "person": "ben-stokes",
+   "edition": "LIMITED",
+   "overall": 93
+  },
+  {
+   "person": "ben-duckett",
+   "edition": "LIMITED",
+   "overall": 93
+  },
+  {
+   "person": "kl-rahul",
+   "edition": "LIMITED",
+   "overall": 93
+  }
+ ]
+}

@@ -3,7 +3,7 @@
 ## What we are building
 A realistic 2D cricket career simulation web game. The player starts as a young beginner and must earn every step to become an international cricketer. Gameplay style is like cricket management sims (e.g. Cricket Captain): top-down 2D ground with fielders as dots, ball path lines, ball-by-ball text commentary, detailed scorecards and stats. Career Mode and IPL Manager are NOT 3D.
 
-Exception: the separate **Live PvP** mode (`/pvp`, Phase 12) is a 3D one-on-one match game built on three.js (`src/game3d`), with its own engine (`src/engine/pvp`), store, saves and a WebSocket server (`server/`). Keep three.js out of the career and manager screens. Live PvP players are fictional by design (see `docs/LIVE_PVP.md`).
+Exception: the separate **Live PvP** mode (`/pvp`, Phase 12) is a 3D one-on-one match game built on three.js (`src/game3d`), with its own engine (`src/engine/pvp`), store, saves and a WebSocket server (`server/`). Keep three.js out of the career and manager screens. Live PvP cards are real cricketers built from tagged photos and the real player data (see `docs/LIVE_PVP.md`).
 
 ## Source documents (read these before any phase)
 - `CAREER_MODE.md` – the full 20-stage career path and game rules

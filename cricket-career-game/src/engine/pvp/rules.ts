@@ -53,7 +53,7 @@ export function validateCard(card: PlayerCard): RuleIssue[] {
   for (const key of ['batting', 'bowling', 'fielding', 'fitness'] as const) {
     if (!Number.isInteger(card[key]) || card[key] < 1 || card[key] > 99) issues.push({ code: 'SUB_RATING', message: `${card.id}: ${key} ${card[key]} out of 1-99` });
   }
-  if (card.fictional !== true) issues.push({ code: 'FICTIONAL', message: `${card.id}: catalog cards must be fictional` });
+  if (!card.personId || !card.name) issues.push({ code: 'PERSON', message: `${card.id}: a card must name its player` });
   return issues;
 }
 
