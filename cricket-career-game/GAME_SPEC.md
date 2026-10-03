@@ -1170,6 +1170,18 @@ earn a place like everyone else.
   LEAGUE (14 rounds) -> PLAYOFFS -> SEASON_END. Every rule and balance number
   is in `engine/manager/config.ts`; money is in lakh.
 
+## 8j. Live PvP (Phase 12)
+
+A separate mode at `/pvp`: collectible fictional players (free 45-65, premium
+70-99, 66-69 excluded), packs with published odds, a market, a squad builder,
+and quick 3D one-on-one matches (2 overs, 3 wickets) resolved by an
+authoritative `PvpMatch` built on `resolveDelivery`. The 3D layer
+(`src/game3d`, three.js) only renders the authority's events. Online play runs
+on `server/pvp-server.ts` (WebSocket); without it, an offline demo plays
+practice matches against the AI and never touches ranked. Full design,
+protocol, rules and operations: `docs/LIVE_PVP.md`. Assets and licences:
+`docs/assets/ASSET_MANIFEST.md`.
+
 ## 9. Phase plan
 
 | Phase | Scope | Status |

@@ -16,6 +16,7 @@ import {
   Trophy,
   Users,
   Newspaper,
+  Radio,
   Table2,
   type LucideIcon,
 } from 'lucide-react';
@@ -37,6 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Selection / News', to: '/selection', icon: Newspaper },
   { label: 'IPL Auction', to: '/auction', icon: Gavel },
   { label: 'IPL Manager', to: '/manager', icon: Crown },
+  { label: 'Live PvP', to: '/pvp', icon: Radio },
   { label: 'International', to: '/international', icon: Globe },
   { label: 'Stats', to: '/stats', icon: BarChart3 },
   { label: 'Rivals', to: '/rivals', icon: UserRoundSearch },

@@ -38,12 +38,18 @@ function serviceWorker(): Plugin {
 export default defineConfig({
   plugins: [react(), tailwindcss(), serviceWorker()],
   build: {
+    // three.js (with its GLTF loader and orbit controls) is one ~660 kB vendor chunk, fetched only by the Live PvP 3D
+    // screens (match and lab); every other chunk stays under the old 500 kB.
+    chunkSizeWarningLimit: 680,
     rolldownOptions: {
       output: {
         // The game engine and its static data are shared by every screen of both
         // modes; on their own they keep the screen chunks under the size limit.
         codeSplitting: {
           groups: [
+            // Live PvP: three.js and the PvP engine load only with the PvP screens.
+            { name: 'three', test: /[\\/]node_modules[\\/]three[\\/]/, priority: 5 },
+            { name: 'engine-pvp', test: /[\\/]src[\\/]engine[\\/]pvp[\\/]/, priority: 4 },
             { name: 'engine-manager', test: /[\\/]src[\\/]engine[\\/]manager[\\/]/, priority: 3 },
             { name: 'engine-match', test: /[\\/]src[\\/]engine[\\/](match|sim)[\\/]/, priority: 2 },
             { name: 'engine', test: /[\\/]src[\\/]engine[\\/]/, priority: 1 },
@@ -61,7 +67,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'server/**/*.test.ts'],
     // Local balance harnesses (whole-career simulations), run by hand.
     exclude: [...configDefaults.exclude, 'src/scratch/**'],
   },
