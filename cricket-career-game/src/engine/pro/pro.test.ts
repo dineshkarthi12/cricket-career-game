@@ -18,7 +18,7 @@ import { thinMatch } from '../calendar/compact';
 import { advanceWeek } from '../calendar/advance';
 import { NATIONS_BY_NAME, nationTeamId } from '@/data/nations';
 import { FRANCHISES } from '@/data/franchises';
-import { IPL_RULES } from '../config';
+import { AUCTION, IPL_RULES } from '../config';
 import type { Attributes, GameState, Match } from '@/types';
 
 /** A 28-year-old with a senior state cap: the professional season is open. */
@@ -221,6 +221,19 @@ describe('the auction', () => {
     // In the marquee set, while the purses are full: crores, not lakhs.
     expect(sold.pro.ipl.auctions.at(-1)!.room!.find((l) => l.isUser)!.set).toBe('Marquee set');
     expect(lot.price!).toBeGreaterThanOrEqual(500);
+  });
+
+  it('keeps prices within the real auction limits, years into a career', () => {
+    for (const year of [2026, 2028, 2034, 2040]) {
+      const base = proCareer();
+      const state = { ...base, season: { ...base.season, year } };
+      const room = runAuction(retentionDay(state, `${year}-11-01`), `${year}-12-16`).pro.ipl.auctions.at(-1)!.room!;
+      const prices = room.filter((l) => l.price).map((l) => l.price!);
+      expect(Math.max(...prices)).toBeLessThanOrEqual(AUCTION.maxPrice);
+      if (!isMegaSeason(year)) for (const l of room.filter((x) => x.overseas && x.price)) expect(l.price!).toBeLessThanOrEqual(AUCTION.overseasMiniMax);
+      // Only a handful of players go for big money.
+      expect(prices.filter((p) => p >= 2000).length).toBeLessThanOrEqual(5);
+    }
   });
 
   it('runs the marquee set, then capped sets, then uncapped', () => {

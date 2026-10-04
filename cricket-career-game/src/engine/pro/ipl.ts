@@ -269,10 +269,10 @@ export function leaveFranchise(state: GameState, date: string, status: IplStatus
 
 // --- Retention day ------------------------------------------------------------------------
 
-function purseFor(state: GameState, f: string, squad: RivalPlayer[], mega: boolean): number {
-  const cap = AUCTION.purse + AUCTION.purseGrowth * Math.max(0, state.season.year - 2026);
+function purseFor(state: GameState, f: string, squad: RivalPlayer[], mega: boolean, rng: Rng): number {
+  const cap = Math.min(AUCTION.purseMax, AUCTION.purse + AUCTION.purseGrowth * Math.max(0, state.season.year - 2026));
   const spent = squad.reduce((s, p) => s + (p.salary ?? 0), 0) + (state.pro.ipl.franchiseId === f ? (state.pro.ipl.contract?.salary ?? 0) : 0);
-  return Math.max(mega ? AUCTION.purseFloor.mega : AUCTION.purseFloor.mini, cap - spent);
+  return Math.max(mega ? AUCTION.purseFloor.mega : Math.round(AUCTION.purseFloor.mini + rng.next() * AUCTION.purseFloorSpread), cap - spent);
 }
 
 /**
@@ -310,7 +310,7 @@ export function retentionDay(state: GameState, date: string): GameState {
     }
     for (const p of team.squad) if (!keep.some((k) => k.id === p.id)) released.push({ ...p, teamId: AUCTION_POOL_ID, salary: undefined });
     teams[f.id] = { ...team, squad: keep };
-    purses[f.id] = purseFor(state, f.id, keep, mega);
+    purses[f.id] = purseFor(state, f.id, keep, mega, rng);
   }
   teams[AUCTION_POOL_ID] = {
     ...(teams[AUCTION_POOL_ID] ?? poolTeam()),
@@ -390,7 +390,7 @@ interface Bidder {
 }
 
 /** What each franchise is prepared to pay for a player right now. */
-function valuations(value: number, group: RoleGroup, overseas: boolean, purses: Record<string, number>, squads: Record<string, RivalPlayer[]>, rng: Rng, userBoost: Record<string, number> | null, hot = false): Bidder[] {
+function valuations(value: number, group: RoleGroup, overseas: boolean, purses: Record<string, number>, squads: Record<string, RivalPlayer[]>, rng: Rng, userBoost: Record<string, number> | null, appetite: Record<string, number>, hot = false, mega = false): Bidder[] {
   const out: Bidder[] = [];
   for (const f of FRANCHISES) {
     const squad = squads[f.id] ?? [];
@@ -404,7 +404,10 @@ function valuations(value: number, group: RoleGroup, overseas: boolean, purses: 
     const need = hot ? Math.max(1, needFor({ squad } as Team, group)) : needFor({ squad } as Team, group);
     const noise = 0.8 + rng.next() * 0.4;
     const boost = userBoost ? Math.max(hot ? 0.95 : 0, 0.55 + (userBoost[f.id] ?? 0) / 100 * 0.9) : 1;
-    const max = Math.min(value * need * styleFit(f, group) * noise * boost, purse - reserve);
+    // Discipline: no franchise bets its auction on one player, and the league's limits hold.
+    const share = purse * Math.min(0.85, (appetite[f.id] ?? AUCTION.purseShare.mini.min) + (hot ? 0.15 : 0));
+    const limit = overseas && !mega ? AUCTION.overseasMiniMax : AUCTION.maxPrice;
+    const max = Math.min(value * need * styleFit(f, group) * noise * boost, purse - reserve, share, limit);
     out.push({ franchiseId: f.id, max: Math.round(max) });
   }
   return out;
@@ -499,7 +502,7 @@ export function runAuction(state: GameState, date: string): GameState {
   const squads: Record<string, RivalPlayer[]> = {};
   for (const f of FRANCHISES) {
     squads[f.id] = [...(state.teams[f.id]?.squad ?? [])];
-    if (purses[f.id] === undefined) purses[f.id] = purseFor(state, f.id, squads[f.id], mega);
+    if (purses[f.id] === undefined) purses[f.id] = purseFor(state, f.id, squads[f.id], mega, rng);
   }
 
   // The pool.
@@ -542,6 +545,9 @@ export function runAuction(state: GameState, date: string): GameState {
   if (entry.inAuction) entries.push({ player: userAsRival, value: userValue, base: userBase, isUser: true, marquee: hot });
   const ordered = auctionSets(entries, mega);
 
+  // Each franchise's appetite this auction: how much of its purse it will put on one player.
+  const appetiteBand = mega ? AUCTION.purseShare.mega : AUCTION.purseShare.mini;
+  const appetite = Object.fromEntries(FRANCHISES.map((f) => [f.id, appetiteBand.min + rng.next() * appetiteBand.spread]));
   const pursesBefore = { ...purses };
   const squadsBefore = Object.fromEntries(FRANCHISES.map((f) => [f.id, { players: squads[f.id].length, overseas: squads[f.id].filter((p) => p.overseas).length }]));
   const lots: AuctionLot[] = [];
@@ -551,7 +557,7 @@ export function runAuction(state: GameState, date: string): GameState {
     const full = FRANCHISES.every((f) => squads[f.id].length >= IPL_RULES.squadSize);
     if (full && !e.isUser) break;
     const group = roleGroup(e.player.role);
-    const bidders = valuations(e.value, group, Boolean(e.player.overseas), purses, squads, rng, e.isUser ? state.pro.scouting.interest : null, e.isUser && hot);
+    const bidders = valuations(e.value, group, Boolean(e.player.overseas), purses, squads, rng, e.isUser ? state.pro.scouting.interest : null, appetite, e.isUser && hot, mega);
     const result = hammer(e.base, bidders, rng, e.isUser && hot);
     const lot: AuctionLot = { ...lotOf(e.player, e.base, e.isUser), bids: result.bids, soldTo: result.soldTo, price: result.price };
     lots.push(lot);

@@ -1405,9 +1405,26 @@ export const AUCTION = {
   uncappedMaxBase: 50,
   /** Total purse per franchise, grows each season. */
   purse: 12000,
-  purseGrowth: 400,
-  /** The least a franchise brings to the auction, lakh (real mini auctions: ₹13-38 Cr). */
-  purseFloor: { mini: 1500, mega: 2500 },
+  purseGrowth: 250,
+  /** ...up to this (the real purse was ₹120 Cr in 2025). */
+  purseMax: 15000,
+  /**
+   * Real auction limits: nobody has gone for more than ₹27 Cr (Pant, 2025),
+   * and since 2025 an overseas player in a mini auction is paid at most
+   * ₹18 Cr (the top retention price).
+   */
+  maxPrice: 2700,
+  overseasMiniMax: 1800,
+  /**
+   * The most of what is left in its purse a franchise will put on one
+   * player: each franchise draws its own appetite for the auction, from
+   * cautious to all-in.
+   */
+  purseShare: { mini: { min: 0.25, spread: 0.4 }, mega: { min: 0.15, spread: 0.25 } },
+  /** The least a franchise brings to the auction, lakh... */
+  purseFloor: { mini: 1000, mega: 2500 },
+  /** ...plus up to this much, varying by franchise (real mini auctions: ₹13-38 Cr). */
+  purseFloorSpread: 2500,
   /** Mega auction retention: at most four, at these slab prices. */
   retentionSlabs: [1800, 1400, 1100, 900],
   maxRetained: 4,
@@ -1415,7 +1432,7 @@ export const AUCTION = {
   valueBase: 20,
   valueFrom: 71,
   valueScale: 3.6,
-  valueCap: 2700,
+  valueCap: 1800,
   /** Bid increments by price band. */
   increments: [
     { upTo: 100, step: 5 },
