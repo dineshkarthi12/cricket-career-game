@@ -105,12 +105,12 @@ export function PlayerCard3D({ card, overall, upgrades = 0, owned = true, size =
         </div>
         {/* Back */}
         <div className="card3d-face card3d-back">
-          <div className="absolute inset-0 overflow-hidden" style={{ clipPath: clipPath(design.window) }}>
-            <img src={BACKGROUND_URL(design.key)} alt="" className="absolute inset-0 size-full object-cover opacity-40" draggable={false} />
-            <div className="absolute inset-0 bg-brand-navy/80" />
+          {/* The design's own art, darkened so the text reads. */}
+          <div className="absolute inset-0 overflow-hidden" style={design.kind === 'v1' ? { clipPath: clipPath(design.window) } : undefined}>
+            <img src={BACKGROUND_URL(design.key)} alt="" className="absolute inset-0 size-full object-cover brightness-[0.3]" draggable={false} />
           </div>
-          <img src={FRAME_URL(design.key)} alt="" className="absolute inset-0 size-full" draggable={false} />
-          <div className="absolute flex flex-col gap-[3%] text-white" style={{ left: '9%', right: '9%', top: '26%', bottom: '24%' }}>
+          {design.kind === 'v1' ? <img src={FRAME_URL(design.key)} alt="" className="absolute inset-0 size-full brightness-[0.3]" draggable={false} /> : null}
+          <div className="absolute flex flex-col gap-[2%] text-white" style={{ left: '9%', right: '9%', top: '8%', bottom: '10%' }}>
             <p className={cn('font-bold leading-tight', size === 'sm' ? 'text-[10px]' : 'text-[13px]')}>{card.name}</p>
             <p className="text-[9.5px] leading-snug text-white/75">
               {card.country} · {ROLE_LABEL[card.role]} · {card.battingStyle === 'LEFT_HAND_BAT' ? 'Left-hand bat' : 'Right-hand bat'}
@@ -137,7 +137,7 @@ export function PlayerCard3D({ card, overall, upgrades = 0, owned = true, size =
                   </div>
                 ))
               : null}
-            <p className="mt-auto text-[9px] leading-snug text-white/60">
+            <p className={cn('mt-auto text-[9px] leading-snug text-white/60', size !== 'lg' && 'hidden')}>
               {card.series} · {card.cls === 'FREE' ? 'Free player (45-65)' : 'Premium player (70-99)'}. Ratings are gameplay values.
             </p>
           </div>

@@ -256,19 +256,25 @@ describe('economy', () => {
   });
 
   it('upgrades stop at 65 for free cards and at the tier ceiling for premium', () => {
-    const rare = CATALOG.find((c) => c.tier === 'RARE_FREE' && c.overall === 64)!;
+    // The best Rare card short of the cap: it can climb to 65 and no further.
+    const rare = CATALOG.filter((c) => c.tier === 'RARE_FREE' && c.overall < 65).sort((a, b) => b.overall - a.overall)[0];
+    const room = 65 - rare.overall;
+    expect(room).toBeLessThanOrEqual(5);
     let p: PvpProfile = { ...starter(), coins: 1_000_000 };
     const bought = buyCard(p, { requestId: 'buy-rare-1', cardId: rare.id }, ctx());
     expect(bought.ok).toBe(true);
     if (!bought.ok) return;
     p = bought.profile;
     const inst = p.inventory.find((o) => o.cardId === rare.id)!.instanceId;
-    const up1 = upgradeCard(p, { requestId: 'upgrade-1', instanceId: inst }, ctx());
-    expect(up1.ok).toBe(true);
-    if (!up1.ok) return;
-    const up2 = upgradeCard(up1.profile, { requestId: 'upgrade-2', instanceId: inst }, ctx());
-    expect(up2.ok).toBe(false);
-    if (!up2.ok) expect(up2.code).toBe('UPGRADE_CAP');
+    for (let level = 1; level <= room; level += 1) {
+      const up = upgradeCard(p, { requestId: `upgrade-${level}`, instanceId: inst }, ctx());
+      expect(up.ok).toBe(true);
+      if (!up.ok) return;
+      p = up.profile;
+    }
+    const over = upgradeCard(p, { requestId: 'upgrade-over', instanceId: inst }, ctx());
+    expect(over.ok).toBe(false);
+    if (!over.ok) expect(over.code).toBe('UPGRADE_CAP');
   });
 
   it('a tampered save is reported and its bad cards are quarantined, not rewritten', () => {

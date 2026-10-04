@@ -22,7 +22,7 @@ export type AcquisitionMethod =
   | 'MARKET_GEMS';
 
 /** A special version of a player's card, with its own design. */
-export type CardEdition = 'BASE' | 'TOTT' | 'POTM' | 'LIMITED';
+export type CardEdition = 'BASE' | 'TOTT' | 'POTM' | 'LIMITED' | 'ALLROUNDER';
 
 export interface PlayerCard {
   id: string;
@@ -136,6 +136,7 @@ const EDITION_SERIES: Record<Exclude<CardEdition, 'BASE'>, string> = {
   TOTT: 'Team of the Tournament',
   POTM: 'Player of the Match',
   LIMITED: 'Limited Edition',
+  ALLROUNDER: 'All Rounder',
 };
 
 function acquisitionFor(tier: CardTier, era: CardEra, edition: CardEdition): AcquisitionMethod[] {

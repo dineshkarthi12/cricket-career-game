@@ -5,7 +5,7 @@
  */
 import { useId, type CSSProperties, type ReactElement } from 'react';
 import type { PlayerCard } from '@/engine/pvp';
-import { BACKGROUND_URL, FRAME_URL, clipPath, designFor, type CardDesign, type Paint } from './designs';
+import { BACKGROUND_URL, FRAME_URL, clipPath, designFor, type CardDesign, type Paint, type V1Design, type V2Design } from './designs';
 import { FlagMark } from './Flag';
 
 const FONT = {
@@ -30,6 +30,9 @@ const PAINTS: Record<Paint, [number, string][]> = {
   ice: [[0, '#ffffff'], [0.42, '#d6f0ff'], [1, '#4aa8ff']],
   orchid: [[0, '#ffffff'], [0.4, '#f8d2ff'], [1, '#c64af0']],
   ink: [[0, '#2a2d35'], [1, '#0c0d10']],
+  chrome: [[0, '#ffffff'], [0.4, '#e9ecf1'], [0.5, '#8d95a3'], [0.62, '#d7dbe2'], [1, '#f7f8fa']],
+  ruby: [[0, '#fff1c9'], [0.35, '#ffd27a'], [0.5, '#e2384f'], [0.7, '#ff8a6a'], [1, '#ffe2a6']],
+  holo: [[0, '#ffd6fb'], [0.25, '#a7c8ff'], [0.5, '#c6a4ff'], [0.75, '#8ff0ff'], [1, '#ffb8e6']],
 };
 
 const BOWLING_LABEL: Record<string, string> = {
@@ -118,7 +121,7 @@ function paintRef(uid: string, p: Paint) {
   return `url(#${uid}-${p})`;
 }
 
-function Rating({ d, uid, value, role }: { d: CardDesign; uid: string; value: number; role: string }) {
+function Rating({ d, uid, value, role }: { d: V1Design; uid: string; value: number; role: string }) {
   const r = d.rating;
   const size = (r.bottom - r.top) / CAP.rating;
   const roleSize = r.roleCap / CAP.condensed;
@@ -156,7 +159,7 @@ function Rating({ d, uid, value, role }: { d: CardDesign; uid: string; value: nu
   );
 }
 
-function Name({ d, uid, card }: { d: CardDesign; uid: string; card: PlayerCard }) {
+function Name({ d, uid, card }: { d: V1Design; uid: string; card: PlayerCard }) {
   const n = d.name;
   const [first, last] = splitName(card.name);
   const serif = n.font === 'serif';
@@ -193,7 +196,7 @@ function Name({ d, uid, card }: { d: CardDesign; uid: string; card: PlayerCard }
   );
 }
 
-function Stats({ d, uid, card }: { d: CardDesign; uid: string; card: PlayerCard }) {
+function Stats({ d, uid, card }: { d: Pick<CardDesign, 'stats'>; uid: string; card: PlayerCard }) {
   const s = d.stats;
   const values = [card.batting, card.bowling, card.fielding, card.fitness, card.mental];
   const size = (s.bottom - s.top) / CAP.condensed;
@@ -222,7 +225,7 @@ function Stats({ d, uid, card }: { d: CardDesign; uid: string; card: PlayerCard 
   );
 }
 
-function Plate({ d, uid }: { d: CardDesign; uid: string }) {
+function Plate({ d, uid }: { d: V1Design; uid: string }) {
   if (!d.plate) return null;
   const top = d.name.first.baseline - d.name.first.cap - 34;
   const tabEnd = 360;
@@ -250,7 +253,7 @@ function Crown({ x, y, w, fill }: { x: number; y: number; w: number; fill: strin
   );
 }
 
-function Extras({ d, uid, card, serial }: { d: CardDesign; uid: string; card: PlayerCard; serial: number }) {
+function Extras({ d, uid, card, serial }: { d: V1Design; uid: string; card: PlayerCard; serial: number }) {
   const gold = paintRef(uid, 'gold');
   const out: ReactElement[] = [];
   if (d.key === 'legendary') {
@@ -289,9 +292,148 @@ function Extras({ d, uid, card, serial }: { d: CardDesign; uid: string; card: Pl
   return <>{out}</>;
 }
 
-export function CardFace({ card, overall, serial, className, layerClass }: Props) {
+export function CardFace(props: Props) {
+  const d = designFor(props.card);
+  return d.kind === 'v2' ? <V2Face {...props} d={d} /> : <V1Face {...props} d={d} />;
+}
+
+const COUNTRY_CODE: Record<string, string> = {
+  India: 'IND', Pakistan: 'PAK', Australia: 'AUS', England: 'ENG', 'South Africa': 'SA', 'New Zealand': 'NZ', 'West Indies': 'WI',
+  'Sri Lanka': 'SL', Bangladesh: 'BAN', Afghanistan: 'AFG', Zimbabwe: 'ZIM', Ireland: 'IRE', Scotland: 'SCO', Netherlands: 'NED',
+};
+
+export function roleLine(card: PlayerCard): string {
+  if (card.role === 'BOWLER') return /SPIN|ORTHODOX/.test(card.bowlingStyle) ? 'SPIN BOWLER' : 'FAST BOWLER';
+  if (card.role === 'ALL_ROUNDER') return 'ALL-ROUNDER';
+  if (card.role === 'WICKET_KEEPER') return 'WICKETKEEPER BATTER';
+  return 'BATTER';
+}
+
+/** Text fitted into a box: as large as its height allows, shrunk to fit its width. */
+function BoxText({ box, text, align, fill, face, weight, advance, capRatio, spacing = 0, filter, stroke, uid }: {
+  box: [number, number, number, number]; text: string; align: 'start' | 'middle'; fill: string; face: string; weight: number;
+  advance: number; capRatio: number; spacing?: number; filter?: string; stroke?: string; uid: string;
+}) {
+  const [x0, y0, x1, y1] = box;
+  const h = y1 - y0;
+  const w = x1 - x0;
+  const byHeight = (h * 0.82) / capRatio;
+  const byWidth = w / Math.max(1, text.length * advance + (text.length * spacing) / byHeight);
+  const size = Math.min(byHeight, byWidth);
+  const cap = size * capRatio;
+  return (
+    <text
+      x={align === 'middle' ? (x0 + x1) / 2 : x0 + 4}
+      y={y0 + (h + cap) / 2}
+      textAnchor={align}
+      fontFamily={face}
+      fontWeight={weight}
+      fontSize={size}
+      fill={fill}
+      letterSpacing={spacing}
+      stroke={stroke}
+      strokeWidth={stroke ? 2 : undefined}
+      filter={filter}
+      data-uid={uid}
+    >
+      {text}
+    </text>
+  );
+}
+
+/** Softens the edges where a source photo ended (the sides and the bottom of the cut-out). */
+const PHOTO_FADE = 'linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%), linear-gradient(to bottom, #000 78%, transparent 97%)';
+
+function V2Face({ card, overall, className, layerClass, d }: Props & { d: V2Design }) {
   const uid = useId().replace(/:/g, '');
-  const d = designFor(card);
+  const [rx0, ry0, rx1, ry1] = d.rating.box;
+  const ratingSize = (ry1 - ry0) / CAP.rating;
+  const metallic = ['gold', 'ruby', 'holo', 'chrome'].includes(d.rating.paint);
+  const [cx, cy, r] = d.logo;
+  const p = d.photo;
+  const [kx0, ky0, kx1, ky1] = p.clip;
+  const clip = `inset(${((ky0 / 1536) * 100).toFixed(2)}% ${(((1024 - kx1) / 1024) * 100).toFixed(2)}% ${(((1536 - ky1) / 1536) * 100).toFixed(2)}% ${((kx0 / 1024) * 100).toFixed(2)}%)`;
+  const darkPlate = d.key === 'icon' || d.key === 'allrounder';
+  return (
+    <div className={className} style={{ position: 'relative', aspectRatio: '2 / 3', containerType: 'inline-size' }}>
+      <img src={BACKGROUND_URL(d.key)} alt="" className="absolute inset-0 size-full" draggable={false} />
+      <div className="absolute inset-0 overflow-hidden" style={{ clipPath: clip }}>
+        <div className={layerClass} style={{ position: 'absolute', inset: 0 }}>
+          {card.photo ? (
+            <img
+              src={card.photo}
+              alt=""
+              draggable={false}
+              className="absolute"
+              style={{ left: `${(p.left / 1024) * 100}%`, top: `${(p.top / 1536) * 100}%`, width: `${(p.width / 1024) * 100}%`, maxWidth: 'none', filter: 'drop-shadow(0 0 1.4cqw rgba(0,0,0,0.6))', maskImage: PHOTO_FADE, WebkitMaskImage: PHOTO_FADE, maskComposite: 'intersect', WebkitMaskComposite: 'source-in' }}
+            />
+          ) : (
+            <Silhouette />
+          )}
+        </div>
+      </div>
+      <img src={FRAME_URL(d.key)} alt="" className="absolute inset-0 size-full" draggable={false} />
+      <svg viewBox="0 0 1024 1536" className="absolute inset-0 size-full" aria-hidden>
+        <Gradients uid={uid} />
+        <text
+          x={(rx0 + rx1) / 2}
+          y={ry1}
+          textAnchor="middle"
+          fontFamily={FONT.rating}
+          fontSize={ratingSize}
+          fill={paintRef(uid, d.rating.paint)}
+          stroke={metallic ? 'rgba(40,24,4,0.85)' : 'rgba(0,0,0,0.4)'}
+          strokeWidth={2.5}
+          filter={`url(#${uid}-${d.rating.paint === 'gold' ? 'glow' : 'shadow'})`}
+          {...fit(String(overall), ratingSize, 0.56, rx1 - rx0)}
+        >
+          {overall}
+        </text>
+        <FlagMark country={card.country} x={d.flag[0]} y={d.flag[1]} width={d.flag[2]} height={d.flag[3]} />
+        <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.35)" />
+        <text x={cx} y={cy + r * 0.24} textAnchor="middle" fontFamily={FONT.condensed} fontWeight={700} fontSize={r * 0.7} fill={paintRef(uid, 'gold')} letterSpacing={2}>
+          {COUNTRY_CODE[card.country] ?? card.country.slice(0, 3).toUpperCase()}
+        </text>
+        {d.key === 'legendary' ? (
+          <text x={262} y={105} textAnchor="middle" fontFamily={FONT.name} fontWeight={800} fontSize={36} fill={paintRef(uid, 'gold')} letterSpacing={5} {...fit(card.tier === 'ELITE' ? 'ELITE' : 'LEGENDARY', 36, 0.9, 270)} filter={`url(#${uid}-shadow)`}>
+            {card.tier === 'ELITE' ? 'ELITE' : 'LEGENDARY'}
+          </text>
+        ) : null}
+        <BoxText
+          uid={uid}
+          box={d.name.box}
+          text={card.name.toUpperCase()}
+          align={d.name.align}
+          fill={paintRef(uid, d.name.paint)}
+          face={FONT.name}
+          weight={900}
+          advance={0.78}
+          capRatio={CAP.name}
+          stroke={d.name.paint === 'gold' || d.name.paint === 'holo' ? 'rgba(60,36,4,0.9)' : 'rgba(0,0,0,0.35)'}
+          filter={`url(#${uid}-shadow)`}
+        />
+        <BoxText uid={uid} box={d.role.box} text={roleLine(card)} align={d.role.align} fill={d.role.color} face={FONT.condensed} weight={600} advance={0.5} capRatio={CAP.condensed} spacing={8} />
+        <BoxText
+          uid={uid}
+          box={d.style.box}
+          text={styleLine(card)}
+          align={d.style.align}
+          fill={d.style.color}
+          face={FONT.condensed}
+          weight={600}
+          advance={0.48}
+          capRatio={CAP.condensed}
+          spacing={3}
+          filter={darkPlate ? undefined : `url(#${uid}-shadow)`}
+        />
+        <Stats d={d} uid={uid} card={card} />
+      </svg>
+    </div>
+  );
+}
+
+function V1Face({ card, overall, serial, className, layerClass, d }: Props & { d: V1Design }) {
+  const uid = useId().replace(/:/g, '');
   const window: CSSProperties = { clipPath: clipPath(d.window) };
   const subline = d.subline ? (d.subline.text === 'country' ? card.country.toUpperCase() : 'TEAM OF THE TOURNAMENT') : null;
   return (

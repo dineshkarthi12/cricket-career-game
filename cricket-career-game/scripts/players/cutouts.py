@@ -4,14 +4,14 @@ Cut each tagged player out of their photo for the Live PvP cards.
     pip install rembg onnxruntime opencv-python-headless pillow
     python scripts/players/cutouts.py
 
-Reads public/assets/players/Cricketcareer.zip and scripts/players/photo-map.json
+Reads public/assets/players/Cricket-players.zip and scripts/players/photo-map.json
 (written by `npm run cards:build`), and writes one transparent, face-aligned
 480 x 720 WebP per player to public/assets/players/cards/<id>.webp: the face
 centred, its top at 17% and its height 20% of the image, so every card frames
 its player the same way.
 
-Face detection uses OpenCV's YuNet model; put face_detection_yunet_2023mar.onnx
-(from the opencv_zoo repository) next to this script.
+Face detection uses OpenCV's YuNet model: put face_detection_yunet_2023mar.onnx
+(from the opencv_zoo repository) next to this script, or point FACE_MODEL at it.
 """
 import io, json, os, sys, zipfile
 import cv2, numpy as np
@@ -20,26 +20,27 @@ from rembg import remove, new_session
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
-ZIP = os.path.join(ROOT, 'public/assets/players/Cricketcareer.zip')
+ZIP = os.path.join(ROOT, 'public/assets/players/Cricket-players.zip')
 OUT = os.path.join(ROOT, 'public/assets/players/cards')
 OW, OH = 480, 720
 FACE_H, FACE_TOP = 0.20 * OH, 0.17 * OH
 
-def photos():
+def photos(wanted):
     with zipfile.ZipFile(ZIP) as z:
-        names = sorted(n for n in z.namelist() if n.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')))
-        for n in names:
-            yield ImageOps.exif_transpose(Image.open(io.BytesIO(z.read(n)))).convert('RGB')
+        for n in z.namelist():
+            if n in wanted:
+                yield n, ImageOps.exif_transpose(Image.open(io.BytesIO(z.read(n)))).convert('RGB')
 
 def main():
     wanted = json.load(open(os.path.join(HERE, 'photo-map.json')))
     by_photo = {v: k for k, v in wanted.items()}
+    only = set(sys.argv[1:])
     os.makedirs(OUT, exist_ok=True)
     session = new_session('u2net_human_seg')
-    model = os.path.join(HERE, 'face_detection_yunet_2023mar.onnx')
-    for i, im in enumerate(photos()):
-        pid = by_photo.get(i)
-        if not pid:
+    model = os.environ.get('FACE_MODEL') or os.path.join(HERE, 'face_detection_yunet_2023mar.onnx')
+    for name, im in photos(by_photo):
+        pid = by_photo[name]
+        if only and pid not in only:
             continue
         bgr = cv2.cvtColor(np.asarray(im), cv2.COLOR_RGB2BGR)
         det = cv2.FaceDetectorYN.create(model, '', (im.width, im.height), 0.6, 0.3, 5000)
@@ -53,8 +54,12 @@ def main():
             cover = alpha[y0:y1, x0:x1].mean() if x1 > x0 and y1 > y0 else 0
             if cover > 0.35 and (best is None or cover * w * h * score > best[0]):
                 best = (cover * w * h * score, (x, y, w, h))
+        if best is None and faces is not None and len(faces):
+            # The cut-out missed the face; trust the detector's best face instead.
+            f = max(faces, key=lambda f: float(f[-1]))
+            best = (0, (float(f[0]), float(f[1]), float(f[2]), float(f[3])))
         if best is None:
-            print(f'photo {i + 1} ({pid}): no face on the player, skipped', file=sys.stderr)
+            print(f'{name} ({pid}): no face found, skipped', file=sys.stderr)
             continue
         x, y, w, h = best[1]
         k = FACE_H / h

@@ -227,6 +227,10 @@ export function planAfterContact(input: AfterInput): AfterPlan {
     // Defended, left, beaten, padded: the shot itself is the picture.
     cues.push({ at: t0, shot: 'SIDE_ON' });
   }
+  // A dropped catch the batters run on: show the running after the drop.
+  if (core.runs > 0 && !wicket && !o.isBoundaryFour && !o.isBoundarySix && !cues.some((c) => c.shot === 'RUNNING')) {
+    cues.push({ at: Math.max(...cues.map((c) => c.at)) + 500, shot: 'RUNNING' });
+  }
   if (wicket || core.celebrate) cues.push({ at: Math.max(t0 + 900, core.umpireAtMs - 300), shot: 'CLOSE_UP', focus: o.dismissedPlayerId ?? input.strikerId });
   if (o.isBoundaryFour || o.isBoundarySix) cues.push({ at: core.umpireAtMs - 200, shot: 'CLOSE_UP', focus: input.strikerId });
   cues.push({ at: Math.max(t0 + 1200, core.endMs - 900), shot: 'WIDE' });

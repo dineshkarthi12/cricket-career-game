@@ -1822,3 +1822,19 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   cricketers and licensed cricket mocap would need a manual download (Mixamo,
   Fab, Sketchfab are login-gated and blocked here); see the asset manifest.
 
+
+## ✅ Live PvP — real-player cards and the card templates
+
+- Live PvP cards are now real cricketers: 144 players from the named photos
+  (71 current, 73 legends, including 17 greats from before the data begins),
+  plus 18 special editions (All Rounder, Team of the Tournament, Player of the
+  Match, Limited Edition). `npm run cards:build` rebuilds the list; see
+  `docs/LIVE_PVP.md`.
+- Nine card templates from `Cards template.zip` drive the faces, with the
+  earlier Epic and Legends art kept for 70-79 cards and retired greats.
+- Each player is cut out of his photo with the face aligned the same way on
+  every card.
+- One card per real player in an XI; old saves move onto real players of the
+  same tier and role.
+- Ratings come from each player's record, ranked within his role; a few
+  ranking values and roles are set by hand in `scripts/players/pvp-overrides.ts`.

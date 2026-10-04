@@ -101,30 +101,49 @@ quality, lighting and a frame-rate readout (kept in localStorage).
 ## The players and their cards
 
 Every card is a real cricketer whose photo is in
-`public/assets/players/Cricketcareer.zip`.
+`public/assets/players/Cricket-players.zip` (each photo is named after its
+player).
 
-1. Each photo is tagged with the player it shows
-   (`scripts/players/photo-tags.json`, exported from the tagging page).
-2. `npm run cards:build` (`scripts/build-pvp-cards.ts`) looks every tagged
-   name up in the real player data (`src/data/real`, 2005-2026) and writes
+1. `scripts/players/photo-names.json` maps each photo file to the player's
+   name in the real player data (`src/data/real`, 2005-2026), or to `null` to
+   leave a photo out. One photo is unnamed and left out.
+2. `npm run cards:build` (`scripts/build-pvp-cards.ts`) writes
    `src/data/pvp/players.json`: country, role, styles and skills from the
    player's record, then a card rating placed by rank within his role, so
-   every tier holds batters, bowlers, all-rounders and keepers. Players in the
-   current international squads are *current*; everyone else is a *legend*
-   (their best season counts). Greats from before 2005 are entered by hand in
-   `scripts/players/pvp-overrides.ts`, which also fixes display names.
+   every tier holds batters, bowlers, all-rounders and keepers.
+   - A player with international (or, for nations outside the data, IPL)
+     cricket in 2025 or later is *current*; everyone else is a *legend*,
+     rated on his best season.
+   - `scripts/players/pvp-overrides.ts` holds the hand-kept parts: display
+     names ("SL Malinga" -> "Lasith Malinga"), greats from before 2005 with
+     gameplay skills, ranking values for players whose data misses most of
+     their career, and role fixes.
 3. `python scripts/players/cutouts.py` cuts each player out of his photo and
    aligns the face, into `public/assets/players/cards/<id>.webp`.
-4. The best current players also get special editions: Team of the
-   Tournament, Player of the Match and Limited Edition (+3 overall). Two
-   cards of the same player never play in one XI (`personId`).
+4. The best current players also get special editions (+3 overall): All
+   Rounder (the top four all-rounders), Team of the Tournament, Player of the
+   Match and Limited Edition. Two cards of the same player never play in one
+   XI (`personId`).
 
-The card face (`src/screens/pvp/cards/CardFace.tsx`) puts the photo inside
-one of ten frames (`public/assets/cards/frames`, the original card art with
-the window cut out and the numbers removed) and draws the rating, flag, name,
-styles and the five stats on top as SVG. Which frame: Common, Uncommon, Rare,
-Epic (70-79), Legendary (80-96, labelled Elite or Legendary), Icon (97-99),
-Legends for retired players, and the three edition frames.
+### Card designs
+
+`src/screens/pvp/cards/designs.ts` and `CardFace.tsx`.
+
+| Card | Design |
+| --- | --- |
+| Common 45-54, Uncommon 55-59, Rare 60-65 | the Common, Uncommon, Rare templates |
+| Epic 70-79 | the earlier Epic art |
+| Elite 80-89, Legendary 90-96 | the Legendary template (the label reads Elite or Legendary) |
+| Icon 97-99 | the Icon template |
+| Retired greats | the earlier Legends art |
+| Special editions | the All Rounder, Team of the Tournament, Player of the Match and Limited Edition templates |
+
+The templates (`public/assets/Cards template.zip`) are split into two layers
+in `public/assets/cards/v2`: `<key>-base.webp` (the whole card with its
+placeholder text, numbers and silhouette removed) and `<key>-frame.webp` (the
+same art with the photo window cut out). The player's cut-out sits between
+them; the rating, flag, country code (in the team-logo circle: no real team
+logos), name, role, styles and the five stats are drawn on top as SVG.
 
 Saves from before the real players keep their collection: each old card
 becomes a real player of the same tier, era and role (`migrateProfile`, run
