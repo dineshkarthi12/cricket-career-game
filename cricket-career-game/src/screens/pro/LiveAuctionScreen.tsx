@@ -11,6 +11,7 @@ import { Badge, Card, CardHeader, Crest, Tabs } from '@/components';
 import { FRANCHISES, FRANCHISES_BY_ID } from '@/data/franchises';
 import { IPL_RULES } from '@/engine/config';
 import { iplYearLabel } from '@/engine/pro/ipl';
+import { daysBetweenDates } from '@/engine/development';
 import { IPL_STATUS_LABEL, formatLakh, franchiseName } from '@/lib/pro';
 import { formatLongDate, roleLabel } from '@/lib/format';
 import { playSfx } from '@/lib/audio/player';
@@ -168,6 +169,8 @@ function Room({ state, summary, room }: { state: GameState; summary: AuctionSumm
   const sales = room.slice(0, done ? index + 1 : index).filter((l) => l.soldTo && l.price);
   const nextSet = room.findIndex((l, i) => i > index && l.set !== lot.set);
   const title = `${iplYearLabel(summary.seasonYear)} ${summary.mega ? 'Mega Auction' : 'Auction'}`;
+  // A match the user was playing when the auction was held.
+  const atMatch = Object.values(state.fixtures).find((f) => f.kind === 'MATCH' && f.involvesUser && f.date < summary.date && f.endDate >= summary.date);
 
   return (
     <div className="flex flex-col gap-3 pb-4">
@@ -194,6 +197,12 @@ function Room({ state, summary, room }: { state: GameState; summary: AuctionSumm
           onEnd={finish}
         />
       </div>
+
+      {atMatch ? (
+        <p className="rounded-tile bg-brand-blue-soft px-3 py-2 text-[12.5px] text-ink">
+          <span className="font-semibold">{atMatch.title}</span> was on when the room met (day {daysBetweenDates(atMatch.date, summary.date) + 1}) - the squad watches it together in the dressing room after stumps.
+        </p>
+      ) : null}
 
       <div className="grid gap-3 lg:grid-cols-[1.45fr_1fr]">
         <Stage lot={lot} step={step} phase={phase} number={index + 1} total={room.length} reduceMotion={reduceMotion} user={state} />

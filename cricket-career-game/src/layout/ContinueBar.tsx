@@ -5,6 +5,7 @@ import { Badge } from '@/components';
 import { climateNote, pendingMatch, pendingTrial } from '@/engine/calendar';
 import { formatLongDate } from '@/lib/format';
 import { unwatchedAuction } from '@/engine/pro/ipl';
+import { daysBetweenDates } from '@/engine/development';
 import { useGameStore } from '@/store/gameStore';
 import { useMatchStore } from '@/store/matchStore';
 import type { ClimateKind } from '@/engine/calendar';
@@ -46,6 +47,10 @@ export function ContinueBar() {
   const trial = pendingTrial(state);
   const review = state.career.pendingReview;
   const auction = unwatchedAuction(state);
+  // An auction that falls during the match about to be played.
+  const auctionInMatch = pending && pending.endDate > pending.date
+    ? Object.values(state.fixtures).find((f) => f.kind === 'AUCTION' && !f.played && f.date > pending.date && f.date <= pending.endDate)
+    : undefined;
   const month = Number(today.slice(5, 7));
   const climate = climateNote(state.calendar.region, month);
   const ClimateIcon = CLIMATE_ICON[climate.kind];
@@ -121,6 +126,12 @@ export function ContinueBar() {
           </button>
         ) : null}
 
+        {auctionInMatch && pending ? (
+          <span className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]" title="The room opens live as soon as the match ends.">
+            <Gavel className="size-3.5" aria-hidden />
+            {auctionInMatch.title} on day {daysBetweenDates(pending.date, auctionInMatch.date) + 1} of this match - live after stumps
+          </span>
+        ) : null}
         {auction ? (
           <button type="button" onClick={() => navigate('/auction/live')} className="flex items-center gap-1 rounded-full bg-brand-red px-3 py-1 text-[12px] font-semibold text-white">
             <Gavel className="size-3.5" aria-hidden />
