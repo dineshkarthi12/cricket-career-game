@@ -43,6 +43,8 @@ export interface SimPlayer {
   aggressionComfort?: AggressionComfort;
   /** Overseas player in a franchise side (at most four in an XI). */
   overseas?: boolean;
+  /** The career player's edge (`STAR_EDGE`, scaled by difficulty); absent means none. */
+  starEdge?: number;
 }
 
 export type BowlerKind = 'PACE' | 'SPIN';

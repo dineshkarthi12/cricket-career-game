@@ -1822,3 +1822,16 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   cricketers and licensed cricket mocap would need a manual download (Mixamo,
   Fab, Sketchfab are login-gated and blocked here); see the asset manifest.
 
+
+## Balance: the career player's star edge
+- Players reported only 1-2 good innings in 20 and quick dismissals. The
+  career player now gets `STAR_EDGE` (config.ts) in the ball-by-ball engine,
+  scaled by difficulty (`DIFFICULTY.*.starEdge`: Easy 1.25, Realistic 1,
+  Hard 0.5): batting, a 48% lower wicket chance and 8% more boundaries;
+  bowling, 75% more wicket chance and 12% fewer boundaries conceded.
+- Measured (number three at par with the team / 10 points below it):
+  T20 30+ in 53% / 48% of innings (was 30% / 29%), ODI 50+ in 49% / 43%
+  (was 40% / 22%), first-class 50+ in 43% / 36% (was 24% / 13%). T20 bowler
+  2+ wickets in 59% of spells (was 25%). AI players are unchanged.
+- The fast score-only sim (headless career sim) does not apply it.
+- Tests: `engine/match/starEdge.test.ts`.

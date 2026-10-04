@@ -102,6 +102,7 @@ export function simFromUser(
     battingPosition,
     isUser: true,
     aggressionComfort: dev?.comfort,
+    starEdge: DIFFICULTY[occasion.difficulty ?? 'REALISTIC']?.starEdge ?? 1,
   };
 }
 
