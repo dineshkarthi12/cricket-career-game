@@ -125,6 +125,11 @@ export interface IplSeasonLine {
   /** Where the franchise finished: 1 champion ... 10. */
   finish: number | null;
   salary: number;
+  balls?: number;
+  ballsBowled?: number;
+  runsConceded?: number;
+  /** What the season did to the player's auction value (x0.8 to x2.4). */
+  impact?: number;
 }
 
 export interface IplState {
@@ -144,6 +149,8 @@ export interface IplState {
   /** Estimated market value, lakh. */
   marketValue: number;
   earnings: number;
+  /** The player has asked to go back into the auction at the next retention day. */
+  intoAuction?: boolean;
 }
 
 // --- National team ------------------------------------------------------------

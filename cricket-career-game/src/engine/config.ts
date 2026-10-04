@@ -1406,6 +1406,8 @@ export const AUCTION = {
   /** Total purse per franchise, grows each season. */
   purse: 12000,
   purseGrowth: 400,
+  /** The least a franchise brings to the auction, lakh (real mini auctions: ₹13-38 Cr). */
+  purseFloor: { mini: 1500, mega: 2500 },
   /** Mega auction retention: at most four, at these slab prices. */
   retentionSlabs: [1800, 1400, 1100, 900],
   maxRetained: 4,
@@ -1426,6 +1428,21 @@ export const AUCTION = {
   freshOverseas: { mini: 14, mega: 34 },
   /** Target mix of a 25-man squad by role group. */
   roleTargets: { BATTER: 8, KEEPER: 2, ALLROUNDER: 6, PACE: 6, SPIN: 3 } as Record<string, number>,
+  /**
+   * An IPL season moves the player's auction value: impact = from + points /
+   * per, within [min, max]. Points: runs x (strike rate / 130), plus 25 a
+   * wicket x (8 / economy). 300 runs at 130 is about x1.35, 600 at 150 or
+   * 25 wickets at 7 an over about x2.2. Fewer than `minMatches` counts as x1.
+   */
+  iplImpact: { from: 0.75, per: 500, min: 0.8, max: 2.4, minMatches: 4 },
+  /**
+   * ...and the room pays for the numbers whatever the ratings say: a season
+   * is worth at least base x e^(points / scale) lakh (300 points about
+   * ₹1 Cr, 600 about ₹6 Cr, 750 about ₹13 Cr).
+   */
+  iplPerformanceValue: { base: 20, scale: 180 },
+  /** After a season worth this much, every franchise with room bids for the player. */
+  hotImpact: 1.3,
   /** Scouting reputation needed to be shortlisted for the auction. */
   shortlistAt: 50,
   /** ... to be invited to franchise trials. */

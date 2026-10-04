@@ -4,7 +4,7 @@ import { Gavel, Play } from 'lucide-react';
 import { Badge, Card, CardHeader, Crest, ProgressBar, StatTile, Tabs } from '@/components';
 import { AUCTION, IPL_RULES } from '@/engine/config';
 import { FRANCHISES, FRANCHISES_BY_ID } from '@/data/franchises';
-import { allowedBases, auctionEntry, defaultBase, iplYearLabel, isMegaSeason, rivalValue } from '@/engine/pro/ipl';
+import { allowedBases, auctionEntry, defaultBase, iplYearLabel, isMegaSeason, lastIplImpact, rivalValue } from '@/engine/pro/ipl';
 import { activePosts } from '@/engine/pro/leadership';
 import { roleGroup, ROLE_GROUP_LABEL } from '@/engine/career/squads';
 import { IPL_STATUS_LABEL, formatLakh, franchiseName, marketValue } from '@/lib/pro';
@@ -267,6 +267,9 @@ function LiveLot({ lot, reduceMotion: careerReduce }: { lot: AuctionLot; reduceM
 
 function Contract({ state }: { state: GameState }) {
   const answerTrade = useGameStore((s) => s.answerTrade);
+  const requestAuction = useGameStore((s) => s.requestAuction);
+  const { impact, line } = lastIplImpact(state);
+  const value = marketValue(state);
   const ipl = state.pro.ipl;
   const offer = ipl.tradeOffer;
   const posts = activePosts(state).filter((p) => p.level === 'IPL');
@@ -287,6 +290,34 @@ function Contract({ state }: { state: GameState }) {
         <p className="mt-3 text-[12.5px] text-ink-muted">
           The franchise captain and coach pick the XI from the squad (four overseas players at most; an impact substitute {IPL_RULES.impactPlayer ? 'is' : 'is not'} used). Strong seasons raise your value, your retention deal and the national selectors' interest.
         </p>
+        {line ? (
+          <div className="mt-3 rounded-tile bg-page p-3 text-[12.5px]">
+            <p className="font-semibold text-ink">
+              Last IPL ({iplYearLabel(line.seasonYear)}): {line.runs} runs{line.balls ? ` (SR ${Math.round((line.runs / line.balls) * 100)})` : ''}, {line.wickets} wickets in {line.matches} matches
+            </p>
+            <p className={cn('mt-0.5', impact > 1 ? 'text-brand-green' : impact < 1 ? 'text-brand-red' : 'text-ink-muted')}>
+              Counts x{impact.toFixed(2)} on your price · market value {formatLakh(value)}
+              {impact >= AUCTION.hotImpact ? ' · every franchise wants you' : ''}
+            </p>
+          </div>
+        ) : null}
+        {ipl.contract ? (
+          <div className={cn('mt-3 rounded-tile border p-3', ipl.intoAuction ? 'border-brand-gold bg-brand-gold/10' : 'border-line')}>
+            <p className="text-[13px] font-semibold text-ink">{ipl.intoAuction ? 'Going into the auction' : 'Test the market?'}</p>
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">
+              {ipl.intoAuction
+                ? `At retention day (1 November) ${franchiseName(ipl.franchiseId)} will release you, and on 16 December every franchise can bid. No guarantees - but a big season shows in the room.`
+                : `You are on ${formatLakh(ipl.contract.salary)}; your market value is ${formatLakh(value)}. Stay and take what the franchise offers at retention day, or ask for a release into the auction.`}
+            </p>
+            <button
+              type="button"
+              onClick={() => requestAuction(!ipl.intoAuction)}
+              className={cn('mt-2 rounded-full px-4 py-1.5 text-[13px] font-semibold', ipl.intoAuction ? 'border border-line bg-surface text-ink' : 'bg-brand-gold text-brand-navy')}
+            >
+              {ipl.intoAuction ? 'Stay with the franchise' : 'Go into the auction'}
+            </button>
+          </div>
+        ) : null}
         {offer ? (
           <div className="mt-3 rounded-tile border border-brand-blue bg-brand-blue-soft p-3">
             <p className="text-[13px] font-semibold text-ink">Trade offer: {franchiseName(offer.franchiseId)} ({formatLakh(offer.salary)})</p>
