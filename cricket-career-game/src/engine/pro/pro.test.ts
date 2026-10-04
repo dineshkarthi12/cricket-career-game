@@ -3,7 +3,7 @@ import { createNewCareer } from '../newCareer';
 import { createRng } from '../match/rng';
 import { tournamentOf, playAiFixtures } from '../tournament/live';
 import { applyProSeason } from './season';
-import { hammer, increment, isMegaSeason, runAuction, retentionDay, auctionEntry, t20Value, contractEnd } from './ipl';
+import { hammer, increment, isMegaSeason, runAuction, retentionDay, auctionEntry, t20Value, contractEnd, auctionSets, markAuctionWatched, unwatchedAuction } from './ipl';
 import { battingPoints, bowlingPoints, nextRating, rateTeams, wtcStandings, rankingList } from './rankings';
 import { buildIcc, iccEventsIn, ICC_SHAPES } from './competitions';
 import { retireFrom, autoRetire } from './retirement';
@@ -133,6 +133,38 @@ describe('the auction', () => {
       expect(after.teams[after.pro.ipl.franchiseId!].isUserTeam).toBe(true);
     }
     for (const f of FRANCHISES) expect(after.teams[f.id].squad.length).toBeLessThanOrEqual(22);
+  });
+
+  it('records the whole room, set by set, to watch it live', () => {
+    let state = proCareer();
+    state = { ...state, pro: { ...state.pro, scouting: { ...state.pro.scouting, reputation: 90, interest: Object.fromEntries(FRANCHISES.map((f) => [f.id, 90])) } } };
+    const after = runAuction(retentionDay(state, '2026-11-01'), '2026-12-16');
+    const summary = after.pro.ipl.auctions.at(-1)!;
+    const room = summary.room!;
+    expect(room.length).toBeGreaterThan(20);
+    expect(room[0].set).toBe('Marquee set');
+    expect(room.filter((l) => l.isUser)).toHaveLength(1);
+    // The books balance: what was spent in the room left the purses.
+    for (const f of FRANCHISES) {
+      const spent = room.filter((l) => l.soldTo === f.id).reduce((n, l) => n + (l.price ?? 0), 0);
+      expect(summary.pursesBefore![f.id] - spent).toBeGreaterThanOrEqual(summary.pursesAfter[f.id]);
+    }
+    expect(unwatchedAuction(after)).toBe(summary);
+    const watched = markAuctionWatched(after);
+    expect(unwatchedAuction(watched)).toBeNull();
+    // The next auction keeps the room of the latest one only.
+    const next = runAuction({ ...watched, season: { ...watched.season, year: 2027 } }, '2027-12-16');
+    expect(next.pro.ipl.auctions.at(-2)!.room).toBeUndefined();
+    expect(next.pro.ipl.auctions.at(-1)!.room!.length).toBeGreaterThan(0);
+  });
+
+  it('runs the marquee set, then capped sets, then uncapped', () => {
+    const e = (role: 'BATTER' | 'SPIN_BOWLER', capped: boolean, value: number) => ({ player: { role, capped }, value });
+    const out = auctionSets([e('BATTER', false, 900), e('SPIN_BOWLER', true, 100), e('BATTER', true, 50), e('SPIN_BOWLER', true, 2000)], false);
+    expect(out.map((o) => o.set)).toEqual(['Marquee set', 'Marquee set', 'Marquee set', 'Uncapped batters']);
+    const mega = auctionSets(Array.from({ length: 20 }, (_, i) => e(i % 2 ? 'BATTER' : 'SPIN_BOWLER', true, 1000 - i)), true);
+    expect(mega.filter((o) => o.set === 'Marquee set')).toHaveLength(12);
+    expect(mega.at(-1)!.set).toBe('Capped spinners');
   });
 
   it('keeps at most four players per franchise in a mega auction year', () => {

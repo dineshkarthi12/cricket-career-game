@@ -32,6 +32,7 @@ import { progressWorld, pruneIdleSquads } from '../world/progression';
 import { IN_SQUAD } from '../career/squads';
 import { compactCareer } from './compact';
 import { applyProSeason, isProEvent, proActiveTeamIds, rolloverPro, runProEvent } from '../pro/season';
+import { unwatchedAuction } from '../pro/ipl';
 import type { WorldNews } from '../world/progression';
 import type {
   CareerEvent,
@@ -270,7 +271,15 @@ export function advanceWeek(input: GameState): AdvanceResult {
     const todays = fixturesOn(state, next);
     const match = todays.find((f) => f.kind === 'MATCH');
     const trialToday = todays.find((f) => trialFor(state, f)?.invited);
+    const lastAuction = state.pro?.ipl.auctions.at(-1);
     for (const fixture of todays.filter((f) => f.kind !== 'MATCH' && f !== trialToday)) state = runEvent(state, fixture);
+    // Auction day: the clock stops so the room can be watched live.
+    const auctionToday = state.pro?.ipl.auctions.at(-1) !== lastAuction && unwatchedAuction(state);
+    if (auctionToday && !trialToday && !match) {
+      day = next;
+      days = i;
+      break;
+    }
     if (trialToday || match) {
       trial = trialToday ?? null;
       stoppedFor = trialToday ? null : (match ?? null);

@@ -17,7 +17,7 @@ import { INDIAN_REGIONS, OVERSEAS_NATIONS, OVERSEAS_PROFILE, bookSalary, rngFor,
 import { realAuctionPool } from '../world/realSquads';
 import { clamp, decision, formatLakh, message, navigate, withEvent, withInbox } from './common';
 import type { Rng } from '../match/rng';
-import type { AuctionBid, AuctionLot, AuctionSummary, GameState, IplContract, IplStatus, Match, RivalPlayer, SquadPlace, Team } from '@/types';
+import type { AuctionBid, AuctionLot, AuctionRoomLot, AuctionSummary, GameState, IplContract, IplStatus, Match, RivalPlayer, SquadPlace, Team } from '@/types';
 
 export const AUCTION_POOL_ID = 'team-ipl-auction-pool';
 
@@ -398,6 +398,35 @@ function baseFor(value: number, isCapped: boolean): number {
   return [...bands].reverse().find((b) => b <= value * 0.5) ?? bands[0];
 }
 
+const SET_ORDER: { group: RoleGroup; label: string }[] = [
+  { group: 'BATTER', label: 'batters' },
+  { group: 'ALLROUNDER', label: 'all-rounders' },
+  { group: 'KEEPER', label: 'wicket-keepers' },
+  { group: 'PACE', label: 'fast bowlers' },
+  { group: 'SPIN', label: 'spinners' },
+];
+
+/**
+ * The order of the room, as at the IPL: the marquee set first, then capped
+ * players set by set (batters, all-rounders, keepers, fast bowlers,
+ * spinners), then the uncapped sets. The best go first within a set.
+ */
+export function auctionSets<T extends { player: { role: RivalPlayer['role']; capped?: boolean }; value: number }>(entries: T[], mega: boolean): { entry: T; set: string }[] {
+  const byValue = [...entries].sort((a, b) => b.value - a.value);
+  const marquee = byValue.filter((e) => e.player.capped).slice(0, mega ? 12 : 6);
+  const inMarquee = new Set(marquee);
+  const out: { entry: T; set: string }[] = marquee.map((entry) => ({ entry, set: 'Marquee set' }));
+  for (const capped of [true, false]) {
+    for (const { group, label } of SET_ORDER) {
+      for (const entry of byValue) {
+        if (inMarquee.has(entry) || Boolean(entry.player.capped) !== capped || roleGroup(entry.player.role) !== group) continue;
+        out.push({ entry, set: `${capped ? 'Capped' : 'Uncapped'} ${label}` });
+      }
+    }
+  }
+  return out;
+}
+
 /** Is the user in the auction, and if not, why not? */
 export function auctionEntry(state: GameState): { inAuction: boolean; status: IplStatus; reason: string } {
   const ipl = state.pro.ipl;
@@ -464,11 +493,14 @@ export function runAuction(state: GameState, date: string): GameState {
     return { player: p, value, base: baseFor(value, Boolean(p.capped)), isUser: false };
   });
   if (entry.inAuction) entries.push({ player: userAsRival, value: userValue, base: userBase, isUser: true });
-  entries.sort((a, b) => b.value - a.value);
+  const ordered = auctionSets(entries, mega);
 
+  const pursesBefore = { ...purses };
+  const squadsBefore = Object.fromEntries(FRANCHISES.map((f) => [f.id, { players: squads[f.id].length, overseas: squads[f.id].filter((p) => p.overseas).length }]));
   const lots: AuctionLot[] = [];
+  const room: AuctionRoomLot[] = [];
   let userLot: AuctionLot | null = null;
-  for (const e of entries) {
+  for (const { entry: e, set } of ordered) {
     const full = FRANCHISES.every((f) => squads[f.id].length >= IPL_RULES.squadSize);
     if (full && !e.isUser) break;
     const group = roleGroup(e.player.role);
@@ -476,6 +508,7 @@ export function runAuction(state: GameState, date: string): GameState {
     const result = hammer(e.base, bidders, rng);
     const lot: AuctionLot = { ...lotOf(e.player, e.base, e.isUser), bids: result.bids, soldTo: result.soldTo, price: result.price };
     lots.push(lot);
+    room.push({ ...lot, bids: e.isUser || lot.bids.length <= 16 ? lot.bids : [...lot.bids.slice(0, 4), ...lot.bids.slice(-12)], set, overall: formatOverall(e.player.attributes, e.player.role, 'T20'), from: e.isUser ? state.player.state : e.player.region, real: Boolean(e.player.realId) });
     if (e.isUser) userLot = lot;
     if (result.soldTo && result.price) {
       purses[result.soldTo] -= result.price;
@@ -507,25 +540,45 @@ export function runAuction(state: GameState, date: string): GameState {
     lots: [...lots].filter((l) => l.price).sort((a, b) => (b.price ?? 0) - (a.price ?? 0)).slice(0, 12).concat(userLot && !userLot.price ? [userLot] : []),
     pursesAfter: purses,
     userStatus,
+    room,
+    pursesBefore,
+    squadsBefore,
+    watched: false,
   };
+  // Only the latest auction keeps its full room; older ones keep the highlights.
+  const past = state.pro.ipl.auctions.map(({ room: _room, pursesBefore: _p, squadsBefore: _s, ...a }) => ({ ...a, watched: true }));
   let next: GameState = {
     ...state,
     teams,
-    pro: { ...state.pro, ipl: { ...state.pro.ipl, purses, status: userStatus, auctions: [...state.pro.ipl.auctions, summary].slice(-8) } },
+    pro: { ...state.pro, ipl: { ...state.pro.ipl, purses, status: userStatus, auctions: [...past, summary].slice(-8) } },
   };
   const title = `${mega ? 'Mega auction' : 'IPL auction'} ${year}`;
   if (userLot?.soldTo && userLot.price) {
     const f = FRANCHISES_BY_ID[userLot.soldTo];
     next = joinFranchise(next, userLot.soldTo, userLot.price, 'AUCTION', date);
-    next = withInbox(next, message(date, 'AGENT', 'Agent', `SOLD to ${f?.name} for ${formatLakh(userLot.price)}!`, `${userLot.bids.length} bids from ${new Set(userLot.bids.map((b) => b.franchiseId)).size} franchises; base price ${formatLakh(userLot.basePrice)}. The franchise camp starts in March.`, 'CONTRACT', true, [navigate('Watch the auction', '/auction')], userLot.soldTo));
+    next = withInbox(next, message(date, 'AGENT', 'Agent', `SOLD to ${f?.name} for ${formatLakh(userLot.price)}!`, `${userLot.bids.length} bids from ${new Set(userLot.bids.map((b) => b.franchiseId)).size} franchises; base price ${formatLakh(userLot.basePrice)}. The franchise camp starts in March.`, 'CONTRACT', true, [navigate('Watch the auction', '/auction/live')], userLot.soldTo));
   } else if (userLot) {
     next = { ...next, career: { ...next.career, squads: { ...next.career.squads, ipl: iplPlace('NOT_SELECTED', 'Unsold at the auction - a replacement call can still come before the season.', date, '') } } };
-    next = withInbox(next, message(date, 'AGENT', 'Agent', `${title}: unsold`, `No franchise bid at your base price of ${formatLakh(userLot.basePrice)}. It happens to good players. Stay ready - injuries bring replacement signings before and during the season.`, 'CONTRACT', true, [navigate('Watch the auction', '/auction')]));
+    next = withInbox(next, message(date, 'AGENT', 'Agent', `${title}: unsold`, `No franchise bid at your base price of ${formatLakh(userLot.basePrice)}. It happens to good players. Stay ready - injuries bring replacement signings before and during the season.`, 'CONTRACT', true, [navigate('Watch the auction', '/auction/live')]));
   } else if (!state.pro.ipl.franchiseId && state.pro.scouting.reputation >= AUCTION.scoutedAt / 2) {
     next = { ...next, career: { ...next.career, squads: { ...next.career.squads, ipl: iplPlace('NOT_SELECTED', entry.reason, date, '') } } };
     next = withInbox(next, message(date, 'AGENT', 'Agent', `${title}: not shortlisted`, entry.reason, 'CONTRACT', false, [navigate('Open IPL', '/auction')]));
   }
   return next;
+}
+
+/** The latest auction has been watched live (or skipped). */
+export function markAuctionWatched(state: GameState): GameState {
+  const auctions = state.pro.ipl.auctions;
+  const last = auctions[auctions.length - 1];
+  if (!last || last.watched !== false) return state;
+  return { ...state, pro: { ...state.pro, ipl: { ...state.pro.ipl, auctions: [...auctions.slice(0, -1), { ...last, watched: true }] } } };
+}
+
+/** An auction that has happened but not been watched yet. */
+export function unwatchedAuction(state: GameState): AuctionSummary | null {
+  const last = state.pro?.ipl.auctions.at(-1);
+  return last && last.watched === false && last.room?.length ? last : null;
 }
 
 // --- Replacements and trades --------------------------------------------------------------------

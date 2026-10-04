@@ -21,6 +21,7 @@ const SeasonReviewScreen = lazy(() => import('./screens/career/SeasonReviewScree
 const TournamentScreen = lazy(() => import('./screens/career/TournamentScreen'));
 const TrialScreen = lazy(() => import('./screens/career/TrialScreen'));
 const IplScreen = lazy(() => import('./screens/pro/IplScreen'));
+const LiveAuctionScreen = lazy(() => import('./screens/pro/LiveAuctionScreen'));
 const InternationalScreen = lazy(() => import('./screens/pro/InternationalScreen'));
 const AwardsScreen = lazy(() => import('./screens/pro/AwardsScreen'));
 const LegacyScreen = lazy(() => import('./screens/pro/LegacyScreen'));
@@ -86,6 +87,7 @@ export default function App() {
               <Route path="/tournaments" element={<TournamentScreen />} />
               <Route path="/tournaments/:tournamentId" element={<TournamentScreen />} />
               <Route path="/auction" element={<IplScreen />} />
+              <Route path="/auction/live" element={<LiveAuctionScreen />} />
               <Route path="/international" element={<InternationalScreen />} />
               <Route path="/legacy" element={<LegacyScreen />} />
               <Route path="/retirement" element={<LegacyScreen />} />
