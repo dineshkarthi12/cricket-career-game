@@ -11,7 +11,7 @@
  *   offline demo), never from the client's request.
  */
 import type { Rng } from '../match/rng';
-import { CATALOG, CATALOG_BY_ID, type AcquisitionMethod, type PlayerCard } from './catalog';
+import { CATALOG, CATALOG_BY_ID, legacyReplacement, type AcquisitionMethod, type PlayerCard } from './catalog';
 import { ECONOMY, PACKS_BY_ID, TIER_RULES, type CardTier, type Currency, type PackDefinition } from './config';
 import { maxUpgradeLevel, validateCard, validateUpgrade, type RuleIssue } from './rules';
 import { autoPickSquad, validateSquad } from './squad';
@@ -51,6 +51,28 @@ export function createProfile(input: { userId: string; displayName: string; frie
     history: [],
     nextInstance: 1,
   };
+}
+
+/**
+ * Bring an old save up to the current catalog: cards from before the real
+ * players become the real player who replaced them (same tier, era and
+ * role), upgrades are capped to what the new card allows, and a squad that
+ * no longer holds up is picked again. Returns the same object when nothing
+ * changed.
+ */
+export function migrateProfile(profile: PvpProfile): PvpProfile {
+  let changed = false;
+  const inventory = profile.inventory.map((owned) => {
+    if (CATALOG_BY_ID[owned.cardId]) return owned;
+    const next = legacyReplacement(owned.cardId);
+    if (!next) return owned;
+    changed = true;
+    return { ...owned, cardId: next.id, upgrades: Math.min(owned.upgrades, maxUpgradeLevel(next)) };
+  });
+  if (!changed) return profile;
+  const migrated = { ...profile, inventory };
+  if (migrated.squad && validateSquad(migrated.squad, inventory).length) migrated.squad = autoPickSquad(inventory);
+  return migrated;
 }
 
 /** "2026-W40" for the UTC ISO week containing `iso`. */

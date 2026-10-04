@@ -3,7 +3,7 @@
 ## What we are building
 A realistic 2D cricket career simulation web game. The player starts as a young beginner and must earn every step to become an international cricketer. Gameplay style is like cricket management sims (e.g. Cricket Captain): top-down 2D ground with fielders as dots, ball path lines, ball-by-ball text commentary, detailed scorecards and stats. Career Mode and IPL Manager are NOT 3D.
 
-Exception: the separate **Live PvP** mode (`/pvp`, Phase 12) is a 3D one-on-one match game built on three.js (`src/game3d`), with its own engine (`src/engine/pvp`), store, saves and a WebSocket server (`server/`). Keep three.js out of the career and manager screens. Live PvP players are fictional by design (see `docs/LIVE_PVP.md`).
+The separate **Live PvP** mode (`/pvp`, Phase 12) is a one-on-one match game played on the same 2D ground and controls as Career Mode, with its own engine (`src/engine/pvp`), store, saves and a WebSocket server (`server/`). No 3D anywhere. Live PvP cards are real cricketers built from tagged photos and the real player data (see `docs/LIVE_PVP.md`).
 
 ## Source documents (read these before any phase)
 - `CAREER_MODE.md` – the full 20-stage career path and game rules
@@ -34,7 +34,6 @@ Exception: the separate **Live PvP** mode (`/pvp`, Phase 12) is a 3D one-on-one 
 - `/src/screens` – pages
 - `/public/assets` – images (`public/assets/players/third-party` – licensed 3D test fixtures, see `docs/assets/ASSET_MANIFEST.md`)
 - `/src/engine/pvp` – Live PvP rules, economy and the authoritative match (pure TS, shared with the server)
-- `/src/game3d` – Live PvP 3D: rig, clips, stadium, director, cameras
 - `/src/pvp` – Live PvP client backends (offline demo, WebSocket)
 - `/server` – Live PvP WebSocket server (`npm run pvp:server`)
 

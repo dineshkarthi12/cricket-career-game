@@ -1,4 +1,4 @@
-/** Live PvP routes: its own shell and store, lazy-loaded with the 3D engine. */
+/** Live PvP routes: its own shell and store. Matches play on the Career Mode 2D ground. */
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ScreenLoading } from '@/components';
@@ -13,8 +13,7 @@ const StoreScreen = lazy(() => import('./StoreScreen'));
 const SquadScreen = lazy(() => import('./SquadScreen'));
 const RankingsScreen = lazy(() => import('./RankingsScreen'));
 const FriendsScreen = lazy(() => import('./FriendsScreen'));
-const LabScreen = lazy(() => import('./LabScreen'));
-const MatchScreen3D = lazy(() => import('./match/MatchScreen3D'));
+const MatchScreen2D = lazy(() => import('./match/MatchScreen2D'));
 
 export default function PvpRoutes() {
   const init = usePvpStore((s) => s.init);
@@ -45,7 +44,7 @@ export default function PvpRoutes() {
     <ErrorBoundary resetKey={pathname}>
       <Suspense fallback={<ScreenLoading />}>
         <Routes>
-          <Route path="match" element={<MatchScreen3D />} />
+          <Route path="match" element={<MatchScreen2D />} />
           <Route
             path="*"
             element={
@@ -59,7 +58,6 @@ export default function PvpRoutes() {
                     <Route path="squad" element={<SquadScreen />} />
                     <Route path="rankings" element={<RankingsScreen />} />
                     <Route path="friends" element={<FriendsScreen />} />
-                    <Route path="lab" element={<LabScreen />} />
                     <Route path="*" element={<Navigate to="/pvp" replace />} />
                   </Routes>
                 </Suspense>

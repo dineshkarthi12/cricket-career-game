@@ -44,7 +44,7 @@ export default function CollectionScreen() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionTitle title="Player Collection" subtitle={`${ownedBy.size} of ${CATALOG.length} players collected. All players are fictional.`} />
+      <SectionTitle title="Player Collection" subtitle={`${ownedBy.size} of ${CATALOG.length} players collected.`} />
 
       <Card>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -168,7 +168,7 @@ export function InspectModal({ card, onClose }: { card: PlayerCard | null; onClo
               <p className="text-ink-muted">Not in your collection yet.</p>
             )}
           </div>
-          <p className="text-[11.5px] text-ink-muted">A fictional player with an original illustrated portrait. Ratings are gameplay values only, not real statistics.</p>
+          <p className="text-[11.5px] text-ink-muted">Ratings are gameplay values placed by the game from the player's record, not official figures. Two cards of the same player cannot play in one XI.</p>
         </div>
       </div>
     </Modal>

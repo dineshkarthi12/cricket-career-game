@@ -11,6 +11,15 @@ import '@fontsource/poppins/latin-700.css';
 import '@fontsource/poppins/latin-800.css';
 import '@fontsource/caveat/latin-400.css';
 import '@fontsource/caveat/latin-600.css';
+// Player card faces.
+import '@fontsource/anton/latin-400.css';
+import '@fontsource/montserrat/latin-800.css';
+import '@fontsource/montserrat/latin-900.css';
+import '@fontsource/barlow-condensed/latin-600.css';
+import '@fontsource/barlow-condensed/latin-700.css';
+import '@fontsource/cinzel/latin-700.css';
+import '@fontsource/cinzel/latin-900.css';
+import '@fontsource/great-vibes/latin-400.css';
 import './index.css';
 import { setupPwa } from './lib/pwa';
 import { setupAudio } from './lib/audio/setup';

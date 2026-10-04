@@ -22,6 +22,7 @@ import {
   claimStarter,
   claimWeekly,
   createProfile,
+  migrateProfile,
   eloUpdate,
   openPack,
   quarantinedInstances,
@@ -79,7 +80,41 @@ describe('rating bands', () => {
       expect(CATALOG.some((c) => c.cls === 'PREMIUM' && c.role === role)).toBe(true);
     }
     expect(CATALOG.some((c) => c.era === 'LEGEND')).toBe(true);
-    expect(CATALOG.every((c) => c.fictional)).toBe(true);
+    expect(CATALOG.every((c) => c.personId && c.name && c.country)).toBeTruthy();
+  });
+
+  it('every special edition is a premium copy of a real player in the catalog', () => {
+    const editions = CATALOG.filter((c) => c.edition !== 'BASE');
+    expect(editions.length).toBeGreaterThan(0);
+    for (const e of editions) {
+      expect(e.cls).toBe('PREMIUM');
+      expect(CATALOG.some((c) => c.edition === 'BASE' && c.personId === e.personId)).toBe(true);
+    }
+  });
+
+  it('an XI cannot hold two cards of the same player', () => {
+    const special = CATALOG.find((c) => c.edition !== 'BASE')!;
+    const base = CATALOG.find((c) => c.edition === 'BASE' && c.personId === special.personId)!;
+    const p = starter();
+    const inventory = [...p.inventory, { instanceId: 'e-1', cardId: special.id, upgrades: 0, acquiredVia: 'MARKET_GEMS' as const, acquiredAt: NOW }, { instanceId: 'e-2', cardId: base.id, upgrades: 0, acquiredVia: 'MARKET_GEMS' as const, acquiredAt: NOW }];
+    const xi = [...p.squad!.xi.slice(0, 9), 'e-1', 'e-2'];
+    const codes = validateSquad({ ...p.squad!, xi, captain: xi[0], viceCaptain: xi[1] }, inventory).map((i) => i.code);
+    expect(codes).toContain('SAME_PLAYER');
+    const auto = autoPickSquad(inventory)!;
+    const people = auto.xi.map((id) => CATALOG_BY_ID[inventory.find((o) => o.instanceId === id)!.cardId].personId);
+    expect(new Set(people).size).toBe(people.length);
+  });
+
+  it('old saves with pre-release card ids are moved onto real players', () => {
+    const p = createProfile({ userId: 'old', displayName: 'Old', friendCode: 'OLD123', now: NOW });
+    const old = { ...p, inventory: ['c001', 'u006', 'p003', 'le002', 'li001'].map((cardId, i) => ({ instanceId: `o-${i}`, cardId, upgrades: 9, acquiredVia: 'STARTER_PACK' as const, acquiredAt: NOW })) };
+    const migrated = migrateProfile(old);
+    expect(migrated).not.toBe(old);
+    for (const o of migrated.inventory) expect(CATALOG_BY_ID[o.cardId]).toBeDefined();
+    expect(auditProfile(migrated).filter((i) => i.code !== 'XI_SIZE')).toEqual([]);
+    expect(CATALOG_BY_ID[migrated.inventory[0].cardId].tier).toBe('COMMON');
+    expect(CATALOG_BY_ID[migrated.inventory[4].cardId].era).toBe('LEGEND');
+    expect(migrateProfile(migrated)).toBe(migrated);
   });
 
   it('rejects a card whose rating breaks its class', () => {
@@ -221,26 +256,32 @@ describe('economy', () => {
   });
 
   it('upgrades stop at 65 for free cards and at the tier ceiling for premium', () => {
-    const rare = CATALOG.find((c) => c.tier === 'RARE_FREE' && c.overall === 64)!;
+    // The best Rare card short of the cap: it can climb to 65 and no further.
+    const rare = CATALOG.filter((c) => c.tier === 'RARE_FREE' && c.overall < 65).sort((a, b) => b.overall - a.overall)[0];
+    const room = 65 - rare.overall;
+    expect(room).toBeLessThanOrEqual(5);
     let p: PvpProfile = { ...starter(), coins: 1_000_000 };
     const bought = buyCard(p, { requestId: 'buy-rare-1', cardId: rare.id }, ctx());
     expect(bought.ok).toBe(true);
     if (!bought.ok) return;
     p = bought.profile;
     const inst = p.inventory.find((o) => o.cardId === rare.id)!.instanceId;
-    const up1 = upgradeCard(p, { requestId: 'upgrade-1', instanceId: inst }, ctx());
-    expect(up1.ok).toBe(true);
-    if (!up1.ok) return;
-    const up2 = upgradeCard(up1.profile, { requestId: 'upgrade-2', instanceId: inst }, ctx());
-    expect(up2.ok).toBe(false);
-    if (!up2.ok) expect(up2.code).toBe('UPGRADE_CAP');
+    for (let level = 1; level <= room; level += 1) {
+      const up = upgradeCard(p, { requestId: `upgrade-${level}`, instanceId: inst }, ctx());
+      expect(up.ok).toBe(true);
+      if (!up.ok) return;
+      p = up.profile;
+    }
+    const over = upgradeCard(p, { requestId: 'upgrade-over', instanceId: inst }, ctx());
+    expect(over.ok).toBe(false);
+    if (!over.ok) expect(over.code).toBe('UPGRADE_CAP');
   });
 
   it('a tampered save is reported and its bad cards are quarantined, not rewritten', () => {
     const p = starter();
     const tampered: PvpProfile = {
       ...p,
-      inventory: [...p.inventory, { instanceId: 'x-1', cardId: 'li001', upgrades: 40, acquiredVia: 'STARTER_PACK', acquiredAt: NOW }, { instanceId: 'x-2', cardId: 'fake', upgrades: 0, acquiredVia: 'STARTER_PACK', acquiredAt: NOW }],
+      inventory: [...p.inventory, { instanceId: 'x-1', cardId: CATALOG.find((c) => c.tier === 'ICON')!.id, upgrades: 40, acquiredVia: 'STARTER_PACK', acquiredAt: NOW }, { instanceId: 'x-2', cardId: 'fake', upgrades: 0, acquiredVia: 'STARTER_PACK', acquiredAt: NOW }],
       coins: -5,
     };
     const issues = auditProfile(tampered).map((i) => i.code);
@@ -389,6 +430,59 @@ describe('the authoritative match', () => {
     const again = match.submit('human', { type: 'BAT', actionId: 'bat-2', deliveryId: release.deliveryId, shot: 'PULL', timingMs: 100 }, at + 20);
     expect(again.ok).toBe(false);
     expect(match.events.filter((e) => e.kind === 'BALL_RESULT' && e.deliveryId === release.deliveryId)).toHaveLength(1);
+  });
+
+  it('plays a whole match the Career Mode way: aggression to bat, a plan to bowl', () => {
+    const a = starter(1, 'human');
+    const b = starter(2, 'bot');
+    const setup: MatchSetup = { matchId: 'm-c', seed: 11, mode: 'PRACTICE', sides: [sideFrom(a, false, 'Human'), sideFrom(b, true, 'AI')] };
+    let now = 0;
+    const match = new PvpMatch(setup, now);
+    let played = 0;
+    let bowled = 0;
+    for (let i = 0; i < 20_000 && !match.complete; i += 1) {
+      if (match.actingSide() === 0) {
+        const id = match.currentDeliveryId;
+        if (match.currentPhase === 'AWAIT_BAT') {
+          // Out of range is refused; a level 1-5 is played at once, no timing needed.
+          expect(match.submit('human', { type: 'PLAY', actionId: `bad-${i}`, deliveryId: id, level: 7 }, now).ok).toBe(false);
+          const r = match.submit('human', { type: 'PLAY', actionId: `play-${i}`, deliveryId: id, level: 4 }, now);
+          expect(r.ok).toBe(true);
+          const result = match.events.find((e) => e.kind === 'BALL_RESULT' && e.deliveryId === id);
+          expect(result?.kind === 'BALL_RESULT' && result.level).toBe(4);
+          played += 1;
+          continue;
+        }
+        if (match.currentPhase === 'AWAIT_BOWL') {
+          const open = [...match.events].reverse().find((e) => e.kind === 'DELIVERY_OPEN');
+          if (open?.kind !== 'DELIVERY_OPEN') throw new Error('no open');
+          const r = match.submit('human', { type: 'BOWL', actionId: `bowl-${i}`, deliveryId: id, deliveryType: open.allowed[0], line: 'OFF_STUMP', length: 'GOOD', aggression: 5 }, now);
+          expect(r.ok).toBe(true);
+          bowled += 1;
+          continue;
+        }
+      }
+      now += 300;
+      match.tick(now);
+    }
+    expect(match.complete).toBe(true);
+    expect(played).toBeGreaterThan(0);
+    expect(bowled).toBeGreaterThan(0);
+  });
+
+  it('a batter who never acts plays their normal game rather than leaving every ball', () => {
+    const a = starter(1, 'human');
+    const b = starter(2, 'bot');
+    const setup: MatchSetup = { matchId: 'm-t', seed: 9, mode: 'PRACTICE', sides: [sideFrom(a, false, 'Human'), sideFrom(b, true, 'AI')] };
+    let now = 0;
+    const match = new PvpMatch(setup, now);
+    for (let i = 0; i < 20_000 && !match.complete; i += 1) {
+      now += 500;
+      match.tick(now);
+    }
+    const auto = match.events.filter((e) => e.kind === 'BALL_RESULT' && e.autoBat);
+    expect(auto.length).toBeGreaterThan(0);
+    for (const e of auto) if (e.kind === 'BALL_RESULT') expect(e.level).toBe(3);
   });
 
   it('the same seed and actions replay the same match', () => {

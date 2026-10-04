@@ -254,7 +254,7 @@ export default function PvpHome() {
         <ConnectionCard />
       </div>
       <p className="text-center text-[11px] text-ink-muted">
-        All Live PvP players are fictional, with original illustrated portraits. Ratings are gameplay values. Gems are a development currency: no real-money purchases exist. Ranked starts at {RANKED.startRating}.
+        Live PvP cards show real international cricketers. Ratings are gameplay values placed by the game, not official figures. Gems are a development currency: no real-money purchases exist. Ranked starts at {RANKED.startRating}.
       </p>
     </div>
   );

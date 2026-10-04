@@ -1,8 +1,8 @@
 /**
- * Browser QA for Live PvP: drives the production build in Chromium (WebGL via
- * SwiftShader when there is no GPU), opens the starter pack, visits every PvP
- * screen, plays part of a practice match in 3D (bowling and batting), and
- * saves screenshots plus a console log. Fails on any page error.
+ * Browser QA for Live PvP: drives the production build in Chromium, opens the
+ * starter pack, visits every PvP screen, plays part of a practice match on the
+ * 2D ground (bowling and batting), and saves screenshots plus a console log.
+ * Fails on any page error.
  *
  *   npm run build && node scripts/qa-pvp.mjs [outDir]
  */
@@ -97,26 +97,7 @@ try {
     await page.getByRole('button', { name: 'Flip card' }).click();
     await page.waitForTimeout(700);
     await shot(page, '12-card-flipped');
-    // The 3D lab: a few animation states mid-clip.
-    await page.goto(`${base}/pvp/lab`);
-    await page.waitForTimeout(2500);
-    await shot(page, '13-lab-batting-idle');
-    for (const state of ['BattingDrive', 'BattingPull', 'BattingSweep']) {
-      await page.getByRole('button', { name: state, exact: true }).click();
-      await page.waitForTimeout(450);
-      await shot(page, `14-lab-${state}`);
-    }
-    await page.getByRole('button', { name: 'Bowler', exact: true }).click();
-    await page.waitForTimeout(600);
-    await page.getByRole('button', { name: 'BowlingDelivery', exact: true }).click();
-    await page.waitForTimeout(420);
-    await shot(page, '15-lab-bowling-release');
-    await page.getByRole('button', { name: 'Fielder', exact: true }).click();
-    await page.waitForTimeout(600);
-    await page.getByRole('button', { name: 'FieldingDive', exact: true }).click();
-    await page.waitForTimeout(450);
-    await shot(page, '16-lab-dive');
-    // A practice match in 3D.
+    // A practice match on the 2D ground.
     await page.goto(`${base}/pvp`);
     await page.getByRole('button', { name: 'Practice vs AI' }).click();
     await page.waitForURL('**/pvp/match');
@@ -141,17 +122,12 @@ try {
         await page.waitForTimeout(500);
         continue;
       }
-      const drive = page.getByRole('button', { name: /^Drive/ });
-      if (await drive.isEnabled().catch(() => false)) {
-        // Wait for the meter to reach the gold zone, then play.
-        await page.waitForTimeout(700);
-        if (batted === 0) await shot(page, '21-match-ball-in-flight');
-        await drive.dispatchEvent('pointerdown');
+      const batting = page.getByText('Your batting aggression');
+      if (await batting.isVisible().catch(() => false)) {
+        if (batted === 0) await shot(page, '21-match-batting');
         batted += 1;
-        await page.waitForTimeout(350);
-        if (batted === 1) await shot(page, '22-match-shot');
-        await page.waitForTimeout(1200);
-        if (batted === 1) await shot(page, '23-match-after-shot');
+        await page.waitForTimeout(1500);
+        if (batted === 1) await shot(page, '22-match-after-ball');
         continue;
       }
       await page.waitForTimeout(400);
@@ -175,9 +151,8 @@ try {
     await page.waitForTimeout(4000);
     await shot(page, '32-mobile-match');
     for (let i = 0; i < 40; i += 1) {
-      const drive = page.getByRole('button', { name: /^Drive/ });
-      if (await drive.isEnabled().catch(() => false)) {
-        await page.waitForTimeout(600);
+      if (await page.getByText('Your batting aggression').isVisible().catch(() => false)) {
+        await page.waitForTimeout(1500);
         await shot(page, '33-mobile-batting');
         break;
       }

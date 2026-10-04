@@ -1835,3 +1835,32 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   2+ wickets in 59% of spells (was 25%). AI players are unchanged.
 - The fast score-only sim (headless career sim) does not apply it.
 - Tests: `engine/match/starEdge.test.ts`.
+
+## ✅ Live PvP — real-player cards and the card templates
+
+- Live PvP cards are now real cricketers: 144 players from the named photos
+  (71 current, 73 legends, including 17 greats from before the data begins),
+  plus 18 special editions (All Rounder, Team of the Tournament, Player of the
+  Match, Limited Edition). `npm run cards:build` rebuilds the list; see
+  `docs/LIVE_PVP.md`.
+- Nine card templates from `Cards template.zip` drive the faces, with the
+  earlier Epic and Legends art kept for 70-79 cards and retired greats.
+- Each player is cut out of his photo with the face aligned the same way on
+  every card.
+- One card per real player in an XI; old saves move onto real players of the
+  same tier and role.
+- Ratings come from each player's record, ranked within his role; a few
+  ranking values and roles are set by hand in `scripts/players/pvp-overrides.ts`.
+
+## Live PvP plays like Career Mode (no 3D)
+- The 3D match screen, the 3D lab and `src/game3d` (three.js) are gone. A PvP
+  match now uses the Career Mode 2D ground, score strip, scorecard,
+  commentary and aggression bars (`screens/pvp/match/MatchScreen2D.tsx`, with
+  `careerView.ts` turning the authority's events into career innings).
+- New `PLAY` action: bat at an aggression level 1-5 and the engine picks the
+  shot, as in Career Mode. `BOWL` takes an optional bowling aggression. A
+  batter who does not act plays their normal game (level 3) instead of
+  leaving the ball. Run-ups and between-ball pauses are shorter for 2D.
+- The real-player card branch (`feat/real-player-cards`) is merged.
+- Tests: career-style PvP match, timeout batting, career view sums; browser
+  QA plays a practice match on the 2D ground.

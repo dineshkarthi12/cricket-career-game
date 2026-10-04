@@ -47,7 +47,7 @@ export const DELIVERY_LABEL: Record<DeliveryType, string> = {
 };
 
 /** How long the run-up takes on screen before the ball is released, ms. */
-export const RUN_UP_MS = { PACE: 2000, SPIN: 1300 } as const;
+export const RUN_UP_MS = { PACE: 800, SPIN: 600 } as const;
 
 export interface SideSetup {
   userId: string;
@@ -150,6 +150,8 @@ type EventBody =
       deliveryId: string;
       shot: PvpShot | null;
       timing: TimingGrade | null;
+      /** The batting aggression the ball was played at, 1-5 (career-style batting). */
+      level?: number;
       contact: ContactKind;
       outcome: PublicOutcome;
       score: ScoreView;
@@ -165,8 +167,10 @@ export type MatchEventKind = MatchEvent['kind'];
 
 export type MatchAction =
   | { type: 'SELECT_BOWLER'; actionId: string; bowlerId: string }
-  | { type: 'BOWL'; actionId: string; deliveryId: string; deliveryType: DeliveryType; line: DeliveryLine; length: DeliveryLength }
+  | { type: 'BOWL'; actionId: string; deliveryId: string; deliveryType: DeliveryType; line: DeliveryLine; length: DeliveryLength; aggression?: number }
   | { type: 'BAT'; actionId: string; deliveryId: string; shot: PvpShot; timingMs: number | null }
+  /** Career-mode batting: play the ball at an aggression level, 1-5. */
+  | { type: 'PLAY'; actionId: string; deliveryId: string; level: number }
   | { type: 'FORFEIT'; actionId: string };
 
 export type SubmitResult = { ok: true; events: MatchEvent[]; duplicate?: boolean } | { ok: false; code: string; message: string };
@@ -198,12 +202,15 @@ export function validateSide(side: SideSetup): string[] {
   const problems: string[] = [];
   if (side.xi.length !== 11) problems.push(`${side.displayName}: XI has ${side.xi.length} players`);
   let bowlers = 0;
+  const people = new Set<string>();
   for (const entry of side.xi) {
     const card = CATALOG_BY_ID[entry.cardId];
     if (!card) {
       problems.push(`${side.displayName}: unknown card ${entry.cardId}`);
       continue;
     }
+    if (people.has(card.personId)) problems.push(`${side.displayName}: ${card.name} is picked twice`);
+    people.add(card.personId);
     if (validateUpgrade(card, entry.upgrades).length) problems.push(`${side.displayName}: ${card.name} has an illegal upgrade level`);
     if (canBowl(card)) bowlers += 1;
   }
@@ -344,7 +351,7 @@ export class PvpMatch {
   private current = 0;
   private deliverySeq = 0;
   private deliveryId = '';
-  private plan: { type: DeliveryType; plan: BowlerPlan; window: TimingWindow; releaseAt: number; auto: boolean } | null = null;
+  private plan: { type: DeliveryType; plan: BowlerPlan; window: TimingWindow; releaseAt: number; auto: boolean; aggression: number } | null = null;
   private field: ReturnType<typeof placeField> | null = null;
   private deadlineAt = 0;
   private botDueAt: number | null = null;
@@ -462,6 +469,10 @@ export class PvpMatch {
         break;
       case 'BAT':
         error = this.bat(action, false, nowMs);
+        break;
+      case 'PLAY':
+        error = this.play(action);
+        if (!error) this.resolve(null, null, false, nowMs, action.level);
         break;
       default:
         error = 'BAD_ACTION';
@@ -619,13 +630,15 @@ export class PvpMatch {
     const bowler = this.sim(inn.bowlerId!)!;
     if (!allowedDeliveries(bowler).includes(action.deliveryType)) return 'DELIVERY_NOT_ALLOWED';
     if (!LINES.includes(action.line) || !LENGTHS.includes(action.length)) return 'BAD_TARGET';
+    const aggression = action.aggression ?? 3;
+    if (!Number.isInteger(aggression) || aggression < 1 || aggression > 5) return 'BAD_LEVEL';
     const plan = planFor(bowler, action.deliveryType, action.line, action.length);
     const striker = this.sim(inn.strikerId)!;
     const window = timingWindow({ speedKmh: plan.speed, batterTiming: striker.attributes.batting.timing, batterFootwork: striker.attributes.batting.footwork });
     const kind = bowlerKind(bowler.bowlingStyle) ?? 'PACE';
     const runUpMs = RUN_UP_MS[kind];
     const releaseAt = nowMs + runUpMs;
-    this.plan = { type: action.deliveryType, plan, window, releaseAt, auto };
+    this.plan = { type: action.deliveryType, plan, window, releaseAt, auto, aggression };
     this.phase = 'AWAIT_BAT';
     this.deadlineAt = releaseAt + window.missMs + PVP_FORMAT.batGraceMs;
     this.botDueAt = null;
@@ -650,6 +663,14 @@ export class PvpMatch {
       if (timingMs > this.plan.window.missMs) timingMs = null;
     }
     this.resolve(action.shot, timingMs, auto, nowMs);
+    return null;
+  }
+
+  /** Career-style batting is checked here and resolved by `resolve` with the level. */
+  private play(action: Extract<MatchAction, { type: 'PLAY' }>): string | null {
+    if (this.phase !== 'AWAIT_BAT' || !this.plan) return 'WRONG_PHASE';
+    if (action.deliveryId !== this.deliveryId) return 'STALE_DELIVERY';
+    if (!Number.isInteger(action.level) || action.level < 1 || action.level > 5) return 'BAD_LEVEL';
     return null;
   }
 
@@ -683,8 +704,8 @@ export class PvpMatch {
       if (bot && this.botBat) {
         this.resolve(this.botBat.shot, this.botBat.timingMs, false, nowMs);
       } else {
-        // The human never played: the ball goes through with no shot offered.
-        this.resolve('LEAVE', null, true, nowMs);
+        // The human never played: the batter plays their normal game, as in Career Mode.
+        this.resolve(null, null, true, nowMs, 3);
       }
     }
   }
@@ -705,7 +726,7 @@ export class PvpMatch {
     return { shot, timingMs: Math.max(0, Math.round(window.idealMs + offset)) };
   }
 
-  private resolve(shot: PvpShot, timingMs: number | null, autoBat: boolean, nowMs: number): void {
+  private resolve(shot: PvpShot | null, timingMs: number | null, autoBat: boolean, nowMs: number, playLevel?: number): void {
     const inn = this.inn();
     const planned = this.plan!;
     const striker = this.sim(inn.strikerId)!;
@@ -713,13 +734,15 @@ export class PvpMatch {
     const bowler = this.sim(inn.bowlerId!)!;
     const kind = bowlerKind(bowler.bowlingStyle) ?? 'PACE';
     const rng = createRng(deriveSeed(this.setup.seed, 10_000 + this.deliverySeq));
-    const noShot = timingMs === null || shot === 'LEAVE';
+    // Career-style batting: the level is the whole decision, the engine picks the shot.
+    const career = playLevel !== undefined;
+    const noShot = !career && (timingMs === null || shot === null || shot === 'LEAVE');
     let timing: TimingGrade | null = null;
-    if (!noShot) {
+    if (!noShot && !career && shot !== null) {
       const raw = gradeTiming(timingMs!, planned.window);
       timing = raw === null ? null : adjustTiming(raw, shotSuitability(shot, planned.plan.length, planned.plan.line), timingMs! - planned.window.idealMs);
     }
-    const level = noShot ? 2 : SHOT_LEVEL[shot];
+    const level = career ? playLevel : noShot || shot === null ? 2 : SHOT_LEVEL[shot];
     const phase = this.phaseOfPlay();
     const ballsLeft = PVP_FORMAT.overs * 6 - inn.legalBalls;
     const required = inn.target === null ? null : inn.target - inn.runs;
@@ -755,11 +778,11 @@ export class PvpMatch {
       freeHit: inn.freeHit,
       reviewsLeft: { batting: 0, bowling: 0 },
       leave: noShot,
-      touch: noShot || timing === null ? null : { side: shotSide(shot, planned.plan.line), timing },
-      bowlingAggression: 3,
+      touch: career || noShot || timing === null || shot === null ? null : { side: shotSide(shot, planned.plan.line), timing },
+      bowlingAggression: planned.aggression,
     };
     const outcome = resolveDelivery(context, rng);
-    const contact = classifyContact(outcome, noShot ? null : shot);
+    const contact = classifyContact(outcome, career ? (outcome.shot === 'LEAVE' ? null : level === 1 ? 'DEFEND' : 'DRIVE') : noShot ? null : shot);
 
     // --- commit to the score, exactly once ---------------------------------
     const runs = outcome.runsOffBat + (outcome.extras?.runs ?? 0);
@@ -805,9 +828,10 @@ export class PvpMatch {
     this.emit(nowMs, {
       kind: 'BALL_RESULT',
       deliveryId,
-      shot: noShot ? null : shot,
+      shot: noShot || career ? null : shot,
       // A wide is out of reach: it has a result, not a timing grade.
       timing: outcome.extras?.type === 'WIDE' ? null : timing,
+      ...(career ? { level } : {}),
       contact,
       outcome: {
         runsOffBat: outcome.runsOffBat,
@@ -909,6 +933,7 @@ const ERROR_TEXT: Record<string, string> = {
   BAD_TARGET: 'Pick a line and a length.',
   BAD_SHOT: 'Unknown shot.',
   BAD_TIMING: 'Invalid timing.',
+  BAD_LEVEL: 'Pick an aggression level from 1 to 5.',
   TOO_EARLY: 'The ball had not reached you yet.',
 };
 
