@@ -18,6 +18,8 @@ import { cn } from '@/lib/cn';
 import { newRequestId } from '@/pvp/backend';
 import { usePvpStore } from '@/store/pvpStore';
 import { useGameStore } from '@/store/gameStore';
+import { sfxForBall } from '@/lib/audio/calls';
+import { playSfx, startAmbience, stopAmbience } from '@/lib/audio/player';
 import { AggressionBar } from '@/screens/match/controls/AggressionBar';
 import { GroundView } from '@/screens/match/ground/GroundView';
 import { CommentaryFeed } from '@/screens/match/panels/CommentaryFeed';
@@ -103,6 +105,32 @@ export default function MatchScreen2D() {
     if (lastBallId) setDrawingUntil(Date.now() + BALL_MS);
   }, [lastBallId]);
   const drawing = now < drawingUntil;
+
+  // Sound, as in a career match: each ball gets its effects, the crowd murmurs
+  // while play is on, and the result gets a last cheer. Nothing replays for
+  // balls already bowled when the screen opens.
+  const heard = useRef(lastBallId);
+  useEffect(() => {
+    const ball = career.lastBall;
+    if (!ball || heard.current === ball.id) return;
+    heard.current = ball.id;
+    const inn = career.innings.find((i) => i.deliveries.some((d) => d.id === ball.id));
+    if (inn) playSfx(sfxForBall(ball, inn, null));
+  }, [career]);
+  const ended = Boolean(view.end);
+  const won = view.end?.result.winner === mySide;
+  const resultHeard = useRef(ended);
+  useEffect(() => {
+    if (!ended || resultHeard.current) return;
+    resultHeard.current = true;
+    const timer = window.setTimeout(() => playSfx(won ? ['APPLAUSE', 'ROAR'] : ['LIGHT_CLAP']), 1200);
+    return () => window.clearTimeout(timer);
+  }, [ended, won]);
+  useEffect(() => {
+    if (!ended && !paused && match) startAmbience();
+    else stopAmbience();
+  }, [ended, paused, match]);
+  useEffect(() => () => stopAmbience(), []);
 
   const send = useCallback(
     async (key: string, action: Parameters<typeof sendAction>[0]) => {
