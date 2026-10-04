@@ -780,6 +780,7 @@ export class PvpMatch {
       leave: noShot,
       touch: career || noShot || timing === null || shot === null ? null : { side: shotSide(shot, planned.plan.line), timing },
       bowlingAggression: planned.aggression,
+      controlled: career,
     };
     const outcome = resolveDelivery(context, rng);
     const contact = classifyContact(outcome, career ? (outcome.shot === 'LEAVE' ? null : level === 1 ? 'DEFEND' : 'DRIVE') : noShot ? null : shot);

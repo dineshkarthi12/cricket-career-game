@@ -1864,3 +1864,13 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
 - The real-player card branch (`feat/real-player-cards`) is merged.
 - Tests: career-style PvP match, timeout batting, career view sums; browser
   QA plays a practice match on the 2D ground.
+
+## Batting aggression that does what it says
+- Measured in Live PvP, a person batting at level 5 lost a wicket every ~6
+  balls (17% a ball) and level 4 every ~11, so 4 and 5 made fewer runs than 3.
+- `CONTROLLED_BATTING` (config.ts) adds a per-level curve when a person
+  picks the level (PvP `PLAY`, and the career player's own batting, relative
+  to level 3). Now, per ball: 1 out 0.5% (about 1 innings in 10 over 25
+  balls), 2 2.4%, 3 4.3%, 4 5.4% at SR 178, 5 8% at SR 239. In a short PvP
+  innings 4 makes more than 3 and 5 the most.
+- Test: `engine/pvp/aggression.test.ts`.

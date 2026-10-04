@@ -5,7 +5,7 @@
  * conditions decide how dangerous the ball is, the batter's skill and intent
  * decide the quality of contact, and the outcome falls out of the two.
  */
-import { MATCH, MATCH_FORMATS, STAR_EDGE } from '../config';
+import { CONTROLLED_BATTING, MATCH, MATCH_FORMATS, STAR_EDGE } from '../config';
 import { bounceOnOffer, seamOnOffer, swingOnOffer, turnOnOffer } from './conditions';
 import { catchChance, nearestFielder } from './field';
 import {
@@ -321,9 +321,21 @@ export function starScale(context: Pick<DeliveryContext, 'striker' | 'bowler'>):
   };
 }
 
+/**
+ * The aggression bar's own curve, when a person picks the level: Live PvP
+ * (`controlled`) in full, the career player's batting relative to level 3.
+ */
+export function controlScale(context: Pick<DeliveryContext, 'controlled' | 'striker' | 'approach'>): { wicket: number; boundary: number } {
+  const career = context.striker.starEdge !== undefined;
+  if (!context.controlled && !career) return { wicket: 1, boundary: 1 };
+  const i = Math.max(0, Math.min(4, context.approach.level - 1));
+  const base = context.controlled ? 1 : CONTROLLED_BATTING.wicket[2];
+  return { wicket: CONTROLLED_BATTING.wicket[i] / base, boundary: CONTROLLED_BATTING.boundary[i] };
+}
+
 /** Chance this delivery takes a wicket, before free hits and the roll. */
 export function wicketChance(context: DeliveryContext, threat: number, f: DuelFactors): number {
-  return clamp01(baseWicketChance(context, threat, f) * starScale(context).wicket);
+  return clamp01(baseWicketChance(context, threat, f) * starScale(context).wicket * controlScale(context).wicket);
 }
 
 function baseWicketChance(context: DeliveryContext, threat: number, f: DuelFactors): number {
@@ -509,7 +521,7 @@ function resolveDeliveryCore(input: DeliveryContext, rng: Rng): DeliveryOutcome 
     (context.rotate ? cfg.rotate.boundary : 1) *
     cfg.bowlingAggression.boundary[bowlingIndex];
 
-  const star = starScale(context).boundary;
+  const star = starScale(context).boundary * controlScale(context).boundary;
   let pFour = clamp01(star * rates.four * capped * softBall * (0.62 + contact * 0.76) * (context.scoring?.four ?? 1) * (touch?.four ?? 1));
   // Ground size matters: a short square boundary turns a mis-hit pull into
   // six, a long straight one keeps the same shot in the ground.
@@ -576,7 +588,7 @@ function resolveLeave(
   const rates = MATCH_FORMATS[context.format] ?? MATCH_FORMATS.ODI;
   const cfg = MATCH.leave;
   const risk = (cfg.lineRisk[context.plan.line] ?? 0) * (cfg.lengthRisk[context.plan.length] ?? 1);
-  const pOut = context.freeHit ? 0 : clamp01(rates.wicket * risk * (0.55 + 0.9 * threat) * starScale(context).wicket);
+  const pOut = context.freeHit ? 0 : clamp01(rates.wicket * risk * (0.55 + 0.9 * threat) * starScale(context).wicket * controlScale(context).wicket);
   const { striker, bowler } = context;
 
   const base = {

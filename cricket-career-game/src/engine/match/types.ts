@@ -109,6 +109,8 @@ export interface FieldSetting {
 
 /** Everything the resolver needs to play one ball. */
 export interface DeliveryContext {
+  /** A person chose the batting level this ball (Live PvP): `CONTROLLED_BATTING` applies. */
+  controlled?: boolean;
   format: MatchFormat;
   phase: MatchPhase;
   conditions: MatchConditions;
