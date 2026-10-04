@@ -213,9 +213,9 @@ export const PVP_FORMAT = {
   latencyToleranceMs: 400,
   /**
    * Pause after each ball before the next one's clock starts, so every client
-   * can show the replay (runs, boundary, wicket) in full.
+   * can draw the ball on the 2D ground (runs, boundary, wicket) in full.
    */
-  pauseMs: { dot: 2600, perRun: 2400, boundary: 5200, wicket: 5800, extra: 2400 },
+  pauseMs: { dot: 900, perRun: 300, boundary: 1800, wicket: 2400, extra: 900 },
 };
 
 export const RANKED = {

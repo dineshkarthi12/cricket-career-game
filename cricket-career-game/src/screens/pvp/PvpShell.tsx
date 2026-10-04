@@ -23,7 +23,6 @@ import {
   Users,
   Wifi,
   WifiOff,
-  Wrench,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -50,7 +49,6 @@ export const PVP_NAV: Item[] = [
   { label: 'Squad Builder', to: '/pvp/squad', icon: Shirt },
   { label: 'Rankings', to: '/pvp/rankings', icon: Trophy },
   { label: 'Friends', to: '/pvp/friends', icon: Users },
-  { label: '3D Lab', to: '/pvp/lab', icon: Wrench },
 ];
 
 const MOBILE_PRIMARY = ['/pvp', '/pvp/collection', '/pvp/store', '/pvp/squad'];

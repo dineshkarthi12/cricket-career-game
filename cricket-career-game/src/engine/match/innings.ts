@@ -293,7 +293,7 @@ function bowlingLine(player: SimPlayer): BowlerInningsLine {
 }
 
 /** Scorecard text for a dismissal, e.g. "c Kumar b Iyer". */
-function dismissalText(ball: Ball, bowlerName: string, fielderName: string | null): string {
+export function dismissalText(ball: Ball, bowlerName: string, fielderName: string | null): string {
   const type = ball.wicket?.type;
   switch (type) {
     case 'BOWLED':

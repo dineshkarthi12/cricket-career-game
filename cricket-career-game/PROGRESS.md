@@ -1851,3 +1851,16 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   same tier and role.
 - Ratings come from each player's record, ranked within his role; a few
   ranking values and roles are set by hand in `scripts/players/pvp-overrides.ts`.
+
+## Live PvP plays like Career Mode (no 3D)
+- The 3D match screen, the 3D lab and `src/game3d` (three.js) are gone. A PvP
+  match now uses the Career Mode 2D ground, score strip, scorecard,
+  commentary and aggression bars (`screens/pvp/match/MatchScreen2D.tsx`, with
+  `careerView.ts` turning the authority's events into career innings).
+- New `PLAY` action: bat at an aggression level 1-5 and the engine picks the
+  shot, as in Career Mode. `BOWL` takes an optional bowling aggression. A
+  batter who does not act plays their normal game (level 3) instead of
+  leaving the ball. Run-ups and between-ball pauses are shorter for 2D.
+- The real-player card branch (`feat/real-player-cards`) is merged.
+- Tests: career-style PvP match, timeout batting, career view sums; browser
+  QA plays a practice match on the 2D ground.

@@ -432,6 +432,59 @@ describe('the authoritative match', () => {
     expect(match.events.filter((e) => e.kind === 'BALL_RESULT' && e.deliveryId === release.deliveryId)).toHaveLength(1);
   });
 
+  it('plays a whole match the Career Mode way: aggression to bat, a plan to bowl', () => {
+    const a = starter(1, 'human');
+    const b = starter(2, 'bot');
+    const setup: MatchSetup = { matchId: 'm-c', seed: 11, mode: 'PRACTICE', sides: [sideFrom(a, false, 'Human'), sideFrom(b, true, 'AI')] };
+    let now = 0;
+    const match = new PvpMatch(setup, now);
+    let played = 0;
+    let bowled = 0;
+    for (let i = 0; i < 20_000 && !match.complete; i += 1) {
+      if (match.actingSide() === 0) {
+        const id = match.currentDeliveryId;
+        if (match.currentPhase === 'AWAIT_BAT') {
+          // Out of range is refused; a level 1-5 is played at once, no timing needed.
+          expect(match.submit('human', { type: 'PLAY', actionId: `bad-${i}`, deliveryId: id, level: 7 }, now).ok).toBe(false);
+          const r = match.submit('human', { type: 'PLAY', actionId: `play-${i}`, deliveryId: id, level: 4 }, now);
+          expect(r.ok).toBe(true);
+          const result = match.events.find((e) => e.kind === 'BALL_RESULT' && e.deliveryId === id);
+          expect(result?.kind === 'BALL_RESULT' && result.level).toBe(4);
+          played += 1;
+          continue;
+        }
+        if (match.currentPhase === 'AWAIT_BOWL') {
+          const open = [...match.events].reverse().find((e) => e.kind === 'DELIVERY_OPEN');
+          if (open?.kind !== 'DELIVERY_OPEN') throw new Error('no open');
+          const r = match.submit('human', { type: 'BOWL', actionId: `bowl-${i}`, deliveryId: id, deliveryType: open.allowed[0], line: 'OFF_STUMP', length: 'GOOD', aggression: 5 }, now);
+          expect(r.ok).toBe(true);
+          bowled += 1;
+          continue;
+        }
+      }
+      now += 300;
+      match.tick(now);
+    }
+    expect(match.complete).toBe(true);
+    expect(played).toBeGreaterThan(0);
+    expect(bowled).toBeGreaterThan(0);
+  });
+
+  it('a batter who never acts plays their normal game rather than leaving every ball', () => {
+    const a = starter(1, 'human');
+    const b = starter(2, 'bot');
+    const setup: MatchSetup = { matchId: 'm-t', seed: 9, mode: 'PRACTICE', sides: [sideFrom(a, false, 'Human'), sideFrom(b, true, 'AI')] };
+    let now = 0;
+    const match = new PvpMatch(setup, now);
+    for (let i = 0; i < 20_000 && !match.complete; i += 1) {
+      now += 500;
+      match.tick(now);
+    }
+    const auto = match.events.filter((e) => e.kind === 'BALL_RESULT' && e.autoBat);
+    expect(auto.length).toBeGreaterThan(0);
+    for (const e of auto) if (e.kind === 'BALL_RESULT') expect(e.level).toBe(3);
+  });
+
   it('the same seed and actions replay the same match', () => {
     const a = botMatch(21).events.map((e) => JSON.stringify({ ...e }));
     const b = botMatch(21).events.map((e) => JSON.stringify({ ...e }));

@@ -1,7 +1,7 @@
 # Live PvP: design and operations
 
 Live PvP is the third game mode, alongside Career Mode and IPL Manager. You
-collect real international cricketers, build an XI, and play quick 3D one-on-one matches:
+collect real international cricketers, build an XI, and play quick one-on-one matches on the same 2D ground as Career Mode:
 two overs a side, three wickets. It has its own routes (`/pvp/*`), store
 (`src/store/pvpStore.ts`), saves and economy. It never reads or writes career
 or IPL Manager saves.
@@ -19,14 +19,7 @@ src/engine/pvp/       pure TypeScript, shared by browser and server
   ranked.ts           Elo and the matchmaking queue
   protocol.ts         the WebSocket message types
 src/pvp/              client backends: OfflineBackend (demo) and OnlineBackend (WebSocket)
-src/game3d/           the 3D layer (three.js)
-  characters/         procedural rig, props, Cricketer, GLB inspection
-  animation/          keyframe clips, AnimationController, two-bone IK, state table
-  physics/            ball flight segments
-  choreography.ts     what everyone does after a ball, derived from the authority's result
-  scene/              Stadium, MatchScene (the director), LabScene
-  camera/, render/    camera rig, renderer (adaptive quality, WebGL detection)
-src/screens/pvp/      the UI
+src/screens/pvp/      the UI (match/MatchScreen2D.tsx reuses the career ground and panels)
 server/pvp-server.ts  the Node WebSocket server
 ```
 
@@ -37,16 +30,19 @@ server/pvp-server.ts  the Node WebSocket server
 1. `SELECT_BOWLER`: only the fielding side, and only players who can bowl.
    Pure batters and keepers are refused by the authority itself, not just
    hidden in the UI.
-2. `BOWL` (type, line, length), checked against the bowler's style. A spinner
-   cannot bowl a bouncer.
-3. `BAT` (shot, timing in ms after the ball left the hand).
+2. `BOWL` (type, line, length, and an optional bowling aggression 1-5),
+   checked against the bowler's style. A spinner cannot bowl a bouncer.
+3. `PLAY` (batting aggression 1-5), the Career Mode way: the engine picks the
+   shot. The match screen sends it as each ball arrives, at the level the
+   batter has set. (`BAT`, a shot with a timing in ms, is still accepted.)
 
 Each delivery has a unique id. The authority accepts a `BOWL` and a `BAT`
 only for the live id, once each, and in the right phase. Actions carry an
 `actionId`, so a resend after a reconnect is acknowledged and ignored. A
 timed input that claims to have been played before the ball could have
 arrived is refused (`TOO_EARLY`). Deadlines act for a player who does not:
-an automatic bowler pick, an AI-planned delivery, or no shot offered.
+an automatic bowler pick, an AI-planned delivery, or the batter's normal
+game (aggression 3).
 
 The ball is resolved by the same `resolveDelivery` engine Career Mode uses:
 batter and bowler attributes, line, length, speed, the side and timing of the
@@ -55,8 +51,8 @@ the odds but guarantees nothing. A poorly chosen shot (pulling a yorker)
 loses a grade of timing.
 
 The authority emits events: `MATCH_START`, `BOWLER_NEEDED`, `DELIVERY_OPEN`,
-`BALL_RELEASED`, `BALL_RESULT`, `INNINGS_END` and `MATCH_END`. Every client,
-the 3D scene included, renders only these. `classifyContact` turns the
+`BALL_RELEASED`, `BALL_RESULT`, `INNINGS_END` and `MATCH_END`. Every client
+renders only these. `classifyContact` turns the
 engine's outcome into what the bat did (`NO_SHOT`, `MISS`, `PAD`, `EDGE`,
 `BAT`). `choreography.ts` turns that into animations and a ball path, and the
 tests check over hundreds of real outcomes that:
@@ -66,37 +62,14 @@ tests check over hundreds of real outcomes that:
 - only a recorded catch shows a catch, by the fielder the engine named
 - the score is the running sum of the deliveries
 
-### The 3D timeline
+### The match screen
 
-`MatchScene` processes events in order. On `BALL_RELEASED` the bowler runs
-in, the delivery clip starts so the release frame lands on time, and the ball
-leaves the bowler's actual hand. It reaches the batter at the timing window's
-ideal moment, so the timing meter, the ball and the authority agree. A local
-press starts the chosen shot at once, so early and late swings look early and
-late. If the result is a miss, the clip switches to the missed-shot version
-at the same moment. Fielders run to where the engine sent the ball, catches
-happen where the hands are, and batters run the number of runs scored. After
-each ball the authority pauses before the next clock starts, so every client
-can show the replay. A new ball cuts any replay still running.
-
-The camera director (`camera/CameraRig.ts`) follows a cue list that
-`planAfterContact` writes for each ball: RUNUP while the bowler waits and runs
-in, DELIVERY (batter-facing, from behind the bowler's end) for the ball,
-SIDE_ON at contact, BALL_FOLLOW (high for sixes and skiers), RUNNING for both
-batters, CLOSE_UP for catches, wickets, appeals and celebrations, and WIDE
-between balls. Each shot names the box it must frame, and the field of view is
-solved for the screen's aspect ratio, so an upright phone frames the batter as
-well as a desktop. Moves use critically damped springs; changes of angle cut.
-
-Swing and spin only shape the path (`movementFor`, `deliveryPath`): the ball
-still arrives where the authority placed it. Contact is played at the bat's
-sweet spot. On a run-out the dismissed batter is still short of the crease
-when the bails come off (`runLegs`). The scorebug holds back a result until
-the scene shows it, so the score never runs ahead of the picture.
-
-The match screen offers replay of the last ball, pause (offline demo only:
-pausing stops the authority's clock too), and settings for camera, graphics
-quality, lighting and a frame-rate readout (kept in localStorage).
+`screens/pvp/match/careerView.ts` turns the events into Career Mode shapes
+(innings, scorecards, the ball log, the field) so the PvP match reuses the
+career `GroundView`, `Scorecard`, `CommentaryFeed` and `AggressionBar`
+unchanged. After each ball the authority pauses briefly before the next
+clock starts, so every client can draw the ball's path. Pause is offline demo
+only (it stops the authority's clock too).
 
 ## The players and their cards
 
@@ -237,15 +210,14 @@ Server environment variables:
   XI, idempotency, odds, rewards, upgrades and caps, tampered saves, the
   authority (score consistency, single resolution per delivery, out-of-turn,
   stale, duplicate and too-early actions, bowler eligibility, replay
-  determinism), and matchmaking.
-- `src/game3d/game3d.test.ts`: the skinned rig, clips (every track hits a real
-  bone), mirroring, the controller (no duplicate one-shots, stale completions
-  ignored, disposal), batting IK (hands on the handle for both handedness),
-  the GLB pipeline on a real file, ball flight, and choreography against
-  hundreds of real engine outcomes.
+  determinism, career-style `PLAY` batting and bowling aggression), and
+  matchmaking.
+- `src/screens/pvp/match/careerView.test.ts`: the events drawn as a career
+  match add up (runs, wickets, legal balls, dismissals, bowlers' wickets).
 - `server/pvp-server.test.ts`: two real WebSocket clients against the real
   server. They play a full ranked match, see identical event streams,
   reconnect mid-match, and try forged and duplicate requests. Also covers
   rooms and friends.
-- `scripts/qa-pvp.mjs`: browser QA in Chromium (WebGL) with screenshots. Run
+- `scripts/qa-pvp.mjs`: browser QA in Chromium with screenshots, a practice
+  match played on the 2D ground. Run
   `npm run build && CHROMIUM_PATH=/path/to/chromium npm run qa:pvp`.
