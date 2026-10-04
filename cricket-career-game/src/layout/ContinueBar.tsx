@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { CalendarDays, ChevronRight, ClipboardCheck, CloudRain, HeartPulse, Play, ScrollText, Sun, Snowflake, X, Zap } from 'lucide-react';
+import { CalendarDays, ChevronRight, ClipboardCheck, CloudRain, Gavel, HeartPulse, Play, ScrollText, Sun, Snowflake, X, Zap } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components';
 import { climateNote, pendingMatch, pendingTrial } from '@/engine/calendar';
 import { formatLongDate } from '@/lib/format';
+import { unwatchedAuction } from '@/engine/pro/ipl';
 import { useGameStore } from '@/store/gameStore';
 import { useMatchStore } from '@/store/matchStore';
 import type { ClimateKind } from '@/engine/calendar';
@@ -37,13 +38,14 @@ export function ContinueBar() {
   const [news, setNews] = useState<InboxMessage[] | null>(null);
 
   // A match in progress has its own controls; the clock waits for it.
-  if (!state || pathname.startsWith('/match/') || pathname.startsWith('/trial/')) return null;
+  if (!state || pathname.startsWith('/match/') || pathname.startsWith('/trial/') || pathname === '/auction/live') return null;
   const today = state.season.currentDate;
   const pending = pendingMatch(state);
   const note = noteState && noteState.date === today && noteState.fixtureId === (pending?.id ?? null) ? noteState.text : null;
   const setNote = (text: string | null, date = today, fixtureId: string | null = null) => setNoteState(text ? { text, date, fixtureId } : null);
   const trial = pendingTrial(state);
   const review = state.career.pendingReview;
+  const auction = unwatchedAuction(state);
   const month = Number(today.slice(5, 7));
   const climate = climateNote(state.calendar.region, month);
   const ClimateIcon = CLIMATE_ICON[climate.kind];
@@ -65,6 +67,10 @@ export function ContinueBar() {
     showNews(state, result.state);
     if (!hadReview && result.state.career.pendingReview) {
       navigate('/season-review');
+      return;
+    }
+    if (unwatchedAuction(result.state) && !unwatchedAuction(state)) {
+      navigate('/auction/live');
       return;
     }
     if (result.trial) {
@@ -112,6 +118,13 @@ export function ContinueBar() {
           <button type="button" onClick={() => navigate('/season-review')} className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]">
             <ScrollText className="size-3.5" aria-hidden />
             Season review ready
+          </button>
+        ) : null}
+
+        {auction ? (
+          <button type="button" onClick={() => navigate('/auction/live')} className="flex items-center gap-1 rounded-full bg-brand-red px-3 py-1 text-[12px] font-semibold text-white">
+            <Gavel className="size-3.5" aria-hidden />
+            {auction.mega ? 'Mega auction' : 'IPL auction'}: watch live
           </button>
         ) : null}
 

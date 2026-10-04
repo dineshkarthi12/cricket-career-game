@@ -83,6 +83,18 @@ export interface AuctionLot {
   isUser: boolean;
 }
 
+/** A lot as the room saw it, for watching the auction live. */
+export interface AuctionRoomLot extends AuctionLot {
+  /** The auction set it came up in ("Marquee set", "Capped batters"...). */
+  set: string;
+  /** T20 rating when the hammer fell. */
+  overall: number;
+  /** State or nation. */
+  from: string;
+  /** A real cricketer. */
+  real: boolean;
+}
+
 export interface AuctionSummary {
   seasonYear: number;
   mega: boolean;
@@ -94,6 +106,13 @@ export interface AuctionSummary {
   /** Franchise purses left after the auction, lakh. */
   pursesAfter: Record<string, number>;
   userStatus: IplStatus;
+  /** Every lot in order - kept for the latest auction only, to watch it live. */
+  room?: AuctionRoomLot[];
+  /** Purses, squad sizes and overseas players when the auction opened. */
+  pursesBefore?: Record<string, number>;
+  squadsBefore?: Record<string, { players: number; overseas: number }>;
+  /** The user has watched (or skipped) it live. */
+  watched?: boolean;
 }
 
 export interface IplSeasonLine {

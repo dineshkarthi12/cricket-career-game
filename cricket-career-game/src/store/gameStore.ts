@@ -30,7 +30,7 @@ import {
 } from '@/engine/development';
 import { applyTrial, autoTrial } from '@/engine/career/trials';
 import { answerLeadership } from '@/engine/pro/leadership';
-import { answerTrade, registerBase } from '@/engine/pro/ipl';
+import { answerTrade, markAuctionWatched, registerBase } from '@/engine/pro/ipl';
 import { retireFrom } from '@/engine/pro/retirement';
 import { SAVE_SLOT_IDS } from '@/types';
 import type {
@@ -113,6 +113,8 @@ interface GameStore {
   answerTrade: (accept: boolean) => void;
   /** Register for the IPL auction at a base price (lakh). */
   registerBase: (lakh: number) => void;
+  /** The latest IPL auction has been watched live (or skipped). */
+  markAuctionWatched: () => void;
   /** Retire from a format, or from all cricket. */
   retire: (scope: RetirementScope) => void;
   setSessions: (sessions: TrainingSession[]) => void;
@@ -353,6 +355,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   answerTrade: (accept) => get().update((state) => answerTrade(state, accept)),
 
   registerBase: (lakh) => get().update((state) => registerBase(state, lakh)),
+
+  markAuctionWatched: () => get().update((state) => markAuctionWatched(state)),
 
   retire: (scope) => get().update((state) => retireFrom(state, scope)),
 

@@ -137,6 +137,12 @@ function AuctionRoom({ state }: { state: GameState }) {
           {auctions.length > 1 ? (
             <Tabs tabs={auctions.map((a, i) => ({ id: String(i), label: `${a.mega ? 'Mega ' : ''}${a.seasonYear}` }))} value={String(index)} onChange={(v) => setIndex(Number(v))} label="Auctions" />
           ) : null}
+          {index === auctions.length - 1 && summary.room?.length ? (
+            <Link to="/auction/live" className="flex items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-3 text-[14px] font-bold text-white hover:bg-brand-navy/90">
+              <Gavel className="size-4 text-brand-gold" aria-hidden />
+              {summary.watched === false ? 'Watch the auction live' : 'Watch the whole auction again'} · {summary.room.length} lots
+            </Link>
+          ) : null}
           <AuctionView state={state} summary={summary} />
         </>
       )}
