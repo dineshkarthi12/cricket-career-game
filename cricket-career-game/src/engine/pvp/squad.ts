@@ -29,8 +29,8 @@ export function validateSquad(squad: SquadSelection, inventory: OwnedCard[]): Ru
       issues.push({ code: 'UNKNOWN_CARD', message: `Card ${owned.cardId} does not exist.` });
       continue;
     }
-    if (cardIds.has(card.id)) issues.push({ code: 'SAME_PLAYER', message: `${card.name} is picked twice.` });
-    cardIds.add(card.id);
+    if (cardIds.has(card.personId)) issues.push({ code: 'SAME_PLAYER', message: `${card.name} is picked twice.` });
+    cardIds.add(card.personId);
     cards.push(card);
   }
   for (const id of squad.bench) {
@@ -86,7 +86,7 @@ export function autoPickSquad(inventory: OwnedCard[]): SquadSelection | null {
     .map((o) => ({ o, card: CATALOG_BY_ID[o.cardId], value: effectiveOverall(CATALOG_BY_ID[o.cardId], o.upgrades) }))
     .sort((a, b) => b.value - a.value);
   const seen = new Set<string>();
-  const unique = rated.filter((r) => (seen.has(r.card.id) ? false : (seen.add(r.card.id), true)));
+  const unique = rated.filter((r) => (seen.has(r.card.personId) ? false : (seen.add(r.card.personId), true)));
   const keeper = unique.find((r) => r.card.role === 'WICKET_KEEPER');
   if (!keeper) return null;
   const picked = [keeper];

@@ -25,7 +25,7 @@ export const TIER_RULES: Record<CardTier, TierRule> = {
   COMMON: { tier: 'COMMON', cls: 'FREE', label: 'Common', min: 45, max: 54 },
   UNCOMMON: { tier: 'UNCOMMON', cls: 'FREE', label: 'Uncommon', min: 55, max: 59 },
   RARE_FREE: { tier: 'RARE_FREE', cls: 'FREE', label: 'Rare', min: 60, max: 65 },
-  PREMIUM: { tier: 'PREMIUM', cls: 'PREMIUM', label: 'Premium', min: 70, max: 79 },
+  PREMIUM: { tier: 'PREMIUM', cls: 'PREMIUM', label: 'Epic', min: 70, max: 79 },
   ELITE: { tier: 'ELITE', cls: 'PREMIUM', label: 'Elite', min: 80, max: 89 },
   LEGENDARY: { tier: 'LEGENDARY', cls: 'PREMIUM', label: 'Legendary', min: 90, max: 96 },
   ICON: { tier: 'ICON', cls: 'PREMIUM', label: 'Icon', min: 97, max: 99 },
@@ -183,7 +183,7 @@ export const PACKS: PackDefinition[] = [
   {
     id: 'legends',
     name: 'Legends Pack',
-    description: 'Two retired legends (fictional), Elite or better.',
+    description: 'Two retired greats, Elite or better.',
     currency: 'GEMS',
     price: 900,
     eras: ['LEGEND'],

@@ -198,12 +198,15 @@ export function validateSide(side: SideSetup): string[] {
   const problems: string[] = [];
   if (side.xi.length !== 11) problems.push(`${side.displayName}: XI has ${side.xi.length} players`);
   let bowlers = 0;
+  const people = new Set<string>();
   for (const entry of side.xi) {
     const card = CATALOG_BY_ID[entry.cardId];
     if (!card) {
       problems.push(`${side.displayName}: unknown card ${entry.cardId}`);
       continue;
     }
+    if (people.has(card.personId)) problems.push(`${side.displayName}: ${card.name} is picked twice`);
+    people.add(card.personId);
     if (validateUpgrade(card, entry.upgrades).length) problems.push(`${side.displayName}: ${card.name} has an illegal upgrade level`);
     if (canBowl(card)) bowlers += 1;
   }

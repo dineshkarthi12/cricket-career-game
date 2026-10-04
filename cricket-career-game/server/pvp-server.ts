@@ -31,6 +31,7 @@ import {
   claimStarter,
   claimWeekly,
   createProfile,
+  migrateProfile,
   eloUpdate,
   grantDevGems,
   isRoomCode,
@@ -78,6 +79,8 @@ export class JsonStore {
     if (file) {
       try {
         this.data = JSON.parse(readFileSync(file, 'utf8')) as Db;
+        // Saves from before the real-player catalog get their cards replaced.
+        for (const user of Object.values(this.data.users)) user.profile = migrateProfile(user.profile);
       } catch {
         this.data = { users: {} };
       }
