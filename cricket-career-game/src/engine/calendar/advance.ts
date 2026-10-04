@@ -75,6 +75,19 @@ export function pendingTrial(state: GameState): Fixture | null {
   return fixture && !fixture.played ? fixture : null;
 }
 
+/**
+ * Events the clock jumped over while the user was in a multi-day match
+ * (playing a match moves the date to its last day).
+ */
+export function missedDuringMatch(state: GameState, today: string): Fixture[] {
+  const fixtures = Object.values(state.fixtures);
+  const spans = fixtures.filter((f) => f.kind === 'MATCH' && f.played && f.involvesUser && f.endDate > f.date && f.endDate <= today);
+  if (spans.length === 0) return [];
+  return fixtures
+    .filter((f) => !f.played && f.involvesUser && f.kind !== 'MATCH' && f.date <= today && spans.some((m) => f.date > m.date && f.date <= m.endDate))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 /** Fixtures on a day that have not happened yet. */
 function fixturesOn(state: GameState, date: string): Fixture[] {
   return Object.values(state.fixtures)
@@ -249,6 +262,15 @@ export function advanceWeek(input: GameState): AdvanceResult {
   }
 
   const start = state.season.currentDate;
+  // Days spent in a multi-day match: their events (an auction, a selection
+  // meeting) happen now, in date order. An auction stops the clock here so
+  // it can be watched live as soon as stumps are drawn.
+  const missed = missedDuringMatch(state, start);
+  if (missed.length) {
+    const lastAuction = state.pro?.ipl.auctions.at(-1);
+    for (const fixture of missed) state = runEvent(state, fixture);
+    if (state.pro?.ipl.auctions.at(-1) !== lastAuction && unwatchedAuction(state)) return { state, stoppedFor: null, trial: null, days: 0 };
+  }
   // A match on the day a trial held the clock up is still to be played.
   const leftToday = fixturesOn(state, start).find((f) => f.kind === 'MATCH');
   if (leftToday) {

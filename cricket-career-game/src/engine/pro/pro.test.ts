@@ -15,6 +15,7 @@ import { legacyRating, legacyTier, scoreLegacy, type LegacyInputs } from './lega
 import { worldSeries } from './worldSeries';
 import { refreshProStages } from './stages';
 import { thinMatch } from '../calendar/compact';
+import { advanceWeek } from '../calendar/advance';
 import { NATIONS_BY_NAME, nationTeamId } from '@/data/nations';
 import { FRANCHISES } from '@/data/franchises';
 import { IPL_RULES } from '../config';
@@ -157,6 +158,27 @@ describe('the auction', () => {
     const next = runAuction({ ...watched, season: { ...watched.season, year: 2027 } }, '2027-12-16');
     expect(next.pro.ipl.auctions.at(-2)!.room).toBeUndefined();
     expect(next.pro.ipl.auctions.at(-1)!.room!.length).toBeGreaterThan(0);
+  });
+
+  it('holds the auction that falls during a Test, as soon as the Test ends', () => {
+    let state = retentionDay(proCareer(), '2026-11-01');
+    const auction = Object.values(state.fixtures).find((f) => f.kind === 'AUCTION' && f.date === '2026-12-16')!;
+    expect(auction.played).toBe(false);
+    // A five-day Test from 12 December, just played: the date moved to its last day.
+    const test = { ...auction, id: 'fx-test-ind-pak', kind: 'MATCH' as const, title: 'India v Pakistan, 1st Test', date: '2026-12-12', endDate: '2026-12-16', played: true };
+    state = { ...state, fixtures: { ...state.fixtures, [test.id]: test }, season: { ...state.season, currentDate: '2026-12-16' } };
+    const before = state.pro.ipl.auctions.length;
+    const result = advanceWeek(state);
+    expect(result.state.fixtures[auction.id].played).toBe(true);
+    expect(result.state.pro.ipl.auctions).toHaveLength(before + 1);
+    // The clock waits on the day so the room can be watched live.
+    expect(result.days).toBe(0);
+    expect(result.state.season.currentDate).toBe('2026-12-16');
+    expect(unwatchedAuction(result.state)).toBeTruthy();
+    // And then the week goes on as normal.
+    const later = advanceWeek(markAuctionWatched(result.state));
+    expect(later.state.season.currentDate > '2026-12-16').toBe(true);
+    expect(later.state.pro.ipl.auctions).toHaveLength(before + 1);
   });
 
   it('runs the marquee set, then capped sets, then uncapped', () => {
