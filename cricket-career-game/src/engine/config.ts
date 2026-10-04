@@ -1577,6 +1577,20 @@ export const DIFFICULTY = {
  * good score (30+ in T20, 50+ in longer games) in roughly half their innings,
  * and one a little below it in around 40% - see `starEdge.test.ts`.
  */
+/**
+ * The aggression bar when a person picks the level (Live PvP, and the career
+ * player's own batting): what each level does on top of the engine's own
+ * intent curve, by level 1-5. 1 survives (about one innings in ten ends over
+ * 25 balls), 2 is a little careful, 3 the normal game, 4 scores clearly faster
+ * than 3 and 5 fastest of all, with more risk but not a wicket every over.
+ * See `engine/pvp/aggression.test.ts`. The career player's curve is divided by
+ * level 3's value, since `STAR_EDGE` already sets their base.
+ */
+export const CONTROLLED_BATTING = {
+  wicket: [0.2, 0.55, 0.68, 0.6, 0.45],
+  boundary: [1.6, 1.0, 1.0, 1.2, 1.35],
+} as const;
+
 export const STAR_EDGE = {
   batting: {
     /** Share of the wicket chance taken away at an edge of 1. */

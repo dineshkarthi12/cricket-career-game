@@ -11,8 +11,8 @@ export const BATTING_LEVELS = [
   { name: 'Very Defensive', help: 'Blocks and leaves. Very hard to get out, very few runs.' },
   { name: 'Defensive', help: 'Singles, and only the bad ball punished. Low risk.' },
   { name: 'Balanced', help: 'Rotates the strike, boundaries off loose balls. Normal risk.' },
-  { name: 'Aggressive', help: 'Looks for boundaries often. High risk.' },
-  { name: 'Very Aggressive', help: 'A big shot almost every ball. Very high risk.' },
+  { name: 'Aggressive', help: 'Looks for boundaries often. Faster runs, more risk.' },
+  { name: 'Very Aggressive', help: 'A big shot almost every ball. Fastest runs, highest risk.' },
 ];
 
 export const BOWLING_LEVELS = [
