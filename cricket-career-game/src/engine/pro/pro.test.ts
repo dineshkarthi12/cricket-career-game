@@ -17,6 +17,7 @@ import { refreshProStages } from './stages';
 import { thinMatch } from '../calendar/compact';
 import { NATIONS_BY_NAME, nationTeamId } from '@/data/nations';
 import { FRANCHISES } from '@/data/franchises';
+import { IPL_RULES } from '../config';
 import type { Attributes, GameState, Match } from '@/types';
 
 /** A 28-year-old with a senior state cap: the professional season is open. */
@@ -132,7 +133,7 @@ describe('the auction', () => {
       expect(after.career.squads.ipl.status).toBe('SQUAD');
       expect(after.teams[after.pro.ipl.franchiseId!].isUserTeam).toBe(true);
     }
-    for (const f of FRANCHISES) expect(after.teams[f.id].squad.length).toBeLessThanOrEqual(22);
+    for (const f of FRANCHISES) expect(after.teams[f.id].squad.length).toBeLessThanOrEqual(IPL_RULES.squadSize);
   });
 
   it('records the whole room, set by set, to watch it live', () => {

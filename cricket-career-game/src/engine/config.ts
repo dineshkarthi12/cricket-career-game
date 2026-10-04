@@ -1382,7 +1382,8 @@ export const MATCH = {
 export const IPL_RULES = {
   maxOverseasXi: 4,
   maxOverseasSquad: 8,
-  squadSize: 22,
+  /** As at the IPL: at most 25 a squad. */
+  squadSize: 25,
   /** A side may bring on one impact substitute during the match. */
   impactPlayer: true,
   leagueMatches: 14,
@@ -1423,8 +1424,8 @@ export const AUCTION = {
   /** Fresh names in the auction pool. */
   freshDomestic: { mini: 26, mega: 60 },
   freshOverseas: { mini: 14, mega: 34 },
-  /** Target mix of a 22-man squad by role group. */
-  roleTargets: { BATTER: 7, KEEPER: 2, ALLROUNDER: 5, PACE: 5, SPIN: 3 } as Record<string, number>,
+  /** Target mix of a 25-man squad by role group. */
+  roleTargets: { BATTER: 8, KEEPER: 2, ALLROUNDER: 6, PACE: 6, SPIN: 3 } as Record<string, number>,
   /** Scouting reputation needed to be shortlisted for the auction. */
   shortlistAt: 50,
   /** ... to be invited to franchise trials. */

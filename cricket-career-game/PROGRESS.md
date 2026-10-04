@@ -890,7 +890,7 @@ same share reaching senior level (17.5% v 18%).
 
 **1. IPL (stages 11-12)**
 - 10 fictional franchises with cities, home grounds, a style (spin, pace,
-  batting, balanced), 22-man squads with up to 8 overseas players, purses.
+  batting, balanced), 25-man squads with up to 8 overseas players, purses.
 - Scouting reputation from SMAT, Vijay Hazare, India U-19, U-23 and standout
   days; per-franchise interest from their needs and style; scouts in the
   inbox; franchise trials as a playable trial (nets, fitness test, a T20
