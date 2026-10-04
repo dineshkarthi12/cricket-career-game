@@ -3,7 +3,7 @@ import { createNewCareer } from '../newCareer';
 import { createRng } from '../match/rng';
 import { tournamentOf, playAiFixtures } from '../tournament/live';
 import { applyProSeason } from './season';
-import { hammer, increment, isMegaSeason, runAuction, retentionDay, auctionEntry, t20Value, contractEnd, auctionSets, markAuctionWatched, unwatchedAuction } from './ipl';
+import { hammer, increment, isMegaSeason, runAuction, retentionDay, auctionEntry, t20Value, contractEnd, auctionSets, markAuctionWatched, unwatchedAuction, iplImpact, userMarketValue, joinFranchise, requestAuction } from './ipl';
 import { battingPoints, bowlingPoints, nextRating, rateTeams, wtcStandings, rankingList } from './rankings';
 import { buildIcc, iccEventsIn, ICC_SHAPES } from './competitions';
 import { retireFrom, autoRetire } from './retirement';
@@ -18,7 +18,7 @@ import { thinMatch } from '../calendar/compact';
 import { advanceWeek } from '../calendar/advance';
 import { NATIONS_BY_NAME, nationTeamId } from '@/data/nations';
 import { FRANCHISES } from '@/data/franchises';
-import { IPL_RULES } from '../config';
+import { AUCTION, IPL_RULES } from '../config';
 import type { Attributes, GameState, Match } from '@/types';
 
 /** A 28-year-old with a senior state cap: the professional season is open. */
@@ -179,6 +179,61 @@ describe('the auction', () => {
     const later = advanceWeek(markAuctionWatched(result.state));
     expect(later.state.season.currentDate > '2026-12-16').toBe(true);
     expect(later.state.pro.ipl.auctions).toHaveLength(before + 1);
+  });
+
+  it('prices an IPL season: a big one raises the value, a poor one lowers it', () => {
+    const big = iplImpact({ matches: 14, runs: 600, balls: 400, wickets: 0 });
+    const decent = iplImpact({ matches: 14, runs: 300, balls: 230, wickets: 0 });
+    const bowler = iplImpact({ matches: 14, runs: 20, wickets: 25, ballsBowled: 336, runsConceded: 392 });
+    const poor = iplImpact({ matches: 10, runs: 60, balls: 70, wickets: 0 });
+    expect(big).toBeGreaterThan(2);
+    expect(bowler).toBeGreaterThan(2);
+    expect(decent).toBeGreaterThan(1.2);
+    expect(poor).toBeLessThan(1);
+    expect(iplImpact({ matches: 2, runs: 150, wickets: 0 })).toBe(1);
+  });
+
+  it('after a big IPL season, the player can go into the auction and every franchise bids', () => {
+    let state = proCareer();
+    state = { ...state, pro: { ...state.pro, scouting: { ...state.pro.scouting, reputation: 70 } } };
+    const fid = FRANCHISES[0].id;
+    state = joinFranchise(state, fid, 50, 'AUCTION', '2025-12-16');
+    const before = userMarketValue(state);
+    // Last season's IPL: 620 runs at 160.
+    const season = { seasonYear: 2025, franchiseId: fid, matches: 14, teamMatches: 14, runs: 620, wickets: 0, finish: 3, salary: 50, balls: 388, ballsBowled: 0, runsConceded: 0 };
+    state = { ...state, pro: { ...state.pro, ipl: { ...state.pro.ipl, seasons: [{ ...season, impact: iplImpact(season) }] } } };
+    const after = userMarketValue(state);
+    expect(after).toBeGreaterThan(before * 2);
+
+    // Kept on an improved deal...
+    const stayed = retentionDay(state, '2026-11-01');
+    expect(stayed.pro.ipl.franchiseId).toBe(fid);
+    expect(stayed.pro.ipl.contract!.salary).toBeGreaterThan(50);
+    // ...or released into the auction on request, where the whole room bids.
+    const out = retentionDay(requestAuction(state, true), '2026-11-01');
+    expect(out.pro.ipl.franchiseId).toBeNull();
+    expect(out.pro.ipl.intoAuction).toBe(false);
+    const sold = runAuction(out, '2026-12-16');
+    const lot = sold.pro.ipl.auctions.at(-1)!.userLot!;
+    expect(lot.soldTo).toBeTruthy();
+    expect(lot.price!).toBeGreaterThan(stayed.pro.ipl.contract!.salary * 0.8);
+    expect(new Set(lot.bids.map((b) => b.franchiseId)).size).toBeGreaterThanOrEqual(5);
+    // In the marquee set, while the purses are full: crores, not lakhs.
+    expect(sold.pro.ipl.auctions.at(-1)!.room!.find((l) => l.isUser)!.set).toBe('Marquee set');
+    expect(lot.price!).toBeGreaterThanOrEqual(500);
+  });
+
+  it('keeps prices within the real auction limits, years into a career', () => {
+    for (const year of [2026, 2028, 2034, 2040]) {
+      const base = proCareer();
+      const state = { ...base, season: { ...base.season, year } };
+      const room = runAuction(retentionDay(state, `${year}-11-01`), `${year}-12-16`).pro.ipl.auctions.at(-1)!.room!;
+      const prices = room.filter((l) => l.price).map((l) => l.price!);
+      expect(Math.max(...prices)).toBeLessThanOrEqual(AUCTION.maxPrice);
+      if (!isMegaSeason(year)) for (const l of room.filter((x) => x.overseas && x.price)) expect(l.price!).toBeLessThanOrEqual(AUCTION.overseasMiniMax);
+      // Only a handful of players go for big money.
+      expect(prices.filter((p) => p >= 2000).length).toBeLessThanOrEqual(5);
+    }
   });
 
   it('runs the marquee set, then capped sets, then uncapped', () => {
