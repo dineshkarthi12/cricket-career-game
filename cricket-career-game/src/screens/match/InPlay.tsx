@@ -380,7 +380,7 @@ export function InPlay(props: InPlayProps) {
         </div>
 
         {/* Pinned beside the ground, so the scorecard stays in view. */}
-        <div className="sticky top-4 flex max-h-[calc(100vh-2rem)] flex-col gap-4">
+        <div className="sticky top-4 flex max-h-[calc(var(--vh)*100-2rem)] flex-col gap-4">
           <Card className="shrink-0">
             <CardHeader title="Alerts" />
             <div className="mt-2.5 max-h-[150px] overflow-y-auto">{panel('alerts')}</div>

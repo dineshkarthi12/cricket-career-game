@@ -183,7 +183,7 @@ function ManagerTabBar() {
       {open ? (
         <div className="fixed inset-0 z-40 md:hidden">
           <button type="button" aria-label="Close menu" onClick={() => setOpen(false)} className="absolute inset-0 cursor-default bg-brand-navy/50" />
-          <div className="absolute inset-x-0 bottom-0 max-h-[75vh] overflow-y-auto rounded-t-card bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+76px)] shadow-card-hover">
+          <div className="absolute inset-x-0 bottom-0 max-h-[calc(var(--vh)*75)] overflow-y-auto rounded-t-card bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+76px)] shadow-card-hover">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-[15px] font-semibold text-ink">IPL Manager</p>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close menu" className="grid size-11 place-items-center rounded-lg text-ink-muted hover:bg-page">

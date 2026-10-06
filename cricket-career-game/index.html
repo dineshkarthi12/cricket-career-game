@@ -10,6 +10,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Cricket Career" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // A phone in "Desktop site" mode lays the page out ~980px wide and
+      // shrinks it. Ask for the phone's own width; if the browser keeps the
+      // desktop width anyway, zoom the page back up and use the mobile
+      // layout (html.phone, see index.css).
+      (function () {
+        var html = document.documentElement;
+        function fit() {
+          var w = Math.min(screen.width, screen.height);
+          var portrait = (window.innerHeight || 0) >= (window.innerWidth || 0) * 0.9 || screen.height > screen.width;
+          var touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+          var phone = touch && w > 0 && w < 600;
+          var deviceWidth = portrait ? w : Math.max(screen.width, screen.height);
+          var zoom = phone ? window.innerWidth / deviceWidth : 1;
+          if (phone && zoom > 1.3) {
+            html.classList.add('phone');
+            html.style.setProperty('--phone-zoom', String(Math.round(zoom * 1000) / 1000));
+          } else {
+            html.classList.remove('phone');
+            html.style.removeProperty('--phone-zoom');
+          }
+        }
+        fit();
+        window.addEventListener('resize', fit);
+        window.addEventListener('orientationchange', fit);
+      })();
+    </script>
     <meta name="theme-color" content="#0F1B33" />
     <meta
       name="description"

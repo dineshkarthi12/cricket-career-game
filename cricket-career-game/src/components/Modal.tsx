@@ -65,7 +65,7 @@ export function Modal({ open, onClose, title, subtitle, children }: ModalProps) 
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-card bg-surface shadow-card-hover sm:rounded-card"
+        className="relative flex max-h-[calc(var(--vh)*85)] w-full max-w-lg flex-col overflow-hidden rounded-t-card bg-surface shadow-card-hover sm:rounded-card"
       >
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div>

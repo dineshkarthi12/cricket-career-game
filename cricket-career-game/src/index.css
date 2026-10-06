@@ -1,10 +1,78 @@
 @import 'tailwindcss';
 
+/*
+ * A phone whose browser lays the page out at desktop width ("Desktop site"
+ * in Chrome or Samsung Internet) gets `html.phone` and a zoom from the
+ * script in index.html: the width breakpoints then stay off, so the phone
+ * always sees the mobile layout.
+ */
+@custom-variant sm {
+  &:where(html:not(.phone) *) {
+    @media (width >= 40rem) {
+      @slot;
+    }
+  }
+}
+@custom-variant md {
+  &:where(html:not(.phone) *) {
+    @media (width >= 48rem) {
+      @slot;
+    }
+  }
+}
+@custom-variant lg {
+  &:where(html:not(.phone) *) {
+    @media (width >= 64rem) {
+      @slot;
+    }
+  }
+}
+@custom-variant xl {
+  &:where(html:not(.phone) *) {
+    @media (width >= 80rem) {
+      @slot;
+    }
+  }
+}
+@custom-variant wide {
+  &:where(html:not(.phone) *) {
+    @media (width >= 85rem) {
+      @slot;
+    }
+  }
+}
+@custom-variant 2xl {
+  &:where(html:not(.phone) *) {
+    @media (width >= 96rem) {
+      @slot;
+    }
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Design system - derived from design/dashboard.png
  * Every screen in the game must pull its colours, radii, shadows and
  * fonts from these tokens rather than hard-coding values.
  * ------------------------------------------------------------------ */
+/* Viewport units that stay true under the phone zoom (see index.html). */
+:root {
+  --vh: 1vh;
+  --vw: 1vw;
+  --dvh: 1dvh;
+}
+html.phone {
+  zoom: var(--phone-zoom, 1);
+  --vh: calc(1vh / var(--phone-zoom, 1));
+  --vw: calc(1vw / var(--phone-zoom, 1));
+  --dvh: calc(1dvh / var(--phone-zoom, 1));
+}
+html.phone .min-h-screen {
+  min-height: calc(var(--vh) * 100);
+}
+html.phone .min-h-dvh {
+  min-height: calc(var(--dvh) * 100);
+}
+
 @theme {
   /* Brand palette */
   /* Between xl and 2xl: the width the dashboard design was drawn at (1360px). */
