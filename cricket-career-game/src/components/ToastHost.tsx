@@ -26,7 +26,7 @@ export function ToastHost() {
 
   if (toasts.length === 0) return null;
   return (
-    <div className="pointer-events-none fixed right-3 bottom-20 z-50 flex w-[min(360px,calc(100vw-24px))] flex-col gap-2 md:bottom-4">
+    <div className="pointer-events-none fixed right-3 bottom-20 z-50 flex w-[min(360px,calc(var(--vw)*100-24px))] flex-col gap-2 md:bottom-4">
       {toasts.map((toast) => {
         const tone = TONE[toast.tone];
         return (

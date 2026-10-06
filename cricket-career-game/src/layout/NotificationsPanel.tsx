@@ -72,7 +72,7 @@ export function NotificationsPanel() {
         <div
           role="dialog"
           aria-label="Notifications"
-          className="fixed top-16 right-3 z-50 flex max-h-[min(70vh,560px)] w-[min(380px,calc(100vw-24px))] flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card md:absolute md:top-12 md:right-0"
+          className="fixed top-16 right-3 z-50 flex max-h-[min(calc(var(--vh)*70),560px)] w-[min(380px,calc(var(--vw)*100-24px))] flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card md:absolute md:top-12 md:right-0"
         >
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
             <p className="text-[14px] font-semibold text-ink">
