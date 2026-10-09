@@ -3,14 +3,16 @@ import { Card } from '@/components';
 import { formatLakh, franchiseName } from '@/lib/pro';
 import { useGameStore } from '@/store/gameStore';
 import type { GameState } from '@/types';
+import { RetentionOfferPanel } from './RetentionOfferPanel';
 
-/** Offers waiting on the player: a vice-captaincy or captaincy, or an IPL trade. */
+/** Offers waiting on the player: a vice-captaincy or captaincy, an IPL trade or a retention offer. */
 export function DecisionsCard({ state }: { state: GameState }) {
   const answerLeadership = useGameStore((s) => s.answerLeadership);
   const answerTrade = useGameStore((s) => s.answerTrade);
   const offer = state.pro?.leadership.offer;
   const trade = state.pro?.ipl.tradeOffer;
-  if (!offer && !trade) return null;
+  const retention = state.pro?.ipl.retentionOffer;
+  if (!offer && !trade && !retention) return null;
   return (
     <Card className="border-brand-blue">
       {offer ? (
@@ -37,6 +39,11 @@ export function DecisionsCard({ state }: { state: GameState }) {
             <button type="button" onClick={() => answerTrade(true)} className="rounded-full bg-brand-blue px-4 py-1.5 text-[13px] font-semibold text-white">Accept trade</button>
             <button type="button" onClick={() => answerTrade(false)} className="rounded-full border border-line bg-surface px-4 py-1.5 text-[13px] font-semibold text-ink">Stay put</button>
           </div>
+        </div>
+      ) : null}
+      {retention ? (
+        <div className={offer || trade ? 'mt-3 border-t border-line pt-3' : ''}>
+          <RetentionOfferPanel offer={retention} compact />
         </div>
       ) : null}
     </Card>

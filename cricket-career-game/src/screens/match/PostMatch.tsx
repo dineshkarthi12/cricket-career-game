@@ -4,6 +4,7 @@
  * fitness, reputation, the selectors, the dressing room, and the captaincy.
  * After a big match, the press want a word.
  */
+import { TvGraphicCard } from './panels/TvGraphic';
 import { useState } from 'react';
 import {
   Activity,
@@ -179,6 +180,17 @@ export function PostMatch({
           </p>
         </Card>
       )}
+
+      {result.broadcast?.length ? (
+        <Card>
+          <CardHeader title="On the broadcast" subtitle="Milestones and records from this match" />
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {result.broadcast.map((g) => (
+              <TvGraphicCard key={g.id} graphic={g} />
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       {after.press && !after.pressAnswered ? (
         <PressCard conference={after.press} onSubmit={onPress} />

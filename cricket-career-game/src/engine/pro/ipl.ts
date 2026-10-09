@@ -14,10 +14,11 @@ import { roleGroup, type RoleGroup } from '../career/squads';
 import { tournamentOf } from '../tournament/live';
 import { resolveClashes } from '../career/involvement';
 import { INDIAN_REGIONS, OVERSEAS_NATIONS, OVERSEAS_PROFILE, bookSalary, rngFor, setUserFranchiseFlag } from './world';
-import { realAuctionPool } from '../world/realSquads';
+import { realAuctionPool, realIplFillers } from '../world/realSquads';
+import { hasRealPlayers } from '../world/realPlayers';
 import { clamp, decision, formatLakh, message, navigate, withEvent, withInbox } from './common';
 import type { Rng } from '../match/rng';
-import type { AuctionBid, AuctionLot, AuctionRoomLot, AuctionSummary, GameState, IplContract, IplSeasonLine, IplStatus, Match, RivalPlayer, SquadPlace, Team } from '@/types';
+import type { AuctionBid, AuctionLot, AuctionRoomLot, AuctionSummary, GameState, IplContract, IplSeasonLine, IplStatus, Match, RetentionOffer, RivalPlayer, SquadPlace, Team } from '@/types';
 
 export const AUCTION_POOL_ID = 'team-ipl-auction-pool';
 
@@ -287,12 +288,15 @@ export function retentionDay(state: GameState, date: string): GameState {
   const released: RivalPlayer[] = [];
   const teams = { ...state.teams };
   const purses: Record<string, number> = {};
+  const realOnly = hasRealPlayers();
   for (const f of FRANCHISES) {
     const team = teams[f.id];
     if (!team) continue;
     let keep: RivalPlayer[];
+    // Made-up names are not kept on: the auction brings real players in their place.
+    const eligible = realOnly ? team.squad.filter((p) => p.realId) : team.squad;
     if (mega) {
-      const ranked = [...team.squad].sort((a, b) => rivalValue(b) - rivalValue(a));
+      const ranked = [...eligible].sort((a, b) => rivalValue(b) - rivalValue(a));
       keep = [];
       for (const p of ranked) {
         if (keep.length >= AUCTION.maxRetained - (state.pro.ipl.franchiseId === f.id && !state.pro.ipl.intoAuction && userRetained(state, team, true) ? 1 : 0)) break;
@@ -300,7 +304,7 @@ export function retentionDay(state: GameState, date: string): GameState {
         keep.push({ ...p, salary: Math.max(AUCTION.retentionSlabs[keep.length] ?? 900, rivalValue(p)) });
       }
     } else {
-      keep = team.squad.filter((p) => {
+      keep = eligible.filter((p) => {
         const value = rivalValue(p);
         const tooDear = value < (p.salary ?? 20) * 0.55;
         const old = p.age >= 36;
@@ -308,7 +312,7 @@ export function retentionDay(state: GameState, date: string): GameState {
         return !(tooDear || old || dropped);
       });
     }
-    for (const p of team.squad) if (!keep.some((k) => k.id === p.id)) released.push({ ...p, teamId: AUCTION_POOL_ID, salary: undefined });
+    for (const p of team.squad) if (!keep.some((k) => k.id === p.id) && (p.realId || !realOnly)) released.push({ ...p, teamId: AUCTION_POOL_ID, salary: undefined });
     teams[f.id] = { ...team, squad: keep };
     purses[f.id] = purseFor(state, f.id, keep, mega, rng);
   }
@@ -317,6 +321,11 @@ export function retentionDay(state: GameState, date: string): GameState {
     squad: released,
   };
   let next: GameState = { ...state, teams, pro: { ...state.pro, ipl: { ...state.pro.ipl, purses } } };
+  if (mega) {
+    // As on TV: who each franchise kept (four at most) before every player goes back in.
+    const lines = FRANCHISES.filter((f) => teams[f.id]).map((f) => `${f.short}: ${teams[f.id].squad.map((p) => `${p.name} (${formatLakh(p.salary ?? 0)})`).join(', ') || 'nobody'}`);
+    next = withInbox(next, message(date, 'MEDIA', 'IPL', `Mega auction retentions: ${released.length} players back in the pool`, `Every franchise could keep at most ${AUCTION.maxRetained}. ${lines.join('. ')}.`, 'CONTRACT', false, [navigate('Open IPL', '/auction')]));
+  }
 
   // The user's own contract.
   const fid = next.pro.ipl.franchiseId;
@@ -332,6 +341,13 @@ export function retentionDay(state: GameState, date: string): GameState {
       next = { ...next, pro: { ...next.pro, ipl: { ...next.pro.ipl, intoAuction: false } } };
       next = withInbox(next, message(date, 'AGENT', 'Agent', `Into the auction: ${f?.name} let you go`, `${f?.name} have released you as you asked. Your market value is ${formatLakh(value)} - every franchise will see the numbers from last season on 16 December.`, 'CONTRACT', true, [navigate('Open IPL', '/auction')], fid));
       next = withEvent(next, date, 'CONTRACT', 'Into the auction', `Asked ${f?.name} for a release to go into the auction.`, 'IPL_CAREER');
+    } else if (kept && mega) {
+      // The contract has run its three seasons: the owner asks, and the player decides.
+      const offer = roundLakh(Math.max(AUCTION.retentionSlabs[Math.min(3, team.squad.length)] ?? 900, value));
+      const limit = retentionLimit(next, offer, value);
+      const retentionOffer: RetentionOffer = { franchiseId: fid, date, salary: offer, previous: salary, limit, round: 1 };
+      next = { ...next, pro: { ...next.pro, ipl: { ...next.pro.ipl, retentionOffer } } };
+      next = withInbox(next, message(date, 'FRANCHISE', f?.name ?? 'Franchise', `${f?.name} want to retain you`, `Your contract has run its three seasons and it is a mega auction year - ${f?.name} can keep only four players, and they want you as one of them at ${formatLakh(offer)} a season (you were on ${formatLakh(salary)}). Accept, decline for a better offer, or name your price - but ask for more than the owner can pay and you go into the auction. Answer before the auction on 16 December.`, 'CONTRACT', true, [decision('retention-accept', `Accept ${formatLakh(offer)}`, 'ACCEPT'), decision('retention-decline', 'Decline', 'DECLINE'), navigate('Open IPL', '/auction')], fid));
     } else if (kept) {
       // A strong season earns a better deal (at worst the old one).
       const newSalary = mega ? Math.max(AUCTION.retentionSlabs[Math.min(3, team.squad.length)] ?? 900, value) : Math.max(salary, Math.round(value * 0.7));
@@ -345,6 +361,77 @@ export function retentionDay(state: GameState, date: string): GameState {
     }
   }
   return next;
+}
+
+/** Prices move in steps of ₹25 L. */
+function roundLakh(lakh: number): number {
+  return Math.max(20, Math.round(lakh / 25) * 25);
+}
+
+/**
+ * The most the owner will pay to keep the player: the top retention slab at
+ * most, more the better the player's last season and the more matches played.
+ */
+export function retentionLimit(state: GameState, offer: number, value = userMarketValue(state)): number {
+  const last = state.pro.ipl.seasons.at(-1);
+  const share = last && last.teamMatches > 0 ? last.matches / last.teamMatches : 0.5;
+  const liking = clamp((lastIplImpact(state).impact - 1) / 1.4, 0, 1) * 0.5 + clamp(share, 0, 1) * 0.25;
+  const fid = state.pro.ipl.franchiseId;
+  const purse = fid ? (state.pro.ipl.purses[fid] ?? AUCTION.purseFloor.mega) : AUCTION.purseFloor.mega;
+  const want = Math.max(offer * (1.1 + liking), value * (1.1 + liking));
+  return Math.max(offer, roundLakh(Math.min(AUCTION.retentionSlabs[0], want, offer + purse * 0.4)));
+}
+
+export type RetentionAnswer = { kind: 'ACCEPT' } | { kind: 'DECLINE' } | { kind: 'ASK'; amount: number };
+
+function retainAt(state: GameState, offer: RetentionOffer, salary: number, date: string, note: string): GameState {
+  const f = FRANCHISES_BY_ID[offer.franchiseId];
+  let next: GameState = { ...state, pro: { ...state.pro, ipl: { ...state.pro.ipl, retentionOffer: null } } };
+  next = joinFranchise(next, offer.franchiseId, salary, 'RETAINED', date);
+  next = { ...next, pro: { ...next.pro, ipl: { ...next.pro.ipl, purses: { ...next.pro.ipl.purses, [offer.franchiseId]: Math.max(300, (next.pro.ipl.purses[offer.franchiseId] ?? 0) - (salary - offer.previous)) } } } };
+  return withInbox(next, message(date, 'FRANCHISE', f?.name ?? 'Franchise', `Retained by ${f?.name} at ${formatLakh(salary)}`, `${note} Signed for the next three seasons, up to the next mega auction.`, 'CONTRACT', true, [navigate('Open IPL', '/auction')], offer.franchiseId));
+}
+
+function releaseFromOffer(state: GameState, offer: RetentionOffer, date: string, why: string): GameState {
+  const f = FRANCHISES_BY_ID[offer.franchiseId];
+  let next: GameState = { ...state, pro: { ...state.pro, ipl: { ...state.pro.ipl, retentionOffer: null } } };
+  next = leaveFranchise(next, date, 'RELEASED', `${why} - into the mega auction.`);
+  // The salary the franchise kept aside goes back into its purse.
+  next = { ...next, pro: { ...next.pro, ipl: { ...next.pro.ipl, purses: { ...next.pro.ipl.purses, [offer.franchiseId]: (next.pro.ipl.purses[offer.franchiseId] ?? 0) + offer.previous } } } };
+  next = withInbox(next, message(date, 'FRANCHISE', f?.name ?? 'Franchise', `No deal with ${f?.name}: into the mega auction`, `${why}. You go into the mega auction on 16 December - every franchise can bid for you.`, 'CONTRACT', true, [navigate('Open IPL', '/auction')], offer.franchiseId));
+  return withEvent(next, date, 'CONTRACT', 'Turned down retention', `${why}.`, 'IPL_CAREER');
+}
+
+/**
+ * The player's answer to a retention offer. Accept: signed. Decline: the
+ * owner raises (about 20%) up to their limit; declining the final offer
+ * means the auction. Ask: within the owner's limit it is agreed at once,
+ * above it the owner says no and the player goes into the auction.
+ */
+export function answerRetention(state: GameState, answer: RetentionAnswer, date = state.season.currentDate): GameState {
+  const offer = state.pro.ipl.retentionOffer;
+  if (!offer) return state;
+  const f = FRANCHISES_BY_ID[offer.franchiseId];
+  if (answer.kind === 'ACCEPT') return retainAt(state, offer, offer.salary, date, `You accepted ${f?.name}'s offer.`);
+  if (answer.kind === 'ASK') {
+    const ask = roundLakh(answer.amount);
+    if (ask <= offer.salary) return retainAt(state, offer, offer.salary, date, `You accepted ${f?.name}'s offer.`);
+    if (ask <= offer.limit) return retainAt(state, offer, ask, date, `The owner agreed to your price of ${formatLakh(ask)}.`);
+    return releaseFromOffer(state, offer, date, `You asked ${f?.name} for ${formatLakh(ask)}, more than the owner's budget allows`);
+  }
+  if (offer.salary >= offer.limit) return releaseFromOffer(state, offer, date, `You turned down ${f?.name}'s final offer of ${formatLakh(offer.salary)}`);
+  const raised = Math.min(offer.limit, roundLakh(offer.salary * 1.2));
+  const isFinal = raised >= offer.limit;
+  const nextOffer: RetentionOffer = { ...offer, salary: raised, round: offer.round + 1 };
+  const next: GameState = { ...state, pro: { ...state.pro, ipl: { ...state.pro.ipl, retentionOffer: nextOffer } } };
+  return withInbox(next, message(date, 'FRANCHISE', f?.name ?? 'Franchise', `${f?.name} raise their offer to ${formatLakh(raised)}`, `${isFinal ? 'This is our final offer - the owner cannot go higher.' : 'We can go up to'} ${formatLakh(raised)} a season (was ${formatLakh(offer.salary)}). Will you stay?`, 'CONTRACT', true, [decision('retention-accept', `Accept ${formatLakh(raised)}`, 'ACCEPT'), decision('retention-decline', 'Decline', 'DECLINE'), navigate('Open IPL', '/auction')], offer.franchiseId));
+}
+
+/** An offer still open on auction day: the agent signs it. */
+export function settleRetention(state: GameState, date: string): GameState {
+  const offer = state.pro.ipl.retentionOffer;
+  if (!offer) return state;
+  return retainAt(state, offer, offer.salary, date, 'You had not answered by auction day, so your agent signed the offer on the table.');
 }
 
 function poolTeam(): Team {
@@ -374,7 +461,8 @@ function userRetained(state: GameState, team: Team | undefined, mega: boolean): 
   const last = state.pro.ipl.seasons[state.pro.ipl.seasons.length - 1];
   const share = last && last.teamMatches > 0 ? last.matches / last.teamMatches : 0.5;
   if (mega) {
-    const better = team.squad.filter((p) => rivalValue(p) > value).length;
+    // The player's own numbers for the franchise count for a little more than a rating.
+    const better = team.squad.filter((p) => rivalValue(p) > value * 1.05).length;
     return better < AUCTION.maxRetained - 1 && share >= 0.5;
   }
   const salary = state.pro.ipl.contract?.salary ?? 20;
@@ -494,6 +582,7 @@ export function auctionEntry(state: GameState): { inAuction: boolean; status: Ip
  * needs, its style, its purse - and a lot goes to the last bidder standing.
  */
 export function runAuction(state: GameState, date: string): GameState {
+  state = settleRetention(state, date);
   const year = state.season.year;
   const mega = isMegaSeason(year);
   const rng = rngFor(state, `auction-${year}`);
@@ -517,6 +606,7 @@ export function runAuction(state: GameState, date: string): GameState {
   for (const f of FRANCHISES) for (const p of squads[f.id]) if (p.realId) signed.add(p.realId);
   for (const p of state.teams[AUCTION_POOL_ID]?.squad ?? []) if (p.realId) signed.add(p.realId);
   const real = realAuctionPool(year, signed, AUCTION_POOL_ID, { domestic, overseas }, rng);
+  for (const p of real) if (p.realId) signed.add(p.realId);
   const realDomestic = real.filter((p) => !p.overseas).length;
   const realOverseas = real.length - realDomestic;
   fresh.push(...real.map((p) => ({ ...p, capped: p.capped ?? p.overall >= 80 })));
@@ -529,7 +619,8 @@ export function runAuction(state: GameState, date: string): GameState {
     const p = generateWorldPlayer({ teamId: AUCTION_POOL_ID, region: rng.pick(OVERSEAS_NATIONS), role: roles[(i + 3) % roles.length], age: rng.int(OVERSEAS_PROFILE.ages[0], OVERSEAS_PROFILE.ages[1]), seasonStart, seasonYear: year, potential: OVERSEAS_PROFILE.potential[0] - 1 + rng.spread() * 6, share: 0.95, rng, taken });
     fresh.push({ ...p, overseas: true, capped: true });
   }
-  const pool = [...(state.teams[AUCTION_POOL_ID]?.squad ?? []), ...fresh];
+  const leftovers = (state.teams[AUCTION_POOL_ID]?.squad ?? []).filter((p) => p.realId || !hasRealPlayers());
+  const pool = [...leftovers, ...fresh];
 
   // The user's lot.
   const userValue = userMarketValue(state);
@@ -576,7 +667,13 @@ export function runAuction(state: GameState, date: string): GameState {
     const over = squads[f.id].length + (userLot?.soldTo === f.id ? 1 : 0) - IPL_RULES.squadSize;
     if (over > 0) squads[f.id] = [...squads[f.id]].sort((a, b) => rivalValue(b) - rivalValue(a)).slice(0, squads[f.id].length - over);
     const need = IPL_RULES.squadSize - squads[f.id].length - (userLot?.soldTo === f.id ? 1 : 0);
-    for (let i = 0; i < need; i += 1) {
+    // Real domestic players first, at base price; generated ones only if the data runs out.
+    const fillers = realIplFillers(squads[f.id], need, f.id, year, signed, FRANCHISES_BY_ID[f.id]?.state ?? 'Tamil Nadu', 60);
+    for (const p of fillers) {
+      squads[f.id].push({ ...p, salary: 20 });
+      purses[f.id] -= 20;
+    }
+    for (let i = fillers.length; i < need; i += 1) {
       const p = generateWorldPlayer({ teamId: f.id, region: rng.pick(INDIAN_REGIONS), role: roles[(i + 5) % roles.length], age: rng.int(19, 26), seasonStart, seasonYear: year, potential: LEVELS.FRANCHISE.potential[0] - 4 + rng.spread() * 5, share: 0.9, rng, taken });
       squads[f.id].push({ ...p, salary: 20 });
       purses[f.id] -= 20;

@@ -29,6 +29,8 @@ import { CommentaryFeed } from './panels/CommentaryFeed';
 import { Manhattan, OverByOver, WagonWheelPanel, Worm, chartInnings } from './panels/MatchCharts';
 import { MatchInfo } from './panels/MatchInfo';
 import { MomentBanner } from './panels/MomentBanner';
+import { TvGraphicOverlay } from './panels/TvGraphic';
+import type { TvGraphic } from '@/engine/pro/broadcast';
 import { matchTally } from '@/lib/highlights';
 import { Scorecard } from './panels/Scorecard';
 import { ScoreStrip } from './panels/ScoreStrip';
@@ -77,6 +79,8 @@ export interface InPlayProps {
   onPlayer: (patch: Partial<PlayerDecisions>) => void;
   onCaptain: (patch: Partial<CaptainDecisions>) => void;
   onDelegate: (patch: Partial<CaptainDelegation>) => void;
+  /** Career milestones and records the match has brought so far, for the TV graphic. */
+  tvGraphics?: TvGraphic[];
 }
 
 export function InPlay(props: InPlayProps) {
@@ -161,6 +165,7 @@ export function InPlay(props: InPlayProps) {
     <Card flush className="overflow-hidden">
       <div className="relative">
         <MomentBanner ball={props.lastBall} innings={cur.innings} battingTeam={battingTeam} userId={props.userId} prior={prior} />
+        <TvGraphicOverlay graphics={props.tvGraphics ?? []} />
         <GroundView
           venue={venue}
           conditions={cur.conditions}

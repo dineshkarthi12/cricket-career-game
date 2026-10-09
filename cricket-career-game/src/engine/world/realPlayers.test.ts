@@ -238,14 +238,15 @@ describe('a new career in the real world', () => {
 });
 
 describe('a career that reaches the top years later', () => {
-  it('meets the real players aged, with the retired ones replaced by generated youngsters', () => {
+  it('meets the real players aged; the IPL fills retired places with real domestic players', () => {
     const base = createNewCareer({ firstName: 'Later', lastName: 'Player', dateOfBirth: '2014-03-10', seed: 21, startDate: '2026-06-01', creationRole: 'BATTER' });
     const later: GameState = { ...base, season: { ...base.season, year: 2036 } };
     const s = ensureFranchises(later);
     const all = FRANCHISES.flatMap((f) => s.teams[f.id].squad);
     const real = all.filter((p) => p.realId);
     expect(real.length).toBeGreaterThan(0);
-    expect(real.length).toBeLessThan(all.length);
+    // No made-up names in the IPL while the real domestic players last.
+    expect(real.length).toBe(all.length);
     for (const f of FRANCHISES) expect(s.teams[f.id].squad.length).toBeGreaterThanOrEqual(IPL_RULES.squadSize);
     // Ten years on, nobody in the data is still under 25 unless they were a child in it.
     for (const p of real) {

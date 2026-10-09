@@ -151,6 +151,26 @@ export interface IplState {
   earnings: number;
   /** The player has asked to go back into the auction at the next retention day. */
   intoAuction?: boolean;
+  /** The franchise wants to retain the player at a mega auction and waits on an answer. */
+  retentionOffer?: RetentionOffer | null;
+}
+
+/**
+ * A mega-auction retention offer: the contract has run its three seasons and
+ * the owner wants the player back. Declining brings a raise until the
+ * owner's limit; asking for more than the limit means the auction.
+ */
+export interface RetentionOffer {
+  franchiseId: string;
+  date: ISODate;
+  /** On the table now, lakh a season. */
+  salary: number;
+  /** The salary the contract ran at. */
+  previous: number;
+  /** The most the owner will pay (hidden from the player in the game). */
+  limit: number;
+  /** 1 for the first offer, 2+ after each raise. */
+  round: number;
 }
 
 // --- National team ------------------------------------------------------------

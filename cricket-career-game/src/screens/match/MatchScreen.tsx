@@ -20,6 +20,7 @@ import { QuestionModal } from './QuestionModal';
 import { PitchReport, WeatherReport } from './panels/MatchInfo';
 import { ANIMATION_FACTOR, useAppSettings, useReducedMotion } from '@/store/appSettings';
 import { useMatchAudio } from '@/lib/audio/useMatchAudio';
+import { broadcastGraphics, figuresIn } from '@/engine/pro/broadcast';
 
 export default function MatchScreen() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
@@ -91,6 +92,13 @@ export default function MatchScreen() {
     userId: state?.player.id ?? null,
     userTeamId: build?.userTeamId ?? null,
   });
+
+  // The TV graphics: career milestones and records, as the figures cross them.
+  const tvGraphics = useMemo(() => {
+    if (!state || !snap || !fixture?.tournamentId || stage !== 'PLAYING') return [];
+    const innings = [...snap.completed, ...(snap.current ? [snap.current.innings] : [])];
+    return broadcastGraphics(state, fixture.tournamentId, figuresIn(innings, state.player.id));
+  }, [state, snap, fixture?.tournamentId, stage]);
 
   if (!booted) return <Notice text="Loading…" />;
   if (!state) return <Notice text="No career loaded." />;
@@ -338,6 +346,7 @@ export default function MatchScreen() {
     return (
       <>
         <InPlay
+          tvGraphics={tvGraphics}
           snap={snap}
           venue={venue}
           tournamentName={tournamentName}

@@ -30,7 +30,7 @@ import {
 } from '@/engine/development';
 import { applyTrial, autoTrial } from '@/engine/career/trials';
 import { answerLeadership } from '@/engine/pro/leadership';
-import { answerTrade, markAuctionWatched, registerBase, requestAuction } from '@/engine/pro/ipl';
+import { answerRetention, answerTrade, markAuctionWatched, registerBase, requestAuction, type RetentionAnswer } from '@/engine/pro/ipl';
 import { retireFrom } from '@/engine/pro/retirement';
 import { SAVE_SLOT_IDS } from '@/types';
 import type {
@@ -111,6 +111,8 @@ interface GameStore {
   answerLeadership: (accept: boolean) => void;
   /** Accept or decline an IPL trade offer. */
   answerTrade: (accept: boolean) => void;
+  /** Answer a mega-auction retention offer: accept, decline, or ask for a price. */
+  answerRetention: (answer: RetentionAnswer) => void;
   /** Register for the IPL auction at a base price (lakh). */
   registerBase: (lakh: number) => void;
   /** The latest IPL auction has been watched live (or skipped). */
@@ -355,6 +357,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   answerLeadership: (accept) => get().update((state) => answerLeadership(state, accept)),
 
   answerTrade: (accept) => get().update((state) => answerTrade(state, accept)),
+
+  answerRetention: (answer) => get().update((state) => answerRetention(state, answer)),
 
   registerBase: (lakh) => get().update((state) => registerBase(state, lakh)),
 
