@@ -4,6 +4,7 @@
  * Pure: takes the old state and the match, returns the new state. The store
  * calls it inside `update()`, so a played match autosaves like anything else.
  */
+import { broadcastGraphics, figuresIn, type TvGraphic } from '../pro/broadcast';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import {
   applyCaptaincy,
@@ -186,6 +187,8 @@ export interface CommitResult {
   /** Set after a big match: questions for the post-match screen. */
   press: PressConference | null;
   teamMorale: { before: number; after: number } | null;
+  /** Career milestones, all-time names passed and records broken in the match (the TV graphics). */
+  broadcast: TvGraphic[];
   /** How the player's standing moved. */
   standing: {
     reputation: [number, number];
@@ -303,6 +306,7 @@ export function commitMatchDetailed(
     state: next,
     captaincy,
     press: options.userPlayed ? pressConferenceFor(next, stored) : null,
+    broadcast: options.userPlayed && match.userPerformance ? broadcastGraphics(state, match.tournamentId, figuresIn(match.innings, state.player.id)) : [],
     teamMorale: next.teams[userTeamId] ? { before, after: next.teams[userTeamId].morale } : null,
     standing: {
       reputation: [state.player.condition.reputation, next.player.condition.reputation],

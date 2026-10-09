@@ -274,6 +274,27 @@ body {
   animation: moment-pop 2.2s ease-out forwards;
 }
 
+/* The broadcast lower-third: in from the left, a hold, then out. */
+@keyframes tv-slide {
+  0% {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  8%,
+  90% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+.animate-tv-slide {
+  animation: tv-slide 4.8s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [class*='animate-'],
   .ground-animated * {

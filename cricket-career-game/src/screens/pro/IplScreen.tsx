@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { RetentionOfferPanel } from './RetentionOfferPanel';
 import { Link } from 'react-router-dom';
 import { Gavel, Play } from 'lucide-react';
 import { Badge, Card, CardHeader, Crest, ProgressBar, StatTile, Tabs } from '@/components';
@@ -301,7 +302,7 @@ function Contract({ state }: { state: GameState }) {
             </p>
           </div>
         ) : null}
-        {ipl.contract ? (
+        {ipl.contract && !ipl.retentionOffer ? (
           <div className={cn('mt-3 rounded-tile border p-3', ipl.intoAuction ? 'border-brand-gold bg-brand-gold/10' : 'border-line')}>
             <p className="text-[13px] font-semibold text-ink">{ipl.intoAuction ? 'Going into the auction' : 'Test the market?'}</p>
             <p className="mt-0.5 text-[12.5px] text-ink-muted">
@@ -316,6 +317,11 @@ function Contract({ state }: { state: GameState }) {
             >
               {ipl.intoAuction ? 'Stay with the franchise' : 'Go into the auction'}
             </button>
+          </div>
+        ) : null}
+        {ipl.retentionOffer ? (
+          <div className="mt-3 rounded-tile border border-brand-blue bg-brand-blue-soft p-3">
+            <RetentionOfferPanel offer={ipl.retentionOffer} />
           </div>
         ) : null}
         {offer ? (

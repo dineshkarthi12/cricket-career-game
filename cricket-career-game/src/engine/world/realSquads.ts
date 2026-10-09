@@ -251,3 +251,40 @@ export function realContenders(teamId: string, seasonYear: number, exclude: Set<
   const ranked = rankedIndians(seasonYear, (rec) => !exclude.has(rec.id) && !busy.has(rec.id) && roles.includes(realRole(rec.r)));
   return materialise(ranked.slice(0, count).map((r) => r.id), teamId, seasonYear, 'Maharashtra');
 }
+
+/**
+ * Real Indian players to fill `missing` places in an IPL squad (no made-up
+ * names): the roles the squad is short of first (against the usual
+ * balance), then the best left. `taken` holds the real ids already signed
+ * anywhere and is updated with the ones picked. `from` skips the very best
+ * so fillers are the fringe domestic players a franchise picks up cheaply.
+ */
+export function realIplFillers(squad: { role: PlayerRole }[], missing: number, teamId: string, seasonYear: number, taken: Set<string>, region: string, from = 0): RivalPlayer[] {
+  if (!realData() || missing <= 0) return [];
+  const all = rankedIndians(seasonYear, (rec) => !taken.has(rec.id));
+  const ranked = [...all.slice(from), ...all.slice(0, from)];
+  const size = squad.length + missing;
+  const scale = size / 17;
+  const have: Record<string, number> = {};
+  for (const p of squad) have[balanceGroup(p.role)] = (have[balanceGroup(p.role)] ?? 0) + 1;
+  const want = Object.fromEntries(Object.entries(BALANCE).map(([g, n]) => [g, Math.max(1, Math.round(n * scale))]));
+  const picked: string[] = [];
+  for (const r of ranked) {
+    if (picked.length >= missing) break;
+    const g = balanceGroup(realRole(r.rec.r));
+    if ((have[g] ?? 0) >= want[g]) continue;
+    have[g] = (have[g] ?? 0) + 1;
+    picked.push(r.id);
+  }
+  for (const r of ranked) {
+    if (picked.length >= missing) break;
+    if (!picked.includes(r.id)) picked.push(r.id);
+  }
+  for (const id of picked) taken.add(id);
+  return materialise(picked, teamId, seasonYear, region).map((p) => ({ ...p, capped: p.capped ?? p.overall >= 78 }));
+}
+
+/** Every real id in the IPL data's squads (the franchises' own players). */
+export function realIplSquadIds(): Set<string> {
+  return new Set(Object.values(realData()?.ipl.squads ?? {}).flat());
+}

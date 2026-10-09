@@ -1874,3 +1874,25 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   balls), 2 2.4%, 3 4.3%, 4 5.4% at SR 178, 5 8% at SR 239. In a short PvP
   innings 4 makes more than 3 and 5 the most.
 - Test: `engine/pvp/aggression.test.ts`.
+
+## IPL: retention offers, real squads only, TV graphics for records
+- Retention offer (`engine/pro/ipl.ts` `answerRetention`, `RetentionOfferPanel`):
+  at a mega auction the player's three-season contract is up. If the
+  franchise wants to keep them (one of its four), it asks instead of
+  retaining automatically: accept, decline (the owner raises about 20% up to
+  a hidden budget limit, the top retention slab at most; declining the final
+  offer means the auction), or name a price (within the limit it is agreed,
+  above it the player goes into the auction). Unanswered by auction day, the
+  agent signs. Shown on Home, Career Path and the IPL screen.
+- Mega retention day posts every franchise's retained players (four at most).
+- No made-up names in the IPL: franchise squads, the post-auction top-up and
+  the auction pool use real domestic players (`realIplFillers`); generated
+  players in older saves make way at retention day or before the next IPL is
+  drawn up. Generated players only if the real data runs out.
+- TV graphics (`engine/pro/broadcast.ts`, `TvGraphicOverlay`): a broadcast
+  lower-third over the ground when the player reaches a career milestone
+  (500 / every 1,000 runs, 25 / every 50 wickets), goes past a name on the
+  all-time list, or breaks a record; repeated on the post-match screen.
+  The records book now has the real holders (`data/records.ts`, as at 2025).
+- Tests: retention offer flow, real-only squads through three auctions,
+  the broadcast graphics.

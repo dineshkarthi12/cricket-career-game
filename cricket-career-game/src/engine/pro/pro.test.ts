@@ -3,7 +3,7 @@ import { createNewCareer } from '../newCareer';
 import { createRng } from '../match/rng';
 import { tournamentOf, playAiFixtures } from '../tournament/live';
 import { applyProSeason } from './season';
-import { hammer, increment, isMegaSeason, runAuction, retentionDay, auctionEntry, t20Value, contractEnd, auctionSets, markAuctionWatched, unwatchedAuction, iplImpact, userMarketValue, joinFranchise, requestAuction } from './ipl';
+import { hammer, increment, isMegaSeason, runAuction, retentionDay, auctionEntry, t20Value, contractEnd, auctionSets, markAuctionWatched, unwatchedAuction, iplImpact, userMarketValue, joinFranchise, requestAuction, answerRetention } from './ipl';
 import { battingPoints, bowlingPoints, nextRating, rateTeams, wtcStandings, rankingList } from './rankings';
 import { buildIcc, iccEventsIn, ICC_SHAPES } from './competitions';
 import { retireFrom, autoRetire } from './retirement';
@@ -155,7 +155,7 @@ describe('the auction', () => {
     const watched = markAuctionWatched(after);
     expect(unwatchedAuction(watched)).toBeNull();
     // The next auction keeps the room of the latest one only.
-    const next = runAuction({ ...watched, season: { ...watched.season, year: 2027 } }, '2027-12-16');
+    const next = runAuction(retentionDay({ ...watched, season: { ...watched.season, year: 2027 } }, '2027-11-01'), '2027-12-16');
     expect(next.pro.ipl.auctions.at(-2)!.room).toBeUndefined();
     expect(next.pro.ipl.auctions.at(-1)!.room!.length).toBeGreaterThan(0);
   });
@@ -243,6 +243,98 @@ describe('the auction', () => {
     const mega = auctionSets(Array.from({ length: 20 }, (_, i) => e(i % 2 ? 'BATTER' : 'SPIN_BOWLER', true, 1000 - i)), true);
     expect(mega.filter((o) => o.set === 'Marquee set')).toHaveLength(12);
     expect(mega.at(-1)!.set).toBe('Capped spinners');
+  });
+
+  it('fills every franchise with real players - no made-up names - through the auctions', () => {
+    let state = proCareer();
+    for (const f of FRANCHISES) {
+      expect(state.teams[f.id].squad.length).toBe(IPL_RULES.squadSize);
+      expect(state.teams[f.id].squad.filter((p) => !p.realId).map((p) => p.name), f.name).toEqual([]);
+    }
+    for (const year of [2026, 2027, 2028]) {
+      state = { ...state, season: { ...state.season, year } };
+      state = runAuction(retentionDay(state, `${year}-11-01`), `${year}-12-16`);
+      for (const f of FRANCHISES) expect(state.teams[f.id].squad.filter((p) => !p.realId).map((p) => p.name), `${f.name} ${year}`).toEqual([]);
+      expect(state.pro.ipl.auctions.at(-1)!.room!.every((l) => l.isUser || l.real)).toBe(true);
+    }
+  });
+
+  it('a generated player left in an old save makes way for a real one', () => {
+    const base = proCareer();
+    const f = FRANCHISES[0];
+    const team = base.teams[f.id];
+    const fake = { ...team.squad[0], id: 'gen-1', name: 'Made Up', realId: undefined };
+    const old = { ...base, teams: { ...base.teams, [f.id]: { ...team, squad: [...team.squad.slice(1), fake] } } };
+    const after = retentionDay({ ...old, season: { ...old.season, year: 2028 } }, '2028-11-01');
+    expect(after.teams[f.id].squad.some((p) => p.id === 'gen-1')).toBe(false);
+    expect(after.teams['team-ipl-auction-pool'].squad.some((p) => p.id === 'gen-1')).toBe(false);
+  });
+
+  describe('retention offer after the three-season contract', () => {
+    /** Contracted since the 2025 mega auction, after a big season: the 2028 mega retention. */
+    function contracted(): GameState {
+      let state = proCareer();
+      state = { ...state, season: { ...state.season, year: 2028 }, pro: { ...state.pro, scouting: { ...state.pro.scouting, reputation: 90 } } };
+      const fid = FRANCHISES[0].id;
+      state = joinFranchise(state, fid, 300, 'AUCTION', '2025-12-16');
+      const season = { seasonYear: 2028, franchiseId: fid, matches: 14, teamMatches: 14, runs: 640, wickets: 0, finish: 2, salary: 300, balls: 400, ballsBowled: 0, runsConceded: 0 };
+      return { ...state, pro: { ...state.pro, ipl: { ...state.pro.ipl, seasons: [{ ...season, impact: iplImpact(season) }] } } };
+    }
+
+    it('asks the player instead of retaining automatically', () => {
+      const state = retentionDay(contracted(), '2028-11-01');
+      const offer = state.pro.ipl.retentionOffer!;
+      expect(offer).toBeTruthy();
+      expect(offer.franchiseId).toBe(FRANCHISES[0].id);
+      expect(offer.limit).toBeGreaterThanOrEqual(offer.salary);
+      expect(offer.limit).toBeLessThanOrEqual(AUCTION.retentionSlabs[0]);
+      // The franchise kept a place for the player: three others at most.
+      expect(state.teams[FRANCHISES[0].id].squad.length).toBeLessThanOrEqual(AUCTION.maxRetained - 1);
+      const accepted = answerRetention(state, { kind: 'ACCEPT' });
+      expect(accepted.pro.ipl.retentionOffer).toBeNull();
+      expect(accepted.pro.ipl.contract!.salary).toBe(offer.salary);
+      expect(accepted.pro.ipl.contract!.how).toBe('RETAINED');
+    });
+
+    it('raises the offer on a decline, up to the owner\'s limit, then lets the player go', () => {
+      let state = retentionDay(contracted(), '2028-11-01');
+      const first = state.pro.ipl.retentionOffer!;
+      state = { ...state, pro: { ...state.pro, ipl: { ...state.pro.ipl, retentionOffer: { ...first, limit: Math.max(first.limit, first.salary * 2) } } } };
+      const limit = state.pro.ipl.retentionOffer!.limit;
+      let last = first.salary;
+      for (let i = 0; i < 20 && state.pro.ipl.retentionOffer; i += 1) {
+        state = answerRetention(state, { kind: 'DECLINE' });
+        const o = state.pro.ipl.retentionOffer;
+        if (o) {
+          expect(o.salary).toBeGreaterThan(last);
+          expect(o.salary).toBeLessThanOrEqual(limit);
+          last = o.salary;
+        }
+      }
+      expect(last).toBe(limit);
+      expect(state.pro.ipl.franchiseId).toBeNull();
+      expect(state.pro.ipl.status).toBe('RELEASED');
+    });
+
+    it('agrees a price within the budget and says no above it', () => {
+      const state = retentionDay(contracted(), '2028-11-01');
+      const offer = state.pro.ipl.retentionOffer!;
+      const within = answerRetention(state, { kind: 'ASK', amount: offer.limit });
+      expect(within.pro.ipl.contract!.salary).toBe(offer.limit);
+      const above = answerRetention(state, { kind: 'ASK', amount: offer.limit + 100 });
+      expect(above.pro.ipl.franchiseId).toBeNull();
+      // Into the mega auction instead.
+      expect(auctionEntry(above).inAuction).toBe(true);
+    });
+
+    it('the agent signs an offer still open on auction day', () => {
+      const state = retentionDay(contracted(), '2028-11-01');
+      const offer = state.pro.ipl.retentionOffer!;
+      const after = runAuction(state, '2028-12-16');
+      expect(after.pro.ipl.retentionOffer).toBeNull();
+      expect(after.pro.ipl.franchiseId).toBe(offer.franchiseId);
+      expect(after.pro.ipl.contract!.salary).toBe(offer.salary);
+    });
   });
 
   it('keeps at most four players per franchise in a mega auction year', () => {

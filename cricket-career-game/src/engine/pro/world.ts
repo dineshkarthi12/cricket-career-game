@@ -9,7 +9,8 @@
  */
 import { createRng, deriveSeed, type Rng } from '../match/rng';
 import { LEVELS, generateSquad, squadStrength, type LevelProfile } from '../world/teams';
-import { fillSquad, realFranchiseSquad, realIndiaASquad, realNationSquad, realRestOfIndiaSquad, realZoneSquad } from '../world/realSquads';
+import { hasRealPlayers } from '../world/realPlayers';
+import { fillSquad, realFranchiseSquad, realIplFillers, realIplSquadIds, realIndiaASquad, realNationSquad, realRestOfIndiaSquad, realZoneSquad } from '../world/realSquads';
 import { NATIONS, NATIONS_BY_NAME, OPPONENT_NATIONS, nationTeamId, type NationInfo } from '@/data/nations';
 import { FRANCHISES, type FranchiseInfo } from '@/data/franchises';
 import { STATES, stateInfo } from '@/data/places';
@@ -304,8 +305,36 @@ export function bookSalary(p: RivalPlayer, rng: Rng): number {
   return bands[index];
 }
 
+/** Real ids already on a franchise's books (the data's squads and the live ones). */
+function signedRealIds(state: GameState): Set<string> {
+  const taken = realIplSquadIds();
+  for (const f of FRANCHISES) for (const p of state.teams[f.id]?.squad ?? []) if (p.realId) taken.add(p.realId);
+  return taken;
+}
+
+/**
+ * Made-up names out of the IPL: a franchise's generated players make way for
+ * real domestic players (between IPL seasons only, so no live season loses a
+ * player). Without the real data, or when it runs short, the squad keeps them.
+ */
+export function realiseFranchiseSquads(state: GameState, taken = signedRealIds(state)): GameState {
+  if (!hasRealPlayers()) return state;
+  let teams = state.teams;
+  for (const f of FRANCHISES) {
+    const team = teams[f.id];
+    if (!team || team.squad.every((p) => p.realId)) continue;
+    const real = team.squad.filter((p) => p.realId);
+    const generated = team.squad.filter((p) => !p.realId);
+    const fillers = realIplFillers(real, generated.length, f.id, state.season.year, taken, f.state, 40).map((p) => ({ ...p, salary: 20 }));
+    const squad = [...real, ...fillers, ...generated.slice(fillers.length)];
+    teams = { ...teams, [f.id]: { ...team, squad, strength: squadStrength(squad) } };
+  }
+  return teams === state.teams ? state : { ...state, teams };
+}
+
 export function ensureFranchises(state: GameState): GameState {
   let next = state;
+  const taken = signedRealIds(state);
   for (const f of FRANCHISES) {
     const venue = franchiseVenue(f);
     next = withVenues(next, [venue]);
@@ -314,8 +343,10 @@ export function ensureFranchises(state: GameState): GameState {
     const real = realFranchiseSquad(f.name, f.id, next.season.year, f.state);
     let players: RivalPlayer[];
     if (real) {
-      // The real squad, topped up with generated Indian players if retirements have thinned it.
-      players = topUp(next, f.id, real, LEVELS.FRANCHISE, { size: IPL_RULES.squadSize, offset: 0, region: f.state, regions: [f.state, f.state, ...INDIAN_REGIONS], key: `franchise-${f.id}` });
+      // The real squad, topped up with real domestic players if retirements have thinned it
+      // (generated ones only if the data runs out).
+      const fillers = realIplFillers(real, IPL_RULES.squadSize - real.length, f.id, next.season.year, taken, f.state, 40);
+      players = topUp(next, f.id, [...real, ...fillers], LEVELS.FRANCHISE, { size: IPL_RULES.squadSize, offset: 0, region: f.state, regions: [f.state, f.state, ...INDIAN_REGIONS], key: `franchise-${f.id}` });
     } else {
       const indians = squadOf(next, f.id, LEVELS.FRANCHISE, { size: IPL_RULES.squadSize - IPL_RULES.maxOverseasSquad, offset: 0, region: f.state, regions: [f.state, f.state, ...INDIAN_REGIONS], roles: INDIAN_ROLES, key: `franchise-${f.id}` });
       const overseas = squadOf(next, f.id, OVERSEAS_PROFILE, { size: IPL_RULES.maxOverseasSquad, offset: 0, region: 'Australia', regions: OVERSEAS_NATIONS, roles: OVERSEAS_ROLES, key: `franchise-os-${f.id}` }).map((p) => ({ ...p, overseas: true, capped: true }));
@@ -335,6 +366,8 @@ export function ensureFranchises(state: GameState): GameState {
       nation: 'India',
     });
   }
+  // Before this season's IPL is drawn up: any made-up names left from older saves go.
+  if (!next.season.tournaments.some((t) => t.tournamentId === 'ipl')) next = realiseFranchiseSquads(next, taken);
   return next;
 }
 
