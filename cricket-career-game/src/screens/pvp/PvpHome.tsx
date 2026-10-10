@@ -20,6 +20,9 @@ import {
 } from '@/engine/pvp';
 import { cn } from '@/lib/cn';
 import { usePvpStore } from '@/store/pvpStore';
+import { rich, useT } from '@/i18n/react';
+import { summaryText } from '@/lib/matchText';
+import { backendLabel, packGuarantee, packName, rankLabel } from './labels';
 import { PlayerCard3D } from './cards/PlayerCard3D';
 import { ModeBadge } from './PvpShell';
 import { Price, ownedCards, primaryButton, secondaryButton } from './ui';
@@ -33,6 +36,7 @@ export default function PvpHome() {
   const leaveQueue = usePvpStore((s) => s.leaveQueue);
   const economy = usePvpStore((s) => s.economy);
   const navigate = useNavigate();
+  const t = useT();
   const [busy, setBusy] = useState<string | null>(null);
   const online = mode === 'ONLINE';
   const cards = ownedCards(profile.inventory).sort((a, b) => b.overall - a.overall);
@@ -67,57 +71,57 @@ export default function PvpHome() {
           <div>
             <ModeBadge className="bg-white/90" />
             <h1 className="mt-3 text-[28px] leading-tight font-extrabold sm:text-[36px]">
-              Live PvP <span className="text-brand-gold">Cricket</span>
+              {t('nav.pvp')} <span className="text-brand-gold">{t('pvp.home.titleCricket')}</span>
             </h1>
             <p className="mt-2 max-w-xl text-[14px] text-white/80">
-              Bowl, bat and time every ball in a 3D stadium. Two overs a side, three wickets. Your XI of collectible players against theirs.
+              {t('pvp.home.intro')}
             </p>
             {!online ? (
               <p className="mt-2 max-w-xl rounded-lg bg-white/10 px-3 py-2 text-[12.5px] text-white/85">
-                This is the offline demo: practice matches against the AI on this device. Ranked matches, private rooms and friends need the online server (see Connection below).
+                {t('pvp.home.offlineNote')}
               </p>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={practice} disabled={!profile.squad || busy !== null} className={primaryButton('bg-brand-gold text-brand-navy hover:bg-brand-gold/90')}>
                 {busy === 'practice' ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Swords className="size-4" aria-hidden />}
-                Practice vs AI
+                {t('pvp.home.practice')}
               </button>
               {searching ? (
                 <button type="button" onClick={() => void leaveQueue()} className={primaryButton('pvp-glow')}>
                   <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Searching… cancel
+                  {t('pvp.home.searching')}
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => run('queue', joinQueue)}
                   disabled={!online || !profile.squad || busy !== null}
-                  title={online ? 'Find a ranked opponent' : 'Ranked play needs the online server'}
+                  title={t(online ? 'pvp.home.findRanked' : 'pvp.home.rankedNeedsServer')}
                   className={primaryButton()}
                 >
                   <Radio className="size-4" aria-hidden />
-                  Ranked match
+                  {t('pvp.home.ranked')}
                 </button>
               )}
               <Link to="/pvp/friends" className={secondaryButton('bg-white/15 text-white hover:bg-white/25')}>
                 <Users className="size-4" aria-hidden />
-                Private room
+                {t('pvp.home.privateRoom')}
               </Link>
             </div>
-            {!profile.squad ? <p className="mt-2 text-[12.5px] text-brand-gold">Open your free starter pack below to get an XI.</p> : null}
+            {!profile.squad ? <p className="mt-2 text-[12.5px] text-brand-gold">{t('pvp.home.openStarterHint')}</p> : null}
           </div>
           <div className="grid grid-cols-2 gap-2 self-end">
-            <Stat label="Ranked" value={rating === null ? 'Unranked' : `${rating}`} detail={rating === null ? (online ? 'Play a ranked match' : 'Online only') : rankedTier(rating)} />
-            <Stat label="Record" value={`${profile.stats.won}-${profile.stats.lost}${profile.stats.tied ? `-${profile.stats.tied}` : ''}`} detail={`${profile.stats.played} played`} />
-            <Stat label="Squad rating" value={profile.squad ? `${squadRating(profile.squad, profile.inventory)}` : '—'} detail={`${profile.inventory.length} players owned`} />
-            <Stat label="Collection" value={`${new Set(profile.inventory.map((o) => o.cardId)).size}/${CATALOG.length}`} detail="cards collected" />
+            <Stat label={t('pvp.mode.RANKED')} value={rating === null ? t('pvp.unranked') : `${rating}`} detail={rating === null ? t(online ? 'pvp.home.playRanked' : 'pvp.home.onlineOnly') : rankLabel(t, rankedTier(rating))} />
+            <Stat label={t('pvp.home.record')} value={`${profile.stats.won}-${profile.stats.lost}${profile.stats.tied ? `-${profile.stats.tied}` : ''}`} detail={t('pvp.home.played', { n: profile.stats.played })} />
+            <Stat label={t('pvp.home.squadRating')} value={profile.squad ? `${squadRating(profile.squad, profile.inventory)}` : '—'} detail={t('pvp.home.ownedN', { n: profile.inventory.length })} />
+            <Stat label={t('pvp.home.collection')} value={`${new Set(profile.inventory.map((o) => o.cardId)).size}/${CATALOG.length}`} detail={t('pvp.home.collected')} />
           </div>
         </div>
       </section>
 
       {issues.length ? (
         <Card className="border-brand-red/30">
-          <CardHeader title="Collection problems found" subtitle="These cards fail validation and are kept out of matches. Nothing was changed automatically." />
+          <CardHeader title={t('pvp.home.problems')} subtitle={t('pvp.home.problemsSub')} />
           <ul className="mt-2 list-disc pl-5 text-[12.5px] text-ink-muted">
             {issues.slice(0, 6).map((i, n) => (
               <li key={n}>{i.message}</li>
@@ -133,12 +137,12 @@ export default function PvpHome() {
               <Gift className="size-6" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[16px] font-bold text-ink">Your free starter pack</p>
-              <p className="text-[13px] text-ink-muted">Fourteen free players (rated 45-59): two keepers, five batters, three all-rounders and four bowlers - a full playing XI and a bench.</p>
+              <p className="text-[16px] font-bold text-ink">{t('pvp.home.starterTitle')}</p>
+              <p className="text-[13px] text-ink-muted">{t('pvp.home.starterBody')}</p>
             </div>
             <button type="button" disabled={busy !== null} onClick={() => run('starter', () => economy('claimStarter'))} className={primaryButton()}>
               <PackageOpen className="size-4" aria-hidden />
-              Open starter pack
+              {t('pvp.home.openStarter')}
             </button>
           </div>
         </Card>
@@ -146,68 +150,68 @@ export default function PvpHome() {
 
       <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
         <Card>
-          <CardHeader title="Your Dream XI" subtitle={profile.squad ? `Squad rating ${squadRating(profile.squad, profile.inventory)}` : 'No XI yet'} action={{ label: 'Squad builder', to: '/pvp/squad' }} />
+          <CardHeader title={t('pvp.home.dreamXi')} subtitle={profile.squad ? t('pvp.home.squadRatingN', { n: squadRating(profile.squad, profile.inventory) }) : t('pvp.home.noXi')} action={{ label: t('pvp.home.squadBuilder'), to: '/pvp/squad' }} />
           {xi.length ? (
             <div className="no-scrollbar mt-3 -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
               {xi.map((c) => (
                 <div key={c!.owned.instanceId} className="snap-start">
                   <PlayerCard3D card={c!.card} upgrades={c!.owned.upgrades} size="sm" still />
-                  {profile.squad?.captain === c!.owned.instanceId ? <p className="mt-1 text-center text-[11px] font-bold text-brand-blue">Captain</p> : profile.squad?.viceCaptain === c!.owned.instanceId ? <p className="mt-1 text-center text-[11px] font-semibold text-ink-muted">Vice-captain</p> : null}
+                  {profile.squad?.captain === c!.owned.instanceId ? <p className="mt-1 text-center text-[11px] font-bold text-brand-blue">{t('pvp.captain')}</p> : profile.squad?.viceCaptain === c!.owned.instanceId ? <p className="mt-1 text-center text-[11px] font-semibold text-ink-muted">{t('pvp.viceCaptain')}</p> : null}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-[13px] text-ink-muted">Open the starter pack to get your first XI.</p>
+            <p className="mt-3 text-[13px] text-ink-muted">{t('pvp.home.noXiBody')}</p>
           )}
         </Card>
 
         <Card>
-          <CardHeader title="Events & rewards" />
+          <CardHeader title={t('pvp.home.events')} />
           <div className="mt-3 flex flex-col gap-3">
             <Reward
               icon={CalendarCheck}
-              title="Daily reward"
-              detail={dailyDone ? 'Claimed today - back tomorrow' : `${ECONOMY.dailyReward.coins} coins`}
-              action={dailyDone ? null : { label: 'Claim', run: () => run('daily', () => economy('claimDaily')) }}
+              title={t('pvp.home.daily')}
+              detail={dailyDone ? t('pvp.home.dailyDone') : t('pvp.coinsN', { n: ECONOMY.dailyReward.coins })}
+              action={dailyDone ? null : { label: t('pvp.claim'), run: () => run('daily', () => economy('claimDaily')) }}
               busy={busy === 'daily'}
             />
             <div>
               <Reward
                 icon={Trophy}
-                title="Weekly mission: win 3 matches"
-                detail={weekly.claimed ? 'Reward claimed this week' : `${ECONOMY.weeklyMission.gems} gems + ${ECONOMY.weeklyMission.eventTokens} event token`}
-                action={!weekly.claimed && weekly.wins >= ECONOMY.weeklyMission.winsNeeded ? { label: 'Claim', run: () => run('weekly', () => economy('claimWeekly')) } : null}
+                title={t('pvp.home.weekly')}
+                detail={weekly.claimed ? t('pvp.home.weeklyDone') : t('pvp.home.weeklyReward', { gems: ECONOMY.weeklyMission.gems, tokens: ECONOMY.weeklyMission.eventTokens })}
+                action={!weekly.claimed && weekly.wins >= ECONOMY.weeklyMission.winsNeeded ? { label: t('pvp.claim'), run: () => run('weekly', () => economy('claimWeekly')) } : null}
                 busy={busy === 'weekly'}
               />
-              <ProgressBar value={Math.min(100, (weekly.wins / ECONOMY.weeklyMission.winsNeeded) * 100)} tone="green" className="mt-2" label={`${Math.min(weekly.wins, 3)} of 3 wins`} />
+              <ProgressBar value={Math.min(100, (weekly.wins / ECONOMY.weeklyMission.winsNeeded) * 100)} tone="green" className="mt-2" label={t('pvp.home.winsOf', { n: Math.min(weekly.wins, 3) })} />
             </div>
-            <Reward icon={Sparkles} title="Opening Week event" detail={`${profile.eventTokens} event token${profile.eventTokens === 1 ? '' : 's'} - spend in the store`} action={{ label: 'Store', run: () => navigate('/pvp/store') }} />
-            <p className="text-[11.5px] text-ink-muted">Match rewards: win {ECONOMY.matchReward.WIN.coins}, tie {ECONOMY.matchReward.TIE.coins}, loss {ECONOMY.matchReward.LOSS.coins} coins. Ranked wins add {ECONOMY.matchReward.rankedWinBonusCoins} coins and {ECONOMY.matchReward.rankedWinGems} gems.</p>
+            <Reward icon={Sparkles} title={t('pvp.home.event')} detail={t(profile.eventTokens === 1 ? 'pvp.home.tokens.one' : 'pvp.home.tokens.many', { n: profile.eventTokens })} action={{ label: t('pvp.navShort.store'), run: () => navigate('/pvp/store') }} />
+            <p className="text-[11.5px] text-ink-muted">{t('pvp.home.rewards', { win: ECONOMY.matchReward.WIN.coins, tie: ECONOMY.matchReward.TIE.coins, loss: ECONOMY.matchReward.LOSS.coins, bonus: ECONOMY.matchReward.rankedWinBonusCoins, gems: ECONOMY.matchReward.rankedWinGems })}</p>
           </div>
         </Card>
       </div>
 
       <Card>
-        <CardHeader title="Your collection" subtitle="Hover or drag a card to tilt it" action={{ label: 'View all', to: '/pvp/collection' }} />
+        <CardHeader title={t('pvp.home.yourCollection')} subtitle={t('pvp.home.tilt')} action={{ label: t('pvp.viewAll'), to: '/pvp/collection' }} />
         <div className="no-scrollbar mt-3 -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pt-2 pb-3">
           {cards.slice(0, 10).map((c) => (
             <div key={c.owned.instanceId} className="snap-start">
               <PlayerCard3D card={c.card} upgrades={c.owned.upgrades} />
             </div>
           ))}
-          {cards.length === 0 ? <p className="text-[13px] text-ink-muted">No players yet.</p> : null}
+          {cards.length === 0 ? <p className="text-[13px] text-ink-muted">{t('pvp.home.noPlayers')}</p> : null}
         </div>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Featured packs" action={{ label: 'Packs & store', to: '/pvp/store' }} />
+          <CardHeader title={t('pvp.home.featured')} action={{ label: t('pvp.home.packsStore'), to: '/pvp/store' }} />
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {PACKS.filter((p) => p.featured || p.id === 'silver').slice(0, 4).map((p) => (
               <Link key={p.id} to="/pvp/store" className="flex items-center justify-between gap-2 rounded-tile border border-line bg-page/60 p-3 transition-colors hover:border-brand-blue/40">
                 <span className="min-w-0">
-                  <span className="block truncate text-[13.5px] font-semibold text-ink">{p.name}</span>
-                  <span className="block truncate text-[11.5px] text-ink-muted">{p.slots.length} cards · {p.guarantee ?? 'published odds'}</span>
+                  <span className="block truncate text-[13.5px] font-semibold text-ink">{packName(t, p)}</span>
+                  <span className="block truncate text-[11.5px] text-ink-muted">{t('pvp.cards.many', { n: p.slots.length })} · {packGuarantee(t, p) ?? t('pvp.home.publishedOdds')}</span>
                 </span>
                 <Price currency={p.currency} amount={p.price} className="text-[13px]" />
               </Link>
@@ -215,7 +219,7 @@ export default function PvpHome() {
           </div>
         </Card>
         <Card>
-          <CardHeader title="Legends market" subtitle="Fictional retired greats, rated 80-99" action={{ label: 'Market', to: '/pvp/market?tab=legends' }} />
+          <CardHeader title={t('pvp.home.legends')} subtitle={t('pvp.home.legendsSub')} action={{ label: t('pvp.home.market'), to: '/pvp/market?tab=legends' }} />
           <div className="no-scrollbar mt-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {CATALOG.filter((c) => c.era === 'LEGEND')
               .sort((a, b) => b.overall - a.overall)
@@ -229,32 +233,32 @@ export default function PvpHome() {
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Card>
-          <CardHeader title="Recent matches" />
+          <CardHeader title={t('pvp.home.recent')} />
           {profile.history.length ? (
             <ul className="mt-2 divide-y divide-line">
               {profile.history.slice(0, 6).map((m) => (
                 <li key={m.matchId} className="flex flex-wrap items-center gap-2 py-2.5">
                   <Badge tone={m.outcome === 'WIN' ? 'green' : m.outcome === 'LOSS' ? 'red' : 'grey'} className="text-[11px]">
-                    {m.outcome}
+                    {t(`pvp.outcome.${m.outcome}`)}
                   </Badge>
                   <span className="min-w-0 flex-1 text-[13px]">
-                    <span className="font-semibold text-ink">vs {m.opponent}</span>
+                    <span className="font-semibold text-ink">{t('pvp.vs', { name: m.opponent })}</span>
                     <span className="block text-[11.5px] text-ink-muted">
-                      {m.myScore} v {m.theirScore} · {m.result}
+                      {m.myScore} v {m.theirScore} · {summaryText(m.result)}
                     </span>
                   </span>
-                  <span className="text-[11px] font-semibold text-ink-muted uppercase">{m.mode === 'PRACTICE' ? 'Practice' : m.mode === 'PRIVATE' ? 'Private' : `Ranked ${m.ratingChange !== null ? (m.ratingChange >= 0 ? '+' : '') + m.ratingChange : ''}`}</span>
+                  <span className="text-[11px] font-semibold text-ink-muted uppercase">{m.mode === 'PRACTICE' ? t('pvp.mode.PRACTICE') : m.mode === 'PRIVATE' ? t('pvp.mode.PRIVATE') : `${t('pvp.mode.RANKED')} ${m.ratingChange !== null ? (m.ratingChange >= 0 ? '+' : '') + m.ratingChange : ''}`}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-[13px] text-ink-muted">No matches yet. Start with a practice match.</p>
+            <p className="mt-3 text-[13px] text-ink-muted">{t('pvp.home.noMatches')}</p>
           )}
         </Card>
         <ConnectionCard />
       </div>
       <p className="text-center text-[11px] text-ink-muted">
-        Live PvP cards show real international cricketers. Ratings are gameplay values placed by the game, not official figures. Gems are a development currency: no real-money purchases exist. Ranked starts at {RANKED.startRating}.
+        {t('pvp.home.footer', { n: RANKED.startRating })}
       </p>
     </div>
   );
@@ -295,12 +299,13 @@ function ConnectionCard() {
   const serverUrl = usePvpStore((s) => s.serverUrl);
   const useServer = usePvpStore((s) => s.useServer);
   const [url, setUrl] = useState(serverUrl ?? 'ws://localhost:8787');
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="Connection" subtitle={label} />
+      <CardHeader title={t('pvp.conn.title')} subtitle={backendLabel(t, label, mode)} />
       <div className="mt-3 flex flex-col gap-2">
         <label className="text-[12px] font-semibold text-ink-muted" htmlFor="pvp-server-url">
-          PvP server address
+          {t('pvp.conn.address')}
         </label>
         <div className="flex gap-2">
           <input
@@ -312,16 +317,16 @@ function ConnectionCard() {
           />
           <button type="button" onClick={() => void useServer(url.trim() || null)} className={primaryButton('px-3 py-2 text-[13px]')}>
             <Server className="size-4" aria-hidden />
-            Connect
+            {t('pvp.conn.connect')}
           </button>
         </div>
         {mode === 'ONLINE' ? (
           <button type="button" onClick={() => void useServer(null)} className={cn(secondaryButton('py-2 text-[13px]'))}>
-            Switch to the offline demo
+            {t('pvp.conn.switchOffline')}
           </button>
         ) : (
           <p className="text-[12px] text-ink-muted">
-            Run <code className="rounded bg-page px-1">npm run pvp:server</code> and connect to play real online matches. The offline demo keeps its own local collection.
+            {rich(t('pvp.conn.howTo'), { cmd: <code className="rounded bg-page px-1">npm run pvp:server</code> })}
           </p>
         )}
       </div>

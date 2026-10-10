@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { ScreenLoading } from '@/components';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { usePvpStore } from '@/store/pvpStore';
+import { useT } from '@/i18n/react';
 import { PvpShell } from './PvpShell';
 import PvpHome from './PvpHome';
 
@@ -74,16 +75,17 @@ function ConnectionError() {
   const message = usePvpStore((s) => s.message);
   const useServer = usePvpStore((s) => s.useServer);
   const url = usePvpStore((s) => s.serverUrl);
+  const t = useT();
   return (
     <div role="alert" className="mx-auto max-w-lg rounded-card border border-brand-red/25 bg-surface p-5 shadow-card">
-      <p className="text-[16px] font-semibold text-ink">Could not reach the PvP server</p>
-      <p className="mt-1 text-[13px] text-ink-muted">{message ?? 'The server did not answer.'} {url ? `(${url})` : ''}</p>
+      <p className="text-[16px] font-semibold text-ink">{t('pvp.conn.errTitle')}</p>
+      <p className="mt-1 text-[13px] text-ink-muted">{message ?? t('pvp.conn.noAnswer')} {url ? `(${url})` : ''}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" onClick={() => void useServer(url)} className="rounded-xl bg-brand-blue px-4 py-2 text-[13px] font-semibold text-white">
-          Try again
+          {t('pvp.conn.retry')}
         </button>
         <button type="button" onClick={() => void useServer(null)} className="rounded-xl bg-brand-blue-soft px-4 py-2 text-[13px] font-semibold text-brand-blue">
-          Use the offline demo (practice vs AI)
+          {t('pvp.conn.useOffline')}
         </button>
       </div>
     </div>
