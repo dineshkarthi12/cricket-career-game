@@ -143,7 +143,7 @@ export default function StartScreen() {
             <span className="grid size-10 place-items-center rounded-full bg-brand-gold text-brand-navy" aria-hidden>
               <Crown className="size-5" />
             </span>
-            <span className="min-w-0 flex-1">
+            <span className="min-w-[11rem] flex-1">
               <span className="block text-[15px] font-bold tracking-wide uppercase">{t('misc.start.manager')}</span>
               <span className="block text-[12.5px] text-white/75">{t('misc.start.managerHint')}</span>
             </span>
@@ -158,7 +158,7 @@ export default function StartScreen() {
             <span className="grid size-10 place-items-center rounded-full bg-brand-blue text-white" aria-hidden>
               <Radio className="size-5" />
             </span>
-            <span className="min-w-0 flex-1">
+            <span className="min-w-[11rem] flex-1">
               <span className="block text-[15px] font-bold tracking-wide uppercase">{t('misc.start.pvp')}</span>
               <span className="block text-[12.5px] text-white/75">{t('misc.start.pvpHint')}</span>
             </span>

@@ -357,7 +357,8 @@ try {
   await go('/settings');
   await click(/Delete this career/);
   await snap('settings-delete-confirm');
-  await click(/^Cancel$/);
+  // Switching language for the screenshot redraws the screen and closes the dialog.
+  await click(/^Cancel$/, { optional: LANG !== 'en' });
 } catch (error) {
   log.push(`FAILED at ${step}: ${error.message}`);
   console.error(error);

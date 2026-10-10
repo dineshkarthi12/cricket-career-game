@@ -2148,3 +2148,30 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
     - old balls and old alerts keep their English;
     - an exported save with English-only commentary imports and shows its
       ball-by-ball on the Tamil Matches screen.
+- **Pass (e), done:** everything else, one dictionary pair per area
+  (`src/i18n/en|ta/{misc,career,pro,manager,pvp}.ts`, about 2,000 keys).
+  - misc: training, rehab, calendar, stats, the start screen, new career,
+    save slots, and shared components (Modal, ConfirmDialog,
+    ScreenLoading, ErrorBoundary, Stepper, ...). `lib/training.ts` and
+    `lib/calendar.ts` labels translate at read time.
+  - career: selection, selection news, trials, tournaments (results go
+    through `summaryText`), season review, challenges, rivals and the
+    career card.
+  - pro: IPL (auction, live auction, retention offers), international,
+    awards, community, legacy.
+  - manager: all of IPL Manager mode, including the matchday screen and
+    the match report.
+  - pvp: all of Live PvP. `screens/pvp/labels.ts` translates engine
+    labels (roles, tiers, packs) at render, falling back to the English.
+  - Still English by design:
+    - engine-written prose (coach hints, squad reasons, inbox, news,
+      manager phase texts, AI notes, PvP server messages);
+    - competition and award names, fixture and window titles;
+    - scorecard and table abbreviations;
+    - the printed PvP card art (its text-fitting is measured for Latin
+      capitals);
+    - dev-only tools.
+  - Fix: on a phone, the start screen's IPL Manager and Live PvP buttons
+    now drop below their description instead of squeezing it.
+  - QA: the full `QA_LANG=ta npm run qa` flow (66 screens at 1440, 820
+    and 390px) reports no horizontal overflow.

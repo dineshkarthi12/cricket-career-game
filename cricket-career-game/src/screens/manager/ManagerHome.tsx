@@ -7,10 +7,8 @@ import { Link } from 'react-router-dom';
 import { Card, CardHeader, HeroStatTile, ProgressBar, Stepper, type StepItem } from '@/components';
 import {
   MANAGER,
-  PHASE_LABEL,
   PHASE_ORDER,
   advanceBlocker,
-  advanceLabel,
   financeReport,
   forecast,
   nextUserFixture,
@@ -22,10 +20,17 @@ import {
   holds,
 } from '@/engine/manager';
 import { cn } from '@/lib/cn';
-import { useContinue } from './PhaseFlow';
-import { Button, FranchiseCrest, LinkButton, Money, ToneBadge, nameOf, shortOf, useManager } from './ui';
+import { currentLang, tr, type Key } from '@/i18n/core';
+import { rich, useT } from '@/i18n/react';
+import type { ManagerFixture } from '@/types/manager';
+import { continueLabel, useContinue } from './PhaseFlow';
+import { Button, FranchiseCrest, LinkButton, Money, ToneBadge, nameOf, phaseLabel, rankLabel, shortOf, useManager } from './ui';
+
+/** A playoff stage as the screens write it: "qualifier 1", "final". */
+export const stageWord = (stage: ManagerFixture['stage']) => tr(`mgr.stageLc.${stage}` as Key);
 
 export default function ManagerHome() {
+  const t = useT();
   const { state } = useManager();
   const f = state.franchises[state.franchiseId];
   const squad = squadOf(state, f.id);
@@ -39,7 +44,7 @@ export default function ManagerHome() {
   const fc = forecast(state);
   const report = financeReport(state);
   const phaseIndex = PHASE_ORDER.indexOf(state.season.phase);
-  const steps: StepItem[] = PHASE_ORDER.map((phase, i) => ({ id: phase, index: i + 1, label: PHASE_LABEL[phase], status: i < phaseIndex ? 'done' : i === phaseIndex ? 'current' : 'locked' }));
+  const steps: StepItem[] = PHASE_ORDER.map((phase, i) => ({ id: phase, index: i + 1, label: phaseLabel(phase), status: i < phaseIndex ? 'done' : i === phaseIndex ? 'current' : 'locked' }));
   const latest = state.news.slice(0, 4);
 
   return (
@@ -52,36 +57,36 @@ export default function ManagerHome() {
           <FranchiseCrest franchise={f} size={150} />
         </div>
         <p className="font-hand pointer-events-none absolute right-[22%] bottom-6 hidden -rotate-3 text-[26px] leading-tight text-brand-navy/90 xl:block" aria-hidden>
-          Build the team.
+          {t('mgr.home.motto1')}
           <br />
-          <span className="ml-6">Win the trophy.</span>
+          <span className="ml-6">{t('mgr.home.motto2')}</span>
         </p>
         <div className="relative flex min-h-[280px] flex-col justify-between gap-5 p-5">
           <div>
             <p className="inline-flex items-center gap-1.5 rounded-lg bg-brand-gold/25 px-2 py-1 text-[11px] font-bold tracking-wide text-[#6b5200] uppercase">
-              <Crown className="size-3.5" aria-hidden /> IPL Manager · Season {state.season.year}
+              <Crown className="size-3.5" aria-hidden /> {t('mgr.ipl')} · {t('mgr.seasonN', { year: state.season.year })}
             </p>
             <h1 className="mt-2 text-[28px] leading-none font-bold text-brand-navy">{state.profile.name}</h1>
             <p className="mt-1.5 text-[14px] font-medium text-ink">
-              {MANAGER.ranks.label[state.profile.rank]} <span className="mx-1.5 text-ink-soft">•</span> {f.name}
+              {rankLabel(state.profile.rank)} <span className="mx-1.5 text-ink-soft">•</span> {f.name}
             </p>
             <p className="mt-1 text-[13px] text-ink-muted">
-              {PHASE_LABEL[state.season.phase]}
-              {state.season.phase === 'LEAGUE' ? ` · Round ${state.season.round} of ${MANAGER.rules.leagueRounds}` : ''}
-              {position > 0 && state.season.phase !== 'SCOUTING' ? ` · ${ordinal(position)} in the table` : ''}
+              {phaseLabel(state.season.phase)}
+              {state.season.phase === 'LEAGUE' ? ` · ${t('mgr.roundOf', { n: state.season.round, of: MANAGER.rules.leagueRounds })}` : ''}
+              {position > 0 && state.season.phase !== 'SCOUTING' ? ` · ${t('mgr.home.inTable', { pos: ordinal(position) })}` : ''}
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-2">
-            <HeroStatTile label="Reputation" tint>
+            <HeroStatTile label={t('mgr.reputation')} tint>
               <span className="text-[20px] font-bold text-ink">{Math.round(state.profile.reputation)}</span>
             </HeroStatTile>
-            <HeroStatTile label="Board">
+            <HeroStatTile label={t('mgr.board')}>
               <span className="text-[16px] font-semibold text-ink">{Math.round(state.profile.boardConfidence)}%</span>
             </HeroStatTile>
-            <HeroStatTile label="Purse">
+            <HeroStatTile label={t('mgr.purse')}>
               <span className="text-[14px] font-semibold text-ink"><Money lakh={f.purse} /></span>
             </HeroStatTile>
-            <HeroStatTile label="Titles">
+            <HeroStatTile label={t('mgr.titles')}>
               <span className="text-[16px] font-semibold text-ink">{state.profile.trophies}</span>
             </HeroStatTile>
           </div>
@@ -91,31 +96,36 @@ export default function ManagerHome() {
       {/* Next action. */}
       <Card className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-semibold tracking-wide text-ink-muted uppercase">Next up</p>
+          <p className="text-[12px] font-semibold tracking-wide text-ink-muted uppercase">{t('mgr.home.nextUp')}</p>
           <p className="text-[15px] font-semibold text-ink">
             {state.profile.retired
-              ? 'Your career is over - your legacy is written.'
+              ? t('mgr.home.retired')
               : pending
-                ? `${shortOf(state, pending.homeId)} v ${shortOf(state, pending.awayId)} · ${pending.stage === 'LEAGUE' ? `Round ${pending.round}` : PHASE_LABEL.PLAYOFFS}`
-                : advanceLabel(state)}
+                ? `${shortOf(state, pending.homeId)} v ${shortOf(state, pending.awayId)} · ${pending.stage === 'LEAGUE' ? t('mgr.roundN', { n: pending.round }) : phaseLabel('PLAYOFFS')}`
+                : continueLabel(state)}
           </p>
           {blocker && !pending ? <p className="mt-0.5 text-[12.5px] text-brand-red" role="status">{blocker}</p> : null}
           {!state.profile.retired && state.season.phase === 'SCOUTING' && holds(state, 'SCOUTING') && state.staff.every((s) => s.kind !== 'SCOUT' || !s.assignment) ? (
             <p className="mt-0.5 text-[12.5px] text-ink-muted">
-              Your scouts are idle.{' '}
-              <Link to="/manager/scouting" className="font-semibold text-brand-blue underline-offset-2 hover:underline">Send them out</Link> before the weeks pass.
+              {rich(t('mgr.home.scoutsIdle'), {
+                link: (
+                  <Link to="/manager/scouting" className="font-semibold text-brand-blue underline-offset-2 hover:underline">
+                    {t('mgr.home.sendThemOut')}
+                  </Link>
+                ),
+              })}
             </p>
           ) : null}
           {!state.profile.retired && !state.profile.unemployed && !state.profile.fullControl ? (
             <p className="mt-0.5 text-[12.5px] text-ink-muted">
-              Jobs above your rank are played by the staff when you continue.{' '}
-              <Link to="/manager/profile" className="font-semibold text-brand-blue underline-offset-2 hover:underline">Take full control</Link>
+              {t('mgr.home.staffJobs')}{' '}
+              <Link to="/manager/profile" className="font-semibold text-brand-blue underline-offset-2 hover:underline">{t('mgr.takeFullControl')}</Link>
             </p>
           ) : null}
         </div>
         {pending && (holds(state, 'MATCHDAY') || holds(state, 'SELECTION')) ? (
           <LinkButton to={`/manager/match/${pending.id}`} variant="primary">
-            <Play className="size-4 fill-white" aria-hidden /> Go to match
+            <Play className="size-4 fill-white" aria-hidden /> {t('mgr.goToMatch')}
           </LinkButton>
         ) : (
           <Button variant="gold" disabled={cont.disabled} onClick={cont.go}>
@@ -125,36 +135,36 @@ export default function ManagerHome() {
       </Card>
 
       <Card>
-        <CardHeader title="Season journey" subtitle="Every season runs from the scouting trail to the final" className="mb-3" />
-        <Stepper steps={steps} endLabel="Next season" />
+        <CardHeader title={t('mgr.home.journey')} subtitle={t('mgr.home.journeySub')} className="mb-3" />
+        <Stepper steps={steps} endLabel={t('mgr.home.nextSeason')} />
       </Card>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Card>
-          <CardHeader title="Next match" action={{ label: 'Fixtures', to: '/manager/fixtures' }} className="mb-3" />
+          <CardHeader title={t('mgr.home.nextMatch')} action={{ label: t('mgr.nav.fixtures'), to: '/manager/fixtures' }} className="mb-3" />
           {next ? (
             <div className="flex items-center justify-between gap-2">
               <TeamMini state={state} id={next.homeId} />
               <div className="text-center">
-                <p className="text-[12px] font-semibold text-ink-muted">vs</p>
-                <p className="text-[11px] text-ink-muted">{next.stage === 'LEAGUE' ? `Round ${next.round}` : next.stage.replace('_', ' ').toLowerCase()}</p>
+                <p className="text-[12px] font-semibold text-ink-muted">{t('mgr.vs')}</p>
+                <p className="text-[11px] text-ink-muted">{next.stage === 'LEAGUE' ? t('mgr.roundN', { n: next.round }) : stageWord(next.stage)}</p>
               </div>
               <TeamMini state={state} id={next.awayId} />
             </div>
           ) : (
-            <p className="text-[13px] text-ink-muted">{state.season.fixtures.length ? 'No more matches this season.' : 'Fixtures are published in pre-season.'}</p>
+            <p className="text-[13px] text-ink-muted">{state.season.fixtures.length ? t('mgr.home.noMoreMatches') : t('mgr.home.fixturesLater')}</p>
           )}
         </Card>
 
         <Card>
-          <CardHeader title="Board objectives" action={{ label: 'Career', to: '/manager/profile' }} className="mb-2" />
+          <CardHeader title={t('mgr.boardObjectives')} action={{ label: t('mgr.nav.career'), to: '/manager/profile' }} className="mb-2" />
           <ul className="flex flex-col gap-1.5">
             {state.season.objectives.map((o) => (
               <li key={o.id} className="flex items-start gap-2 text-[12.5px] text-ink">
                 <Target className={cn('mt-0.5 size-3.5 shrink-0', o.met === true ? 'text-brand-green' : o.met === false ? 'text-brand-red' : 'text-brand-blue')} aria-hidden />
                 <span>
                   {o.label}
-                  {o.met !== null ? <span className="ml-1 font-semibold">{o.met ? '(met)' : '(missed)'}</span> : null}
+                  {o.met !== null ? <span className="ml-1 font-semibold">{o.met ? t('mgr.objMet') : t('mgr.objMissed')}</span> : null}
                 </span>
               </li>
             ))}
@@ -162,30 +172,30 @@ export default function ManagerHome() {
         </Card>
 
         <Card>
-          <CardHeader title="Squad" action={{ label: 'View', to: '/manager/squad' }} className="mb-2" />
+          <CardHeader title={t('mgr.nav.squad')} action={{ label: t('common.view'), to: '/manager/squad' }} className="mb-2" />
           <p className="flex items-center gap-2 text-[13px] text-ink">
             <Users className="size-4 text-brand-blue" aria-hidden />
-            {squad.length} players · {squad.filter((p) => p.overseas).length} overseas · {squad.filter((p) => p.injuredWeeks > 0).length} injured
+            {t('mgr.home.squadLine', { n: squad.length, os: squad.filter((p) => p.overseas).length, inj: squad.filter((p) => p.injuredWeeks > 0).length })}
           </p>
           <ul className="mt-2 flex flex-wrap gap-1.5">
-            {weak.length === 0 ? <ToneBadge tone="green">Balanced squad</ToneBadge> : weak.map((w) => <ToneBadge key={w.area} tone={w.severity === 'WEAK' ? 'red' : 'orange'}>{w.area.replace('_', ' ').toLowerCase()}: {w.severity.toLowerCase()}</ToneBadge>)}
+            {weak.length === 0 ? <ToneBadge tone="green">{t('mgr.balancedSquad')}</ToneBadge> : weak.map((w) => <ToneBadge key={w.area} tone={w.severity === 'WEAK' ? 'red' : 'orange'}>{t('mgr.weakness', { area: `@mgr.area.${w.area}`, sev: `@mgr.sev.${w.severity}` })}</ToneBadge>)}
           </ul>
         </Card>
 
         <Card>
-          <CardHeader title="Finances" action={{ label: 'Report', to: '/manager/finances' }} className="mb-2" />
+          <CardHeader title={t('mgr.nav.finances')} action={{ label: t('mgr.home.report'), to: '/manager/finances' }} className="mb-2" />
           <p className="flex items-center gap-2 text-[13px] text-ink">
-            <Wallet className="size-4 text-brand-blue" aria-hidden /> Balance <Money lakh={state.finances.balance} className="font-semibold" />
+            <Wallet className="size-4 text-brand-blue" aria-hidden /> {t('mgr.balance')} <Money lakh={state.finances.balance} className="font-semibold" />
           </p>
           <p className="mt-1 text-[12.5px] text-ink-muted">
-            Season so far <Money lakh={report.profit} /> · forecast <Money lakh={fc.profit} className={fc.profit < 0 ? 'text-brand-red' : 'text-brand-green'} />
+            {t('mgr.home.seasonSoFar')} <Money lakh={report.profit} /> · {t('mgr.home.forecast')} <Money lakh={fc.profit} className={fc.profit < 0 ? 'text-brand-red' : 'text-brand-green'} />
           </p>
         </Card>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Points table" action={{ label: 'Full table', to: '/manager/table' }} className="mb-2" />
+          <CardHeader title={t('mgr.pointsTable')} action={{ label: t('mgr.home.fullTable'), to: '/manager/table' }} className="mb-2" />
           {table.length ? (
             <ol className="flex flex-col">
               {table.slice(0, 5).map((r, i) => (
@@ -200,12 +210,12 @@ export default function ManagerHome() {
             </ol>
           ) : (
             <p className="flex items-center gap-2 text-[13px] text-ink-muted">
-              <CalendarDays className="size-4" aria-hidden /> The table starts with the league.
+              <CalendarDays className="size-4" aria-hidden /> {t('mgr.home.tableLater')}
             </p>
           )}
         </Card>
         <Card>
-          <CardHeader title="Inbox / news" action={{ label: 'View all', to: '/manager/news' }} className="mb-2" />
+          <CardHeader title={t('mgr.home.inbox')} action={{ label: t('mgr.viewAll'), to: '/manager/news' }} className="mb-2" />
           <ul className="flex flex-col gap-2">
             {latest.map((n) => (
               <li key={n.id}>
@@ -221,13 +231,13 @@ export default function ManagerHome() {
 
       {state.season.awards ? (
         <Card>
-          <CardHeader title="Season awards" action={{ label: 'Awards', to: '/manager/awards' }} className="mb-2" />
+          <CardHeader title={t('mgr.home.seasonAwards')} action={{ label: t('mgr.nav.awards'), to: '/manager/awards' }} className="mb-2" />
           <p className="text-[13px] text-ink">
-            Champions: <strong>{shortOf(state, state.season.awards.champions)}</strong> · Orange Cap: {nameOf(state, state.season.awards.orangeCap?.playerId)} · Purple Cap: {nameOf(state, state.season.awards.purpleCap?.playerId)}
+            {t('mgr.champions')}: <strong>{shortOf(state, state.season.awards.champions)}</strong> · {t('mgr.orangeCap')}: {nameOf(state, state.season.awards.orangeCap?.playerId)} · {t('mgr.purpleCap')}: {nameOf(state, state.season.awards.purpleCap?.playerId)}
           </p>
         </Card>
       ) : null}
-      <ProgressBar value={state.profile.boardConfidence} tone={state.profile.boardConfidence < MANAGER.board.warnBelow ? 'red' : 'green'} label="Board confidence" className="sr-only" />
+      <ProgressBar value={state.profile.boardConfidence} tone={state.profile.boardConfidence < MANAGER.board.warnBelow ? 'red' : 'green'} label={t('mgr.boardConfidence')} className="sr-only" />
     </div>
   );
 }
@@ -243,6 +253,7 @@ function TeamMini({ state, id }: { state: ReturnType<typeof useManager>['state']
 }
 
 export function ordinal(n: number): string {
+  if (currentLang() === 'ta') return tr('mgr.ordinal', { n });
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);

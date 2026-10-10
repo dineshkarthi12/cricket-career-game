@@ -11,7 +11,9 @@ import { cn } from '@/lib/cn';
 import { MANAGER, formatMoney, holds, type ActionResult } from '@/engine/manager';
 import { roleLabel } from '@/lib/format';
 import { useManagerStore } from '@/store/managerStore';
-import type { Franchise, ManagedPlayer, ManagerState, Responsibility, ScoutReport } from '@/types/manager';
+import { tr, type Key } from '@/i18n/core';
+import { useT } from '@/i18n/react';
+import type { Franchise, ManagedPlayer, ManagerRank, ManagerState, Responsibility, ScoutReport, SeasonPhase } from '@/types/manager';
 
 /** The loaded manager career. Screens render only inside the shell, which guarantees one. */
 export function useManager(): { state: ManagerState; apply: (r: ActionResult, success?: string) => boolean; replace: (s: ManagerState) => void } {
@@ -80,6 +82,7 @@ export function Money({ lakh, className }: { lakh: number; className?: string })
 
 /** Shown in place of a screen's controls when the manager's rank does not include the job. */
 export function LockedNotice({ responsibility, state }: { responsibility: Responsibility; state: ManagerState }) {
+  const t = useT();
   if (holds(state, responsibility)) return null;
   const nextRank = MANAGER.ranks.order.find((r) => (MANAGER.ranks.responsibilities[r] as readonly string[]).includes(responsibility));
   return (
@@ -87,10 +90,10 @@ export function LockedNotice({ responsibility, state }: { responsibility: Respon
       <Lock className="mt-0.5 size-4 shrink-0 text-[#8a6a00]" aria-hidden />
       <p className="text-[13px] text-ink">
         {state.profile.unemployed
-          ? 'You are between jobs - accept an offer on your profile to get back to work.'
-          : `As ${MANAGER.ranks.label[state.profile.rank]} this is handled by the franchise's staff. It becomes yours as ${nextRank ? MANAGER.ranks.label[nextRank] : 'a senior manager'} - earned at a season review, or straight away with full control.`}{' '}
+          ? t('mgr.locked.unemployed')
+          : t('mgr.locked.body', { rank: rankLabel(state.profile.rank), next: nextRank ? rankLabel(nextRank) : t('mgr.locked.senior') })}{' '}
         <Link to="/manager/profile" className="font-semibold text-brand-blue underline-offset-2 hover:underline">
-          Take full control
+          {t('mgr.takeFullControl')}
         </Link>
       </p>
     </div>
@@ -98,11 +101,12 @@ export function LockedNotice({ responsibility, state }: { responsibility: Respon
 }
 
 export function RoleTag({ player }: { player: Pick<ManagedPlayer, 'role' | 'overseas'> }) {
+  const t = useT();
   return (
     <span className="inline-flex items-center gap-1 text-[11.5px] text-ink-muted">
       {roleLabel(player.role)}
       {player.overseas ? (
-        <span className="rounded bg-brand-navy px-1 text-[10px] font-bold text-white" title="Overseas player">
+        <span className="rounded bg-brand-navy px-1 text-[10px] font-bold text-white" title={t('mgr.overseasPlayer')}>
           OS
         </span>
       ) : null}
@@ -112,11 +116,12 @@ export function RoleTag({ player }: { player: Pick<ManagedPlayer, 'role' | 'over
 
 /** A scouting estimate as the user sees it: "72 ± 6". Never the true figure. */
 export function Estimate({ report, field = 'overall' }: { report: ScoutReport | undefined; field?: 'overall' | 'potential' }) {
-  if (!report) return <span className="text-ink-soft" title="Not scouted">?</span>;
+  const t = useT();
+  if (!report) return <span className="text-ink-soft" title={t('mgr.notScouted')}>?</span>;
   const value = field === 'overall' ? report.estOverall : report.estPotential;
   const u = Math.round(report.uncertainty * (field === 'potential' ? 1.6 : 1));
   return (
-    <span className="tabular-nums" title={`${report.observations} observation${report.observations === 1 ? '' : 's'}`}>
+    <span className="tabular-nums" title={t(report.observations === 1 ? 'mgr.observation.one' : 'mgr.observation.many', { n: report.observations })}>
       <span className="font-semibold text-ink">{value}</span>
       <span className="text-[11px] text-ink-muted"> ±{u}</span>
     </span>
@@ -204,4 +209,9 @@ export function shortOf(state: ManagerState, franchiseId: string | null | undefi
 }
 
 export const fitnessTone = (fatigue: number): BadgeTone => (fatigue >= 75 ? 'red' : fatigue >= 50 ? 'orange' : 'green');
-export const formWord = (form: number) => (form >= 70 ? 'Excellent' : form >= 55 ? 'Good' : form >= 40 ? 'Average' : 'Poor');
+export const formWord = (form: number) => tr(form >= 70 ? 'form.EXCELLENT' : form >= 55 ? 'form.GOOD' : form >= 40 ? 'form.AVERAGE' : 'form.POOR');
+
+/** A manager rank, in the current language. */
+export const rankLabel = (rank: ManagerRank) => tr(`mgr.rank.${rank}` as Key);
+/** A season phase, in the current language. */
+export const phaseLabel = (phase: SeasonPhase) => tr(`mgr.phase.${phase}` as Key);

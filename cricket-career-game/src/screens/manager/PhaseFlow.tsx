@@ -6,9 +6,26 @@
  */
 import { ChevronRight, Play } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MANAGER, PHASE_LABEL, advance, advanceBlocker, advanceLabel, holds, pendingUserFixture } from '@/engine/manager';
-import type { ManagerState } from '@/types/manager';
-import { Button, LinkButton, useManager } from './ui';
+import { MANAGER, advance, advanceBlocker, holds, pendingUserFixture } from '@/engine/manager';
+import type { ManagerState, SeasonPhase } from '@/types/manager';
+import { tr } from '@/i18n/core';
+import { useT } from '@/i18n/react';
+import { Button, LinkButton, phaseLabel, useManager } from './ui';
+
+/**
+ * What the "Continue" button will do, in the current language: the engine's
+ * `advanceLabel`, translated (the same steps, kept in step with it).
+ */
+export function continueLabel(state: ManagerState): string {
+  const s = state.season;
+  if (s.phase === 'SCOUTING') return s.week + 1 >= MANAGER.phaseWeeks.SCOUTING ? tr('mgr.cont.toTrials') : tr('mgr.cont.nextWeek', { n: s.week + 1, of: MANAGER.phaseWeeks.SCOUTING });
+  if (s.phase === 'LEAGUE') return s.round >= MANAGER.rules.leagueRounds ? tr('mgr.cont.toPlayoffs') : pendingUserFixture(state) ? tr('mgr.cont.playRound', { n: s.round }) : tr('mgr.cont.finishRound', { n: s.round });
+  if (s.phase === 'PLAYOFFS') return tr('mgr.cont.nextPlayoff');
+  if (s.phase === 'SEASON_END') return tr('mgr.cont.startSeason', { year: s.year + 1 });
+  const order: SeasonPhase[] = ['TRIALS', 'RETENTION', 'AUCTION_PREP', 'AUCTION', 'PRESEASON'];
+  const next = order[order.indexOf(s.phase) + 1];
+  return next ? tr(`mgr.cont.to.${next}` as 'mgr.cont.to.RETENTION') : s.phase === 'PRESEASON' ? tr('mgr.cont.startLeague') : tr('mgr.cont.continue');
+}
 
 /** The screen where the current phase's work is done. */
 export function phaseRoute(state: ManagerState): string {
@@ -48,11 +65,12 @@ export function useContinue() {
     const to = phaseRoute(next);
     if (moved && to !== pathname) navigate(to);
   };
-  return { label: advanceLabel(state), blocker, go, disabled: Boolean(blocker) || state.profile.retired };
+  return { label: continueLabel(state), blocker, go, disabled: Boolean(blocker) || state.profile.retired };
 }
 
 /** A slim bar on every manager screen: where the season is, and Continue. */
 export function PhaseBar() {
+  const t = useT();
   const { state } = useManager();
   const { pathname } = useLocation();
   const { label, blocker, go, disabled } = useContinue();
@@ -60,12 +78,12 @@ export function PhaseBar() {
   const s = state.season;
   const pending = pendingUserFixture(state);
   const userMatch = pending && (holds(state, 'MATCHDAY') || holds(state, 'SELECTION'));
-  const where = s.phase === 'SCOUTING' ? `Week ${s.week + 1} of ${MANAGER.phaseWeeks.SCOUTING}` : s.phase === 'LEAGUE' ? `Round ${s.round} of ${MANAGER.rules.leagueRounds}` : null;
+  const where = s.phase === 'SCOUTING' ? t('mgr.weekOf', { n: s.week + 1, of: MANAGER.phaseWeeks.SCOUTING }) : s.phase === 'LEAGUE' ? t('mgr.roundOf', { n: s.round, of: MANAGER.rules.leagueRounds }) : null;
   return (
     <div className="mb-3 flex flex-wrap items-center gap-3 rounded-card border border-line bg-surface px-4 py-2.5 shadow-card">
       <div className="min-w-0 flex-1">
         <p className="text-[11.5px] font-semibold tracking-wide text-ink-muted uppercase">
-          {s.year} · {PHASE_LABEL[s.phase]}
+          {s.year} · {phaseLabel(s.phase)}
           {where ? ` · ${where}` : ''}
         </p>
         {blocker && !userMatch ? <p className="text-[12.5px] text-brand-red" role="status">{blocker}</p> : null}
@@ -73,7 +91,7 @@ export function PhaseBar() {
       {userMatch ? (
         pathname === `/manager/match/${pending.id}` ? null : (
           <LinkButton to={`/manager/match/${pending.id}`} variant="primary">
-            <Play className="size-4 fill-white" aria-hidden /> Go to match
+            <Play className="size-4 fill-white" aria-hidden /> {t('mgr.goToMatch')}
           </LinkButton>
         )
       ) : (
