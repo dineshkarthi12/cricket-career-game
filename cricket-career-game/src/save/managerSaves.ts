@@ -7,6 +7,7 @@
  * Careers live in IndexedDB (`blobStore`), with a small header per slot in
  * localStorage for the slot picker. Every function returns a `SaveResult`.
  */
+import { clearMatchCheckpoints } from './matchCheckpoint';
 import { SAVE } from '@/engine/config';
 import { MANAGER } from '@/engine/manager/config';
 import type { SaveResult } from '@/types';
@@ -164,6 +165,7 @@ export function listManagerSlots(): (ManagerMeta | null)[] {
 export async function deleteManager(slot: ManagerSlotId): Promise<SaveResult<true>> {
   try {
     await getBlobStore().del(managerSlotKey(slot));
+    await clearMatchCheckpoints(slot, 'manager');
   } catch (error) {
     return fail('UNKNOWN', `Could not delete: ${error instanceof Error ? error.message : String(error)}`);
   }

@@ -541,8 +541,9 @@ First-class career averages against mixed opposition: 39.0 / 44.2.
 **Tests - 371 passing across 32 files.**
 
 **Known limits**
-- A match in progress lives in memory: leaving the screen resumes it, a page
-  reload restarts the fixture.
+- ~~A match in progress lives in memory: a page reload restarts the
+  fixture.~~ Fixed: matches are checkpointed and resume after a reload (see
+  "Match save and resume across reloads").
 - "In line for a bigger captaincy" is recorded and announced; the move itself
   comes with Phase 5's progression.
 
@@ -1896,3 +1897,38 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   The records book now has the real holders (`data/records.ts`, as at 2025).
 - Tests: retention offer flow, real-only squads through three auctions,
   the broadcast graphics.
+
+## Match save and resume across reloads
+- A live match is checkpointed after every ball and when the page is hidden
+  or closed, and picks up from the same ball after a reload, with a toast
+  ("Match resumed - 2nd innings, 14.3 overs").
+- How: the engine is deterministic, so `engine/match/checkpoint.ts` records
+  every call into a `LiveMatch` (`recordLiveMatch`) and a checkpoint is the
+  setup plus that log plus a fingerprint of the score. `restoreLiveMatch`
+  replays it, which rebuilds the random state, a peeked delivery, an open
+  question, DLS, the impact sub and the follow-on exactly - no engine
+  internals are serialised. Chosen over dumping the engine's state (closures,
+  Maps, the innings state) because it cannot drift from the engine as the
+  engine changes; a replay that misses the fingerprint is refused.
+- Anti-cheat: a reload replays the same calls, so the next ball comes out
+  the same; a peeked delivery is in the log and stays the same delivery.
+- Storage: `save/matchCheckpoint.ts`, IndexedDB key
+  `cricket-career:match:{career|manager}:{slot}:{fixtureId}`, a per-key write
+  queue (only the newest state waits), failures reported as toasts.
+  Overrides are deduplicated, so a 50-over innings is a few tens of KB.
+- Deleted on completion (played or simulated), on quick sim, and when the
+  slot's career is deleted, replaced or imported over. A checkpoint that
+  will not read or replay, or belongs to another career, is cleared; the
+  first two with a toast, and the fixture starts again.
+- IPL Manager matchdays checkpoint the same way. Live PvP practice runs on
+  its own engine (`engine/pvp`), not `LiveMatch`, so it is not covered;
+  online PvP is skipped as asked.
+- Ball, innings and alert ids are regenerated on a replay (they are
+  timestamps); the cricket is identical.
+- Tests: engine (T20, ODI and multi-day rebuilt mid-play then both copies
+  played to the end with the same inputs give identical scorecards; a
+  reload after peeking gives the same delivery and ball; an open question
+  survives; corrupted, tampered and wrong-version checkpoints are refused;
+  size), store (resume with toast, same next ball, cleared on completion,
+  corrupted and tampered fallbacks, another career's checkpoint, slot
+  deletion), and an IPL Manager matchday resumed after a reload.

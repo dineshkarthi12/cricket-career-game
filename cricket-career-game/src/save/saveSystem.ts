@@ -12,6 +12,7 @@ import type {
 } from '@/types';
 import { activeSlotKey, metaKey } from './keys';
 import { readBlob, removeBlob, settleWrites, writeBlob } from './slotCache';
+import { clearMatchCheckpoints } from './matchCheckpoint';
 import { migrate } from './migrate';
 import { fail, ok, readKey, removeKey, writeKey } from './storage';
 
@@ -140,6 +141,8 @@ export function listSlots(): (SaveMeta | null)[] {
 export function deleteSlot(slot: SaveSlotId): SaveResult<true> {
   if (!isValidSlot(slot)) return fail('NOT_FOUND', `Slot ${slot} does not exist.`);
   void removeBlob(slot);
+  // A match in progress belonged to that career.
+  void clearMatchCheckpoints(slot, 'career');
   return removeKey(metaKey(slot));
 }
 

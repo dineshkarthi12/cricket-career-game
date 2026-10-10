@@ -24,7 +24,9 @@ import {
 import { commitMatchDetailed, type CommitResult } from '@/engine/match/commit';
 import { recordMatch } from '@/engine/career/challenges';
 import { buildMatch, type MatchBuild } from '@/engine/match/lineup';
-import { createLiveMatch, type LiveMatch, type LiveSnapshot } from '@/engine/match/live';
+import { createLiveMatch, type LiveSnapshot } from '@/engine/match/live';
+import { describeCheckpoint, recordLiveMatch, restoreLiveMatch, type LiveCheckpoint, type RecordedLiveMatch } from '@/engine/match/checkpoint';
+import { deleteMatchCheckpoint, readMatchCheckpoint, writeMatchCheckpoint } from '@/save/matchCheckpoint';
 import type { BallOverrides, PlannedDelivery, RiskEstimate } from '@/engine/match/innings';
 import type { TouchShot } from '@/engine/match/touch';
 import type { BowlerPlan, FieldSetting, SimPlayer } from '@/engine/match/types';
@@ -145,6 +147,10 @@ interface MatchStore {
   lastBall: Ball | null;
   after: AfterMatch | null;
   error: string | null;
+  /** Looking for a saved match to resume (after `open`); the screen waits. */
+  resuming: boolean;
+  /** This match was picked up from a checkpoint (the toss has been seen). */
+  resumed: boolean;
 
   open: (state: GameState, fixture: Fixture) => void;
   /** Captain only: bring a player into or out of the proposed XI. */
@@ -226,7 +232,34 @@ function savedPlayer(state: GameState | null): PlayerDecisions {
 }
 
 /** Lives outside the store: mutable, and nothing renders from it directly. */
-let live: LiveMatch | null = null;
+let live: RecordedLiveMatch | null = null;
+
+/**
+ * What is saved after every ball so a reload picks up from it: the match (as
+ * a replayable checkpoint) and the screen's own state around it.
+ */
+export interface CareerMatchCheckpoint {
+  kind: 'career-match';
+  /** The career it belongs to: the player and the career's seed. */
+  playerId: Id;
+  careerSeed: number;
+  fixtureId: Id;
+  savedAt: string;
+  live: LiveCheckpoint;
+  store: Pick<MatchStore, 'selection' | 'captain' | 'delegate' | 'proposedIds' | 'xiReview' | 'build' | 'player' | 'captainDecisions'>;
+  tactics: TacticalLog;
+  conditionBefore: Condition | null;
+}
+
+/** Save the match in progress now (set by the store; called on every change and as the page hides). */
+let persistNow: () => void = () => undefined;
+
+if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') persistNow();
+  });
+  window.addEventListener('pagehide', () => persistNow());
+}
 let tactics: TacticalLog = emptyTacticalLog();
 let conditionBefore: Condition | null = null;
 
@@ -262,6 +295,86 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     }));
 
     if (snap.phase === 'COMPLETE') commit();
+    else persist();
+  };
+
+  /** Write the checkpoint for the match in progress (from the toss on). */
+  const persist = () => {
+    const { stage, fixture, after } = get();
+    const game = useGameStore.getState();
+    if (!live || !fixture || after || game.slot === null || !game.state) return;
+    if (stage !== 'TOSS' && stage !== 'PLAYING' && stage !== 'BREAK') return;
+    const s = get();
+    const payload: CareerMatchCheckpoint = {
+      kind: 'career-match',
+      playerId: game.state.player.id,
+      careerSeed: game.state.seed,
+      fixtureId: fixture.id,
+      savedAt: new Date().toISOString(),
+      live: live.checkpoint(),
+      store: {
+        selection: s.selection,
+        captain: s.captain,
+        delegate: s.delegate,
+        proposedIds: s.proposedIds,
+        xiReview: s.xiReview,
+        build: s.build,
+        player: s.player,
+        captainDecisions: s.captainDecisions,
+      },
+      tactics,
+      conditionBefore,
+    };
+    void writeMatchCheckpoint('career', game.slot, fixture.id, payload);
+  };
+  persistNow = persist;
+
+  /** The match is over (or settled elsewhere): its checkpoint goes. */
+  const forget = (fixtureId: Id | undefined) => {
+    const slot = useGameStore.getState().slot;
+    if (fixtureId && slot !== null) void deleteMatchCheckpoint('career', slot, fixtureId);
+  };
+
+  /**
+   * A match saved mid-play for this fixture: rebuild it and carry on from the
+   * same ball. A checkpoint that no longer fits (the fixture was played, a
+   * different career) is cleared quietly; one that cannot be replayed is
+   * cleared with a toast and the fixture starts again.
+   */
+  const tryResume = async (state: GameState, fixture: Fixture) => {
+    const slot = useGameStore.getState().slot;
+    const stillHere = () => get().fixture?.id === fixture.id && get().stage === 'PRE_MATCH';
+    const done = () => {
+      if (get().fixture?.id === fixture.id) set({ resuming: false });
+    };
+    if (slot === null) return done();
+    const read = await readMatchCheckpoint('career', slot, fixture.id);
+    if (!stillHere()) return done();
+    const toast = useGameStore.getState().pushToast;
+    if (!read.ok) {
+      void deleteMatchCheckpoint('career', slot, fixture.id);
+      toast({ tone: 'error', message: 'The saved match could not be read, so the fixture starts again.' });
+      return done();
+    }
+    const saved = read.value as CareerMatchCheckpoint | null;
+    if (!saved) return done();
+    if (saved.kind !== 'career-match' || saved.playerId !== state.player.id || saved.careerSeed !== state.seed || saved.fixtureId !== fixture.id || state.fixtures[fixture.id]?.played) {
+      void deleteMatchCheckpoint('career', slot, fixture.id);
+      return done();
+    }
+    try {
+      const restored = restoreLiveMatch(saved.live);
+      live = restored;
+      tactics = saved.tactics ?? emptyTacticalLog();
+      conditionBefore = saved.conditionBefore ?? conditionBefore;
+      set({ ...saved.store, after: null, lastBall: null, autoPlay: false, resuming: false, resumed: true });
+      sync(null);
+      toast({ tone: 'success', message: `Match resumed - ${describeCheckpoint(restored.snapshot())}.` });
+    } catch {
+      void deleteMatchCheckpoint('career', slot, fixture.id);
+      toast({ tone: 'error', message: 'The saved match could not be restored, so the fixture starts again.' });
+      done();
+    }
   };
 
   /** Captain's calls that are still theirs (not handed to the vice-captain). */
@@ -369,6 +482,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     });
     const stored = result.state.matches[done.match.id] ?? done.match;
     useGameStore.getState().update(() => recordMatch(result.state, stored, new Date()));
+    forget(get().fixture?.id);
     set({
       after: {
         match: stored,
@@ -410,6 +524,8 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     lastBall: null,
     after: null,
     error: null,
+    resuming: false,
+    resumed: false,
 
     open: (state, fixture) => {
       live = null;
@@ -425,7 +541,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       const xiIds = selection.xi.map((p) => p.id);
       const build = buildFor(state, fixture, xiIds, captain);
       // A preview match, so the pitch and weather can be read before the toss.
-      live = build ? createLiveMatch({ ...build.setup, delegate: state.career.captaincy.delegate }) : null;
+      live = build ? recordLiveMatch({ ...build.setup, delegate: state.career.captaincy.delegate }) : null;
 
       set({
         stage: 'PRE_MATCH',
@@ -443,7 +559,10 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         lastBall: null,
         after: null,
         error: build ? null : 'That fixture cannot be played.',
+        resuming: Boolean(build),
+        resumed: false,
       });
+      if (build) void tryResume(state, fixture);
     },
 
     toggleProposed: (id) =>
@@ -484,7 +603,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         set({ error: 'That fixture cannot be played.' });
         return;
       }
-      live = createLiveMatch({ ...build.setup, delegate: get().delegate ?? undefined });
+      live = recordLiveMatch({ ...build.setup, delegate: get().delegate ?? undefined });
       set({ build, xiReview, stage: 'TOSS', after: null, lastBall: null });
       sync(null);
     },
@@ -635,6 +754,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       });
       const stored = result.state.matches[done.match.id] ?? done.match;
       useGameStore.getState().update(() => recordMatch(result.state, stored, new Date()));
+      forget(fixture.id);
       return stored;
     },
 
@@ -688,6 +808,8 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         player: DEFAULT_PLAYER,
         captainDecisions: DEFAULT_CAPTAIN,
         error: null,
+        resuming: false,
+        resumed: false,
       });
     },
   };
@@ -716,5 +838,7 @@ export function __resetMatchStore(): void {
     lastBall: null,
     after: null,
     error: null,
+    resuming: false,
+    resumed: false,
   });
 }

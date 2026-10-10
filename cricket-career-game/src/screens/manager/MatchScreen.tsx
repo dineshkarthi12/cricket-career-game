@@ -11,7 +11,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CloudSun, FastForward, Play, SkipForward, Swords, Zap } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Card, CardHeader, EmptyState, Tabs } from '@/components';
-import { createLiveMatch, type LiveMatch, type LiveSnapshot } from '@/engine/match/live';
+import { createLiveMatch, type LiveSnapshot } from '@/engine/match/live';
+import { describeCheckpoint, recordLiveMatch, restoreLiveMatch, type LiveCheckpoint, type RecordedLiveMatch } from '@/engine/match/checkpoint';
+import { deleteMatchCheckpoint, readMatchCheckpoint, writeMatchCheckpoint } from '@/save/matchCheckpoint';
+import { useGameStore } from '@/store/gameStore';
 import {
   PHASE_LABEL,
   applyResult,
@@ -40,8 +43,22 @@ import { Scorecard } from '@/screens/match/panels/Scorecard';
 import { cn } from '@/lib/cn';
 import { Button, FranchiseCrest, LinkButton, PageHeader, Select, StatLine, ToneBadge, nameOf, shortOf, useManager } from './ui';
 
-/** Live matches survive moving between screens (not a reload: the result is only written at the end). */
-const sessions = new Map<string, LiveMatch>();
+/** Live matches survive moving between screens; a reload picks them up from their checkpoint. */
+const sessions = new Map<string, RecordedLiveMatch>();
+
+/** A matchday saved after every ball (see `engine/match/checkpoint.ts`). */
+interface ManagerMatchCheckpoint {
+  kind: 'manager-match';
+  managerSeed: number;
+  fixtureId: string;
+  live: LiveCheckpoint;
+  calls: MatchdayCalls;
+}
+
+/** Tests: forget the in-memory matches, as a page reload does. */
+export function __clearManagerMatchSessions(): void {
+  sessions.clear();
+}
 
 export default function ManagerMatchScreen() {
   const { fixtureId } = useParams();
@@ -57,7 +74,10 @@ export default function ManagerMatchScreen() {
 function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFixture }) {
   const navigate = useNavigate();
   const replace = useManagerStore((s) => s.replace);
-  const [live, setLive] = useState<LiveMatch | null>(sessions.get(fixture.id) ?? null);
+  const [live, setLive] = useState<RecordedLiveMatch | null>(sessions.get(fixture.id) ?? null);
+  const slot = useManagerStore((s) => s.slot);
+  // Looking for a matchday saved before a reload.
+  const [checking, setChecking] = useState(() => !sessions.get(fixture.id) && slot !== null);
   const [snap, setSnap] = useState<LiveSnapshot | null>(live?.snapshot() ?? null);
   const [lastBall, setLastBall] = useState<Ball | null>(null);
   const [calls, setCalls] = useState<MatchdayCalls>({ approach: null, nextBowlerId: null, targetBowlerId: null });
@@ -79,6 +99,7 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
     if (!match || finishing.current) return;
     finishing.current = true;
     sessions.delete(fixture.id);
+    if (slot !== null) void deleteMatchCheckpoint('manager', slot, fixture.id);
     const current = useManagerStore.getState().state!;
     replace(produce(current, (d) => void applyResult(d, fixture.id, match)));
     navigate(`/manager/match/${fixture.id}/report`, { replace: true });
@@ -90,7 +111,68 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
     setSnap(s);
     if (ball !== undefined) setLastBall(ball);
     if (s.phase === 'COMPLETE') finish(live.finished()?.match);
+    else save(live);
   };
+
+  /** Checkpoint the matchday so a reload carries on from this ball. */
+  const save = (m: RecordedLiveMatch, nextCalls = calls) => {
+    if (slot === null) return;
+    const payload: ManagerMatchCheckpoint = { kind: 'manager-match', managerSeed: state.seed, fixtureId: fixture.id, live: m.checkpoint(), calls: nextCalls };
+    void writeMatchCheckpoint('manager', slot, fixture.id, payload);
+  };
+
+  // After a reload: the matchday saved for this fixture, if there is one.
+  useEffect(() => {
+    if (!checking || slot === null) return;
+    let cancelled = false;
+    void (async () => {
+      const read = await readMatchCheckpoint('manager', slot, fixture.id);
+      if (cancelled) return;
+      const toast = useGameStore.getState().pushToast;
+      const saved = read.ok ? (read.value as ManagerMatchCheckpoint | null) : null;
+      if (!read.ok) toast({ tone: 'error', message: 'The saved match could not be read, so the fixture starts again.' });
+      if (saved && !sessions.get(fixture.id)) {
+        if (saved.kind !== 'manager-match' || saved.managerSeed !== state.seed || saved.fixtureId !== fixture.id) {
+          void deleteMatchCheckpoint('manager', slot, fixture.id);
+        } else {
+          try {
+            const m = restoreLiveMatch(saved.live);
+            sessions.set(fixture.id, m);
+            setLive(m);
+            setSnap(m.snapshot());
+            if (saved.calls) setCalls(saved.calls);
+            toast({ tone: 'success', message: `Match resumed - ${describeCheckpoint(m.snapshot())}.` });
+          } catch {
+            void deleteMatchCheckpoint('manager', slot, fixture.id);
+            toast({ tone: 'error', message: 'The saved match could not be restored, so the fixture starts again.' });
+          }
+        }
+      } else if (!read.ok) void deleteMatchCheckpoint('manager', slot, fixture.id);
+      setChecking(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // As the page is hidden or closed, save where the match is.
+  useEffect(() => {
+    if (!live) return;
+    const flush = () => {
+      if (document.visibilityState === 'hidden' && live.snapshot().phase !== 'COMPLETE') save(live);
+    };
+    const hide = () => {
+      if (live.snapshot().phase !== 'COMPLETE') save(live);
+    };
+    document.addEventListener('visibilitychange', flush);
+    window.addEventListener('pagehide', hide);
+    return () => {
+      document.removeEventListener('visibilitychange', flush);
+      window.removeEventListener('pagehide', hide);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, calls]);
 
   useEffect(() => {
     if (snap?.phase === 'COMPLETE') finish();
@@ -98,10 +180,11 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
   }, []);
 
   const start = () => {
-    const m = createLiveMatch({ ...buildSetup(state, fixture), userIsCaptain: canControl });
+    const m = recordLiveMatch({ ...buildSetup(state, fixture), userIsCaptain: canControl });
     sessions.set(fixture.id, m);
     setLive(m);
     setSnap(m.snapshot());
+    save(m);
   };
 
   const step = (kind: 'ball' | 'over' | 'wicket' | 'innings' | 'end') => {
@@ -213,11 +296,11 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
           <p className="text-[13px] text-ink-muted">{canControl ? 'Take the match ball by ball with full tactical control, or simulate it on your plan.' : 'You are not in charge on matchday yet - the head coach runs the match on the plan.'}</p>
           <div className="flex flex-wrap gap-2">
             {canControl ? (
-              <Button disabled={problems.length > 0} onClick={start}>
+              <Button disabled={problems.length > 0 || checking} onClick={start}>
                 <Play className="size-4 fill-white" aria-hidden /> Play live
               </Button>
             ) : null}
-            <Button variant="gold" disabled={problems.length > 0} onClick={quick}>
+            <Button variant="gold" disabled={problems.length > 0 || checking} onClick={quick}>
               <FastForward className="size-4" aria-hidden /> Quick sim
             </Button>
           </div>

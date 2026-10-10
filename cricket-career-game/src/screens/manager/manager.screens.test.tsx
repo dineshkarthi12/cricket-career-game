@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { createManagerCareer } from '@/engine/manager/create';
 import { autoCompleteAuction } from '@/engine/manager/auction';
@@ -8,6 +8,8 @@ import { __resetManagerStore, useManagerStore } from '@/store/managerStore';
 import { useGameStore } from '@/store/gameStore';
 import type { ManagerState } from '@/types/manager';
 import ManagerRoutes from './ManagerRoutes';
+import { __clearManagerMatchSessions } from './MatchScreen';
+import { settleCheckpointWrites } from '@/save/matchCheckpoint';
 import { YouPanel } from '@/screens/match/controls/YouPanel';
 import type { LiveSnapshot } from '@/engine/match/live';
 import { generateXi } from '@/engine/match/squad';
@@ -172,7 +174,10 @@ describe('the live manager match', () => {
         </Routes>
       </MemoryRouter>,
     );
-    fireEvent.click(await screen.findByRole('button', { name: /Play live/ }, { timeout: 5000 }));
+    const playLive = await screen.findByRole('button', { name: /Play live/ }, { timeout: 5000 });
+    // Enabled once the screen has looked for a matchday saved before a reload.
+    await waitFor(() => expect(playLive).toBeEnabled());
+    fireEvent.click(playLive);
     const toss = screen.queryByRole('button', { name: 'Bat first' });
     if (toss) fireEvent.click(toss);
     const bar = (await screen.findByRole('button', { name: 'Auto play' })).parentElement!;
@@ -191,5 +196,45 @@ describe('the live manager match', () => {
     expect(screen.getAllByRole('listitem').length).toBeGreaterThan(before);
     fireEvent.click(within(bar).getByRole('button', { name: 'Pause' }));
     expect(within(bar).getByRole('button', { name: 'Auto play' })).toBeInTheDocument();
+  }, 30000);
+
+  it('a reload mid-match picks the matchday up from the same ball', async () => {
+    let s = createManagerCareer({ name: 'A', franchiseId: 'team-coromandel-kings', difficulty: 'NORMAL', pathway: 'DIRECT', seed: 4 });
+    while (s.season.phase !== 'LEAGUE') s = step(s);
+    load(s);
+    __clearManagerMatchSessions();
+    useGameStore.setState({ toasts: [] });
+    const fixture = s.season.fixtures.find((f) => !f.result && (f.homeId === s.franchiseId || f.awayId === s.franchiseId))!;
+    const mount = () =>
+      render(
+        <MemoryRouter initialEntries={[`/manager/match/${fixture.id}`]}>
+          <Routes>
+            <Route path="/manager/*" element={<ManagerRoutes />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    const first = mount();
+    const playLive = await screen.findByRole('button', { name: /Play live/ }, { timeout: 5000 });
+    await waitFor(() => expect(playLive).toBeEnabled());
+    fireEvent.click(playLive);
+    const toss = screen.queryByRole('button', { name: 'Bat first' });
+    if (toss) fireEvent.click(toss);
+    const bar = (await screen.findByRole('button', { name: 'Auto play' })).parentElement!;
+    fireEvent.click(within(bar).getByRole('button', { name: 'Over' }));
+    fireEvent.click(within(bar).getByRole('button', { name: 'Over' }));
+    const commentary = screen.getAllByRole('listitem').map((li) => li.textContent);
+    await act(async () => {
+      await settleCheckpointWrites();
+    });
+    // The reload: the page goes, the in-memory match with it.
+    first.unmount();
+    __clearManagerMatchSessions();
+    mount();
+    await screen.findByRole('button', { name: 'Auto play' }, { timeout: 5000 });
+    expect(useGameStore.getState().toasts.at(-1)?.message).toMatch(/^Match resumed - 1st innings, 2\.0 overs\.$/);
+    // Ball for ball the same commentary (a fresh feed may add end-of-over headers).
+    const after = screen.getAllByRole('listitem').map((li) => li.textContent ?? '');
+    expect(after).toHaveLength(commentary.length);
+    commentary.forEach((line, i) => expect(after[i].endsWith(line ?? '')).toBe(true));
   }, 30000);
 });

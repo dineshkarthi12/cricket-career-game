@@ -1,3 +1,4 @@
+import { clearMatchCheckpoints } from '@/save/matchCheckpoint';
 import { loadRealData, prepareRealSeasons } from '@/data/real';
 import { create } from 'zustand';
 import { createDemoCareer } from '@/data/demoCareer';
@@ -184,6 +185,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   loadDemoCareer: (slot = 1) => {
     const state = createDemoCareer();
     const result = saveToSlot(slot, state);
+    // A new career in the slot: any match the old one left half-played goes.
+    if (result.ok) void clearMatchCheckpoints(slot, 'career');
     if (!result.ok) {
       // Storage may be unavailable (private mode, quota). The demo career is
       // still perfectly playable in memory, so show it anyway.
@@ -205,6 +208,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startNewCareer: (slot, options) => {
     const state = createNewCareer(options);
     const result = saveToSlot(slot, state);
+    // A new career in the slot: any match the old one left half-played goes.
+    if (result.ok) void clearMatchCheckpoints(slot, 'career');
     if (!result.ok) {
       reportError(result.error);
       return false;
@@ -307,6 +312,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   importCareer: (json, slot) => {
     const result = importSaveToSlot(json, slot);
+    // A new career in the slot: any match the old one left half-played goes.
+    if (result.ok) void clearMatchCheckpoints(slot, 'career');
     if (!result.ok) {
       reportError(result.error);
       return false;

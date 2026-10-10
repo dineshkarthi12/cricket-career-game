@@ -69,6 +69,7 @@ describe('saves in IndexedDB', () => {
         throw error;
       },
       del: async () => undefined,
+      keys: async () => [],
     };
     setBlobStore(broken);
     const errors: SaveError[] = [];

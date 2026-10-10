@@ -30,7 +30,9 @@ export default function MatchScreen() {
   const store = useMatchStore();
   const { stage, fixture, selection, snap, build, speed, autoPlay, autoWatch, after, error } =
     store;
-  const [tossSeen, setTossSeen] = useState(false);
+  const [tossSeenHere, setTossSeen] = useState(false);
+  // A match resumed after a reload has had its toss: straight back to the middle.
+  const tossSeen = tossSeenHere || store.resumed;
   const animationSpeed = useAppSettings((s) => s.animationSpeed);
   const reduceMotion = useReducedMotion(state?.settings.reduceMotion ?? false);
 
@@ -103,7 +105,7 @@ export default function MatchScreen() {
   if (!booted) return <Notice text="Loading…" />;
   if (!state) return <Notice text="No career loaded." />;
   if (error) return <Notice text={error} />;
-  if (!fixture || !venue || !selection) return <Notice text="Getting the match ready…" />;
+  if (!fixture || !venue || !selection || store.resuming) return <Notice text="Getting the match ready…" />;
 
   const teamNameOf = (id: string) => state.teams[id]?.shortName ?? state.teams[id]?.name ?? id;
   const userName = `${state.player.firstName} ${state.player.lastName}`;

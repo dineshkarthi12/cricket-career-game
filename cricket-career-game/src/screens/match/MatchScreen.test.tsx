@@ -8,7 +8,16 @@ import MatchesScreen from '../Matches';
 import MatchScreen from './MatchScreen';
 import { QuestionModal, sweetZone, timingQuality } from './QuestionModal';
 
-function renderAt(path: string, captain = false) {
+/** Render, then wait while the screen looks for a match saved before a reload. */
+async function renderAt(path: string, captain = false) {
+  const view = renderNow(path, captain);
+  await act(async () => {
+    for (let i = 0; i < 50 && useMatchStore.getState().resuming; i += 1) await new Promise((r) => setTimeout(r, 0));
+  });
+  return view;
+}
+
+function renderNow(path: string, captain = false) {
   useGameStore.getState().loadDemoCareer(1);
   if (captain) useGameStore.getState().update((s) => appointCaptain(s, 'team-tn-u16', '2026-10-01', 'test'));
   useGameStore.setState({ booted: true });
@@ -31,8 +40,8 @@ describe('match screens: career mode', () => {
     useGameStore.setState({ state: null, slot: null, lastError: null, booted: false });
   });
 
-  it('shows the selectors’ decision, the role and the conditions before the match', () => {
-    renderAt('/match/fx-ka-u16');
+  it('shows the selectors’ decision, the role and the conditions before the match', async () => {
+    await renderAt('/match/fx-ka-u16');
     expect(screen.getByRole('heading', { name: /Tamil Nadu U-16 v Karnataka U-16/ })).toBeInTheDocument();
     expect(screen.getByText('Selection')).toBeInTheDocument();
     expect(screen.getByText(/Playing XI|12th man|On the bench|Not selected/)).toBeInTheDocument();
@@ -40,14 +49,14 @@ describe('match screens: career mode', () => {
     expect(screen.getByText('Opposition')).toBeInTheDocument();
   });
 
-  it('gives no way to change the XI to a player who is not captain', () => {
-    renderAt('/match/fx-ka-u16');
+  it('gives no way to change the XI to a player who is not captain', async () => {
+    await renderAt('/match/fx-ka-u16');
     expect(screen.queryByRole('button', { name: /Leave out/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Bat higher/ })).toBeNull();
   });
 
-  it('shows the toss with a reading of the conditions, then the ground', () => {
-    renderAt('/match/fx-ka-u16');
+  it('shows the toss with a reading of the conditions, then the ground', async () => {
+    await renderAt('/match/fx-ka-u16');
     fireEvent.click(screen.getByRole('button', { name: /To the toss|Watch the match/ }));
     expect(screen.getByRole('heading', { name: 'The toss' })).toBeInTheDocument();
     expect(screen.getByText(/Reading the conditions/)).toBeInTheDocument();
@@ -61,8 +70,8 @@ describe('match screens: career mode', () => {
     expect(screen.queryByText('Captain')).toBeNull();
   });
 
-  it('shows the post-match screen once the match is played out', () => {
-    renderAt('/match/fx-ka-u16');
+  it('shows the post-match screen once the match is played out', async () => {
+    await renderAt('/match/fx-ka-u16');
     fireEvent.click(screen.getByRole('button', { name: /To the toss|Watch the match/ }));
     fireEvent.click(screen.getByRole('button', { name: /Spin the coin/ }));
     act(() => useMatchStore.getState().simulateRest());
@@ -71,15 +80,15 @@ describe('match screens: career mode', () => {
     expect(screen.getByText('How you are after it')).toBeInTheDocument();
   }, 60_000);
 
-  it('lists fixtures and results, and opens a full scorecard', () => {
-    renderAt('/matches');
+  it('lists fixtures and results, and opens a full scorecard', async () => {
+    await renderAt('/matches');
     expect(screen.getByText('Still to play')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('link', { name: /Andhra U-16/ }));
     expect(screen.getByRole('link', { name: /All matches/ })).toBeInTheDocument();
   });
 
-  it('quick-sims a fixture from the list into a result', () => {
-    renderAt('/matches');
+  it('quick-sims a fixture from the list into a result', async () => {
+    await renderAt('/matches');
     const before = Object.keys(useGameStore.getState().state!.matches).length;
     fireEvent.click(screen.getAllByRole('button', { name: /Quick Sim/ })[0]);
     expect(Object.keys(useGameStore.getState().state!.matches)).toHaveLength(before + 1);
@@ -93,16 +102,16 @@ describe('match screens: captain mode', () => {
     useGameStore.setState({ state: null, slot: null, lastError: null, booted: false });
   });
 
-  it('lets a captain reshape the XI before sending it to the selectors', () => {
-    renderAt('/match/fx-ka-u16', true);
+  it('lets a captain reshape the XI before sending it to the selectors', async () => {
+    await renderAt('/match/fx-ka-u16', true);
     expect(screen.getAllByRole('button', { name: /Leave out/ })).toHaveLength(11);
     expect(screen.getByRole('button', { name: /Send the XI to the selectors/ })).toBeEnabled();
     fireEvent.click(screen.getAllByRole('button', { name: /Leave out/ })[10]);
     expect(screen.getByRole('button', { name: /Send the XI to the selectors/ })).toBeDisabled();
   });
 
-  it('lets a captain call the toss, and shows the captain’s panel in play', () => {
-    renderAt('/match/fx-ka-u16', true);
+  it('lets a captain call the toss, and shows the captain’s panel in play', async () => {
+    await renderAt('/match/fx-ka-u16', true);
     fireEvent.click(screen.getByRole('button', { name: /Send the XI to the selectors/ }));
     fireEvent.click(screen.getByRole('button', { name: /Win it, bat first/ }));
     fireEvent.click(screen.getByRole('button', { name: /Out to the middle/ }));
