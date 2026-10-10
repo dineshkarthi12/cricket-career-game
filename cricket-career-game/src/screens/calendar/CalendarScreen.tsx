@@ -9,9 +9,23 @@ import { formatDayMonth, formatLongDate } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useGameStore } from '@/store/gameStore';
 import type { CalendarWindow, CalendarWindowKind, Fixture, GameState } from '@/types';
+import { isKey, tr, type Key } from '@/i18n/core';
+import { rich, useT } from '@/i18n/react';
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+/** "March 2026", in the game's language. */
+const monthYear = (month: number, year: number | string) => tr('misc.cal.monthYear', { month: tr(`date.month.${month - 1}` as Key), year });
+/** Monday first: the `date.day` keys count from Sunday. */
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
+
+/** The weather for a month, in the game's language. */
+function climateText(climate: { kind: string; label: string; detail: string }): { label: string; detail: string } {
+  const label = climate.kind === 'MONSOON' && climate.label.startsWith('North') ? 'climate.NE_MONSOON' : `climate.${climate.kind}`;
+  const detail = `climate.${climate.kind}.detail`;
+  return {
+    label: isKey(label) ? tr(label) : climate.label,
+    detail: isKey(detail) ? tr(detail) : climate.detail,
+  };
+}
 
 /** Which window colours a day when several overlap. */
 const WINDOW_PRIORITY: CalendarWindowKind[] = ['EXAMS', 'ICC_EVENT', 'IPL', 'TOURNAMENT', 'INTERNATIONAL', 'HOLIDAYS', 'CLUB_SEASON', 'SCHOOL_TERM'];
@@ -21,12 +35,14 @@ const iso = (year: number, month: number, day: number) =>
 
 export default function CalendarScreen() {
   const state = useGameStore((s) => s.state);
-  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">Loading your career…</p>;
+  const t = useT();
+  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">{t('common.loadingCareer')}</p>;
   return <SeasonCalendar state={state} />;
 }
 
 function SeasonCalendar({ state }: { state: GameState }) {
   const today = state.season.currentDate;
+  const t = useT();
   const [view, setView] = useState('month');
   const [cursor, setCursor] = useState({ year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) });
   const [selected, setSelected] = useState<string>(today);
@@ -48,22 +64,20 @@ function SeasonCalendar({ state }: { state: GameState }) {
       return m < 1 ? { year: year - 1, month: 12 } : m > 12 ? { year: year + 1, month: 1 } : { year, month: m };
     });
 
-  const climate = climateNote(state.calendar.region, cursor.month);
+  const climate = climateText(climateNote(state.calendar.region, cursor.month));
 
   return (
     <div className="flex flex-col gap-3 pb-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-[22px] leading-tight font-bold text-ink">Calendar</h1>
-          <p className="text-[13px] text-ink-muted">
-            {state.season.label} season · today is {formatLongDate(today)}. Only what your stage plays is on here.
-          </p>
+          <h1 className="text-[22px] leading-tight font-bold text-ink">{t('misc.cal.title')}</h1>
+          <p className="text-[13px] text-ink-muted">{t('misc.cal.intro', { season: state.season.label, date: formatLongDate(today) })}</p>
         </div>
         <Tabs
-          label="Calendar view"
+          label={t('misc.cal.view')}
           tabs={[
-            { id: 'month', label: 'Month' },
-            { id: 'list', label: 'List' },
+            { id: 'month', label: t('misc.cal.month') },
+            { id: 'list', label: t('misc.cal.list') },
           ]}
           value={view}
           onChange={setView}
@@ -71,7 +85,7 @@ function SeasonCalendar({ state }: { state: GameState }) {
       </div>
 
       <Card>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show event types">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('misc.cal.types')}>
           {(Object.keys(CATEGORY_STYLE) as EventCategory[]).map((category) => {
             const on = !hidden.includes(category);
             const style = CATEGORY_STYLE[category];
@@ -95,18 +109,18 @@ function SeasonCalendar({ state }: { state: GameState }) {
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
           <Card>
             <div className="mb-3 flex items-center justify-between gap-2">
-              <button type="button" onClick={() => move(-1)} aria-label="Previous month" className="grid size-8 place-items-center rounded-lg hover:bg-page">
+              <button type="button" onClick={() => move(-1)} aria-label={t('misc.cal.prev')} className="grid size-8 place-items-center rounded-lg hover:bg-page">
                 <ChevronLeft className="size-4" />
               </button>
               <div className="text-center">
                 <h2 className="text-[16px] font-semibold text-ink">
-                  {MONTHS[cursor.month - 1]} {cursor.year}
+                  {monthYear(cursor.month, cursor.year)}
                 </h2>
                 <p className="text-[11.5px] text-ink-muted" title={climate.detail}>
                   {climate.label} - {climate.detail}
                 </p>
               </div>
-              <button type="button" onClick={() => move(1)} aria-label="Next month" className="grid size-8 place-items-center rounded-lg hover:bg-page">
+              <button type="button" onClick={() => move(1)} aria-label={t('misc.cal.next')} className="grid size-8 place-items-center rounded-lg hover:bg-page">
                 <ChevronRight className="size-4" />
               </button>
             </div>
@@ -158,13 +172,14 @@ function MonthGrid({
   const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const cells: (string | null)[] = [...Array(lead).fill(null), ...Array.from({ length: days }, (_, i) => iso(year, month, i + 1))];
   while (cells.length % 7 !== 0) cells.push(null);
+  const t = useT();
 
   return (
-    <div role="grid" aria-label={`${MONTHS[month - 1]} ${year}`}>
+    <div role="grid" aria-label={monthYear(month, year)}>
       <div className="grid grid-cols-7 gap-1 pb-1" role="row">
         {WEEKDAYS.map((d) => (
           <span key={d} role="columnheader" className="text-center text-[11px] font-semibold text-ink-soft uppercase">
-            {d}
+            {t(`date.day.${d}` as Key)}
           </span>
         ))}
       </div>
@@ -209,7 +224,7 @@ function MonthGrid({
                   {shortTitle(f)}
                 </span>
               ))}
-              {on.length > 2 ? <span className="hidden text-[9.5px] text-ink-soft sm:block">+{on.length - 2} more</span> : null}
+              {on.length > 2 ? <span className="hidden text-[9.5px] text-ink-soft sm:block">{t('misc.cal.more', { n: on.length - 2 })}</span> : null}
             </button>
           );
         })}
@@ -241,6 +256,7 @@ function WindowLegend({ windows, year, month }: { windows: CalendarWindow[]; yea
 
 function EventLine({ f, pendingId }: { f: Fixture; pendingId: string | null }) {
   const style = styleForKind(f.kind);
+  const t = useT();
   return (
     <li className="flex items-center gap-2.5 py-2">
       <span className={cn('h-8 w-[3px] shrink-0 rounded-full', style.bar)} aria-hidden />
@@ -248,20 +264,20 @@ function EventLine({ f, pendingId }: { f: Fixture; pendingId: string | null }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-medium text-ink">{f.title}</span>
         <span className="block truncate text-[11px] text-ink-soft">
-          {[f.subtitle, f.endDate !== f.date ? `to ${formatDayMonth(f.endDate)}` : null].filter(Boolean).join(' · ')}
+          {[f.subtitle, f.endDate !== f.date ? t('misc.cal.to', { date: formatDayMonth(f.endDate) }) : null].filter(Boolean).join(' · ')}
         </span>
       </span>
       <span className="shrink-0">
         {f.kind === 'MATCH' && f.matchId ? (
           <Link to={`/matches/${f.matchId}`} className="text-[12px] font-semibold text-brand-blue">
-            Scorecard
+            {t('misc.cal.scorecard')}
           </Link>
         ) : f.id === pendingId ? (
           <Link to={`/match/${f.id}`} className="rounded-lg bg-brand-blue px-2.5 py-1 text-[12px] font-semibold text-white">
-            Play
+            {t('misc.cal.play')}
           </Link>
         ) : f.played ? (
-          <Badge tone="grey">Done</Badge>
+          <Badge tone="grey">{t('misc.cal.done')}</Badge>
         ) : (
           <Badge tone="grey">{style.label}</Badge>
         )}
@@ -284,13 +300,14 @@ function DayPanel({
   windows: CalendarWindow[];
 }) {
   const band = windowOn(windows, date);
-  const climate = climateNote(state.calendar.region, Number(date.slice(5, 7)));
+  const climate = climateText(climateNote(state.calendar.region, Number(date.slice(5, 7))));
+  const t = useT();
   return (
     <Card>
-      <CardHeader title={formatLongDate(date)} subtitle={band ? band.title : 'No competition window'} className="mb-1" />
+      <CardHeader title={formatLongDate(date)} subtitle={band ? band.title : t('misc.cal.noWindow')} className="mb-1" />
       {events.length === 0 ? (
         <p className="py-3 text-[13px] text-ink-muted">
-          {date < state.season.currentDate ? 'A training day.' : 'Nothing scheduled - a training day.'}
+          {date < state.season.currentDate ? t('misc.cal.trainingDay') : t('misc.cal.nothing')}
         </p>
       ) : (
         <ul className="divide-y divide-line">
@@ -300,7 +317,7 @@ function DayPanel({
         </ul>
       )}
       <p className="mt-2 text-[12px] text-ink-muted">
-        Weather: <span className="font-medium text-ink">{climate.label}</span>. {climate.detail}
+        {rich(t('misc.cal.weather'), { label: <span className="font-medium text-ink">{climate.label}</span>, detail: climate.detail })}
       </p>
     </Card>
   );
@@ -325,21 +342,22 @@ function ListView({
     const key = f.date.slice(0, 7);
     byMonth.set(key, [...(byMonth.get(key) ?? []), f]);
   }
+  const t = useT();
   return (
     <Card>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-[15px] font-semibold text-ink">{showPast ? 'The whole season' : 'Coming up'}</h2>
+        <h2 className="text-[15px] font-semibold text-ink">{showPast ? t('misc.cal.season') : t('misc.cal.comingUp')}</h2>
         <button type="button" onClick={onTogglePast} className="text-[12.5px] font-semibold text-brand-blue">
-          {showPast ? 'Hide past events' : 'Show past events'}
+          {showPast ? t('misc.cal.hidePast') : t('misc.cal.showPast')}
         </button>
       </div>
       {shown.length === 0 ? (
-        <p className="py-6 text-[13px] text-ink-muted">Nothing on the calendar.</p>
+        <p className="py-6 text-[13px] text-ink-muted">{t('misc.cal.empty')}</p>
       ) : (
         [...byMonth.entries()].map(([key, list]) => (
           <section key={key} className="mb-2">
             <h3 className="mt-2 text-[12px] font-semibold tracking-wide text-ink-soft uppercase">
-              {MONTHS[Number(key.slice(5, 7)) - 1]} {key.slice(0, 4)}
+              {monthYear(Number(key.slice(5, 7)), key.slice(0, 4))}
             </h3>
             <ul className="divide-y divide-line">
               {list.map((f) => (

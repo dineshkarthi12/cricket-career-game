@@ -1,6 +1,7 @@
 import { battingAverage, bowlingAverage, economy, strikeRate } from '@/engine/records';
 import { cn } from '@/lib/cn';
 import type { FormatRecord } from '@/types';
+import { useT } from '@/i18n/react';
 
 const fmt = (n: number | null, digits = 2) => (n === null || !Number.isFinite(n) ? '-' : n.toFixed(digits));
 
@@ -13,13 +14,14 @@ export interface RecordRow {
 
 /** Batting, bowling and fielding figures, one row per format or competition. Scrolls sideways on phones. */
 export function RecordTable({ rows, caption }: { rows: RecordRow[]; caption: string }) {
+  const t = useT();
   return (
     <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={caption}>
       <table className="w-full min-w-[820px] text-left text-[12.5px]">
         <caption className="sr-only">{caption}</caption>
         <thead className="text-[11.5px] text-ink-muted">
           <tr>
-            {['', 'M', 'Inn', 'NO', 'Runs', 'HS', 'Avg', 'SR', '100s', '50s', 'Wkts', 'Best', 'Avg', 'Econ', '5w', 'Ct'].map((h, i) => (
+            {['', 'M', 'Inn', 'NO', t('misc.stats.col.runs'), 'HS', 'Avg', 'SR', '100s', '50s', t('misc.stats.col.wkts'), t('misc.stats.col.best'), 'Avg', 'Econ', '5w', 'Ct'].map((h, i) => (
               <th key={i} scope="col" className="py-1 pr-2 font-medium">{h}</th>
             ))}
           </tr>

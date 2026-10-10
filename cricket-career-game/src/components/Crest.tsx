@@ -1,5 +1,6 @@
 import type { Crest as CrestData } from '@/types';
 import { cn } from '@/lib/cn';
+import { tr } from '@/i18n/core';
 
 interface CrestProps {
   crest: CrestData;
@@ -25,7 +26,7 @@ export function Crest({ crest, size = 56, className, label }: CrestProps) {
       height={size * (72 / 64)}
       className={cn('shrink-0', className)}
       role="img"
-      aria-label={label ? `${label} crest` : `${monogram} crest`}
+      aria-label={tr('misc.comp.crest', { name: label || monogram })}
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">

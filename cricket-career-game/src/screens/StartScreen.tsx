@@ -8,6 +8,7 @@ import { getActiveSlot } from '@/save';
 import { formatLongDate } from '@/lib/format';
 import { useGameStore } from '@/store/gameStore';
 import { SAVE_SLOT_IDS, type SaveMeta, type SaveSlotId } from '@/types';
+import { useT } from '@/i18n/react';
 
 /**
  * The title screen: carry on, start again, pick a slot or bring a save in
@@ -15,6 +16,7 @@ import { SAVE_SLOT_IDS, type SaveMeta, type SaveSlotId } from '@/types';
  */
 export default function StartScreen() {
   const navigate = useNavigate();
+  const t = useT();
   const slots = useGameStore((s) => s.slots);
   const loaded = useGameStore((s) => s.state);
   const loadedSlot = useGameStore((s) => s.slot);
@@ -44,7 +46,7 @@ export default function StartScreen() {
   const onImport = async (file: File | undefined) => {
     if (!file) return;
     if (!firstEmpty) {
-      setNotice('All three slots are in use. Import into a slot from Load slot, or delete a career first.');
+      setNotice(t('misc.start.fullSlots'));
       return;
     }
     const read = await readSaveFile(file);
@@ -54,7 +56,7 @@ export default function StartScreen() {
 
   const onDemo = () => {
     if (!firstEmpty) {
-      setNotice('The demo needs an empty slot. Delete a career from Load slot first.');
+      setNotice(t('misc.start.demoNeedsSlot'));
       return;
     }
     if (loadDemoCareer(firstEmpty)) navigate('/');
@@ -68,12 +70,12 @@ export default function StartScreen() {
         <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6 md:py-16">
           <Logo variant="light" />
           <div>
-            <p className="font-hand text-[30px] leading-none text-brand-gold">More than a game.</p>
+            <p className="font-hand text-[30px] leading-none text-brand-gold">{t('misc.start.tagline')}</p>
             <h1 className="mt-2 max-w-xl text-[30px] leading-tight font-bold text-white sm:text-[38px]">
-              From the school nets to the India cap.
+              {t('misc.start.headline')}
             </h1>
             <p className="mt-2 max-w-lg text-[14px] text-white/75">
-              You are one cricketer. Train, stay fit, take your chances - and earn every step. Nothing is handed out.
+              {t('misc.start.intro')}
             </p>
           </div>
 
@@ -86,9 +88,9 @@ export default function StartScreen() {
             >
               <Play className="size-5 fill-brand-navy" aria-hidden />
               <span>
-                <span className="block text-[15px] font-bold">Continue</span>
+                <span className="block text-[15px] font-bold">{t('misc.start.continue')}</span>
                 <span className="block text-[12px] opacity-80">
-                  {last ? `${last.playerName} · ${last.stageLabel}` : 'No career yet'}
+                  {last ? `${last.playerName} · ${last.stageLabel}` : t('misc.start.noCareer')}
                 </span>
               </span>
             </button>
@@ -98,8 +100,8 @@ export default function StartScreen() {
             >
               <Plus className="size-5" aria-hidden />
               <span>
-                <span className="block text-[15px] font-bold">New Career</span>
-                <span className="block text-[12px] text-white/80">Create your cricketer, aged 8-12</span>
+                <span className="block text-[15px] font-bold">{t('misc.start.new')}</span>
+                <span className="block text-[12px] text-white/80">{t('misc.start.newHint')}</span>
               </span>
             </Link>
             <Link
@@ -108,10 +110,8 @@ export default function StartScreen() {
             >
               <FolderOpen className="size-5" aria-hidden />
               <span>
-                <span className="block text-[15px] font-bold">Load slot</span>
-                <span className="block text-[12px] text-white/75">
-                  {slots.filter(Boolean).length} of 3 slots in use
-                </span>
+                <span className="block text-[15px] font-bold">{t('misc.start.load')}</span>
+                <span className="block text-[12px] text-white/75">{t('misc.start.inUse', { n: slots.filter(Boolean).length })}</span>
               </span>
             </Link>
             <button
@@ -121,8 +121,8 @@ export default function StartScreen() {
             >
               <Upload className="size-5" aria-hidden />
               <span>
-                <span className="block text-[15px] font-bold">Import save</span>
-                <span className="block text-[12px] text-white/75">From an exported .json file</span>
+                <span className="block text-[15px] font-bold">{t('misc.start.import')}</span>
+                <span className="block text-[12px] text-white/75">{t('misc.start.importHint')}</span>
               </span>
             </button>
             <input
@@ -130,7 +130,7 @@ export default function StartScreen() {
               type="file"
               accept="application/json,.json"
               className="sr-only"
-              aria-label="Import a save file"
+              aria-label={t('misc.start.importLabel')}
               onChange={(event) => void onImport(event.target.files?.[0])}
             />
           </div>
@@ -144,10 +144,10 @@ export default function StartScreen() {
               <Crown className="size-5" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-bold tracking-wide uppercase">IPL Manager</span>
-              <span className="block text-[12.5px] text-white/75">A separate career: scout, bid at the auction, pick the XI and build a franchise dynasty.</span>
+              <span className="block text-[15px] font-bold tracking-wide uppercase">{t('misc.start.manager')}</span>
+              <span className="block text-[12.5px] text-white/75">{t('misc.start.managerHint')}</span>
             </span>
-            <span className="rounded-xl bg-brand-gold px-3 py-2 text-[13px] font-bold text-brand-navy">Manage a franchise</span>
+            <span className="rounded-xl bg-brand-gold px-3 py-2 text-[13px] font-bold text-brand-navy">{t('misc.start.managerCta')}</span>
           </Link>
 
           {/* The third mode: live 3D matches with a collectible squad. */}
@@ -159,10 +159,10 @@ export default function StartScreen() {
               <Radio className="size-5" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-bold tracking-wide uppercase">Live PvP</span>
-              <span className="block text-[12.5px] text-white/75">3D one-on-one matches: collect players, build an XI, bowl and time every ball.</span>
+              <span className="block text-[15px] font-bold tracking-wide uppercase">{t('misc.start.pvp')}</span>
+              <span className="block text-[12.5px] text-white/75">{t('misc.start.pvpHint')}</span>
             </span>
-            <span className="rounded-xl bg-brand-blue px-3 py-2 text-[13px] font-bold text-white">Play Live PvP</span>
+            <span className="rounded-xl bg-brand-blue px-3 py-2 text-[13px] font-bold text-white">{t('misc.start.pvpCta')}</span>
           </Link>
         </div>
       </header>
@@ -179,7 +179,7 @@ export default function StartScreen() {
               }}
               className="shrink-0 text-[12.5px] font-semibold text-brand-red"
             >
-              Dismiss
+              {t('common.dismiss')}
             </button>
           </div>
         ) : null}
@@ -195,7 +195,7 @@ export default function StartScreen() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14px] font-semibold text-ink">{meta.playerName}</p>
                       <p className="truncate text-[12px] text-ink-muted">
-                        {meta.stageLabel} · age {meta.age} · {formatLongDate(meta.inGameDate)}
+                        {t('misc.start.slotLine', { stage: meta.stageLabel, age: meta.age, date: formatLongDate(meta.inGameDate) })}
                       </p>
                     </div>
                     <button
@@ -203,7 +203,7 @@ export default function StartScreen() {
                       onClick={() => loadCareer(id) && navigate('/')}
                       className="rounded-lg bg-brand-blue-soft px-3 py-1.5 text-[12.5px] font-semibold text-brand-blue"
                     >
-                      Load
+                      {t('misc.start.load1')}
                     </button>
                   </>
                 ) : (
@@ -211,8 +211,8 @@ export default function StartScreen() {
                     <span className="grid size-10 place-items-center rounded-full bg-page text-ink-soft" aria-hidden>
                       <Plus className="size-4" />
                     </span>
-                    <p className="flex-1 text-[13px] text-ink-muted">Slot {id} is empty</p>
-                    <Badge tone="grey">Free</Badge>
+                    <p className="flex-1 text-[13px] text-ink-muted">{t('misc.start.slotEmpty', { n: id })}</p>
+                    <Badge tone="grey">{t('misc.start.free')}</Badge>
                   </>
                 )}
               </Card>
@@ -226,10 +226,8 @@ export default function StartScreen() {
               <Sparkles className="size-5" />
             </span>
             <div>
-              <p className="text-[14px] font-semibold text-ink">Demo career: Dinesh, 16</p>
-              <p className="text-[12.5px] text-ink-muted">
-                The career from the design - State U-16, Vijay Merchant Trophy, mid-season. Loads into a free slot.
-              </p>
+              <p className="text-[14px] font-semibold text-ink">{t('misc.start.demo')}</p>
+              <p className="text-[12.5px] text-ink-muted">{t('misc.start.demoHint')}</p>
             </div>
           </div>
           <button
@@ -237,12 +235,12 @@ export default function StartScreen() {
             onClick={onDemo}
             className="rounded-xl border border-line bg-surface px-4 py-2 text-[13px] font-semibold text-ink hover:bg-page"
           >
-            Play the demo
+            {t('misc.start.playDemo')}
           </button>
         </Card>
       </main>
 
-      <p className="font-hand pb-8 text-center text-[21px] text-ink-muted">Every great player was once a beginner.</p>
+      <p className="font-hand pb-8 text-center text-[21px] text-ink-muted">{t('story.motto')}</p>
     </div>
   );
 }

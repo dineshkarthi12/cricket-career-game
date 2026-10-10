@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 
 import type { RadarAxis } from './SkillRadar';
+import { tr } from '@/i18n/core';
 
 export interface SkillRadarProps {
   data: RadarAxis[];
@@ -32,7 +33,7 @@ export default function SkillRadarChart({ data, height = 210, label }: SkillRada
           />
           <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
           <Radar
-            name="Potential"
+            name={tr('misc.comp.potential')}
             dataKey="potential"
             stroke="#9DC2FB"
             strokeWidth={1.5}
@@ -41,7 +42,7 @@ export default function SkillRadarChart({ data, height = 210, label }: SkillRada
             isAnimationActive={false}
           />
           <Radar
-            name="Current"
+            name={tr('misc.comp.current')}
             dataKey="current"
             stroke="#1E5EF0"
             strokeWidth={2}

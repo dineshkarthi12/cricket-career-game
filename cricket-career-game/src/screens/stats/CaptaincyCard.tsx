@@ -4,23 +4,26 @@ import { Card, CardHeader, ProgressBar } from '@/components';
 import { winPercent } from '@/engine/career/captaincy';
 import { formatLongDate } from '@/lib/format';
 import type { GameState } from '@/types';
+import type { Key } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
 export function CaptaincyCard({ state }: { state: GameState }) {
   const c = state.career.captaincy;
   const current = c.teamId ? state.teams[c.teamId] : null;
   const pct = winPercent(c.record);
+  const t = useT();
 
   return (
     <Card>
       <div className="flex items-center justify-between gap-2">
         <CardHeader
-          title="Captaincy"
+          title={t('misc.cap.title')}
           subtitle={
             current
-              ? `Captain of ${current.name}`
+              ? t('misc.cap.of', { team: current.name })
               : import.meta.env.DEV && state.settings.devCaptainMode
-                ? 'Dev captain mode is on - not a real appointment'
-                : 'Not currently captain'
+                ? t('misc.cap.dev')
+                : t('misc.cap.not')
           }
         />
         <span className="grid size-10 place-items-center rounded-full bg-brand-gold/20 text-brand-gold">
@@ -30,18 +33,18 @@ export function CaptaincyCard({ state }: { state: GameState }) {
 
       {c.record.matches === 0 ? (
         <p className="mt-3 text-[13px] text-ink-muted">
-          You have not captained a side yet. Leadership, reputation and the selectors' trust are what earn the armband.
+          {t('misc.cap.never')}
         </p>
       ) : (
         <>
           <dl className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
             {[
-              ['Matches', c.record.matches],
-              ['Won', c.record.won],
-              ['Lost', c.record.lost],
-              ['Drawn', c.record.drawn],
-              ['Tied', c.record.tied],
-              ['Win %', pct === null ? '-' : `${pct}`],
+              [t('misc.cap.matches'), c.record.matches],
+              [t('misc.cap.won'), c.record.won],
+              [t('misc.cap.lost'), c.record.lost],
+              [t('misc.cap.drawn'), c.record.drawn],
+              [t('misc.cap.tied'), c.record.tied],
+              [t('misc.cap.winPct'), pct === null ? '-' : `${pct}`],
             ].map(([label, value]) => (
               <div key={label} className="rounded-tile bg-page px-3 py-2">
                 <dt className="text-[10.5px] font-semibold tracking-wide text-ink-soft uppercase">{label}</dt>
@@ -51,20 +54,20 @@ export function CaptaincyCard({ state }: { state: GameState }) {
           </dl>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <Meter label="Captaincy rating" value={c.rating} tone={c.rating >= 60 ? 'green' : c.rating >= 40 ? 'orange' : 'red'} />
-            <Meter label="Stress" value={c.stress} tone={c.stress >= 70 ? 'red' : c.stress >= 40 ? 'orange' : 'green'} />
+            <Meter label={t('misc.cap.rating')} value={c.rating} tone={c.rating >= 60 ? 'green' : c.rating >= 40 ? 'orange' : 'red'} />
+            <Meter label={t('misc.cap.stress')} value={c.stress} tone={c.stress >= 70 ? 'red' : c.stress >= 40 ? 'orange' : 'green'} />
           </div>
 
           {Object.keys(c.byTeam).length > 0 ? (
             <table className="mt-3 w-full text-[12.5px]">
               <thead>
                 <tr className="text-left text-[10.5px] tracking-wide text-ink-soft uppercase">
-                  <th className="pb-1 font-semibold">Team</th>
+                  <th className="pb-1 font-semibold">{t('misc.cap.team')}</th>
                   <th className="pb-1 text-right font-semibold">P</th>
                   <th className="pb-1 text-right font-semibold">W</th>
                   <th className="pb-1 text-right font-semibold">L</th>
                   <th className="pb-1 text-right font-semibold">D</th>
-                  <th className="pb-1 text-right font-semibold">Win %</th>
+                  <th className="pb-1 text-right font-semibold">{t('misc.cap.winPct')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -89,13 +92,7 @@ export function CaptaincyCard({ state }: { state: GameState }) {
           {[...c.history].reverse().slice(0, 6).map((event, i) => (
             <li key={`${event.date}-${i}`} className="text-[12px] text-ink-muted">
               <span className="font-semibold text-ink">{formatLongDate(event.date)}</span> ·{' '}
-              {event.kind === 'APPOINTED'
-                ? 'Appointed'
-                : event.kind === 'SACKED'
-                  ? 'Relieved of the captaincy'
-                  : event.kind === 'RESIGNED'
-                    ? 'Stood down'
-                    : 'Recommended for a bigger job'}
+              {t((['APPOINTED', 'SACKED', 'RESIGNED'].includes(event.kind) ? `misc.cap.${event.kind}` : 'misc.cap.RECOMMENDED') as Key)}
               {' - '}
               {event.note}
             </li>

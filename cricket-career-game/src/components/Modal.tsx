@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useT } from '@/i18n/react';
 
 interface ModalProps {
   open: boolean;
@@ -18,6 +19,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
  */
 export function Modal({ open, onClose, title, subtitle, children }: ModalProps) {
   const panel = useRef<HTMLDivElement>(null);
+  const t = useT();
   const close = useRef(onClose);
   close.current = onClose;
 
@@ -55,7 +57,7 @@ export function Modal({ open, onClose, title, subtitle, children }: ModalProps) 
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t('common.close')}
         tabIndex={-1}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-brand-navy/55 backdrop-blur-[2px]"
@@ -76,7 +78,7 @@ export function Modal({ open, onClose, title, subtitle, children }: ModalProps) 
             type="button"
             data-modal-close="true"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common.close')}
             className="grid size-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-page hover:text-ink"
           >
             <X className="size-4" />
