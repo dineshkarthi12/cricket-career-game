@@ -5,6 +5,8 @@
  */
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, Gift, Target } from 'lucide-react';
+import { useT } from '@/i18n/react';
+import { tr } from '@/i18n/core';
 import { Badge, Card, CardHeader, ProgressBar, StatTile } from '@/components';
 import { currentChallenges, type Challenge } from '@/engine/career/challenges';
 import { useGameStore } from '@/store/gameStore';
@@ -12,7 +14,7 @@ import type { GameState } from '@/types';
 
 export default function ChallengesScreen() {
   const state = useGameStore((s) => s.state);
-  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">Loading your career…</p>;
+  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">{tr('common.loadingCareer')}</p>;
   return <Challenges state={state} />;
 }
 
@@ -27,6 +29,7 @@ function useNow(): Date {
 }
 
 function Challenges({ state }: { state: GameState }) {
+  const t = useT();
   const now = useNow();
   const claim = useGameStore((s) => s.claimChallenge);
   const pushToast = useGameStore((s) => s.pushToast);
@@ -40,7 +43,7 @@ function Challenges({ state }: { state: GameState }) {
     if (result.ok) {
       pushToast({
         tone: 'success',
-        message: `+${result.xp} XP for "${c.text}"${result.levelsGained > 0 ? ` - level up!` : ''}`,
+        message: `${t('car.ch.toast', { xp: result.xp, text: c.text })}${result.levelsGained > 0 ? t('car.ch.levelUp') : ''}`,
       });
     } else {
       pushToast({ tone: 'error', message: result.reason });
@@ -50,24 +53,22 @@ function Challenges({ state }: { state: GameState }) {
   return (
     <div className="flex flex-col gap-3 pb-4">
       <div>
-        <h1 className="text-[22px] leading-tight font-bold text-ink">Challenges</h1>
-        <p className="text-[13px] text-ink-muted">
-          New ones every day and every Monday. They count what you really do - matches you play and training weeks you
-          finish - and each reward can be claimed once.
-        </p>
+        <h1 className="text-[22px] leading-tight font-bold text-ink">{t('nav.challenges')}</h1>
+        <p className="text-[13px] text-ink-muted">{t('car.ch.intro')}</p>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <StatTile label="Ready to claim" value={String(ready)} />
-        <StatTile label="Claimed this week" value={String(list.filter((c) => c.claimed).length)} />
-        <StatTile label="XP from challenges" value={String(state.challenges?.xpEarned ?? 0)} />
+        <StatTile label={t('car.ch.ready')} value={String(ready)} />
+        <StatTile label={t('car.ch.claimedWeek')} value={String(list.filter((c) => c.claimed).length)} />
+        <StatTile label={t('car.ch.xp')} value={String(state.challenges?.xpEarned ?? 0)} />
       </div>
-      <ChallengeList title="Daily" subtitle="Ends at midnight" items={daily} onClaim={onClaim} />
-      <ChallengeList title="Weekly" subtitle={`Ends ${weekly[0]?.endsOn ?? ''}`} items={weekly} onClaim={onClaim} />
+      <ChallengeList title={t('car.ch.daily')} subtitle={t('car.ch.midnight')} items={daily} onClaim={onClaim} />
+      <ChallengeList title={t('car.ch.weekly')} subtitle={t('car.ch.ends', { date: weekly[0]?.endsOn ?? '' })} items={weekly} onClaim={onClaim} />
     </div>
   );
 }
 
 function ChallengeList(props: { title: string; subtitle: string; items: Challenge[]; onClaim: (c: Challenge) => void }) {
+  const t = useT();
   return (
     <Card>
       <CardHeader title={props.title} subtitle={props.subtitle} className="mb-3" />
@@ -87,7 +88,7 @@ function ChallengeList(props: { title: string; subtitle: string; items: Challeng
               {c.claimed ? (
                 <Badge tone="green" className="shrink-0">
                   <CheckCircle2 className="mr-1 inline size-3.5" aria-hidden />
-                  Claimed
+                  {t('car.ch.claimed')}
                 </Badge>
               ) : c.complete ? (
                 <button
@@ -95,12 +96,12 @@ function ChallengeList(props: { title: string; subtitle: string; items: Challeng
                   onClick={() => props.onClaim(c)}
                   className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-brand-blue px-3.5 text-[12.5px] font-semibold text-white hover:bg-brand-blue/90"
                 >
-                  <Gift className="size-4" aria-hidden /> Claim
+                  <Gift className="size-4" aria-hidden /> {t('car.ch.claim')}
                 </button>
               ) : (
                 <Badge tone="grey" className="shrink-0">
                   <Clock className="mr-1 inline size-3.5" aria-hidden />
-                  In progress
+                  {t('car.ch.inProgress')}
                 </Badge>
               )}
             </div>
@@ -108,7 +109,7 @@ function ChallengeList(props: { title: string; subtitle: string; items: Challeng
               value={(c.progress / c.target) * 100}
               tone={c.complete ? 'green' : 'blue'}
               className="mt-2"
-              label={`${c.text}: ${c.progress} of ${c.target}`}
+              label={t('car.ch.progress', { text: c.text, n: c.progress, of: c.target })}
             />
           </li>
         ))}
