@@ -8,10 +8,20 @@
 import type { Dict } from './core';
 import { taCommentary } from './ta/commentary';
 import { taMatch } from './ta/match';
+import { taPvp } from './ta/pvp';
+import { taManager } from './ta/manager';
+import { taPro } from './ta/pro';
+import { taCareer } from './ta/career';
+import { taMisc } from './ta/misc';
 
 export const ta: Dict = {
   ...taMatch,
   ...taCommentary,
+  ...taPvp,
+  ...taManager,
+  ...taPro,
+  ...taCareer,
+  ...taMisc,
   // --- Shared words ---------------------------------------------------------------------------
   'common.close': 'மூடு',
   'common.dismiss': 'மூடு',

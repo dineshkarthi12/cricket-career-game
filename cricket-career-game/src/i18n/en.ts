@@ -5,10 +5,20 @@
  */
 import { enCommentary } from './en/commentary';
 import { enMatch } from './en/match';
+import { enPvp } from './en/pvp';
+import { enManager } from './en/manager';
+import { enPro } from './en/pro';
+import { enCareer } from './en/career';
+import { enMisc } from './en/misc';
 
 export const en = {
   ...enMatch,
   ...enCommentary,
+  ...enPvp,
+  ...enManager,
+  ...enPro,
+  ...enCareer,
+  ...enMisc,
   // --- Shared words ---------------------------------------------------------------------------
   'common.close': 'Close',
   'common.dismiss': 'Dismiss',
