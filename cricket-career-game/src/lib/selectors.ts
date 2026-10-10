@@ -138,7 +138,14 @@ export function statsTabs(state: GameState): StatsTabDefinition[] {
   const intl = ['intl-test', 'intl-odi', 'intl-t20i', 't20-world-cup', 'odi-world-cup', 'champions-trophy', 'world-test-championship'];
   if (played(['ipl'])) tabs.splice(tabs.length - 1, 0, { id: 'ipl', label: 'IPL', tournamentIds: ['ipl'] });
   if (played(intl)) tabs.splice(tabs.length - 1, 0, { id: 'intl', label: 'India', tournamentIds: intl });
-  return tabs;
+  // Early in a career, levels not reached yet stay out of the way (the age group and Overall always show).
+  return tabs.filter((t) => t.id === 'overall' || t.id.startsWith('u') || hasMatches(state, t));
+}
+
+function hasMatches(state: GameState, tab: StatsTabDefinition): boolean {
+  return Object.entries(state.player.record.byCompetition).some(
+    ([id, rec]) => rec.batting.matches > 0 && (tab.tournamentIds ? tab.tournamentIds.includes(id) : tab.formats ? tab.formats.includes(rec.format) : true),
+  );
 }
 
 const EMPTY_BATTING: BattingRecord = {

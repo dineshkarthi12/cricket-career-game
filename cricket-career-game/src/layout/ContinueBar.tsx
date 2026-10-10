@@ -1,15 +1,17 @@
-import { useState } from 'react';
 import { CalendarDays, ChevronRight, ClipboardCheck, CloudRain, Gavel, HeartPulse, Play, ScrollText, Sun, Snowflake, X, Zap } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components';
+import { cn } from '@/lib/cn';
 import { climateNote, pendingMatch, pendingTrial } from '@/engine/calendar';
 import { formatLongDate } from '@/lib/format';
 import { unwatchedAuction } from '@/engine/pro/ipl';
+import { useClockStore } from '@/store/clockStore';
+import { freshSelectionNews, useContinue } from './useContinue';
 import { daysBetweenDates } from '@/engine/development';
 import { useGameStore } from '@/store/gameStore';
 import { useMatchStore } from '@/store/matchStore';
 import type { ClimateKind } from '@/engine/calendar';
-import type { GameState, InboxMessage } from '@/types';
+import type { GameState } from '@/types';
 import { SelectionNewsModal } from '@/screens/career/SelectionNewsModal';
 
 const CLIMATE_ICON: Record<ClimateKind, typeof Sun> = {
@@ -30,13 +32,15 @@ export function ContinueBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const state = useGameStore((s) => s.state);
-  const advanceWeek = useGameStore((s) => s.advanceWeek);
   const quickSim = useMatchStore((s) => s.quickSim);
   const coachTrial = useGameStore((s) => s.coachTrial);
   // A note belongs to the day (and the match day) it was written about.
-  const [noteState, setNoteState] = useState<{ text: string; date: string; fixtureId: string | null } | null>(null);
+  const noteState = useClockStore((s) => s.note);
   // Selection news the week brought, told step by step.
-  const [news, setNews] = useState<InboxMessage[] | null>(null);
+  const news = useClockStore((s) => s.news);
+  const setNews = useClockStore((s) => s.setNews);
+  const setNoteState = useClockStore((s) => s.setNote);
+  const onContinue = useContinue();
 
   // A match in progress has its own controls; the clock waits for it.
   if (!state || pathname.startsWith('/match/') || pathname.startsWith('/trial/') || pathname === '/auction/live') return null;
@@ -60,40 +64,8 @@ export function ContinueBar() {
 
   /** Open the selection news, if the week brought any. */
   const showNews = (before: GameState, after: GameState) => {
-    const seen = new Set(before.inbox.map((m) => m.id));
-    const fresh = after.inbox.filter((m) => !seen.has(m.id) && m.category === 'SELECTION');
+    const fresh = freshSelectionNews(before, after);
     if (fresh.length) setNews(fresh);
-  };
-
-  const onContinue = () => {
-    const hadReview = Boolean(state.career.pendingReview);
-    const result = advanceWeek();
-    if (!result) return;
-    showNews(state, result.state);
-    if (!hadReview && result.state.career.pendingReview) {
-      navigate('/season-review');
-      return;
-    }
-    if (unwatchedAuction(result.state) && !unwatchedAuction(state)) {
-      navigate('/auction/live');
-      return;
-    }
-    if (result.trial) {
-      navigate(`/trial/${result.trial.id}`);
-      return;
-    }
-    if (result.stoppedFor) {
-      setNote(`Match day: ${result.stoppedFor.title}. Play it or sim it to carry on.`, result.state.season.currentDate, result.stoppedFor.id);
-      return;
-    }
-    const report = result.state.player.development.weeklyReports[0];
-    const gains = report?.changes.filter((c) => c.delta > 0).map((c) => `+${c.delta} ${c.label}`) ?? [];
-    setNote(
-      `${formatLongDate(result.state.season.currentDate)}. ` +
-        (gains.length ? gains.slice(0, 3).join(', ') + '. ' : '') +
-        (report ? report.coachNote : ''),
-      result.state.season.currentDate,
-    );
   };
 
   return (
@@ -139,7 +111,8 @@ export function ContinueBar() {
           </button>
         ) : null}
 
-        <div className="ml-auto flex items-center gap-2">
+        {/* On the phone Home the Next action card carries these buttons. */}
+        <div className={cn('ml-auto items-center gap-2', pathname === '/' ? 'hidden md:flex' : 'flex')}>
           {trial ? (
             <>
               <button

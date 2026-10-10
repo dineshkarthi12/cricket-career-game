@@ -27,6 +27,8 @@ export interface AppSettings {
   buttonClicks: boolean;
   /** 0-1. */
   volume: number;
+  /** Home cards folded away on desktop and tablet, by id. */
+  homeCollapsed: string[];
 }
 
 const KEY = 'cc.appSettings';
@@ -40,6 +42,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   crowdAmbience: true,
   buttonClicks: false,
   volume: 0.8,
+  homeCollapsed: [],
 };
 
 function load(): AppSettings {
@@ -56,6 +59,7 @@ function load(): AppSettings {
       crowdAmbience: parsed.crowdAmbience !== false,
       buttonClicks: parsed.buttonClicks === true,
       volume: typeof parsed.volume === 'number' ? Math.max(0, Math.min(1, parsed.volume)) : 0.8,
+      homeCollapsed: Array.isArray(parsed.homeCollapsed) ? parsed.homeCollapsed.filter((x): x is string => typeof x === 'string') : [],
     };
   } catch {
     return DEFAULT_APP_SETTINGS;
@@ -74,13 +78,15 @@ interface AppSettingsStore extends AppSettings {
   set: (patch: Partial<AppSettings>) => void;
   seeTip: (id: string) => void;
   resetTutorial: () => void;
+  /** Fold a Home card away, or open it again. */
+  toggleHomeCard: (id: string) => void;
 }
 
 export const useAppSettings = create<AppSettingsStore>((set, get) => {
   const commit = (patch: Partial<AppSettings>) => {
     set(patch);
-    const { animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume } = get();
-    save({ animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume });
+    const { animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume, homeCollapsed } = get();
+    save({ animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume, homeCollapsed });
   };
   return {
     ...load(),
@@ -89,6 +95,10 @@ export const useAppSettings = create<AppSettingsStore>((set, get) => {
       if (!get().tipsSeen.includes(id)) commit({ tipsSeen: [...get().tipsSeen, id] });
     },
     resetTutorial: () => commit({ tipsSeen: [] }),
+    toggleHomeCard: (id) => {
+      const now = get().homeCollapsed;
+      commit({ homeCollapsed: now.includes(id) ? now.filter((x) => x !== id) : [...now, id] });
+    },
   };
 });
 

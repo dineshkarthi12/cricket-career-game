@@ -15,7 +15,8 @@ import { proPlaces } from '@/lib/pro';
 import { cn } from '@/lib/cn';
 import type { GameState } from '@/types';
 
-export function RoadToSelectionCard({ state }: { state: GameState }) {
+/** `compact` (phones) keeps the steps and the line in play, and one line on the ranking. */
+export function RoadToSelectionCard({ state, compact = false }: { state: GameState; compact?: boolean }) {
   const journeys = useMemo(
     () => selectionJourney(state, state.pro ? proPlaces(state).map((p) => p.tournamentId) : []),
     [state],
@@ -25,7 +26,7 @@ export function RoadToSelectionCard({ state }: { state: GameState }) {
   const journey = journeys.find((j) => j.tournamentId === picked) ?? journeys[0];
 
   return (
-    <Card>
+    <Card className={compact ? 'p-4' : undefined}>
       <CardHeader
         title="Road to selection"
         subtitle={journey.headline}
@@ -33,7 +34,7 @@ export function RoadToSelectionCard({ state }: { state: GameState }) {
         className="mb-3"
       />
       {journeys.length > 1 ? (
-        <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Competitions">
+        <div className={cn('mb-3 flex gap-1.5', compact ? '-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]' : 'flex-wrap')} role="tablist" aria-label="Competitions">
           {journeys.map((j) => (
             <button
               key={j.tournamentId}
@@ -42,7 +43,7 @@ export function RoadToSelectionCard({ state }: { state: GameState }) {
               aria-selected={j.tournamentId === journey.tournamentId}
               onClick={() => setPicked(j.tournamentId)}
               className={cn(
-                'flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold transition-colors',
+                'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold transition-colors',
                 j.tournamentId === journey.tournamentId ? 'bg-brand-navy text-white' : 'border border-line bg-surface text-ink hover:bg-page',
               )}
             >
@@ -52,8 +53,16 @@ export function RoadToSelectionCard({ state }: { state: GameState }) {
           ))}
         </div>
       ) : null}
-      <JourneySteps journey={journey} />
-      <JourneyDetails journey={journey} />
+      <JourneySteps journey={journey} showNow={!compact} />
+      {compact ? (
+        journey.rank ? (
+          <p className="mt-2 text-[12px] text-ink-muted">
+            You are <strong className="text-ink">#{journey.rank.position}</strong> of {journey.rank.of} {journey.rank.group}s · XI {journey.rank.xi} · squad {journey.rank.squad}
+          </p>
+        ) : null
+      ) : (
+        <JourneyDetails journey={journey} />
+      )}
     </Card>
   );
 }
@@ -67,7 +76,7 @@ function dotTone(j: CompetitionJourney): string {
 }
 
 /** The six steps, with the one in play highlighted and explained. */
-export function JourneySteps({ journey }: { journey: CompetitionJourney }) {
+export function JourneySteps({ journey, showNow = true }: { journey: CompetitionJourney; showNow?: boolean }) {
   return (
     <div>
       <ol className="grid grid-cols-6 pb-1">
@@ -92,6 +101,7 @@ export function JourneySteps({ journey }: { journey: CompetitionJourney }) {
         ))}
       </ol>
       <div
+        hidden={!showNow}
         className={cn(
           'mt-2.5 rounded-tile border-l-4 px-3 py-2',
           journey.current.status === 'failed' ? 'border-brand-red bg-brand-red/8' : 'border-brand-blue bg-brand-blue-soft',

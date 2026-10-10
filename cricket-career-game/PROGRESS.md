@@ -1932,3 +1932,40 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   size), store (resume with toast, same next ball, cleared on completion,
   corrupted and tampered fallbacks, another career's checkpoint, slot
   deletion), and an IPL Manager matchday resumed after a reload.
+
+## Home: next action first, compact mobile layout
+- **Next action** (`lib/nextAction.ts`, pure and unit-tested; `NextActionCard`)
+  sits right under the hero: one big button that does the most pressing
+  thing, plus one line on why. Priority: a match (or trial) today, with Play
+  and Sim > a decision waiting (the auction room, a retention or trade
+  offer, a captaincy offer, the season review) > unread selection news (opens
+  in place and is marked read) > injured (to the rehab, with when they are
+  back) > exams this week > no training plan > Continue, with where the
+  player stands ("Ranji squad picked Friday - you're 3rd among
+  all-rounders"). A press conference is answered on the post-match screen,
+  so it never waits on Home.
+- The Continue logic moved into `layout/useContinue.ts` plus
+  `store/clockStore.ts`, so the Continue bar and the card share it.
+- **Phones (<768px):** a slim hero (name, style, the four tiles, a story
+  button by the name), Next action, then three compact cards (Next match,
+  Road to selection with the chips in one scrolling row, Inbox with two
+  messages). The rest is behind tabs: Progress (career journey) | Stats
+  (player stats, recent match, skills) | Schedule (upcoming, this week's
+  training) | More (decisions, trophies, community, banner). On the phone
+  Home the Continue bar shows only the date and climate, because the Next
+  action card carries its buttons. The first-visit tip sits below Next
+  match, so the hero, Next action and Next match fit on a 390x844 screen.
+  Home went from about 4,300px to under about 1,800px at 390px.
+- **Tablet and desktop:** the grid as before, with Next action first. Skill
+  Development, Trophies and Community fold away, and the choice is
+  remembered in this device's settings (`homeCollapsed`).
+- **Early career:** the Community card is hidden until people follow the
+  player (100+ followers or stories), and Player Stats hides level tabs with
+  no matches yet (the age group and Overall always show; IPL and India
+  already appeared only once played).
+- Tests:
+  - the priority function, case by case and in priority order;
+  - Home on a match day, an auction day, injured, a quiet week, and with
+    selection news;
+  - the phone layout with its tabs;
+  - a folded card remembered across visits.

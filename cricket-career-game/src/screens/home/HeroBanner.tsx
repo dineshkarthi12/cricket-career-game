@@ -54,10 +54,11 @@ export function HeroBanner({ state }: { state: GameState }) {
           </p>
         </div>
 
-        <div className="relative flex min-h-[300px] flex-col justify-between gap-6 p-5 xl:min-h-[318px]">
+        {/* On a phone the banner is slim: name, style and the four tiles; the rest from md up. */}
+        <div className="relative flex flex-col justify-between gap-3 p-4 md:min-h-[300px] md:gap-6 md:p-5 xl:min-h-[318px]">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-[30px] leading-none font-bold text-brand-navy">{name}</h1>
+              <h1 className="text-[24px] leading-none font-bold text-brand-navy md:text-[30px]">{name}</h1>
               <button
                 type="button"
                 aria-label="Edit player details"
@@ -65,9 +66,17 @@ export function HeroBanner({ state }: { state: GameState }) {
               >
                 <Pencil className="size-[17px]" strokeWidth={2} />
               </button>
+              <button
+                type="button"
+                onClick={() => setStoryOpen(true)}
+                aria-label="Watch story"
+                className="ml-auto grid size-9 place-items-center rounded-full bg-brand-navy text-white md:hidden"
+              >
+                <Play className="ml-0.5 size-4 fill-white" />
+              </button>
             </div>
 
-            <p className="mt-1.5 text-[14px] font-medium text-ink">
+            <p className="mt-1 text-[13px] font-medium text-ink md:mt-1.5 md:text-[14px]">
               {battingStyleLabel(player.battingStyle)}
               <span className="mx-1.5 text-ink-soft">•</span>
               {canUserControlBowling(player)
@@ -77,12 +86,12 @@ export function HeroBanner({ state }: { state: GameState }) {
                   : `${bowlingStyleLabel(player.bowlingStyle)} (does not bowl)`}
             </p>
 
-            <p className="mt-2 flex items-center gap-1.5 text-[13.5px] text-ink-muted">
+            <p className="mt-2 hidden items-center gap-1.5 text-[13.5px] text-ink-muted md:flex">
               <MapPin className="size-4 text-brand-navy" strokeWidth={2} />
               {player.hometown}, {player.state}
             </p>
 
-            <p className="mt-1.5 flex items-center gap-2 text-[13.5px] text-ink-muted">
+            <p className="mt-1.5 hidden items-center gap-2 text-[13.5px] text-ink-muted md:flex">
               <span>
                 Age <span className="font-semibold text-ink">{player.age}</span>
               </span>
@@ -93,7 +102,7 @@ export function HeroBanner({ state }: { state: GameState }) {
               </span>
             </p>
 
-            <p className="font-hand mt-2.5 max-w-[260px] text-[20px] leading-[1.2] text-ink">
+            <p className="font-hand mt-2.5 hidden max-w-[260px] text-[20px] leading-[1.2] text-ink md:block">
               “ {player.motto} ”
             </p>
           </div>
@@ -136,11 +145,11 @@ export function HeroBanner({ state }: { state: GameState }) {
             </button>
           </div>
 
-          {/* Phones get the story button in the flow rather than over the photo. */}
+          {/* Tablets get the story button in the flow rather than over the photo (phones: by the name). */}
           <button
             type="button"
             onClick={() => setStoryOpen(true)}
-            className="flex items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-[14px] font-semibold text-white lg:hidden"
+            className="hidden items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-[14px] font-semibold text-white md:flex lg:hidden"
           >
             <Play className="size-4 fill-white" />
             Watch Story

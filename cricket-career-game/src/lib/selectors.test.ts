@@ -83,9 +83,15 @@ describe('schedule selectors', () => {
 describe('stat tabs', () => {
   const tabs = statsTabs(state);
 
-  it('opens on the age group the current stage plays', () => {
+  it('opens on the age group the current stage plays, hiding levels not reached yet', () => {
     expect(tabs[0].label).toBe('U-16');
-    expect(tabs.map((tab) => tab.label)).toEqual(['U-16', 'First-Class', 'List A', 'T20', 'Overall']);
+    expect(tabs.map((tab) => tab.label)).toEqual(['U-16', 'Overall']);
+  });
+
+  it('a level gets its tab once there is a match in it', () => {
+    const fc = { ...state.player.record.byFormat.MULTI_DAY, batting: { ...state.player.record.byFormat.MULTI_DAY.batting, matches: 1 } };
+    const debut = { ...state, player: { ...state.player, record: { ...state.player.record, byCompetition: { ...state.player.record.byCompetition, 'ranji-trophy': fc } } } };
+    expect(statsTabs(debut).map((tab) => tab.label)).toEqual(['U-16', 'First-Class', 'Overall']);
   });
 
   it('rolls the U-16 record up to the figures on the card', () => {
@@ -100,7 +106,7 @@ describe('stat tabs', () => {
   });
 
   it('reports zeroes for levels the player has never reached', () => {
-    const firstClass = statsForTab(state, tabs[1]);
+    const firstClass = statsForTab(state, { id: 'first-class', label: 'First-Class', tournamentIds: ['ranji-trophy', 'duleep-trophy', 'irani-cup'] });
     expect(firstClass.matches).toBe(0);
     expect(firstClass.runs).toBe(0);
     expect(firstClass.average).toBeNull();

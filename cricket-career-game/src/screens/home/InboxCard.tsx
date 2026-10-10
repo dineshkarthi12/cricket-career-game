@@ -25,13 +25,13 @@ export const SENDER_STYLE: Record<InboxSender, { icon: LucideIcon; tile: string 
   SYSTEM: { icon: Landmark, tile: 'bg-page text-ink-muted' },
 };
 
-export function InboxCard({ state }: { state: GameState }) {
+export function InboxCard({ state, compact = false }: { state: GameState; compact?: boolean }) {
   const messages = [...state.inbox]
     .sort((a, b) => Number(b.important) - Number(a.important) || b.date.localeCompare(a.date))
-    .slice(0, 3);
+    .slice(0, compact ? 2 : 3);
 
   return (
-    <Card>
+    <Card className={compact ? 'p-4' : undefined}>
       <CardHeader
         title={`Inbox / News (${unreadCount(state)})`}
         action={{ label: 'View All', to: '/selection' }}

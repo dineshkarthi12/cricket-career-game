@@ -10,6 +10,8 @@ import type { GameState } from '@/types';
 export function CommunityCard({ state }: { state?: GameState }) {
   const stories = state?.pro?.fans.stories ?? [];
   const followers = state?.pro?.fans.followers ?? 0;
+  // Early in a career there is nobody following yet: nothing to show.
+  if (state && !stories.length && followers < 100) return null;
   return (
     <Card>
       <CardHeader
