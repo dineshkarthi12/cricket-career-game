@@ -1,5 +1,7 @@
+import { tr } from '@/i18n/core';
+
 /** Shown while a screen's code loads: a quiet skeleton in the page's own frame. */
-export function ScreenLoading({ label = 'Loading…' }: { label?: string }) {
+export function ScreenLoading({ label = tr('misc.comp.loading') }: { label?: string }) {
   return (
     <div className="flex flex-col gap-3 py-4" role="status" aria-live="polite">
       <span className="sr-only">{label}</span>

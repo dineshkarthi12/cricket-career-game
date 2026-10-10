@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Logo } from '@/layout/Logo';
+import { useT } from '@/i18n/react';
 
 interface EntryLayoutProps {
   title: string;
@@ -17,6 +18,7 @@ interface EntryLayoutProps {
  * player has picked a slot.
  */
 export function EntryLayout({ title, subtitle, children, back }: EntryLayoutProps) {
+  const t = useT();
   return (
     <div className="min-h-screen bg-page">
       <header className="relative overflow-hidden bg-brand-navy">
@@ -46,7 +48,7 @@ export function EntryLayout({ title, subtitle, children, back }: EntryLayoutProp
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">{children}</main>
 
       <p className="font-hand pb-8 text-center text-[21px] text-ink-muted">
-        Every great player was once a beginner.
+        {t('story.motto')}
       </p>
     </div>
   );
