@@ -13,6 +13,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import type { LiveAlert } from '@/engine/match/live';
+import { useT } from '@/i18n/react';
 
 const ICONS: Record<LiveAlert['kind'], typeof Star> = {
   MILESTONE: Star,
@@ -51,9 +52,10 @@ export const AlertsFeed = memo(function AlertsFeed({
   limit?: number;
   className?: string;
 }) {
+  const t = useT();
   const shown = [...alerts].slice(-limit).reverse();
   if (shown.length === 0) {
-    return <p className={`text-[13px] text-ink-muted ${className ?? ''}`}>Nothing yet.</p>;
+    return <p className={`text-[13px] text-ink-muted ${className ?? ''}`}>{t('alerts.none')}</p>;
   }
 
   return (

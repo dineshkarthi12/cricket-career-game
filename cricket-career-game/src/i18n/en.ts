@@ -3,7 +3,10 @@
  * compiler checks). Keys are grouped by where they appear; `{name}` is
  * filled in by `t()`.
  */
+import { enMatch } from './en/match';
+
 export const en = {
+  ...enMatch,
   // --- Shared words ---------------------------------------------------------------------------
   'common.close': 'Close',
   'common.dismiss': 'Dismiss',

@@ -21,6 +21,8 @@ import { PitchReport, WeatherReport } from './panels/MatchInfo';
 import { ANIMATION_FACTOR, useAppSettings, useReducedMotion } from '@/store/appSettings';
 import { useMatchAudio } from '@/lib/audio/useMatchAudio';
 import { broadcastGraphics, figuresIn } from '@/engine/pro/broadcast';
+import { rich, useT } from '@/i18n/react';
+import { tr } from '@/i18n/core';
 
 export default function MatchScreen() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
@@ -32,9 +34,13 @@ export default function MatchScreen() {
     store;
   const [tossSeenHere, setTossSeen] = useState(false);
   // A match resumed after a reload has had its toss: straight back to the middle.
-  const tossSeen = tossSeenHere || store.resumed;
+  // So has one with a ball bowled: coming back to the screen (or switching
+  // language, which redraws it) goes straight to the middle too.
+  const tossSeen =
+    tossSeenHere || store.resumed || Boolean(snap && (snap.completed.length > 0 || (snap.current?.balls ?? 0) > 0));
   const animationSpeed = useAppSettings((s) => s.animationSpeed);
   const reduceMotion = useReducedMotion(state?.settings.reduceMotion ?? false);
+  const t = useT();
 
   // Open the fixture when the route changes.
   useEffect(() => {
@@ -102,18 +108,18 @@ export default function MatchScreen() {
     return broadcastGraphics(state, fixture.tournamentId, figuresIn(innings, state.player.id));
   }, [state, snap, fixture?.tournamentId, stage]);
 
-  if (!booted) return <Notice text="Loading…" />;
-  if (!state) return <Notice text="No career loaded." />;
+  if (!booted) return <Notice text={t('m.loading')} />;
+  if (!state) return <Notice text={t('m.noCareer')} />;
   if (error) return <Notice text={error} />;
-  if (!fixture || !venue || !selection || store.resuming) return <Notice text="Getting the match ready…" />;
+  if (!fixture || !venue || !selection || store.resuming) return <Notice text={t('m.gettingReady')} />;
 
   const teamNameOf = (id: string) => state.teams[id]?.shortName ?? state.teams[id]?.name ?? id;
   const userName = `${state.player.firstName} ${state.player.lastName}`;
   const nameOf = (id: string) =>
-    store.playerById(id)?.name ?? (id === state.player.id ? userName : 'Player');
+    store.playerById(id)?.name ?? (id === state.player.id ? userName : t('m.player'));
   const tournamentName = fixture.tournamentId
-    ? (TOURNAMENTS_BY_ID[fixture.tournamentId]?.name ?? 'Friendly')
-    : 'Friendly';
+    ? (TOURNAMENTS_BY_ID[fixture.tournamentId]?.name ?? t('m.friendly'))
+    : t('m.friendly');
 
   if (stage === 'PRE_MATCH') {
     return (
@@ -162,18 +168,18 @@ export default function MatchScreen() {
         {store.xiReview &&
         (store.xiReview.accepted.length > 0 || store.xiReview.overruled.length > 0) ? (
           <Card>
-            <CardHeader title="The selectors on your XI" />
+            <CardHeader title={t('toss.selectorsOnXi')} />
             <ul className="mt-2.5 flex flex-col gap-1.5">
               {store.xiReview.accepted.map((c) => (
                 <li key={c.inId} className="flex items-start gap-1.5 text-[12.5px] text-ink">
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-brand-green" aria-hidden />
-                  {nameFrom(selection, c.inId)} in for {nameFrom(selection, c.outId)} - agreed.
+                  {t('toss.agreed', { in: nameFrom(selection, c.inId), out: nameFrom(selection, c.outId) })}
                 </li>
               ))}
               {store.xiReview.overruled.map((c) => (
                 <li key={c.inId} className="flex items-start gap-1.5 text-[12.5px] text-ink">
                   <XCircle className="mt-0.5 size-4 shrink-0 text-brand-red" aria-hidden />
-                  {nameFrom(selection, c.inId)} for {nameFrom(selection, c.outId)} - overruled.{' '}
+                  {t('toss.overruled', { in: nameFrom(selection, c.inId), out: nameFrom(selection, c.outId) })}{' '}
                   {c.reason}
                 </li>
               ))}
@@ -186,31 +192,29 @@ export default function MatchScreen() {
             <span className="mx-auto grid size-14 place-items-center rounded-full bg-brand-gold/20 text-brand-gold">
               <Coins className="size-7" aria-hidden />
             </span>
-            <h1 className="mt-3 text-[20px] font-semibold text-ink">The toss</h1>
+            <h1 className="mt-3 text-[20px] font-semibold text-ink">{t('toss.title')}</h1>
 
             {snap.toss ? (
               <>
                 <p className="mt-2 text-[14px] text-ink">
-                  <span className="font-semibold">{teamNameOf(snap.toss.winnerTeamId)}</span> won
-                  the toss and chose to{' '}
-                  <span className="font-semibold">
-                    {snap.toss.decision === 'BAT' ? 'bat' : 'bowl'}
-                  </span>
-                  .
+                  {rich(t('toss.wonChose'), {
+                    team: <span className="font-semibold">{teamNameOf(snap.toss.winnerTeamId)}</span>,
+                    decision: <span className="font-semibold">{t(`m.decision.${snap.toss.decision}`)}</span>,
+                  })}
                 </p>
                 <button
                   type="button"
                   onClick={() => setTossSeen(true)}
                   className="mt-4 rounded-xl bg-brand-blue px-5 py-3 text-[14px] font-semibold text-white hover:bg-brand-blue/90"
                 >
-                  Out to the middle
+                  {t('toss.toMiddle')}
                 </button>
               </>
             ) : callsToss ? (
               <>
                 <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[13px] text-ink-muted">
                   <Crown className="size-3.5 text-brand-gold" aria-hidden />
-                  Your call if you win it.
+                  {t('toss.yourCall')}
                 </p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <button
@@ -222,7 +226,7 @@ export default function MatchScreen() {
                         : 'border border-line bg-surface text-ink hover:bg-page'
                     }`}
                   >
-                    Win it, bat first
+                    {t('toss.batFirst')}
                   </button>
                   <button
                     type="button"
@@ -233,7 +237,7 @@ export default function MatchScreen() {
                         : 'border border-line bg-surface text-ink hover:bg-page'
                     }`}
                   >
-                    Win it, bowl first
+                    {t('toss.bowlFirst')}
                   </button>
                 </div>
               </>
@@ -241,15 +245,15 @@ export default function MatchScreen() {
               <>
                 <p className="mt-1.5 text-[13px] text-ink-muted">
                   {store.captain
-                    ? 'The vice-captain is calling today.'
-                    : 'The two captains are out in the middle.'}
+                    ? t('toss.viceCalls')
+                    : t('toss.captainsOut')}
                 </p>
                 <button
                   type="button"
                   onClick={() => store.toss()}
                   className="mt-4 rounded-xl bg-brand-blue px-5 py-3 text-[14px] font-semibold text-white hover:bg-brand-blue/90"
                 >
-                  Spin the coin
+                  {t('toss.spin')}
                 </button>
               </>
             )}
@@ -257,12 +261,7 @@ export default function MatchScreen() {
             <div className="mt-5 rounded-lg bg-brand-blue-soft px-3 py-2.5 text-left">
               <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-blue">
                 <Lightbulb className="size-3.5" aria-hidden />
-                Reading the conditions:{' '}
-                {hint.lean === 'EITHER'
-                  ? 'either way'
-                  : hint.lean === 'BAT'
-                    ? 'bat first'
-                    : 'bowl first'}
+                {t('toss.reading', { lean: `@toss.lean.${hint.lean}` })}
               </p>
               <ul className="mt-1 flex flex-col gap-0.5">
                 {hint.reasons.map((reason) => (
@@ -276,15 +275,15 @@ export default function MatchScreen() {
 
           <div className="flex flex-col gap-4">
             <Card>
-              <CardHeader title="Pitch report" />
+              <CardHeader title={t('m.pitchReport')} />
               <div className="mt-2.5">
                 <PitchReport conditions={snap.conditions} />
               </div>
             </Card>
             <Card>
               <CardHeader
-                title="Conditions"
-                subtitle={snap.underLights ? 'Day-night: under lights later' : undefined}
+                title={t('m.conditions')}
+                subtitle={snap.underLights ? t('m.dayNight') : undefined}
               />
               <div className="mt-2.5">
                 <WeatherReport conditions={snap.conditions} />
@@ -335,8 +334,8 @@ export default function MatchScreen() {
   }
 
   if (stage === 'PLAYING' && snap?.current && build) {
-    const home = fixture.homeTeamId ? teamNameOf(fixture.homeTeamId) : 'Home';
-    const away = fixture.awayTeamId ? teamNameOf(fixture.awayTeamId) : 'Away';
+    const home = fixture.homeTeamId ? teamNameOf(fixture.homeTeamId) : t('m.home');
+    const away = fixture.awayTeamId ? teamNameOf(fixture.awayTeamId) : t('m.away');
     const question = snap.question;
     const fielding = state.player.attributes.fielding;
     const skill =
@@ -407,14 +406,14 @@ export default function MatchScreen() {
     );
   }
 
-  return <Notice text="Getting the match ready…" />;
+  return <Notice text={t('m.gettingReady')} />;
 }
 
 function nameFrom(
   selection: { ranked: { player: { id: string; name: string } }[] },
   id: string,
 ): string {
-  return selection.ranked.find((r) => r.player.id === id)?.player.name ?? 'A player';
+  return selection.ranked.find((r) => r.player.id === id)?.player.name ?? tr('m.aPlayer');
 }
 
 /** Development only: switch captain mode on for this career. */
@@ -422,8 +421,7 @@ function DevCaptainToggle({ on, onChange }: { on: boolean; onChange: (on: boolea
   return (
     <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-dashed border-brand-orange/60 bg-brand-orange/5 px-3 py-2 text-[12px] text-ink">
       <span>
-        <span className="font-bold text-brand-orange">DEV</span> Test captain mode before the career
-        reaches it
+        <span className="font-bold text-brand-orange">DEV</span> {tr('m.devCaptain')}
       </span>
       <label className="flex items-center gap-1.5 font-semibold">
         <input
@@ -432,7 +430,7 @@ function DevCaptainToggle({ on, onChange }: { on: boolean; onChange: (on: boolea
           onChange={(event) => onChange(event.target.checked)}
           className="size-4 accent-brand-orange"
         />
-        Captain
+        {tr('m.captain')}
       </label>
     </div>
   );

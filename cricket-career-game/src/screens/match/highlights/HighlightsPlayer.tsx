@@ -17,6 +17,7 @@ import { useGameStore } from '@/store/gameStore';
 import type { Match, Venue } from '@/types';
 import { GroundView } from '../ground/GroundView';
 import { momentImage, recordReel, recordableType, shareOrDownload, type ReelContext } from './video';
+import { useT } from '@/i18n/react';
 
 /** Ball flight at 1x, and how long the finished picture holds before the next clip. */
 const FLIGHT_MS = 1600;
@@ -45,6 +46,7 @@ export interface HighlightsPlayerProps {
 }
 
 export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, userLeftHanded = false, reduceMotion }: HighlightsPlayerProps) {
+  const t = useT();
   const [mineOnly, setMineOnly] = useState(false);
   const clips = useMemo(() => pickClips(match, userId, userName, { mineOnly }), [match, userId, userName, mineOnly]);
   const [index, setIndex] = useState(0);
@@ -85,13 +87,13 @@ export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, u
       <div className="rounded-tile bg-page px-4 py-6 text-center text-[13px] text-ink-muted">
         {mineOnly ? (
           <>
-            None of your moments made the reel.{' '}
+            {t('player.noneMine')}{' '}
             <button type="button" className="font-semibold text-brand-blue" onClick={() => setMineOnly(false)}>
-              Show everyone's
+              {t('player.showAll')}
             </button>
           </>
         ) : (
-          'Nothing big enough to replay in this match.'
+          t('player.nothing')
         )}
       </div>
     );
@@ -109,7 +111,7 @@ export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, u
   const reel: ReelContext = {
     venue,
     teamNameOf,
-    heading: `${teamNameOf(match.homeTeamId)} v ${teamNameOf(match.awayTeamId)} · Highlights`,
+    heading: t('player.heading', { home: teamNameOf(match.homeTeamId), away: teamNameOf(match.awayTeamId) }),
   };
   const go = (to: number) => setIndex(Math.max(0, Math.min(clips.length - 1, to)));
 
@@ -120,17 +122,17 @@ export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, u
         setSaving(0);
         const video = await recordReel(clips, reel, (share) => setSaving(share));
         const ext = video.type.includes('mp4') ? 'mp4' : 'webm';
-        const how = await shareOrDownload(video, `${fileBase}.${ext}`, 'Cricket Career highlights');
-        if (how === 'downloaded') pushToast({ tone: 'success', message: 'Highlights video saved.' });
+        const how = await shareOrDownload(video, `${fileBase}.${ext}`, t('player.shareTitle'));
+        if (how === 'downloaded') pushToast({ tone: 'success', message: t('player.saved') });
       } else {
         // No video recording here (older iOS Safari): the best moment as a picture.
         const best = [...clips].sort((a, b) => clipWeight(b) - clipWeight(a))[0];
         const image = await momentImage(best, reel);
-        const how = await shareOrDownload(image, `${fileBase}.png`, 'Cricket Career highlight');
-        if (how === 'downloaded') pushToast({ tone: 'info', message: 'This browser cannot record video, so the best moment was saved as a picture.' });
+        const how = await shareOrDownload(image, `${fileBase}.png`, t('player.shareTitle1'));
+        if (how === 'downloaded') pushToast({ tone: 'info', message: t('player.savedImage') });
       }
     } catch (error) {
-      pushToast({ tone: 'error', message: `The highlights could not be saved: ${error instanceof Error ? error.message : String(error)}` });
+      pushToast({ tone: 'error', message: t('player.failed', { error: error instanceof Error ? error.message : String(error) }) });
     } finally {
       setSaving(null);
     }
@@ -141,10 +143,10 @@ export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, u
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="flex items-center gap-2 text-[12.5px] font-semibold text-ink">
           <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} className="size-4 accent-brand-blue" />
-          Your moments only
+          {t('player.mineOnly')}
         </label>
         <span className="text-[12px] text-ink-muted tabular-nums" aria-live="polite">
-          Clip {index + 1} of {clips.length}
+          {t('player.clipOf', { n: index + 1, total: clips.length })}
         </span>
       </div>
 
@@ -171,7 +173,7 @@ export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, u
             !reduceMotion && 'animate-tv-slide-in',
           )}
         >
-          {clip.mine ? <span className="mr-1.5 rounded bg-black/20 px-1 text-[10px] tracking-[0.15em] uppercase">You</span> : null}
+          {clip.mine ? <span className="mr-1.5 rounded bg-black/20 px-1 text-[10px] tracking-[0.15em] uppercase">{t('player.you')}</span> : null}
           {clip.title}
         </div>
       </div>
@@ -181,26 +183,26 @@ export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, u
         <p className="text-[14px] font-bold tabular-nums">
           {teamNameOf(clip.battingTeamId)} {clip.score.runs}/{clip.score.wickets}{' '}
           <span className="font-medium text-white/75">
-            ({clip.score.overs} ov){clip.target ? ` · target ${clip.target}` : ''}
+            ({t('reel.ov', { n: clip.score.overs })}){clip.target ? t('player.target', { n: clip.target }) : ''}
           </span>
         </p>
         <p className="mt-0.5 text-[12.5px] leading-snug text-white/85">{ball.commentary}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Previous clip" className="grid size-10 place-items-center rounded-xl border border-line bg-surface text-ink disabled:opacity-40">
+        <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label={t('player.prev')} className="grid size-10 place-items-center rounded-xl border border-line bg-surface text-ink disabled:opacity-40">
           <ChevronLeft className="size-5" aria-hidden />
         </button>
         {reduceMotion ? null : (
-          <button type="button" onClick={() => (playing ? setPlaying(false) : (index + 1 >= clips.length && setIndex(0), setPlaying(true)))} aria-label={playing ? 'Pause' : 'Play'} className="grid size-10 place-items-center rounded-xl bg-brand-blue text-white">
+          <button type="button" onClick={() => (playing ? setPlaying(false) : (index + 1 >= clips.length && setIndex(0), setPlaying(true)))} aria-label={playing ? t('player.pause') : t('player.play')} className="grid size-10 place-items-center rounded-xl bg-brand-blue text-white">
             {playing ? <Pause className="size-5" aria-hidden /> : <Play className="size-5 fill-white" aria-hidden />}
           </button>
         )}
-        <button type="button" onClick={() => go(index + 1)} disabled={index + 1 >= clips.length} aria-label="Next clip" className="grid size-10 place-items-center rounded-xl border border-line bg-surface text-ink disabled:opacity-40">
+        <button type="button" onClick={() => go(index + 1)} disabled={index + 1 >= clips.length} aria-label={t('player.next')} className="grid size-10 place-items-center rounded-xl border border-line bg-surface text-ink disabled:opacity-40">
           <ChevronRight className="size-5" aria-hidden />
         </button>
         {reduceMotion ? null : (
-          <div className="flex overflow-hidden rounded-xl border border-line" role="group" aria-label="Speed">
+          <div className="flex overflow-hidden rounded-xl border border-line" role="group" aria-label={t('player.speed')}>
             {([1, 2] as const).map((s) => (
               <button key={s} type="button" aria-pressed={speed === s} onClick={() => setSpeed(s)} className={cn('px-3 py-2 text-[13px] font-semibold', speed === s ? 'bg-brand-navy text-white' : 'bg-surface text-ink')}>
                 {s}x
@@ -215,7 +217,7 @@ export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, u
           className="ml-auto flex min-h-10 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-[13px] font-semibold text-ink disabled:opacity-60"
         >
           {recordableType() ? <Film className="size-4" aria-hidden /> : <Download className="size-4" aria-hidden />}
-          {saving !== null ? `Recording… ${Math.round(saving * 100)}%` : recordableType() ? 'Save as video' : 'Save as image'}
+          {saving !== null ? t('player.recording', { n: Math.round(saving * 100) }) : recordableType() ? t('player.saveVideo') : t('player.saveImage')}
         </button>
       </div>
     </div>

@@ -26,7 +26,9 @@ import { winPercent } from '@/engine/career/captaincy';
 import type { PressConference } from '@/engine/career/press';
 import { battingByLevel, bowlingByLevel } from '@/lib/aggressionStats';
 import { ballsToOvers } from '@/lib/format';
-import { resultHeadline } from '@/lib/matchText';
+import { resultHeadline, summaryText } from '@/lib/matchText';
+import { tr } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 import type { AfterMatch } from '@/store/matchStore';
 import type { CaptaincyState, Player, Venue } from '@/types';
 import { BATTING_LEVELS, BOWLING_LEVELS } from './controls/AggressionBar';
@@ -62,6 +64,7 @@ export function PostMatch({
   onPress: (answers: Record<string, string>) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const { match, result } = after;
   const conditionBefore = after.conditionBefore;
   const [tab, setTab] = useState('0');
@@ -84,20 +87,20 @@ export function PostMatch({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold tracking-wide text-ink-soft uppercase">
-              {match.stage} · {teamNameOf(match.homeTeamId)} v {teamNameOf(match.awayTeamId)}
+              {match.stage} · {teamNameOf(match.homeTeamId)} {t('m.v')} {teamNameOf(match.awayTeamId)}
             </p>
             <h1 className="mt-1 text-[24px] leading-tight font-bold text-ink">
               {resultHeadline(match, teamNameOf)}
             </h1>
             <p className="mt-1.5">
               <Badge tone={won ? 'green' : lost ? 'red' : 'blue'}>
-                {won ? 'You won' : lost ? 'You lost' : match.result?.summary ?? 'No result'}
+                {won ? t('post.youWon') : lost ? t('post.youLost') : match.result ? summaryText(match.result.summary) : t('res.none')}
               </Badge>
             </p>
             {match.result?.manOfTheMatchId ? (
               <p className="mt-2.5 flex items-center gap-1.5 text-[13px] text-ink-muted">
                 <Award className="size-4 text-brand-gold" aria-hidden />
-                Player of the match:{' '}
+                {t('post.potm')}{' '}
                 <span className="font-semibold text-ink">
                   {nameOf(match.result.manOfTheMatchId)}
                 </span>
@@ -112,13 +115,13 @@ export function PostMatch({
               className="flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-brand-blue/90"
             >
               <Home className="size-4" aria-hidden />
-              Back to the dashboard
+              {t('post.dashboard')}
             </button>
             <Link
               to="/matches"
               className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-2.5 text-[13px] font-semibold text-ink hover:bg-page"
             >
-              All matches
+              {t('post.allMatches')}
               <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </div>
@@ -145,47 +148,47 @@ export function PostMatch({
 
       {performance ? (
         <Card>
-          <CardHeader title="Your match" subtitle={`${player.firstName} ${player.lastName}`} />
+          <CardHeader title={t('post.yourMatch')} subtitle={`${player.firstName} ${player.lastName}`} />
           <dl className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
             <Figure
-              label="Runs"
+              label={t('post.runs')}
               value={`${performance.runs}${performance.notOut ? '*' : ''}`}
-              sub={`${performance.ballsFaced} balls`}
+              sub={t('post.balls', { n: performance.ballsFaced })}
             />
             <Figure label="4s / 6s" value={`${performance.fours} / ${performance.sixes}`} />
             <Figure
-              label="Bowling"
+              label={t('post.bowling')}
               value={`${performance.wickets}/${performance.runsConceded}`}
-              sub={`${performance.oversBowled.toFixed(1)} overs`}
+              sub={t('post.overs', { n: performance.oversBowled.toFixed(1) })}
             />
             <Figure
-              label="Fielding"
+              label={t('post.fielding')}
               value={`${performance.catches + performance.stumpings + performance.runOuts}`}
-              sub="catches, stumpings, run-outs"
+              sub={t('post.fieldingSub')}
             />
-            <Figure label="Rating" value={`${performance.rating.toFixed(1)}/10`} />
+            <Figure label={t('post.rating')} value={`${performance.rating.toFixed(1)}/10`} />
             <Figure label="XP" value={`+${performance.xpEarned}`} />
           </dl>
           {performance.manOfTheMatch ? (
             <p className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-brand-gold">
               <Star className="size-4 fill-brand-gold" aria-hidden />
-              Player of the match.
+              {t('post.potmYou')}
             </p>
           ) : null}
           <AggressionTables match={match} playerId={player.id} />
         </Card>
       ) : (
         <Card>
-          <CardHeader title="Your match" />
+          <CardHeader title={t('post.yourMatch')} />
           <p className="mt-2 text-[13px] text-ink-muted">
-            You were not in the XI. Watching from the boundary is part of it too.
+            {t('post.notInXi')}
           </p>
         </Card>
       )}
 
       {result.broadcast?.length ? (
         <Card>
-          <CardHeader title="On the broadcast" subtitle="Milestones and records from this match" />
+          <CardHeader title={t('post.broadcast')} subtitle={t('post.broadcastSub')} />
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {result.broadcast.map((g) => (
               <TvGraphicCard key={g.id} graphic={g} />
@@ -200,47 +203,51 @@ export function PostMatch({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Your standing" />
+          <CardHeader title={t('post.standing')} />
           <dl className="mt-3 grid grid-cols-2 gap-2">
-            <Movement label="Reputation" pair={result.standing.reputation} />
-            <Movement label="Selector trust" pair={result.standing.selectorTrust} />
-            <Movement label="With the media" pair={[result.standing.mediaReputation[0], mediaNow]} />
+            <Movement label={t('post.reputation')} pair={result.standing.reputation} />
+            <Movement label={t('post.selectorTrust')} pair={result.standing.selectorTrust} />
+            <Movement label={t('post.media')} pair={[result.standing.mediaReputation[0], mediaNow]} />
             {result.teamMorale ? (
-              <Movement label="Dressing room" pair={[result.teamMorale.before, teamMoraleNow ?? result.teamMorale.after]} />
+              <Movement label={t('post.room')} pair={[result.teamMorale.before, teamMoraleNow ?? result.teamMorale.after]} />
             ) : null}
           </dl>
         </Card>
 
         {result.captaincy ? (
           <Card>
-            <CardHeader title="Captaincy" />
+            <CardHeader title={t('post.captaincy')} />
             <div className="mt-3 flex flex-col gap-2.5">
               <dl className="grid grid-cols-3 gap-2">
-                <Movement label="Rating" pair={[result.captaincy.ratingBefore, result.captaincy.ratingAfter]} />
+                <Movement label={t('post.rating')} pair={[result.captaincy.ratingBefore, result.captaincy.ratingAfter]} />
                 <div className="rounded-tile bg-page px-3 py-2">
-                  <dt className="text-[10.5px] font-semibold tracking-wide text-ink-soft uppercase">Tactics</dt>
+                  <dt className="text-[10.5px] font-semibold tracking-wide text-ink-soft uppercase">{t('post.tactics')}</dt>
                   <dd className="text-[15px] font-bold text-ink">{result.captaincy.tactics}</dd>
                 </div>
                 <div className="rounded-tile bg-page px-3 py-2">
-                  <dt className="text-[10.5px] font-semibold tracking-wide text-ink-soft uppercase">Stress</dt>
+                  <dt className="text-[10.5px] font-semibold tracking-wide text-ink-soft uppercase">{t('post.stress')}</dt>
                   <dd className={`text-[15px] font-bold ${result.captaincy.stressAfter >= 70 ? 'text-brand-red' : 'text-ink'}`}>
                     {result.captaincy.stressAfter}
                   </dd>
                 </div>
               </dl>
               <p className="text-[12.5px] text-ink-muted">
-                As captain: {captaincy.record.matches} played, {captaincy.record.won} won, {captaincy.record.lost} lost,{' '}
-                {captaincy.record.drawn} drawn
-                {winPercent(captaincy.record) !== null ? ` - ${winPercent(captaincy.record)}% won` : ''}.
+                {t('post.record', {
+                  played: captaincy.record.matches,
+                  won: captaincy.record.won,
+                  lost: captaincy.record.lost,
+                  drawn: captaincy.record.drawn,
+                  pct: winPercent(captaincy.record) !== null ? t('post.pct', { n: winPercent(captaincy.record)! }) : '',
+                })}
               </p>
               {result.captaincy.sacked ? (
                 <p className="rounded-lg bg-brand-red/8 px-3 py-2 text-[12.5px] font-semibold text-brand-red">
-                  The selectors have taken the captaincy away.
+                  {t('post.sacked')}
                 </p>
               ) : result.captaincy.recommended ? (
                 <p className="flex items-center gap-1.5 rounded-lg bg-brand-gold/15 px-3 py-2 text-[12.5px] font-semibold text-brand-navy">
                   <Crown className="size-4 text-brand-gold" aria-hidden />
-                  Your record has put you in line for a bigger captaincy.
+                  {t('post.inLine')}
                 </p>
               ) : null}
             </div>
@@ -252,8 +259,8 @@ export function PostMatch({
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Card>
-          <CardHeader title="Scorecards" />
-          <Tabs tabs={tabs} value={tab} onChange={setTab} className="mt-2.5" label="Innings" />
+          <CardHeader title={t('post.scorecards')} />
+          <Tabs tabs={tabs} value={tab} onChange={setTab} className="mt-2.5" label={t('post.innings')} />
           {shown ? (
             <div className="mt-3">
               <Scorecard
@@ -268,31 +275,31 @@ export function PostMatch({
 
         <div className="flex flex-col gap-4">
           <Card>
-            <CardHeader title="How you are after it" />
+            <CardHeader title={t('post.after')} />
             <div className="mt-3 flex flex-col gap-2.5">
               <ConditionRow
-                label="Form"
+                label={t('post.form')}
                 value={player.condition.form}
                 before={conditionBefore?.form}
               />
               <ConditionRow
-                label="Morale"
+                label={t('post.morale')}
                 value={player.condition.morale}
                 before={conditionBefore?.morale}
               />
               <ConditionRow
-                label="Confidence"
+                label={t('post.confidence')}
                 value={player.condition.confidence}
                 before={conditionBefore?.confidence}
               />
               <ConditionRow
-                label="Fatigue"
+                label={t('post.fatigue')}
                 value={player.condition.fatigue}
                 before={conditionBefore?.fatigue}
                 invert
               />
               <ConditionRow
-                label="Fitness"
+                label={t('post.fitness')}
                 value={player.condition.fitness}
                 before={conditionBefore?.fitness}
               />
@@ -300,13 +307,16 @@ export function PostMatch({
             {player.condition.injury ? (
               <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-brand-red/8 p-2.5 text-[12.5px] font-medium text-brand-red">
                 <HeartPulse className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {player.condition.injury.name} — {player.condition.injury.bodyPart}. Back around{' '}
-                {player.condition.injury.expectedReturn}.
+                {t('post.injury', {
+                  name: player.condition.injury.name,
+                  part: player.condition.injury.bodyPart,
+                  date: player.condition.injury.expectedReturn,
+                })}
               </p>
             ) : (
               <p className="mt-3 flex items-center gap-1.5 text-[12.5px] text-ink-muted">
                 <Activity className="size-4" aria-hidden />
-                No knocks worth reporting.
+                {t('post.noKnocks')}
               </p>
             )}
           </Card>
@@ -314,19 +324,19 @@ export function PostMatch({
           {shown ? (
             <>
               <Card>
-                <CardHeader title="Runs over by over" />
+                <CardHeader title={t('post.worm')} />
                 <div className="mt-2">
                   <Worm innings={chartInnings(match.innings, null)} />
                 </div>
               </Card>
               <Card>
-                <CardHeader title="Runs per over" />
+                <CardHeader title={t('post.perOver')} />
                 <div className="mt-2">
                   <Manhattan deliveries={shown.deliveries} />
                 </div>
               </Card>
               <Card>
-                <CardHeader title="Wagon wheel" />
+                <CardHeader title={t('post.wagon')} />
                 <div className="mt-2">
                   <WagonWheelPanel
                     venue={venue}
@@ -416,6 +426,7 @@ function PressCard({
   onSubmit: (answers: Record<string, string>) => void;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const t = useT();
   const complete = conference.questions.every((q) => answers[q.id]);
   return (
     <Card>
@@ -424,7 +435,7 @@ function PressCard({
           <Mic className="size-4" aria-hidden />
         </span>
         <div>
-          <h2 className="text-[15px] font-semibold text-ink">Press conference</h2>
+          <h2 className="text-[15px] font-semibold text-ink">{t('post.press')}</h2>
           <p className="text-[12.5px] text-ink-muted">{conference.headline}</p>
         </div>
       </div>
@@ -468,14 +479,14 @@ function PressCard({
           className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-brand-blue/90 disabled:opacity-50"
         >
           <Newspaper className="size-4" aria-hidden />
-          Face the press
+          {t('post.facePress')}
         </button>
         <button
           type="button"
           onClick={() => onSubmit({})}
           className="rounded-xl px-3 py-2.5 text-[13px] font-semibold text-ink-muted hover:text-ink"
         >
-          No comment
+          {t('post.noComment')}
         </button>
       </div>
     </Card>
@@ -488,19 +499,20 @@ function AggressionTables({ match, playerId }: { match: AfterMatch['match']; pla
   const bowling = bowlingByLevel(match, playerId).filter((r) => r.balls > 0);
   if (batting.length === 0 && bowling.length === 0) return null;
   const cell = 'px-2 py-1.5 text-right tabular-nums';
+  const t = tr;
   return (
     <div className="mt-4 grid gap-4 border-t border-line pt-4 lg:grid-cols-2">
       {batting.length > 0 ? (
         <div className="overflow-x-auto">
-          <h4 className="text-[12px] font-semibold tracking-wide text-ink-soft uppercase">Batting by aggression</h4>
+          <h4 className="text-[12px] font-semibold tracking-wide text-ink-soft uppercase">{t('post.batByAgg')}</h4>
           <table className="mt-1.5 w-full text-[12.5px]">
             <thead className="text-[11px] text-ink-soft">
               <tr>
-                <th className="px-2 py-1 text-left font-semibold">Level</th>
-                <th className="px-2 py-1 text-right font-semibold">Balls</th>
-                <th className="px-2 py-1 text-right font-semibold">Runs</th>
+                <th className="px-2 py-1 text-left font-semibold">{t('post.level')}</th>
+                <th className="px-2 py-1 text-right font-semibold">{t('post.ballsCol')}</th>
+                <th className="px-2 py-1 text-right font-semibold">{t('post.runsCol')}</th>
                 <th className="px-2 py-1 text-right font-semibold">SR</th>
-                <th className="px-2 py-1 text-left font-semibold">Out</th>
+                <th className="px-2 py-1 text-left font-semibold">{t('post.out')}</th>
               </tr>
             </thead>
             <tbody>
@@ -521,14 +533,14 @@ function AggressionTables({ match, playerId }: { match: AfterMatch['match']; pla
       ) : null}
       {bowling.length > 0 ? (
         <div className="overflow-x-auto">
-          <h4 className="text-[12px] font-semibold tracking-wide text-ink-soft uppercase">Bowling by aggression</h4>
+          <h4 className="text-[12px] font-semibold tracking-wide text-ink-soft uppercase">{t('post.bowlByAgg')}</h4>
           <table className="mt-1.5 w-full text-[12.5px]">
             <thead className="text-[11px] text-ink-soft">
               <tr>
-                <th className="px-2 py-1 text-left font-semibold">Level</th>
-                <th className="px-2 py-1 text-right font-semibold">Overs</th>
-                <th className="px-2 py-1 text-right font-semibold">Runs</th>
-                <th className="px-2 py-1 text-right font-semibold">Wkts</th>
+                <th className="px-2 py-1 text-left font-semibold">{t('post.level')}</th>
+                <th className="px-2 py-1 text-right font-semibold">{t('post.oversCol')}</th>
+                <th className="px-2 py-1 text-right font-semibold">{t('post.runsCol')}</th>
+                <th className="px-2 py-1 text-right font-semibold">{t('post.wkts')}</th>
               </tr>
             </thead>
             <tbody>

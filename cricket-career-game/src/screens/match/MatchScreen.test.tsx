@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appointCaptain } from '@/engine/career/captaincy';
+import { useAppSettings } from '@/store/appSettings';
 import { useGameStore } from '@/store/gameStore';
 import { __resetMatchStore, useMatchStore } from '@/store/matchStore';
 import MatchesScreen from '../Matches';
@@ -163,5 +164,51 @@ describe('the timing tap', () => {
     expect(screen.getByText(/going down leg/)).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]);
     expect(answers[0]).toEqual({ review: false });
+  });
+});
+
+describe('match screens in Tamil', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    __resetMatchStore();
+    useGameStore.setState({ state: null, slot: null, lastError: null, booted: false });
+  });
+  afterEach(() => {
+    useAppSettings.getState().set({ language: 'en' });
+  });
+
+  it('switching language re-renders the match screen, from the selection to the middle', async () => {
+    await renderAt('/match/fx-ka-u16');
+    expect(screen.getByText('Selection')).toBeInTheDocument();
+    act(() => useAppSettings.getState().set({ language: 'ta' }));
+    expect(screen.getByText('தேர்வு')).toBeInTheDocument();
+    expect(screen.getByText('பிட்ச் ரிப்போர்ட்')).toBeInTheDocument();
+    // Team names stay as they are.
+    expect(screen.getByRole('heading', { name: /Tamil Nadu U-16 எதிர் Karnataka U-16/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /டாஸுக்குப் போ|மேட்சைப் பார்/ }));
+    expect(screen.getByRole('heading', { name: 'டாஸ்' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'நாணயத்தைச் சுண்டு' }));
+    expect(screen.getByText(/டாஸ் வென்று/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'மைதானத்துக்குள் போ' }));
+    expect(screen.getByRole('img', { name: /MA Chidambaram Stadium - மேலிருந்து பார்வை/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /அடுத்த பந்து|பந்து/ }).length).toBeGreaterThan(0);
+    // And back to English mid-match.
+    act(() => useAppSettings.getState().set({ language: 'en' }));
+    expect(screen.getByRole('img', { name: /Top-down view of MA Chidambaram Stadium/ })).toBeInTheDocument();
+  });
+
+  it('a review reads in Tamil', () => {
+    act(() => useAppSettings.getState().set({ language: 'ta' }));
+    render(
+      <QuestionModal
+        question={{ kind: 'REVIEW', side: 'BATTING', batterId: 'me', bowlerId: 'b', dismissal: 'LBW', feel: 'CONFIDENT' }}
+        skill={0.5}
+        reviewsLeft={1}
+        batterName="Dinesh"
+        onAnswer={() => {}}
+      />,
+    );
+    expect(screen.getByText('Dinesh LBW அவுட் என அறிவிக்கப்பட்டார்.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ரிவ்யூ/ })).toBeInTheDocument();
   });
 });

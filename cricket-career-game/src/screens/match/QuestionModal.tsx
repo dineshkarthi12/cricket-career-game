@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Hand, Target, Tv } from 'lucide-react';
 import { Modal } from '@/components';
 import type { DecisionQuestion } from '@/engine/match/types';
+import { isKey } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
 /** How long a marker sweep takes, one way. */
 const SWEEP_MS = 1050;
@@ -44,6 +46,7 @@ export function TimingTap({
   const started = useRef(performance.now());
   const done = useRef(false);
   const zone = sweetZone(skill);
+  const t = useT();
 
   const tap = useCallback(() => {
     if (done.current) return;
@@ -81,9 +84,9 @@ export function TimingTap({
       <p className="text-[13px] text-ink-muted">
         {kind === 'CATCH'
           ? onTheRope
-            ? 'Skied towards you on the rope. Judge it - tap as the marker crosses the gold.'
-            : 'It is coming straight to you. Tap as the marker crosses the gold.'
-          : 'They are going for a sharp run. Gather and throw - tap on the gold.'}
+            ? t('q.catchRope')
+            : t('q.catch')
+          : t('q.runOut')}
       </p>
 
       <div className="relative h-10 overflow-hidden rounded-xl bg-page" aria-hidden>
@@ -107,27 +110,12 @@ export function TimingTap({
         className="flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-4 text-[15px] font-bold text-white transition-colors hover:bg-brand-blue/90"
       >
         {kind === 'CATCH' ? <Hand className="size-5" aria-hidden /> : <Target className="size-5" aria-hidden />}
-        {kind === 'CATCH' ? 'Catch!' : 'Throw!'}
+        {kind === 'CATCH' ? t('q.catchBtn') : t('q.throwBtn')}
       </button>
-      <p className="text-center text-[11.5px] text-ink-soft">Space or Enter works too.</p>
+      <p className="text-center text-[11.5px] text-ink-soft">{t('q.keys')}</p>
     </div>
   );
 }
-
-const FEEL_TEXT: Record<string, { BATTING: string; BOWLING: string }> = {
-  CONFIDENT: {
-    BATTING: 'Your partner thinks it was going down leg.',
-    BOWLING: 'The keeper is not convinced.',
-  },
-  UNSURE: {
-    BATTING: 'Your partner shrugs - could be either way.',
-    BOWLING: 'The bowler is keen; the keeper is not sure.',
-  },
-  PLUMB: {
-    BATTING: 'Your partner looks away. It looked plumb.',
-    BOWLING: 'The bowler and keeper are both certain it was hitting.',
-  },
-};
 
 export function ReviewPrompt({
   question,
@@ -140,21 +128,21 @@ export function ReviewPrompt({
   batterName: string;
   onAnswer: (review: boolean) => void;
 }) {
-  const dismissal = question.dismissal === 'LBW' ? 'lbw' : 'caught behind';
-  const feel = FEEL_TEXT[question.feel]?.[question.side] ?? '';
+  const t = useT();
+  const dismissal = question.dismissal === 'LBW' ? t('q.lbw') : t('q.caughtBehind');
+  const feelKey = `q.feel.${question.feel}.${question.side}`;
+  const feel = isKey(feelKey) ? t(feelKey) : '';
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[13.5px] text-ink">
         {question.side === 'BATTING'
-          ? `${batterName} is given out ${dismissal}.`
-          : `Big appeal for ${dismissal} against ${batterName} - given not out.`}
+          ? t('q.givenOut', { batter: batterName, how: dismissal })
+          : t('q.appeal', { batter: batterName, how: dismissal })}
       </p>
       <p className="rounded-lg bg-page px-3 py-2 text-[12.5px] text-ink-muted">{feel}</p>
       <p className="text-[12px] text-ink-soft">
-        {reviewsLeft} review{reviewsLeft === 1 ? '' : 's'} left.{' '}
-        {question.side === 'BATTING'
-          ? 'Lose it and it is gone.'
-          : "You keep the review if it is umpire's call."}
+        {t(reviewsLeft === 1 ? 'q.reviewLeft' : 'q.reviewsLeft', { n: reviewsLeft })}{' '}
+        {question.side === 'BATTING' ? t('q.loseIt') : t('q.keepIt')}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -164,14 +152,14 @@ export function ReviewPrompt({
           className="flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-3 text-[14px] font-semibold text-white hover:bg-brand-blue/90"
         >
           <Tv className="size-4" aria-hidden />
-          Review
+          {t('q.review')}
         </button>
         <button
           type="button"
           onClick={() => onAnswer(false)}
           className="rounded-xl border border-line bg-surface px-4 py-3 text-[14px] font-semibold text-ink hover:bg-page"
         >
-          {question.side === 'BATTING' ? 'Walk off' : 'Let it go'}
+          {question.side === 'BATTING' ? t('q.walk') : t('q.letGo')}
         </button>
       </div>
     </div>
@@ -192,14 +180,15 @@ export function QuestionModal({
   batterName: string;
   onAnswer: (response: { timing?: number; review?: boolean }) => void;
 }) {
+  const t = useT();
   const title =
     question.kind === 'CATCH'
-      ? 'Catch coming your way'
+      ? t('q.title.CATCH')
       : question.kind === 'RUN_OUT'
-        ? 'Run-out chance'
+        ? t('q.title.RUN_OUT')
         : question.side === 'BATTING'
-          ? 'Review?'
-          : 'Review the not-out?';
+          ? t('q.title.REVIEW')
+          : t('q.title.REVIEW_NOT_OUT');
 
   // Closing is an answer: a late tap, or no review.
   const close = () =>

@@ -10,6 +10,7 @@
  * where it ended, the score, the title card, the commentary line and a small
  * Cricket Career watermark.
  */
+import { tr } from '@/i18n/core';
 import { circlePath, groundBox, pitchRect, shotEnd, type GroundBox, type Point } from '@/lib/ground';
 import type { Clip } from '@/lib/clips';
 import type { Venue } from '@/types';
@@ -87,7 +88,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, clip: Clip, t: number, 
   ctx.fillStyle = '#0f1b33';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
   ctx.fillStyle = '#ffffff';
-  ctx.font = '600 26px Poppins, system-ui, sans-serif';
+  ctx.font = '600 26px Poppins, "Noto Sans Tamil", system-ui, sans-serif';
   ctx.textBaseline = 'top';
   ctx.fillText(reel.heading, 32, 28);
 
@@ -144,24 +145,29 @@ export function drawFrame(ctx: CanvasRenderingContext2D, clip: Clip, t: number, 
   // Score, title card, commentary.
   const top = 80 + size + 24;
   ctx.fillStyle = '#ffffff';
-  ctx.font = '700 34px Poppins, system-ui, sans-serif';
-  const score = `${reel.teamNameOf(clip.battingTeamId)} ${clip.score.runs}/${clip.score.wickets} (${clip.score.overs} ov)${clip.target ? `  ·  target ${clip.target}` : ''}`;
+  ctx.font = '700 34px Poppins, "Noto Sans Tamil", system-ui, sans-serif';
+  const score = tr('player.score', {
+    team: reel.teamNameOf(clip.battingTeamId),
+    score: `${clip.score.runs}/${clip.score.wickets}`,
+    overs: clip.score.overs,
+    target: clip.target ? tr('player.target', { n: clip.target }) : '',
+  });
   ctx.fillText(score, 32, top);
   if (t >= 0.55) {
     ctx.fillStyle = KIND_FILL[clip.kinds[0]] ?? '#1e5ef0';
     roundRect(ctx, 32, top + 56, WIDTH - 64, 64, 14);
     ctx.fill();
     ctx.fillStyle = KIND_FILL[clip.kinds[0]] === '#f5c518' ? '#0f1b33' : '#ffffff';
-    ctx.font = '800 28px Poppins, system-ui, sans-serif';
+    ctx.font = '800 28px Poppins, "Noto Sans Tamil", system-ui, sans-serif';
     ctx.fillText(fit(ctx, clip.title, WIDTH - 96), 48, top + 74);
   }
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.font = '400 22px Poppins, system-ui, sans-serif';
+  ctx.font = '400 22px Poppins, "Noto Sans Tamil", system-ui, sans-serif';
   wrap(ctx, clip.ball.commentary, 32, top + 140, WIDTH - 64, 30, 3);
 
   // Watermark.
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.font = '800 20px Poppins, system-ui, sans-serif';
+  ctx.font = '800 20px Poppins, "Noto Sans Tamil", system-ui, sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText('CRICKET CAREER', WIDTH - 28, HEIGHT - 40);
   ctx.textAlign = 'left';

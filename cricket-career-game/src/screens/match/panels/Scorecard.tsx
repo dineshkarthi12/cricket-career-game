@@ -5,6 +5,7 @@
  */
 import { ballsToOvers } from '@/lib/format';
 import type { BatterInningsLine, BowlerInningsLine, Innings } from '@/types';
+import { useT } from '@/i18n/react';
 
 export function Scorecard({
   innings,
@@ -20,6 +21,7 @@ export function Scorecard({
   userPlayerId?: string | null;
   strikerId?: string | null;
 }) {
+  const t = useT();
   const batting = [...innings.batting].sort((a, b) => a.battingPosition - b.battingPosition);
   const yetToBat = 11 - batting.length;
 
@@ -27,7 +29,7 @@ export function Scorecard({
     <div className="flex flex-col gap-4">
       <div>
         <header className="flex items-baseline justify-between gap-2">
-          <h3 className="text-[13.5px] font-semibold text-ink">{battingTeam} batting</h3>
+          <h3 className="text-[13.5px] font-semibold text-ink">{t('sc.batting', { team: battingTeam })}</h3>
           <p className="text-[13.5px] font-bold text-ink">
             {innings.runs}
             {innings.allOut ? '' : `/${innings.wickets}`}
@@ -39,7 +41,7 @@ export function Scorecard({
         <table className="mt-2 w-full text-[12.5px]">
           <thead>
             <tr className="text-left text-[10.5px] tracking-wide text-ink-soft uppercase">
-              <th className="pb-1 font-semibold">Batter</th>
+              <th className="pb-1 font-semibold">{t('sc.batter')}</th>
               <th className="pb-1 text-right font-semibold">R</th>
               <th className="pb-1 text-right font-semibold">B</th>
               <th className="pb-1 text-right font-semibold">4s</th>
@@ -59,18 +61,18 @@ export function Scorecard({
           </tbody>
           <tfoot>
             <tr className="border-t border-line">
-              <td className="pt-1.5 text-ink-muted">Extras</td>
+              <td className="pt-1.5 text-ink-muted">{t('sc.extras')}</td>
               <td className="pt-1.5 text-right font-semibold text-ink">{innings.extrasTotal}</td>
               <td colSpan={4} className="pt-1.5 pl-2 text-[11.5px] text-ink-soft">
                 {extrasText(innings)}
               </td>
             </tr>
             <tr>
-              <td className="pt-1 font-semibold text-ink">Total</td>
+              <td className="pt-1 font-semibold text-ink">{t('sc.total')}</td>
               <td className="pt-1 text-right font-bold text-ink">{innings.runs}</td>
               <td colSpan={4} className="pt-1 pl-2 text-[11.5px] text-ink-soft">
-                {innings.wickets} down, {ballsToOvers(innings.balls)} overs
-                {yetToBat > 0 ? ` · ${yetToBat} yet to bat` : ''}
+                {t('sc.down', { w: innings.wickets, o: ballsToOvers(innings.balls) })}
+                {yetToBat > 0 ? t('sc.yetToBat', { n: yetToBat }) : ''}
               </td>
             </tr>
           </tfoot>
@@ -79,7 +81,7 @@ export function Scorecard({
 
       {innings.fallOfWickets.length > 0 ? (
         <p className="text-[11.5px] leading-relaxed text-ink-muted">
-          <span className="font-semibold text-ink">Fall of wickets: </span>
+          <span className="font-semibold text-ink">{t('sc.fow')}</span>
           {innings.fallOfWickets
             .map(
               (fow) =>
@@ -92,11 +94,11 @@ export function Scorecard({
       ) : null}
 
       <div>
-        <h3 className="text-[13.5px] font-semibold text-ink">{bowlingTeam} bowling</h3>
+        <h3 className="text-[13.5px] font-semibold text-ink">{t('sc.bowling', { team: bowlingTeam })}</h3>
         <table className="mt-2 w-full text-[12.5px]">
           <thead>
             <tr className="text-left text-[10.5px] tracking-wide text-ink-soft uppercase">
-              <th className="pb-1 font-semibold">Bowler</th>
+              <th className="pb-1 font-semibold">{t('sc.bowler')}</th>
               <th className="pb-1 text-right font-semibold">O</th>
               <th className="pb-1 text-right font-semibold">M</th>
               <th className="pb-1 text-right font-semibold">R</th>
@@ -137,6 +139,7 @@ function BattingRow({
   isUser: boolean;
   onStrike: boolean;
 }) {
+  const t = useT();
   return (
     <tr className={isUser ? 'bg-brand-gold/15' : undefined}>
       <td className="py-1 pr-2">
@@ -146,7 +149,7 @@ function BattingRow({
         </span>
         <span className="block text-[11px] text-ink-soft">
           {/* Only batters who came in are listed, so anyone not out is not out. */}
-          {line.out ? line.dismissalText : 'not out'}
+          {line.out ? line.dismissalText : t('sc.notOut')}
         </span>
       </td>
       <td className="py-1 text-right font-semibold text-ink">{line.runs}</td>

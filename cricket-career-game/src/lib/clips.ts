@@ -8,6 +8,7 @@
  * Pure, and built when the reel is opened: nothing new is stored in a save.
  * Only matches that kept their ball-by-ball (the user's last two) have clips.
  */
+import { tr } from '@/i18n/core';
 import { inningsHighlights } from './highlights';
 import type { Ball, Innings, Match } from '@/types';
 
@@ -178,22 +179,22 @@ function titleFor(kind: ClipKind, ball: Ball, n: { batter: string; bowler: strin
     case 'WICKET':
     case 'HAT_TRICK':
     case 'DRS': {
-      const head = kind === 'HAT_TRICK' ? 'HAT-TRICK' : kind === 'DRS' ? 'REVIEW OVERTURNED' : 'WICKET';
+      const head = tr(kind === 'HAT_TRICK' ? 'clip.HAT_TRICK' : kind === 'DRS' ? 'clip.DRS' : 'clip.WICKET');
       const type = ball.wicket?.type;
       if (!type) return `${head} - ${n.batter} ${n.figures}`;
-      if (type === 'RUN_OUT') return `${head} - ${n.batter} run out${n.fielder ? ` (${n.fielder})` : ''} ${n.figures}`;
+      if (type === 'RUN_OUT') return `${head} - ${n.batter} ${tr('clip.runOut')}${n.fielder ? ` (${n.fielder})` : ''} ${n.figures}`;
       if (type === 'CAUGHT' || type === 'CAUGHT_BEHIND') return `${head} - ${n.bowler} b. ${n.batter} ${n.figures}${n.fielder ? `, c. ${n.fielder}` : ''}`;
       return `${head} - ${n.bowler} ${DISMISSAL_WORD[type] ?? 'b.'} ${n.batter} ${n.figures}`;
     }
     case 'SIX':
-      return `SIX - ${n.batter} ${n.figures}`;
+      return `${tr('clip.SIX')} - ${n.batter} ${n.figures}`;
     case 'FOUR':
-      return `FOUR - ${n.batter} ${n.figures}`;
+      return `${tr('clip.FOUR')} - ${n.batter} ${n.figures}`;
     case 'FIFTY':
-      return `FIFTY - ${n.batter} ${n.figures}`;
+      return `${tr('clip.FIFTY')} - ${n.batter} ${n.figures}`;
     case 'HUNDRED':
-      return `HUNDRED - ${n.batter} ${n.figures}`;
+      return `${tr('clip.HUNDRED')} - ${n.batter} ${n.figures}`;
     case 'WINNING_RUNS':
-      return `WINNING RUNS - ${n.batter} ${n.figures}`;
+      return `${tr('clip.WINNING_RUNS')} - ${n.batter} ${n.figures}`;
   }
 }

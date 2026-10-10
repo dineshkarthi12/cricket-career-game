@@ -4,6 +4,7 @@
  * hat-trick, the team's hundreds and the big partnerships. Derived on screen,
  * so older saves get them too.
  */
+import { tr } from '@/i18n/core';
 import type { Ball, Innings } from '@/types';
 
 export type HighlightKind =
@@ -76,7 +77,7 @@ function bowlerWicket(ball: Ball): boolean {
 export function inningsHighlights(
   deliveries: Ball[],
   nameOf: (id: string) => string = () => '',
-  teamName = 'The batting side',
+  teamName = tr('hl.battingSide'),
   /** Earlier innings of the match, for the all-round double. */
   prior: MatchTally = new Map(),
 ): Map<string, Highlight[]> {
@@ -101,7 +102,7 @@ export function inningsHighlights(
       add(ball, {
         kind: 'ALL_ROUND',
         label: 'ALL-ROUND',
-        text: `ALL-ROUND SHOW! ${nameOf(playerId) || 'He'} has ${runs} runs and ${wickets} wickets in the match.`,
+        text: tr('hl.allRound', { name: nameOf(playerId) || tr('hl.he'), runs, wickets }),
         playerId,
       });
     }
@@ -127,21 +128,21 @@ export function inningsHighlights(
     total += ball.runsOffBat + extraRuns;
     partnership += ball.runsOffBat + extraRuns;
 
-    const batter = nameOf(ball.strikerId) || 'The batter';
-    const bowler = nameOf(ball.bowlerId) || 'The bowler';
+    const batter = nameOf(ball.strikerId) || tr('hl.theBatter');
+    const bowler = nameOf(ball.bowlerId) || tr('hl.theBowler');
 
-    if (ball.isBoundarySix) add(ball, { kind: 'SIX', label: '6', text: `SIX! ${batter} goes big off ${bowler}.`, playerId: ball.strikerId });
-    else if (ball.isBoundaryFour) add(ball, { kind: 'FOUR', label: '4', text: `FOUR! ${batter} finds the rope.`, playerId: ball.strikerId });
-    if (ball.dropped) add(ball, { kind: 'DROP', label: 'DROP', text: `Dropped! ${ball.dropped.fielderName} puts down ${batter}.` });
+    if (ball.isBoundarySix) add(ball, { kind: 'SIX', label: '6', text: tr('hl.six', { batter, bowler }), playerId: ball.strikerId });
+    else if (ball.isBoundaryFour) add(ball, { kind: 'FOUR', label: '4', text: tr('hl.four', { batter }), playerId: ball.strikerId });
+    if (ball.dropped) add(ball, { kind: 'DROP', label: 'DROP', text: tr('hl.drop', { fielder: ball.dropped.fielderName, batter }) });
 
     for (const mark of BATTER_MARKS) {
       if (tally.runs >= mark && before.runs < mark) {
         const kind: HighlightKind = mark === 50 ? 'FIFTY' : mark === 100 ? 'HUNDRED' : 'BIG_HUNDRED';
-        const word = mark === 50 ? 'FIFTY' : mark === 100 ? 'HUNDRED' : `${mark}`;
+        const vars = { batter, mark, balls: tally.balls, fours: tally.fours, sixes: tally.sixes };
         add(ball, {
           kind,
           label: String(mark),
-          text: `${word} for ${batter}! ${mark} up off ${tally.balls} balls (${tally.fours}x4, ${tally.sixes}x6).`,
+          text: tr(mark === 50 ? 'hl.fifty' : mark === 100 ? 'hl.hundred' : 'hl.bigHundred', vars),
           playerId: ball.strikerId,
         });
       }
@@ -149,12 +150,12 @@ export function inningsHighlights(
     if (ball.runsOffBat > 0) allRoundCheck(ball, ball.strikerId);
     for (const mark of TEAM_MARKS) {
       if (total >= mark && before.total < mark) {
-        add(ball, { kind: 'TEAM', label: String(mark), text: `${mark} up for ${teamName}.` });
+        add(ball, { kind: 'TEAM', label: String(mark), text: tr('hl.team', { mark, team: teamName }) });
       }
     }
     for (const mark of PARTNERSHIP_MARKS) {
       if (partnership >= mark && before.partnership < mark) {
-        add(ball, { kind: 'PARTNERSHIP', label: `${mark}p`, text: `${mark}-run partnership - this pair is taking the game away.` });
+        add(ball, { kind: 'PARTNERSHIP', label: `${mark}p`, text: tr('hl.partnership', { mark }) });
       }
     }
 
@@ -166,8 +167,13 @@ export function inningsHighlights(
         label: 'W',
         text:
           ball.wicket.type === 'RUN_OUT'
-            ? `RUN OUT! ${teamName} ${total}/${fallen}.`
-            : `OUT! ${batter}${line ? ` goes for ${line.runs} (${line.balls})` : ''}. ${teamName} ${total}/${fallen}.`,
+            ? tr('hl.runOut', { team: teamName, score: `${total}/${fallen}` })
+            : tr('hl.out', {
+                batter,
+                gone: line ? tr('hl.goesFor', { runs: line.runs, balls: line.balls }) : '',
+                team: teamName,
+                score: `${total}/${fallen}`,
+              }),
         playerId: bowlerWicket(ball) ? ball.bowlerId : undefined,
       });
       partnership = 0;
@@ -179,14 +185,14 @@ export function inningsHighlights(
       run.push(bowlerWicket(ball));
       bowlerRun.set(ball.bowlerId, run.slice(-3));
       if (run.length >= 3 && run.slice(-3).every(Boolean)) {
-        add(ball, { kind: 'HAT_TRICK', label: 'HAT-TRICK', text: `HAT-TRICK! ${bowler} - three in three!`, playerId: ball.bowlerId });
+        add(ball, { kind: 'HAT_TRICK', label: 'HAT-TRICK', text: tr('hl.hatTrick', { bowler }), playerId: ball.bowlerId });
       }
     }
     if (bowlerWicket(ball)) {
       const wickets = (bowlerWickets.get(ball.bowlerId) ?? 0) + 1;
       bowlerWickets.set(ball.bowlerId, wickets);
-      if (wickets === 3) add(ball, { kind: 'THREE_FOR', label: '3W', text: `Three for ${bowler} - he is running through them.`, playerId: ball.bowlerId });
-      if (wickets === 5) add(ball, { kind: 'FIVE_FOR', label: '5W', text: `FIVE-FOR for ${bowler}!`, playerId: ball.bowlerId });
+      if (wickets === 3) add(ball, { kind: 'THREE_FOR', label: '3W', text: tr('hl.threeFor', { bowler }), playerId: ball.bowlerId });
+      if (wickets === 5) add(ball, { kind: 'FIVE_FOR', label: '5W', text: tr('hl.fiveFor', { bowler }), playerId: ball.bowlerId });
       allRoundCheck(ball, ball.bowlerId);
     }
 
@@ -196,7 +202,7 @@ export function inningsHighlights(
     const key = `${ball.bowlerId}:${ball.over}`;
     overConceded.set(key, (overConceded.get(key) ?? 0) + conceded);
     if (ball.isLegalDelivery && ball.ballInOver === 6 && overConceded.get(key) === 0) {
-      add(ball, { kind: 'MAIDEN', label: 'M', text: `Maiden over from ${bowler}.`, playerId: ball.bowlerId });
+      add(ball, { kind: 'MAIDEN', label: 'M', text: tr('hl.maiden', { bowler }), playerId: ball.bowlerId });
     }
   }
   return out;

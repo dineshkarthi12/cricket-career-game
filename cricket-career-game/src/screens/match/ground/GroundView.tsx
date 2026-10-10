@@ -16,6 +16,7 @@ import type { Ball, MatchConditions, Venue } from '@/types';
 import { BallLayer, isFielded } from './BallLayer';
 import { bowlerPoint, fielderPoint, Fielders } from './Fielders';
 import { GroundBase } from './GroundBase';
+import { tr } from '@/i18n/core';
 
 export interface GroundViewProps {
   venue: Venue;
@@ -133,7 +134,7 @@ export function GroundView({
           viewBox={`0 0 ${box.width} ${box.height}`}
           className="ground-animated block max-h-[calc(var(--vh)*72)] w-full touch-none select-none"
           role="img"
-          aria-label={`Top-down view of ${venue.name}`}
+          aria-label={tr('ground.view', { venue: venue.name })}
           onPointerMove={editable ? onMove : undefined}
           onPointerUp={editable ? stopDrag : undefined}
           onPointerLeave={editable ? stopDrag : undefined}
@@ -195,13 +196,13 @@ export function GroundView({
           ) : (
             <Sun className="size-3" aria-hidden />
           )}
-          {conditions.underLights ? 'Under lights · ' : ''}
+          {conditions.underLights ? tr('ground.underLights') : ''}
           {venue.straightBoundary}m × {venue.squareBoundary}m
         </div>
 
         {raining ? (
           <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-[15px] font-bold text-white drop-shadow">
-            Rain stopped play
+            {tr('ground.rain')}
           </p>
         ) : null}
       </div>
@@ -254,7 +255,7 @@ function BatterPair({
             data-user={isUser ? 'true' : undefined}
             style={{ transform: `translate(${p.at.x}px, ${p.at.y}px)`, transition: runMs ? `transform ${runMs}ms ease-in-out ${runDelayMs}ms` : undefined }}
           >
-            <title>{`${isUser ? 'You' : batters.labelOf(p.id)} - ${p.onStrike ? 'on strike' : "non-striker's end"}`}</title>
+            <title>{`${isUser ? tr('ground.you') : batters.labelOf(p.id)} - ${p.onStrike ? tr('ground.onStrike') : tr('ground.nonStriker')}`}</title>
             {isUser ? <circle r={2.5} fill="#f5c518" opacity={0.35} /> : null}
             <circle r={1.5} fill={isUser ? '#f5c518' : '#1e5ef0'} stroke="#ffffff" strokeWidth={0.3} />
             <text

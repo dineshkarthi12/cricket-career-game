@@ -6,6 +6,7 @@
 import { memo } from 'react';
 import { FastForward, Pause, Play, SkipForward, UserRound, Zap } from 'lucide-react';
 import { BALL_SPEEDS } from '@/store/matchStore';
+import { useT } from '@/i18n/react';
 
 export interface SimControlsProps {
   /** One row of buttons and no slider, for the pinned phone bar. */
@@ -29,6 +30,7 @@ export interface SimControlsProps {
 export const SimControls = memo(function SimControls(props: SimControlsProps) {
   const { compact = false, autoPlay, speed, busy, playing } = props;
   const locked = busy || autoPlay;
+  const t = useT();
 
   if (compact) {
     return (
@@ -40,33 +42,33 @@ export const SimControls = memo(function SimControls(props: SimControlsProps) {
           className="flex items-center justify-center gap-1 rounded-xl bg-brand-blue px-2 py-3 text-[13px] font-semibold text-white disabled:opacity-50"
         >
           <Play className="size-4 fill-white" aria-hidden />
-          Ball
+          {t('sim.ball')}
         </button>
         <SmallButton onClick={props.onOver} disabled={locked}>
-          Over
+          {t('sim.over')}
         </SmallButton>
         {playing ? (
-          <SmallButton onClick={props.onInvolved} disabled={locked} label="Until I'm involved">
+          <SmallButton onClick={props.onInvolved} disabled={locked} label={t('sim.untilInvolved')}>
             <UserRound className="size-4" aria-hidden />
-            Me
+            {t('sim.me')}
           </SmallButton>
         ) : (
           <SmallButton onClick={props.onWicket} disabled={locked}>
-            Wicket
+            {t('sim.wicket')}
           </SmallButton>
         )}
         <button
           type="button"
           onClick={() => props.onAuto(!autoPlay)}
           disabled={busy}
-          aria-label={autoPlay ? 'Pause' : 'Auto play'}
+          aria-label={autoPlay ? t('sim.pause') : t('sim.autoPlay')}
           className={[
             'flex items-center justify-center gap-1 rounded-xl px-2 py-3 text-[12.5px] font-semibold disabled:opacity-50',
             autoPlay ? 'bg-brand-orange text-white' : 'border border-line bg-surface text-ink',
           ].join(' ')}
         >
           {autoPlay ? <Pause className="size-4" aria-hidden /> : <FastForward className="size-4" aria-hidden />}
-          {autoPlay ? 'Pause' : 'Auto'}
+          {autoPlay ? t('sim.pause') : t('sim.auto')}
         </button>
       </div>
     );
@@ -82,7 +84,7 @@ export const SimControls = memo(function SimControls(props: SimControlsProps) {
           className="flex items-center justify-center gap-1.5 rounded-xl bg-brand-blue px-3 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Play className="size-4 fill-white" aria-hidden />
-          Next ball
+          {t('sim.nextBall')}
         </button>
         <button
           type="button"
@@ -96,24 +98,24 @@ export const SimControls = memo(function SimControls(props: SimControlsProps) {
           ].join(' ')}
         >
           {autoPlay ? <Pause className="size-4" aria-hidden /> : <FastForward className="size-4" aria-hidden />}
-          {autoPlay ? 'Pause' : 'Full auto'}
+          {autoPlay ? t('sim.pause') : t('sim.fullAuto')}
         </button>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Secondary onClick={props.onOver} disabled={locked}>
-          Next over
+          {t('sim.nextOver')}
         </Secondary>
         <Secondary onClick={props.onWicket} disabled={locked}>
-          Next wicket
+          {t('sim.nextWicket')}
         </Secondary>
         {playing ? (
           <Secondary onClick={props.onInvolved} disabled={locked}>
-            Until I’m in
+            {t('sim.untilIn')}
           </Secondary>
         ) : null}
         <Secondary onClick={props.onInnings} disabled={locked}>
-          End of innings
+          {t('sim.endInnings')}
         </Secondary>
       </div>
 
@@ -122,9 +124,9 @@ export const SimControls = memo(function SimControls(props: SimControlsProps) {
           <div className="flex items-baseline justify-between gap-2">
             <label htmlFor="sim-speed" className="flex items-center gap-1.5 text-[12px] font-semibold text-ink">
               <Zap className="size-3.5" aria-hidden />
-              Animation speed
+              {t('sim.speed')}
             </label>
-            <span className="text-[12px] font-semibold text-brand-blue">{BALL_SPEEDS[speed].label}</span>
+            <span className="text-[12px] font-semibold text-brand-blue">{t(`speed.${speed as 0 | 1 | 2 | 3}`)}</span>
           </div>
           <input
             id="sim-speed"
@@ -143,7 +145,7 @@ export const SimControls = memo(function SimControls(props: SimControlsProps) {
           disabled={busy}
           className="shrink-0 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-brand-blue hover:underline disabled:opacity-50"
         >
-          Sim the rest
+          {t('sim.rest')}
         </button>
       </div>
     </div>

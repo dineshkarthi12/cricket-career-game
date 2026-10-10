@@ -10,6 +10,7 @@ import { Star } from 'lucide-react';
 import { MILESTONE_KINDS, inningsHighlights, matchTally, overSummaries, type Highlight } from '@/lib/highlights';
 import { cn } from '@/lib/cn';
 import type { Ball, Innings } from '@/types';
+import { useT } from '@/i18n/react';
 
 function toneOf(ball: Ball): string {
   if (ball.wicket) return 'border-brand-red bg-brand-red/8';
@@ -46,8 +47,8 @@ const BANNER_TONE: Partial<Record<Highlight['kind'], string>> = {
 };
 
 const FILTERS = [
-  { id: 'all', label: 'All balls' },
-  { id: 'highlights', label: 'Highlights' },
+  { id: 'all', key: 'feed.all' },
+  { id: 'highlights', key: 'feed.highlights' },
 ] as const;
 
 export const CommentaryFeed = memo(function CommentaryFeed({
@@ -70,6 +71,7 @@ export const CommentaryFeed = memo(function CommentaryFeed({
   limit?: number;
   className?: string;
 }) {
+  const t = useT();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
 
   const names = useMemo(() => {
@@ -90,7 +92,7 @@ export const CommentaryFeed = memo(function CommentaryFeed({
 
   return (
     <div className={className}>
-      <div className="mb-2 flex items-center gap-1.5" role="group" aria-label="Commentary filter">
+      <div className="mb-2 flex items-center gap-1.5" role="group" aria-label={t('feed.filter')}>
         {FILTERS.map((f) => (
           <button
             key={f.id}
@@ -102,13 +104,13 @@ export const CommentaryFeed = memo(function CommentaryFeed({
               filter === f.id ? 'bg-brand-blue text-white' : 'border border-line bg-surface text-ink hover:bg-page',
             )}
           >
-            {f.label}
+            {t(f.key)}
           </button>
         ))}
       </div>
 
       {shown.length === 0 ? (
-        <p className="text-[13px] text-ink-muted">{filter === 'highlights' ? 'No big moments yet.' : 'No play yet.'}</p>
+        <p className="text-[13px] text-ink-muted">{filter === 'highlights' ? t('feed.noMoments') : t('feed.noPlay')}</p>
       ) : (
         <ol className="flex flex-col gap-1.5">
           {shown.map((ball) => {
@@ -121,15 +123,15 @@ export const CommentaryFeed = memo(function CommentaryFeed({
                 {over ? (
                   <div className="flex items-center justify-between rounded-lg bg-brand-navy/90 px-2.5 py-1 text-[11.5px] font-semibold text-white">
                     <span className="flex min-w-0 items-center gap-1.5">
-                      End of over {over.over}
-                      {over.runs === 0 ? <span className="rounded bg-white/20 px-1 text-[10px]">MAIDEN</span> : null}
+                      {t('feed.endOver', { n: over.over })}
+                      {over.runs === 0 ? <span className="rounded bg-white/20 px-1 text-[10px]">{t('feed.maiden')}</span> : null}
                       <span className={cn('truncate font-normal opacity-85', over.bowlerId === userId && 'font-bold text-brand-gold opacity-100')}>
-                        · {names.get(over.bowlerId) ?? 'Bowler'} {over.figures}
+                        · {names.get(over.bowlerId) ?? t('feed.bowler')} {over.figures}
                       </span>
                     </span>
                     <span className="tabular-nums">
-                      {over.runs} run{over.runs === 1 ? '' : 's'}
-                      {over.wickets ? `, ${over.wickets} wkt${over.wickets === 1 ? '' : 's'}` : ''} · {over.total}/{over.totalWickets}
+                      {t(over.runs === 1 ? 'feed.run' : 'feed.runs', { n: over.runs })}
+                      {over.wickets ? t(over.wickets === 1 ? 'feed.wkt' : 'feed.wkts', { n: over.wickets }) : ''} · {over.total}/{over.totalWickets}
                     </span>
                   </div>
                 ) : null}
@@ -141,7 +143,7 @@ export const CommentaryFeed = memo(function CommentaryFeed({
                     <Star className="size-3.5 shrink-0 fill-current" aria-hidden />
                     <span className="rounded bg-white/25 px-1.5 text-[11px] tabular-nums">{m.label}</span>
                     <span className="min-w-0">{m.text}</span>
-                    {userId && m.playerId === userId ? <span className="ml-auto shrink-0 rounded bg-white/30 px-1.5 text-[10px] tracking-wide">YOU</span> : null}
+                    {userId && m.playerId === userId ? <span className="ml-auto shrink-0 rounded bg-white/30 px-1.5 text-[10px] tracking-wide">{t('m.you')}</span> : null}
                   </div>
                 ))}
                 <div className={cn('flex items-start gap-2.5 rounded-lg border-l-2 py-1.5 pr-2 pl-2.5', toneOf(ball))}>
@@ -150,7 +152,7 @@ export const CommentaryFeed = memo(function CommentaryFeed({
                   </span>
                   <span
                     className={cn('grid h-[22px] min-w-[22px] shrink-0 place-items-center rounded-full px-1 text-[11px] font-bold tabular-nums', chip.className)}
-                    aria-label={chip.text === '•' ? 'dot ball' : undefined}
+                    aria-label={chip.text === '•' ? t('feed.dot') : undefined}
                   >
                     {chip.text}
                   </span>

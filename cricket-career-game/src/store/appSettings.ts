@@ -132,3 +132,9 @@ export function useReducedMotion(careerSetting = false): boolean {
   const mine = useAppSettings((s) => s.reduceMotion);
   return mine || careerSetting || prefersReducedMotion();
 }
+
+// Development only: the browser QA (`QA_LANG=ta npm run qa`) flips the
+// language for each screenshot while it drives the game in English.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as { __setLang?: (lang: Lang) => void }).__setLang = (lang) => useAppSettings.getState().set({ language: lang });
+}

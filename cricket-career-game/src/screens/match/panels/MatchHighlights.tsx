@@ -11,6 +11,8 @@ import { MATCH_FORMATS } from '@/engine/config';
 import { cn } from '@/lib/cn';
 import { inningsHighlights } from '@/lib/highlights';
 import type { Match } from '@/types';
+import { tr } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
 export type ReelKind = 'HUNDRED' | 'FIFTY' | 'FIVE_FOR' | 'THREE_FOR' | 'TIGHT' | 'ALL_ROUND' | 'HAT_TRICK' | 'YOU';
 
@@ -65,7 +67,7 @@ export function matchReel(match: Match, teamNameOf: (id: string) => string, user
           kind: hundred ? 'HUNDRED' : 'FIFTY',
           playerId: b.playerId,
           label: hundred ? '100' : '50',
-          text: `${b.name} ${b.runs}${b.out ? '' : '*'} (${b.balls}) · ${b.fours}x4, ${b.sixes}x6${limited ? ` · SR ${b.balls ? Math.round((b.runs / b.balls) * 100) : 0}` : ''} for ${side}`,
+          text: `${b.name} ${b.runs}${b.out ? '' : '*'} (${b.balls}) · ${b.fours}x4, ${b.sixes}x6${limited ? ` · SR ${b.balls ? Math.round((b.runs / b.balls) * 100) : 0}` : ''}${tr('reel.for', { side })}`,
           weight: b.runs,
         });
       }
@@ -81,11 +83,11 @@ export function matchReel(match: Match, teamNameOf: (id: string) => string, user
           kind: w.wickets >= 5 ? 'FIVE_FOR' : 'THREE_FOR',
           playerId: w.playerId,
           label: `${w.wickets}W`,
-          text: `${w.name} ${figures}${w.maidens ? ` · ${w.maidens} maiden${w.maidens === 1 ? '' : 's'}` : ''} · econ ${w.economy.toFixed(2)}`,
+          text: `${w.name} ${figures}${w.maidens ? tr(w.maidens === 1 ? 'reel.maiden' : 'reel.maidens', { n: w.maidens }) : ''} · ${tr('reel.econ', { e: w.economy.toFixed(2) })}`,
           weight: 40 + w.wickets * 14,
         });
       } else if (w.balls / 6 >= tight.overs && w.economy <= tight.economy) {
-        out.push({ kind: 'TIGHT', playerId: w.playerId, label: 'TIGHT', text: `${w.name} ${figures} · econ ${w.economy.toFixed(2)} - squeezed them`, weight: 35 });
+        out.push({ kind: 'TIGHT', playerId: w.playerId, label: tr('reel.label.TIGHT'), text: tr('reel.squeezed', { name: w.name, figures, e: w.economy.toFixed(2) }), weight: 35 });
       }
     }
     // Hat-tricks need the ball-by-ball, which only recent matches keep.
@@ -93,7 +95,7 @@ export function matchReel(match: Match, teamNameOf: (id: string) => string, user
       for (const list of inningsHighlights(inn.deliveries).values()) {
         for (const h of list) {
           if (h.kind === 'HAT_TRICK' && h.playerId) {
-            out.push({ kind: 'HAT_TRICK', playerId: h.playerId, label: 'HAT-TRICK', text: `${totals.get(h.playerId)?.name ?? 'A bowler'} - three in three`, weight: 200 });
+            out.push({ kind: 'HAT_TRICK', playerId: h.playerId, label: tr('reel.label.HAT_TRICK'), text: tr('reel.hatTrick', { name: totals.get(h.playerId)?.name ?? tr('reel.aBowler') }), weight: 200 });
           }
         }
       }
@@ -102,9 +104,9 @@ export function matchReel(match: Match, teamNameOf: (id: string) => string, user
 
   for (const [id, t] of totals) {
     if (t.runs >= 50 && t.wickets >= 3) {
-      out.push({ kind: 'ALL_ROUND', playerId: id, label: 'ALL-ROUND', text: `${t.name}: ${t.runs} runs and ${t.wickets} wickets - the all-round double`, weight: 150 });
+      out.push({ kind: 'ALL_ROUND', playerId: id, label: tr('reel.label.ALL_ROUND'), text: tr('reel.double', { name: t.name, runs: t.runs, wickets: t.wickets }), weight: 150 });
     } else if (t.runs >= 30 && t.wickets >= 2) {
-      out.push({ kind: 'ALL_ROUND', playerId: id, label: 'BOTH', text: `${t.name}: ${t.runs} runs and ${t.wickets}/${t.conceded} - useful with bat and ball`, weight: 45 });
+      out.push({ kind: 'ALL_ROUND', playerId: id, label: tr('reel.label.BOTH'), text: tr('reel.both', { name: t.name, runs: t.runs, figures: `${t.wickets}/${t.conceded}` }), weight: 45 });
     }
   }
 
@@ -113,19 +115,14 @@ export function matchReel(match: Match, teamNameOf: (id: string) => string, user
     const t = totals.get(userId);
     if (t && !out.some((r) => r.playerId === userId)) {
       const bat = t.balls > 0 ? `${t.runs} (${t.balls})` : null;
-      const bowl = t.overs > 0 ? `${t.wickets}/${t.conceded} (${Math.round(t.overs * 10) / 10} ov)` : null;
-      out.push({ kind: 'YOU', playerId: userId, label: 'YOU', text: `You: ${[bat, bowl].filter(Boolean).join(' & ') || 'no bat or bowl'}`, weight: 0 });
+      const bowl = t.overs > 0 ? `${t.wickets}/${t.conceded} (${tr('reel.ov', { n: Math.round(t.overs * 10) / 10 })})` : null;
+      out.push({ kind: 'YOU', playerId: userId, label: tr('reel.label.YOU'), text: tr('reel.you', { line: [bat, bowl].filter(Boolean).join(' & ') || tr('reel.nothing') }), weight: 0 });
     }
   }
   return out.sort((a, b) => b.weight - a.weight);
 }
 
-const FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'bat', label: 'Batting' },
-  { id: 'bowl', label: 'Bowling' },
-  { id: 'you', label: 'Yours' },
-] as const;
+const FILTERS = [{ id: 'all' }, { id: 'bat' }, { id: 'bowl' }, { id: 'you' }] as const;
 
 const BAT: ReelKind[] = ['HUNDRED', 'FIFTY', 'ALL_ROUND'];
 const BOWL: ReelKind[] = ['FIVE_FOR', 'THREE_FOR', 'TIGHT', 'HAT_TRICK', 'ALL_ROUND'];
@@ -135,6 +132,7 @@ const BOWL: ReelKind[] = ['FIVE_FOR', 'THREE_FOR', 'TIGHT', 'HAT_TRICK', 'ALL_RO
  * becomes a tab beside the big moments, and opens first.
  */
 export function MatchHighlights({ match, teamNameOf, userId, replay }: { match: Match; teamNameOf: (id: string) => string; userId: string | null; replay?: ReactNode }) {
+  const t = useT();
   const reel = useMemo(() => matchReel(match, teamNameOf, userId), [match, teamNameOf, userId]);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
   const [view, setView] = useState<'replay' | 'moments'>(replay ? 'replay' : 'moments');
@@ -144,22 +142,22 @@ export function MatchHighlights({ match, teamNameOf, userId, replay }: { match: 
 
   return (
     <Card>
-      <CardHeader title="Match highlights" subtitle={replay && view === 'replay' ? 'The big balls, replayed on the ground.' : 'The big moments - with the bat, with the ball, and both.'} />
+      <CardHeader title={t('reel.title')} subtitle={replay && view === 'replay' ? t('reel.subReplay') : t('reel.subMoments')} />
       {replay ? (
         <Tabs
           tabs={[
-            { id: 'replay', label: 'Replay' },
-            { id: 'moments', label: 'Big moments' },
+            { id: 'replay', label: t('reel.tab.replay') },
+            { id: 'moments', label: t('reel.tab.moments') },
           ]}
           value={view}
           onChange={(id) => setView(id as 'replay' | 'moments')}
-          label="Highlights view"
+          label={t('reel.view')}
           className="mt-2.5 [&>button]:px-3 [&>button]:text-[12.5px]"
         />
       ) : null}
       {replay && view === 'replay' ? <div className="mt-3">{replay}</div> : (
       <>
-      <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Highlights filter">
+      <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label={t('reel.filter')}>
         {FILTERS.map((f) => (
           <button
             key={f.id}
@@ -171,12 +169,12 @@ export function MatchHighlights({ match, teamNameOf, userId, replay }: { match: 
               filter === f.id ? 'bg-brand-blue text-white' : 'border border-line bg-surface text-ink hover:bg-page',
             )}
           >
-            {f.label}
+            {t(`reel.f.${f.id}`)}
           </button>
         ))}
       </div>
       {shown.length === 0 ? (
-        <p className="mt-3 text-[13px] text-ink-muted">Nothing here this time.</p>
+        <p className="mt-3 text-[13px] text-ink-muted">{t('reel.empty')}</p>
       ) : (
         <ul className="mt-3 flex flex-col gap-1.5">
           {shown.slice(0, 14).map((r, i) => (
@@ -189,7 +187,7 @@ export function MatchHighlights({ match, teamNameOf, userId, replay }: { match: 
                 {r.label}
               </span>
               <span className="min-w-0 text-[12.5px] leading-snug text-ink">{r.text}</span>
-              {r.playerId === userId && r.kind !== 'YOU' ? <span className="ml-auto shrink-0 text-[10px] font-bold tracking-wide text-[#8a6a00]">YOU</span> : null}
+              {r.playerId === userId && r.kind !== 'YOU' ? <span className="ml-auto shrink-0 text-[10px] font-bold tracking-wide text-[#8a6a00]">{t('m.you')}</span> : null}
             </li>
           ))}
         </ul>

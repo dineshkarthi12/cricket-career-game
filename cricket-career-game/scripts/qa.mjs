@@ -5,6 +5,8 @@
 //   npm run qa                       screenshots into qa-screenshots/
 //   QA_ONLY=match npm run qa         only the steps whose name contains "match"
 //   CHROMIUM_PATH=/path/to/chrome    use an installed Chromium
+//   QA_LANG=ta npm run qa            the same flow, every screenshot in Tamil
+//                                    (into qa-screenshots-ta/)
 //
 // The flow: start screen -> new career -> dashboard -> training -> every
 // menu screen -> a match played ball by ball -> the dev fast-forward to a
@@ -15,7 +17,8 @@ import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
-const OUT = 'qa-screenshots';
+const LANG = process.env.QA_LANG ?? 'en';
+const OUT = LANG === 'en' ? 'qa-screenshots' : `qa-screenshots-${LANG}`;
 const PORT = Number(process.env.QA_PORT ?? 5199);
 const BASE = `http://127.0.0.1:${PORT}`;
 const WIDTHS = [
@@ -59,6 +62,11 @@ async function snap(name) {
   shot += 1;
   const id = `${String(shot).padStart(2, '0')}-${name}`;
   if (only && !id.includes(only)) return;
+  // The flow clicks English labels; the screenshot is taken in the language asked for.
+  if (LANG !== 'en') {
+    await page.evaluate((l) => window.__setLang?.(l), LANG);
+    await page.waitForTimeout(600);
+  }
   for (const w of WIDTHS) {
     await page.setViewportSize({ width: w.width, height: w.height });
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -69,6 +77,10 @@ async function snap(name) {
     await page.screenshot({ path: `${OUT}/${id}-${w.name}.jpg`, fullPage: true, type: 'jpeg', quality: 80 });
   }
   await page.setViewportSize(WIDTHS[0]);
+  if (LANG !== 'en') {
+    await page.evaluate(() => window.__setLang?.('en'));
+    await page.waitForTimeout(300);
+  }
   shots.push(id);
   console.log('shot', id);
 }

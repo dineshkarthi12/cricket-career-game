@@ -10,16 +10,14 @@ import { fieldProblems, outsideCount } from '@/lib/fieldRules';
 import { CIRCLE_RADIUS } from '@/lib/ground';
 import type { FieldSetting } from '@/engine/match/types';
 import type { MatchFormat, Venue } from '@/types';
+import { isKey, tr } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
-const PRESET_LABELS: Record<string, string> = {
-  ATTACKING_NEW_BALL: 'New ball (attacking)',
-  ATTACKING_SPIN: 'Spin (attacking)',
-  STANDARD: 'Standard',
-  DEFENSIVE_RING: 'Defensive',
-  BOUNDARY_PROTECTION: 'Protect the boundary',
-  DEATH: 'T20 death',
-  POWERPLAY: 'Powerplay',
-};
+/** A field preset's name in the app's language. */
+export function presetLabel(name: string): string {
+  const key = `field.preset.${name}`;
+  return isKey(key) ? tr(key) : name;
+}
 
 export const FieldEditor = memo(function FieldEditor({
   field,
@@ -44,19 +42,20 @@ export const FieldEditor = memo(function FieldEditor({
   const allowed = limited ? fieldersAllowedOutside(format, over) : 9;
   const outside = outsideCount(field, venue);
   const problems = fieldProblems(field, venue, format, over);
+  const t = useT();
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
           <Users className="size-3.5" aria-hidden />
-          Field
+          {t('field.title')}
         </p>
         <p className="text-[11.5px] text-ink-muted">
           <span className={outside > allowed ? 'font-bold text-brand-red' : 'font-semibold text-ink'}>
             {outside}
           </span>
-          /{allowed} outside
+          {t('field.outside', { n: allowed })}
         </p>
       </div>
 
@@ -67,7 +66,7 @@ export const FieldEditor = memo(function FieldEditor({
           aria-pressed={preset === null && !hasCustomField}
           className={pill(preset === null && !hasCustomField)}
         >
-          Vice-captain's field
+          {t('field.vice')}
         </button>
         {FIELD_PRESET_NAMES.map((name) => (
           <button
@@ -77,14 +76,13 @@ export const FieldEditor = memo(function FieldEditor({
             aria-pressed={preset === name}
             className={pill(preset === name)}
           >
-            {PRESET_LABELS[name] ?? name}
+            {presetLabel(name)}
           </button>
         ))}
       </div>
 
       <p className="text-[11.5px] text-ink-muted">
-        Drag a fielder on the ground to move them. Snapping keeps them on a
-        sensible line.
+        {t('field.drag')}
       </p>
 
       {hasCustomField ? (
@@ -94,7 +92,7 @@ export const FieldEditor = memo(function FieldEditor({
           className="flex items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] font-semibold text-ink hover:bg-page"
         >
           <RotateCcw className="size-3.5" aria-hidden />
-          Back to the preset
+          {t('field.backToPreset')}
         </button>
       ) : null}
 
@@ -109,7 +107,7 @@ export const FieldEditor = memo(function FieldEditor({
           </ul>
           {hasCustomField ? (
             <p className="mt-1.5 text-[11px] text-ink-muted">
-              The umpire will not allow it. The captain's field is used until you fix it.
+              {t('field.umpire')}
             </p>
           ) : null}
         </div>
@@ -118,7 +116,7 @@ export const FieldEditor = memo(function FieldEditor({
       {field ? (
         <details className="text-[12px]">
           <summary className="cursor-pointer font-semibold text-ink">
-            Positions ({field.fielders.length})
+            {t('field.positions', { n: field.fielders.length })}
           </summary>
           <ul className="mt-1.5 flex flex-col gap-0.5">
             {[...field.fielders]
@@ -133,7 +131,7 @@ export const FieldEditor = memo(function FieldEditor({
               ))}
             <li className="flex justify-between gap-2 text-ink-muted">
               <span className="truncate">{field.keeperName}</span>
-              <span className="shrink-0 text-ink-soft">keeper</span>
+              <span className="shrink-0 text-ink-soft">{t('field.keeper')}</span>
             </li>
           </ul>
         </details>

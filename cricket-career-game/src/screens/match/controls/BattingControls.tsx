@@ -8,17 +8,19 @@ import { FastForward, Play, Shield, Target } from 'lucide-react';
 import type { RiskEstimate } from '@/engine/match/innings';
 import { BALL_INTENTS, type BallIntent } from '@/store/matchStore';
 import { AggressionBar, BATTING_LEVELS } from './AggressionBar';
+import type { Key } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
 /** Directions the batter can favour, in engine degrees. */
-export const DIRECTIONS = [
-  { label: 'Straight', angle: 0 },
-  { label: 'Off drive', angle: 35 },
-  { label: 'Cover', angle: 65 },
-  { label: 'Point', angle: 95 },
-  { label: 'Third man', angle: 135 },
-  { label: 'Fine leg', angle: 225 },
-  { label: 'Square leg', angle: 265 },
-  { label: 'Mid-wicket', angle: 300 },
+export const DIRECTIONS: { key: Key; angle: number }[] = [
+  { key: 'dir.straight', angle: 0 },
+  { key: 'dir.offDrive', angle: 35 },
+  { key: 'dir.cover', angle: 65 },
+  { key: 'dir.point', angle: 95 },
+  { key: 'dir.thirdMan', angle: 135 },
+  { key: 'dir.fineLeg', angle: 225 },
+  { key: 'dir.squareLeg', angle: 265 },
+  { key: 'dir.midWicket', angle: 300 },
 ];
 
 const INTENT_TONE: Record<BallIntent, string> = {
@@ -59,10 +61,11 @@ export const BattingControls = memo(function BattingControls({
   onFarmStrike: (on: boolean) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-4">
       <AggressionBar
-        label="Your batting aggression"
+        label={t('batc.yourAgg')}
         kind="batting"
         level={level}
         risk={risk}
@@ -71,8 +74,11 @@ export const BattingControls = memo(function BattingControls({
       />
       {playIn ? (
         <p className="-mt-2 text-[12px] text-ink-muted">
-          Playing yourself in: {BATTING_LEVELS[playIn.level - 1].name} for {playIn.ballsLeft} more{' '}
-          {playIn.ballsLeft === 1 ? 'ball' : 'balls'}. A shot picked below is played as chosen.
+          {t('batc.playIn', {
+            level: BATTING_LEVELS[playIn.level - 1].name,
+            n: playIn.ballsLeft,
+            balls: playIn.ballsLeft === 1 ? '@batc.ball' : '@batc.balls',
+          })}
         </p>
       ) : null}
 
@@ -85,12 +91,12 @@ export const BattingControls = memo(function BattingControls({
         className="flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-brand-blue/90 disabled:opacity-50"
       >
         <Play className="size-4" aria-hidden />
-        Play the ball
+        {t('batc.play')}
       </button>
 
       <div>
         <p className="text-[12.5px] font-semibold text-ink">
-          Just this ball <span className="font-normal text-ink-soft">- your level stays as set</span>
+          {t('batc.justThis')} <span className="font-normal text-ink-soft">{t('batc.levelStays')}</span>
         </p>
         <div className="mt-2 grid grid-cols-5 gap-1.5">
           {BALL_INTENTS.map((option) => (
@@ -99,10 +105,10 @@ export const BattingControls = memo(function BattingControls({
               type="button"
               disabled={disabled}
               onClick={() => onPlay(option.id)}
-              title={option.help}
+              title={t(`intent.${option.id}.help`)}
               className={`rounded-xl border px-1 py-3 text-[12px] font-bold transition-colors disabled:opacity-50 sm:text-[12.5px] ${INTENT_TONE[option.id]}`}
             >
-              {option.label}
+              {t(`intent.${option.id}`)}
             </button>
           ))}
         </div>
@@ -111,32 +117,32 @@ export const BattingControls = memo(function BattingControls({
       <div>
         <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
           <Target className="size-3.5" aria-hidden />
-          Aim for
+          {t('batc.aim')}
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <Pill active={shotPreference === null} disabled={disabled} onClick={() => onShotPreference(null)}>
-            Anywhere
+            {t('batc.anywhere')}
           </Pill>
           {DIRECTIONS.map((direction) => (
             <Pill
-              key={direction.label}
+              key={direction.key}
               active={shotPreference === direction.angle}
               disabled={disabled}
               onClick={() =>
                 onShotPreference(shotPreference === direction.angle ? null : direction.angle)
               }
             >
-              {direction.label}
+              {t(direction.key)}
             </Pill>
           ))}
         </div>
         <p className="mt-1.5 text-[11px] text-ink-soft">
-          A settled batter with good technique finds the gap; a rushed one will not.
+          {t('batc.gapNote')}
         </p>
       </div>
 
       <div className="border-t border-line pt-3">
-        <p className="text-[12.5px] font-semibold text-ink">Sim on at your level</p>
+        <p className="text-[12.5px] font-semibold text-ink">{t('batc.simOn')}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -145,7 +151,7 @@ export const BattingControls = memo(function BattingControls({
             className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] font-semibold text-ink hover:bg-page disabled:opacity-50"
           >
             <FastForward className="size-3.5" aria-hidden />
-            To end of over
+            {t('batc.toOverEnd')}
           </button>
           <button
             type="button"
@@ -154,7 +160,7 @@ export const BattingControls = memo(function BattingControls({
             className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] font-semibold text-ink hover:bg-page disabled:opacity-50"
           >
             <FastForward className="size-3.5" aria-hidden />
-            Until I’m out
+            {t('batc.untilOut')}
           </button>
         </div>
       </div>
@@ -196,6 +202,7 @@ function Pill({
  * one off the last ball) and have the partner play safe and give it back.
  */
 export function CarryToggle({ on, onChange, compact = false }: { on: boolean; onChange: (on: boolean) => void; compact?: boolean }) {
+  const t = useT();
   return (
     <label
       className={[
@@ -212,12 +219,11 @@ export function CarryToggle({ on, onChange, compact = false }: { on: boolean; on
       <span className="min-w-0">
         <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
           <Shield className="size-3.5 text-brand-gold" aria-hidden />
-          Carry the innings - farm the strike
+          {t('batc.carry')}
         </span>
         {compact ? null : (
           <span className="mt-0.5 block text-[11.5px] leading-snug text-ink-muted">
-            Once you are set you keep the strike, and your partner plays safe and gives it back. Use it when the
-            wickets are falling at the other end; you face more balls, so pick your moments to attack.
+            {t('batc.carryHelp')}
           </span>
         )}
       </span>

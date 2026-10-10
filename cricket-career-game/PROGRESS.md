@@ -2069,3 +2069,48 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   - At 390px in Tamil, Home and Career Path have no horizontal overflow.
     Long step labels were shortened (ஸ்கவுட், பட்டியல், XI) and wrap.
   - Test: Home re-renders in Tamil when the language changes.
+- **Pass (c), done:** match screens and scorecards.
+  - Match keys live in their own pair, `src/i18n/en/match.ts` and
+    `src/i18n/ta/match.ts`, spread into the main dictionaries. The Tamil one
+    is typed against the English one.
+  - Translated:
+    - pre-match (selection, the XI, opposition, quick sim) and the toss,
+      including the conditions reading (`tossHint`);
+    - pitch, weather and the match info card;
+    - the score strip and full scorecards;
+    - the "You" panel, the batting, bowling and aggression controls,
+      lengths, lines and variations, and the field editor with its
+      fielding-law warnings;
+    - the captain panel, playback controls, charts and the ground labels;
+    - the catch, run-out and review prompts, the innings break and the
+      impact player;
+    - the post-match screen and press-conference chrome, the Matches list
+      and match detail;
+    - the big-moment banners, highlight lines, the highlights card and
+      reel player (canvas text in the video uses Noto Sans Tamil too), and
+      the TV milestone and record graphics.
+  - `rich()` (`i18n/react.ts`) fills a translated template with styled
+    parts, so each language puts the bold team or decision where its
+    grammar wants it.
+  - Result summaries stay in English in saves ("Won by 8 wickets").
+    `summaryText()` (`lib/matchText.ts`) reads the engine's known shapes
+    back into Tamil. Anything else shows as written.
+  - Fix: a match with a ball bowled no longer drops back to the toss card
+    when the screen is drawn again, after navigating away or switching
+    language.
+  - Still English:
+    - the ball commentary and live alerts (pass d);
+    - engine prose: selection reasons and notes, the XI warnings,
+      press-conference questions and answers, record names;
+    - fielding position names on the ground;
+    - scorecard abbreviations (R, B, 4s, 6s, SR, O, M, W) and dismissal
+      notation, which Tamil TV scorecards keep too.
+  - QA: `QA_LANG=ta npm run qa` drives the usual flow and takes every
+    screenshot in Tamil (into `qa-screenshots-ta/`, ignored by git), through
+    a dev-only `window.__setLang`. The match screens at 390px show no
+    overflow.
+  - Tests:
+    - switching language mid-match re-renders the match screen, from the
+      selection through the toss to the ground, and back;
+    - a review prompt in Tamil;
+    - result summaries read in Tamil and are unchanged in English.

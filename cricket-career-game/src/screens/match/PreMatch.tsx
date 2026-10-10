@@ -26,23 +26,21 @@ import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { formatLongDate } from '@/lib/format';
 import type { Fixture, GameState } from '@/types';
 import { PitchReport, WeatherReport } from './panels/MatchInfo';
+import { isKey, tr } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
-const ROLE_LABELS: Record<string, string> = {
-  OPENING_BATTER: 'Opener',
-  BATTER: 'Batter',
-  WICKET_KEEPER_BATTER: 'Keeper',
-  BATTING_ALLROUNDER: 'Batting AR',
-  BOWLING_ALLROUNDER: 'Bowling AR',
-  PACE_BOWLER: 'Pace',
-  SPIN_BOWLER: 'Spin',
+const STATUS_TONE: Record<SelectionDecision['status'], 'green' | 'blue' | 'orange' | 'red'> = {
+  PLAYING_XI: 'green',
+  TWELFTH_MAN: 'blue',
+  BENCH: 'orange',
+  NOT_SELECTED: 'red',
 };
 
-const STATUS: Record<SelectionDecision['status'], { label: string; tone: 'green' | 'blue' | 'orange' | 'red' }> = {
-  PLAYING_XI: { label: 'Playing XI', tone: 'green' },
-  TWELFTH_MAN: { label: '12th man', tone: 'blue' },
-  BENCH: { label: 'On the bench', tone: 'orange' },
-  NOT_SELECTED: { label: 'Not selected', tone: 'red' },
-};
+/** A role, short: "Opener", "Keeper", "Pace". */
+function roleShort(role: string): string {
+  const key = `roleShort.${role}`;
+  return isKey(key) ? tr(key) : role;
+}
 
 export function PreMatch({
   state,
@@ -78,7 +76,8 @@ export function PreMatch({
   const opposition = home?.isUserTeam ? away : home;
   const tournament = fixture.tournamentId ? TOURNAMENTS_BY_ID[fixture.tournamentId] : null;
   const venue = fixture.venueId ? state.venues[fixture.venueId] : null;
-  const status = STATUS[selection.status];
+  const t = useT();
+  const statusTone = STATUS_TONE[selection.status];
   const inXi = selection.status === 'PLAYING_XI';
 
   const byId = new Map(selection.ranked.map((r) => [r.player.id, r.player]));
@@ -97,19 +96,19 @@ export function PreMatch({
               className="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-blue hover:underline"
             >
               <ArrowLeft className="size-3.5" aria-hidden />
-              Back
+              {t('m.back')}
             </button>
             <h1 className="text-[20px] leading-tight font-semibold text-ink">
-              {home?.name ?? 'TBC'} <span className="text-brand-orange">v</span> {away?.name ?? 'TBC'}
+              {home?.name ?? t('m.tbc')} <span className="text-brand-orange">{t('m.v')}</span> {away?.name ?? t('m.tbc')}
             </h1>
             <p className="mt-1 text-[13px] text-ink-muted">
-              {tournament?.name ?? 'Friendly'} · {fixture.stage ?? 'League'} · {formatLongDate(fixture.date)}
+              {tournament?.name ?? t('m.friendly')} · {fixture.stage ?? t('m.league')} · {formatLongDate(fixture.date)}
               {venue ? ` · ${venue.name}, ${venue.city}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-3">
             {home ? <Crest crest={home.crest} size={40} label={home.name} /> : null}
-            <span className="text-[13px] font-semibold text-ink-soft">v</span>
+            <span className="text-[13px] font-semibold text-ink-soft">{t('m.v')}</span>
             {away ? <Crest crest={away.crest} size={40} label={away.name} /> : null}
           </div>
         </div>
@@ -120,15 +119,15 @@ export function PreMatch({
           {/* The selectors' decision. */}
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardHeader title="Selection" subtitle={`${state.player.firstName} ${state.player.lastName}`} />
+              <CardHeader title={t('pre.selection')} subtitle={`${state.player.firstName} ${state.player.lastName}`} />
               <div className="flex items-center gap-2">
                 {captain ? (
                   <Badge tone="gold">
                     <Crown className="mr-1 inline size-3" aria-hidden />
-                    Captain
+                    {t('m.captain')}
                   </Badge>
                 ) : null}
-                <Badge tone={status.tone}>{status.label}</Badge>
+                <Badge tone={statusTone}>{t(`pre.status.${selection.status}`)}</Badge>
               </div>
             </div>
 
@@ -136,12 +135,12 @@ export function PreMatch({
               <dl className="mt-3 grid gap-2 sm:grid-cols-3">
                 <Stat
                   icon={Shirt}
-                  label="Batting"
-                  value={`No. ${selection.battingPosition}`}
+                  label={t('pre.batting')}
+                  value={t('pre.no', { n: selection.battingPosition ?? '-' })}
                   sub={selection.positionNote}
                 />
-                <Stat icon={Users} label="Role" value={roleLabel(selection)} sub={selection.expectedRole} />
-                <Stat icon={Zap} label="Bowling" value={bowlingLabel(selection)} sub={selection.bowlingNote} />
+                <Stat icon={Users} label={t('pre.role')} value={roleLabel(selection)} sub={selection.expectedRole} />
+                <Stat icon={Zap} label={t('pre.bowling')} value={bowlingLabel(selection)} sub={selection.bowlingNote} />
               </dl>
             ) : (
               <p className="mt-3 text-[13px] text-ink-muted">{selection.expectedRole}</p>
@@ -161,11 +160,11 @@ export function PreMatch({
           {/* The XI: the selectors', or the captain's proposal. */}
           <Card className="flex flex-col gap-3">
             <CardHeader
-              title={captain ? 'Your XI' : 'The XI'}
+              title={captain ? t('pre.yourXi') : t('pre.theXi')}
               subtitle={
                 captain
-                  ? `${proposed.length} of 11 - tap to bring a player in or leave them out, arrows to change the order. The selectors have the final say.`
-                  : 'Picked by the selectors, batting order from the coach.'
+                  ? t('pre.yourXiHint', { n: proposed.length })
+                  : t('pre.theXiHint')
               }
             />
             <ol className="flex flex-col gap-1">
@@ -184,20 +183,20 @@ export function PreMatch({
                     <span className="block truncate text-[12.5px] font-semibold text-ink">
                       {player.name}
                       {player.isUser ? (
-                        <span className="ml-1.5 text-[10.5px] font-bold text-brand-navy">YOU</span>
+                        <span className="ml-1.5 text-[10.5px] font-bold text-brand-navy">{t('m.you')}</span>
                       ) : null}
                     </span>
                     <span className="text-[11px] text-ink-muted">
-                      {ROLE_LABELS[player.role] ?? player.role} · form {Math.round(player.condition.form)}
+                      {roleShort(player.role)} · {t('pre.formN', { n: Math.round(player.condition.form) })}
                     </span>
                   </span>
                   {captain ? (
                     <span className="flex shrink-0 items-center gap-1">
-                      <IconButton label="Bat higher" onClick={() => onMove(player.id, -1)} disabled={index === 0}>
+                      <IconButton label={t('pre.batHigher')} onClick={() => onMove(player.id, -1)} disabled={index === 0}>
                         <ArrowUp className="size-3.5" />
                       </IconButton>
                       <IconButton
-                        label="Bat lower"
+                        label={t('pre.batLower')}
                         onClick={() => onMove(player.id, 1)}
                         disabled={index === proposed.length - 1}
                       >
@@ -208,7 +207,7 @@ export function PreMatch({
                         onClick={() => onToggle(player.id)}
                         className="rounded-lg px-2 py-1 text-[11.5px] font-semibold text-brand-red hover:bg-brand-red/10"
                       >
-                        Leave out
+                        {t('pre.leaveOut')}
                       </button>
                     </span>
                   ) : null}
@@ -218,7 +217,7 @@ export function PreMatch({
 
             {captain ? (
               <>
-                <p className="border-t border-line pt-3 text-[12.5px] font-semibold text-ink">Also in the squad</p>
+                <p className="border-t border-line pt-3 text-[12.5px] font-semibold text-ink">{t('pre.alsoInSquad')}</p>
                 <ul className="grid gap-1.5 sm:grid-cols-2">
                   {selection.ranked
                     .map((r) => r.player)
@@ -234,10 +233,10 @@ export function PreMatch({
                           <span className="min-w-0">
                             <span className="block truncate text-[12.5px] font-semibold text-ink">{player.name}</span>
                             <span className="text-[11px] text-ink-muted">
-                              {ROLE_LABELS[player.role]} · form {Math.round(player.condition.form)}
+                              {roleShort(player.role)} · {t('pre.formN', { n: Math.round(player.condition.form) })}
                             </span>
                           </span>
-                          <span className="shrink-0 text-[11.5px] font-semibold text-brand-blue">Bring in</span>
+                          <span className="shrink-0 text-[11.5px] font-semibold text-brand-blue">{t('pre.bringIn')}</span>
                         </button>
                       </li>
                     ))}
@@ -249,12 +248,12 @@ export function PreMatch({
                     className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-semibold text-ink hover:bg-page"
                   >
                     <RotateCcw className="size-3.5" aria-hidden />
-                    The selectors' XI
+                    {t('pre.selectorsXi')}
                   </button>
                   {warnings.length === 0 && ready ? (
                     <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-green">
                       <CheckCircle2 className="size-4" aria-hidden />
-                      A balanced side.
+                      {t('pre.balanced')}
                     </span>
                   ) : null}
                 </div>
@@ -275,20 +274,20 @@ export function PreMatch({
 
         <div className="flex flex-col gap-4">
           <Card>
-            <CardHeader title="Opposition" subtitle={opposition?.name ?? 'To be confirmed'} />
+            <CardHeader title={t('pre.opposition')} subtitle={opposition?.name ?? t('m.toBeConfirmed')} />
             <dl className="mt-2.5 grid grid-cols-2 gap-2 text-[12.5px]">
-              <MiniStat label="Their strength" value={String(opposition?.strength ?? '-')} />
-              <MiniStat label="Your side" value={String(userTeam?.strength ?? '-')} />
-              <MiniStat label="Their mood" value={moraleWord(opposition?.morale)} />
-              <MiniStat label="Your dressing room" value={moraleWord(userTeam?.morale)} />
+              <MiniStat label={t('pre.theirStrength')} value={String(opposition?.strength ?? '-')} />
+              <MiniStat label={t('pre.yourSide')} value={String(userTeam?.strength ?? '-')} />
+              <MiniStat label={t('pre.theirMood')} value={moraleWord(opposition?.morale)} />
+              <MiniStat label={t('pre.yourRoom')} value={moraleWord(userTeam?.morale)} />
             </dl>
             {opposition && userTeam ? (
               <p className="mt-2.5 text-[12px] text-ink-muted">
                 {opposition.strength > userTeam.strength + 4
-                  ? 'Stronger than you on paper. You will have to earn this one.'
+                  ? t('pre.stronger')
                   : opposition.strength < userTeam.strength - 4
-                    ? 'You should be favourites - which is its own kind of pressure.'
-                    : 'Very little between the two sides.'}
+                    ? t('pre.favourites')
+                    : t('pre.even')}
               </p>
             ) : null}
           </Card>
@@ -296,13 +295,13 @@ export function PreMatch({
           {snap ? (
             <>
               <Card>
-                <CardHeader title="Pitch report" />
+                <CardHeader title={t('m.pitchReport')} />
                 <div className="mt-2.5">
                   <PitchReport conditions={snap.conditions} />
                 </div>
               </Card>
               <Card>
-                <CardHeader title="Conditions" subtitle={snap.underLights ? 'Day-night: under lights later' : undefined} />
+                <CardHeader title={t('m.conditions')} subtitle={snap.underLights ? t('m.dayNight') : undefined} />
                 <div className="mt-2.5">
                   <WeatherReport conditions={snap.conditions} />
                 </div>
@@ -318,14 +317,14 @@ export function PreMatch({
               className="flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {inXi || captain ? <Users className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
-              {captain ? 'Send the XI to the selectors' : inXi ? 'To the toss' : 'Watch the match'}
+              {captain ? t('pre.sendXi') : inXi ? t('pre.toToss') : t('pre.watch')}
             </button>
             <button
               type="button"
               onClick={onQuickSim}
               className="rounded-xl border border-line bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-ink transition-colors hover:bg-page"
             >
-              Quick Sim instead
+              {t('pre.quickSim')}
             </button>
           </Card>
         </div>
@@ -336,20 +335,20 @@ export function PreMatch({
 
 function roleLabel(selection: SelectionDecision): string {
   const me = selection.xi.find((p) => p.isUser);
-  return me ? (ROLE_LABELS[me.role] ?? me.role) : '-';
+  return me ? roleShort(me.role) : '-';
 }
 
 function bowlingLabel(selection: SelectionDecision): string {
-  if (!selection.bowlingNote || selection.bowlingNote.includes('will not bowl') || selection.bowlingNote === 'You do not bowl.') return "Won't bowl";
-  return selection.bowlingTrust >= 1.05 ? 'Frontline' : selection.bowlingTrust >= 0.7 ? 'Some overs' : 'Rarely';
+  if (!selection.bowlingNote || selection.bowlingNote.includes('will not bowl') || selection.bowlingNote === 'You do not bowl.') return tr('pre.wontBowl');
+  return selection.bowlingTrust >= 1.05 ? tr('pre.frontline') : selection.bowlingTrust >= 0.7 ? tr('pre.someOvers') : tr('pre.rarely');
 }
 
 function moraleWord(morale: number | undefined): string {
   if (morale === undefined) return '-';
-  if (morale >= 75) return 'Buoyant';
-  if (morale >= 58) return 'Settled';
-  if (morale >= 42) return 'Flat';
-  return 'Low';
+  if (morale >= 75) return tr('mood.buoyant');
+  if (morale >= 58) return tr('mood.settled');
+  if (morale >= 42) return tr('mood.flat');
+  return tr('mood.low');
 }
 
 function Stat({

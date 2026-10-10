@@ -6,6 +6,7 @@
  * the figures so far in it, so the same function serves the live match and
  * the post-match screen.
  */
+import { currentLang, tr } from '@/i18n/core';
 import { LADDERS, ODI_COMPETITIONS, RECORDS, T20I_COMPETITIONS, TEST_COMPETITIONS, type RecordDef } from '@/data/records';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { competitionTotals } from './legacy';
@@ -52,7 +53,7 @@ function bookOf(tournamentId: string): Book {
   if (TEST_COMPETITIONS.includes(tournamentId)) return { unit: 'Test', competitions: TEST_COMPETITIONS };
   if (ODI_COMPETITIONS.includes(tournamentId)) return { unit: 'ODI', competitions: ODI_COMPETITIONS };
   if (T20I_COMPETITIONS.includes(tournamentId)) return { unit: 'T20I', competitions: T20I_COMPETITIONS };
-  return { unit: TOURNAMENTS_BY_ID[tournamentId]?.shortName ?? 'career', competitions: [tournamentId] };
+  return { unit: TOURNAMENTS_BY_ID[tournamentId]?.shortName ?? tr('tv.career'), competitions: [tournamentId] };
 }
 
 const RUN_MARKS = [500, ...Array.from({ length: 20 }, (_, i) => (i + 1) * 1000)];
@@ -63,6 +64,7 @@ function n(value: number): string {
 }
 
 function ordinal(i: number): string {
+  if (currentLang() === 'ta') return `${i}வது`;
   const s = ['th', 'st', 'nd', 'rd'];
   const v = i % 100;
   return `${i}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
@@ -100,12 +102,12 @@ export function broadcastGraphics(state: GameState, tournamentId: string, figure
   // Career milestones.
   for (const mark of RUN_MARKS) {
     if (before.batting.runs < mark && runsAfter >= mark) {
-      out.push({ id: `runs-${book.unit}-${mark}`, kind: 'MILESTONE', strap: 'Milestone', headline: `${n(mark)} ${book.unit} runs`, detail: `${name} · ${before.batting.innings + figures.batting.length} innings` });
+      out.push({ id: `runs-${book.unit}-${mark}`, kind: 'MILESTONE', strap: tr('tv.milestone'), headline: tr('tv.runsMark', { n: n(mark), unit: book.unit }), detail: tr('tv.innings', { name, n: before.batting.innings + figures.batting.length }) });
     }
   }
   for (const mark of WICKET_MARKS) {
     if (before.bowling.wickets < mark && wicketsAfter >= mark) {
-      out.push({ id: `wkts-${book.unit}-${mark}`, kind: 'MILESTONE', strap: 'Milestone', headline: `${n(mark)} ${book.unit} wickets`, detail: `${name} · ${before.batting.matches + 1} matches` });
+      out.push({ id: `wkts-${book.unit}-${mark}`, kind: 'MILESTONE', strap: tr('tv.milestone'), headline: tr('tv.wicketsMark', { n: n(mark), unit: book.unit }), detail: tr('tv.matches', { name, n: before.batting.matches + 1 }) });
     }
   }
 
@@ -113,14 +115,14 @@ export function broadcastGraphics(state: GameState, tournamentId: string, figure
   for (const ladder of LADDERS.filter((l) => l.competitions.includes(tournamentId))) {
     const was = ladder.kind === 'CAREER_RUNS' ? before.batting.runs : before.bowling.wickets;
     const now = ladder.kind === 'CAREER_RUNS' ? runsAfter : wicketsAfter;
-    const what = ladder.kind === 'CAREER_RUNS' ? 'runs' : 'wickets';
+    const what = ladder.kind === 'CAREER_RUNS' ? tr('tv.runs') : tr('tv.wickets');
     ladder.list.forEach((entry, i) => {
       if (was > entry.value || now <= entry.value) return;
       const id = `pass-${ladder.book}-${ladder.kind}-${entry.name}`;
       if (i === 0) {
-        out.push({ id, kind: 'RECORD', strap: 'Record broken', headline: `Most ${book.unit} ${what}`, detail: `${name}: ${n(now)} - past ${entry.name}'s ${n(entry.value)}` });
+        out.push({ id, kind: 'RECORD', strap: tr('tv.recordBroken'), headline: tr('tv.most', { unit: book.unit, what }), detail: tr('tv.pastRecord', { name, now: n(now), holder: entry.name, value: n(entry.value) }) });
       } else {
-        out.push({ id, kind: 'PASSED', strap: 'All-time list', headline: `Past ${entry.name}`, detail: `${name}: ${n(now)} ${book.unit} ${what} · ${ordinal(i + 1)} on the all-time list` });
+        out.push({ id, kind: 'PASSED', strap: tr('tv.allTime'), headline: tr('tv.past', { holder: entry.name }), detail: tr('tv.pastDetail', { name, now: n(now), unit: book.unit, what, place: ordinal(i + 1) }) });
       }
     });
   }
@@ -130,7 +132,7 @@ export function broadcastGraphics(state: GameState, tournamentId: string, figure
   const bestBat = Math.max(0, ...figures.batting);
   const bestBowl = figures.bowling.reduce<{ wickets: number; runs: number } | null>((b, x) => (!b || x.wickets > b.wickets || (x.wickets === b.wickets && x.runs < b.runs) ? x : b), null);
   const bb = before.bowling.bestInnings;
-  const record = (def: RecordDef, figure: string) => out.push({ id: `record-${def.id}`, kind: 'RECORD', strap: 'Record broken', headline: def.label, detail: `${name}: ${figure} - past ${def.holder}'s ${def.display}` });
+  const record = (def: RecordDef, figure: string) => out.push({ id: `record-${def.id}`, kind: 'RECORD', strap: tr('tv.recordBroken'), headline: def.label, detail: tr('tv.pastRecord', { name, now: figure, holder: def.holder, value: def.display }) });
   for (const def of RECORDS.filter((d) => d.competitions.includes(tournamentId))) {
     switch (def.kind) {
       case 'HIGH_SCORE':

@@ -3,7 +3,7 @@
  * Settings, and re-renders the screen when it changes. `useLang()` is the
  * language itself.
  */
-import { useCallback, useEffect } from 'react';
+import { Fragment, createElement, useCallback, useEffect, type ReactNode } from 'react';
 import { useAppSettings } from '@/store/appSettings';
 import { setCurrentLang, t, type Key, type Lang, type Vars } from './core';
 
@@ -41,4 +41,17 @@ export function useLanguageEffect(): Lang {
     if (lang === 'ta') void loadTamilFont();
   }, [lang]);
   return lang;
+}
+
+/**
+ * A translated template with styled parts: `rich(t('pitch.surface'), { type:
+ * <b>Green</b> })`. `t()` without vars leaves `{type}` in place, so each
+ * language puts the part where its grammar wants it.
+ */
+export function rich(template: string, parts: Record<string, ReactNode>): ReactNode[] {
+  return template.split(/(\{\w+\})/).map((piece, i) => {
+    const name = /^\{(\w+)\}$/.exec(piece)?.[1];
+    const node = name !== undefined && name in parts ? parts[name] : piece;
+    return createElement(Fragment, { key: i }, node);
+  });
 }
