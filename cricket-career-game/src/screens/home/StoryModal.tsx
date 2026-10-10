@@ -1,3 +1,5 @@
+import type { Key } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 import {
   Award,
   Flag,
@@ -39,13 +41,14 @@ export function StoryModal({
 }) {
   const events = [...state.career.events].sort((a, b) => a.date.localeCompare(b.date));
   const name = `${state.player.firstName} ${state.player.lastName}`.trim();
+  const t = useT();
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={`${name}'s story`}
-      subtitle={`${events.length} moments on the way to ${CAREER_STAGES_BY_ID[state.career.currentStageId]?.name ?? 'the top'}`}
+      title={t('story.title', { name })}
+      subtitle={t('story.subtitle', { n: events.length, stage: CAREER_STAGES_BY_ID[state.career.currentStageId] ? t(`stage.${state.career.currentStageId}` as Key) : t('story.theTop') })}
     >
       <ol className="relative flex flex-col gap-5 pl-7">
         <span className="absolute top-2 bottom-2 left-[13px] w-px bg-line" aria-hidden />
@@ -62,7 +65,7 @@ export function StoryModal({
               </span>
               <p className="text-[12px] font-medium text-ink-soft">
                 {formatLongDate(event.date)}
-                {stage ? ` · ${stage.shortLabel}` : ''}
+                {stage ? ` · ${t(`stage.${stage.id}.short` as Key)}` : ''}
               </p>
               <p className="mt-0.5 text-[14px] font-semibold text-ink">{event.title}</p>
               <p className="mt-0.5 text-[13px] leading-snug text-ink-muted">{event.detail}</p>
@@ -72,7 +75,7 @@ export function StoryModal({
       </ol>
 
       <p className="font-hand mt-6 text-center text-[22px] text-ink-muted">
-        Every great player was once a beginner.
+        {t('story.motto')}
       </p>
     </Modal>
   );

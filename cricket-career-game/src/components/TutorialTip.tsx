@@ -1,3 +1,4 @@
+import { tr, type Key } from '@/i18n/core';
 import { Lightbulb } from 'lucide-react';
 import { useAppSettings } from '@/store/appSettings';
 import { cn } from '@/lib/cn';
@@ -37,24 +38,25 @@ export function TutorialTip({ id, after, className }: { id: TipId; /** Wait unti
   const seen = useAppSettings((s) => s.tipsSeen.includes(id) || (after !== undefined && !s.tipsSeen.includes(after)));
   const seeTip = useAppSettings((s) => s.seeTip);
   const setSettings = useAppSettings((s) => s.set);
+  // Subscribed, so the tip redraws when the language changes.
+  useAppSettings((s) => s.language);
   if (seen) return null;
-  const tip = TUTORIAL_TIPS[id];
-  const ids = Object.keys(TUTORIAL_TIPS);
+    const ids = Object.keys(TUTORIAL_TIPS);
   const step = ids.indexOf(id) + 1;
   return (
-    <aside aria-label={`Tip: ${tip.title}`} className={cn('flex items-start gap-3 rounded-card border border-brand-blue/25 bg-brand-blue-soft px-4 py-3', className)}>
+    <aside aria-label={`${tr('tip.label')}: ${tr(`tip.${id}.title` as Key)}`} className={cn('flex items-start gap-3 rounded-card border border-brand-blue/25 bg-brand-blue-soft px-4 py-3', className)}>
       <Lightbulb className="mt-0.5 size-5 shrink-0 text-brand-blue" aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] font-semibold text-ink">
-          {tip.title} <span className="font-normal text-ink-muted">· tip {step} of {ids.length}</span>
+          {tr(`tip.${id}.title` as Key)} <span className="font-normal text-ink-muted">· {tr('tip.step', { step, of: ids.length })}</span>
         </p>
-        <p className="mt-0.5 text-[13px] text-ink">{tip.body}</p>
+        <p className="mt-0.5 text-[13px] text-ink">{tr(`tip.${id}.body` as Key)}</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <button type="button" onClick={() => seeTip(id)} className="rounded-lg bg-brand-blue px-3 py-1.5 text-[12.5px] font-semibold text-white">
-            Got it
+            {tr('tip.gotIt')}
           </button>
           <button type="button" onClick={() => setSettings({ tipsSeen: ids })} className="rounded-lg px-3 py-1.5 text-[12.5px] font-semibold text-brand-blue hover:bg-white/60">
-            Skip tutorial
+            {tr('tip.skip')}
           </button>
         </div>
       </div>

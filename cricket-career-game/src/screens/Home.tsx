@@ -1,3 +1,5 @@
+import { useT } from '@/i18n/react';
+import { tr } from '@/i18n/core';
 import { useState } from 'react';
 import { Tabs, TutorialTip } from '@/components';
 import { Navigate } from 'react-router-dom';
@@ -24,11 +26,11 @@ import type { GameState } from '@/types';
 
 /** The rest of Home on a phone, a tab at a time. */
 const MOBILE_TABS = [
-  { id: 'progress', label: 'Progress' },
-  { id: 'stats', label: 'Stats' },
-  { id: 'schedule', label: 'Schedule' },
-  { id: 'more', label: 'More' },
-];
+  { id: 'progress', key: 'home.tab.progress' },
+  { id: 'stats', key: 'home.tab.stats' },
+  { id: 'schedule', key: 'home.tab.schedule' },
+  { id: 'more', key: 'home.tab.more' },
+] as const;
 
 /**
  * The Home dashboard from design/dashboard.png, led by the one thing to do
@@ -44,13 +46,14 @@ export default function Home() {
   if (!state) {
     if (booted) return <Navigate to="/start" replace />;
     return (
-      <p className="py-20 text-center text-[14px] text-ink-muted">Loading your career…</p>
+      <p className="py-20 text-center text-[14px] text-ink-muted">{tr('common.loadingCareer')}</p>
     );
   }
   return wide ? <WideHome state={state} /> : <PhoneHome state={state} />;
 }
 
 function WideHome({ state }: { state: GameState }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3 pb-4">
       <TutorialTip id="dashboard" />
@@ -79,14 +82,14 @@ function WideHome({ state }: { state: GameState }) {
 
       <div className="grid gap-3 md:grid-cols-2 wide:grid-cols-4">
         <RecentMatchCard state={state} />
-        <CollapsibleCard id="skills" title="Skill Development">
+        <CollapsibleCard id="skills" title={t('skills.title')}>
           <SkillDevelopmentCard state={state} />
         </CollapsibleCard>
-        <CollapsibleCard id="trophies" title="Trophies & Milestones">
+        <CollapsibleCard id="trophies" title={t('trophies.title')}>
           <TrophiesCard state={state} />
         </CollapsibleCard>
         {hasCommunity(state) ? (
-          <CollapsibleCard id="community" title="Community">
+          <CollapsibleCard id="community" title={t('community.title')}>
             <CommunityCard state={state} />
           </CollapsibleCard>
         ) : null}
@@ -99,6 +102,8 @@ function WideHome({ state }: { state: GameState }) {
 
 function PhoneHome({ state }: { state: GameState }) {
   const [tab, setTab] = useState('progress');
+  const t = useT();
+  const tabs = MOBILE_TABS.map((m) => ({ id: m.id, label: t(m.key) }));
   return (
     <div className="flex flex-col gap-3 pb-4">
       <HeroBanner state={state} />
@@ -109,8 +114,8 @@ function PhoneHome({ state }: { state: GameState }) {
       <RoadToSelectionCard state={state} compact />
       <InboxCard state={state} compact />
 
-      <Tabs tabs={MOBILE_TABS} value={tab} onChange={setTab} label="More on Home" className="grid grid-cols-4 rounded-card bg-surface p-1 shadow-card [&>button]:py-2 [&>button]:text-[12.5px]" />
-      <div role="tabpanel" aria-label={MOBILE_TABS.find((t) => t.id === tab)?.label} className="flex flex-col gap-3">
+      <Tabs tabs={tabs} value={tab} onChange={setTab} label={t('home.moreOnHome')} className="grid grid-cols-4 rounded-card bg-surface p-1 shadow-card [&>button]:py-2 [&>button]:text-[12.5px]" />
+      <div role="tabpanel" aria-label={tabs.find((x) => x.id === tab)?.label} className="flex flex-col gap-3">
         {tab === 'progress' ? (
           <>
             <CareerJourneyCard state={state} />

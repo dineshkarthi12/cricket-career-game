@@ -1,5 +1,5 @@
 import { en } from '@/i18n/en';
-import type { Key } from '@/i18n/core';
+import { tr, type Key } from '@/i18n/core';
 import { CAREER_STAGES, CAREER_STAGES_BY_ID } from '@/data/stages';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { battingAverage, strikeRate } from '@/engine/records';
@@ -53,7 +53,7 @@ export function careerSteps(state: GameState): StepItem[] {
         : progress?.status === 'COMPLETED' || progress?.status === 'SKIPPED'
           ? 'done'
           : 'locked';
-    return { id: stage.id, index: stage.order, label: stage.shortLabel, status };
+    return { id: stage.id, index: stage.order, label: tr(`stage.${stage.id}.short` as Key), status };
   });
 }
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CalendarClock, ChevronRight, ClipboardCheck, Dumbbell, Gavel, GraduationCap, HeartPulse, Inbox, Play, ScrollText, Crown, Repeat, Handshake, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components';
+import { useLang, useT } from '@/i18n/react';
 import { cn } from '@/lib/cn';
 import { nextAction, type NextAction, type NextActionKind } from '@/lib/nextAction';
 import { useContinue, freshSelectionNews } from '@/layout/useContinue';
@@ -46,7 +47,9 @@ export function NextActionCard({ state }: { state: GameState }) {
   const update = useGameStore((s) => s.update);
   const continueWeek = useContinue();
   const [news, setNews] = useState<InboxMessage[] | null>(null);
-  const action = nextAction(state);
+  const lang = useLang();
+  const t = useT();
+  const action = nextAction(state, lang);
   const tone = TONE[action.tone];
   const Icon = ICON[action.kind];
 
@@ -82,13 +85,13 @@ export function NextActionCard({ state }: { state: GameState }) {
 
   return (
     <Card className={cn('border-l-4 p-4 md:p-5', tone.bar)}>
-      <section aria-label="Next action" className="flex flex-col gap-3 md:flex-row md:items-center">
+      <section aria-label={t('next.label')} className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <span className={cn('grid size-10 shrink-0 place-items-center rounded-full', tone.icon)} aria-hidden>
             <Icon className="size-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold tracking-wide text-ink-muted uppercase">Next action</p>
+            <p className="text-[11px] font-bold tracking-wide text-ink-muted uppercase">{t('next.label')}</p>
             <h2 className="text-[17px] leading-tight font-bold text-ink">{action.title}</h2>
             <p className="mt-0.5 text-[13px] leading-snug text-ink-muted" data-testid="next-action-reason">{action.reason}</p>
           </div>

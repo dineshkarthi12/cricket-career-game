@@ -2053,3 +2053,19 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
     - switching in Settings re-renders the screen, the navigation and the
       top bar, and is remembered;
     - Tamil dates.
+- **Pass (b), done:** Home and Career.
+  - Home: the hero, the next-action card, the phone tabs, Next Match, the
+    journey and Road to Selection (stages, steps, groups), the inbox
+    chrome, the schedule, training focus, stats tiles and tabs, recent
+    match, skills and the radar legend, trophies, community, the bottom
+    banner, decisions, the story modal and tutorial tips.
+  - Career Path: every label, stage names and descriptions, status
+    badges, the outcome lines.
+  - Roles, batting / bowling styles, form, morale and player titles are
+    keys, so they read in Tamil wherever they appear.
+  - Still English by design: text the engine writes into the save (inbox
+    messages, selection target lines like "300+ runs", path notes, coach
+    hints, fixture titles), plus player, team and tournament names.
+  - At 390px in Tamil, Home and Career Path have no horizontal overflow.
+    Long step labels were shortened (ஸ்கவுட், பட்டியல், XI) and wrap.
+  - Test: Home re-renders in Tamil when the language changes.

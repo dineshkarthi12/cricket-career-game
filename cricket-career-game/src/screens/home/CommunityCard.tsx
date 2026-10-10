@@ -1,3 +1,4 @@
+import { useT } from '@/i18n/react';
 import { Avatar, Card, CardHeader } from '@/components';
 import { COMMUNITY_POSTS } from '@/data/community';
 import { relativeInGameDate } from '@/lib/format';
@@ -10,14 +11,15 @@ import type { GameState } from '@/types';
 export function CommunityCard({ state }: { state?: GameState }) {
   const stories = state?.pro?.fans.stories ?? [];
   const followers = state?.pro?.fans.followers ?? 0;
+  const t = useT();
   // Early in a career there is nobody following yet: nothing to show.
   if (state && !stories.length && followers < 100) return null;
   return (
     <Card>
       <CardHeader
-        title="Community"
-        subtitle={stories.length ? `${followers >= 1000 ? `${(followers / 1000).toFixed(1)}K` : followers} followers` : 'Join the conversation'}
-        action={{ label: 'View', to: '/community' }}
+        title={t('community.title')}
+        subtitle={stories.length ? t('community.followers', { n: followers >= 1000 ? `${(followers / 1000).toFixed(1)}K` : followers }) : t('community.join')}
+        action={{ label: t('common.view'), to: '/community' }}
         className="mb-2.5"
       />
       <ul className="flex flex-col gap-1.5">

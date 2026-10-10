@@ -18,7 +18,7 @@ describe('the dictionaries', () => {
   it('Tamil strings are Tamil: every one that is not a name or a code has Tamil script', () => {
     const latinOnly = (Object.keys(ta) as Key[]).filter((k) => !/[஀-௿]/.test(ta[k]) && en[k] !== ta[k]);
     // The few that may stay Latin: language names, abbreviations kept as people say them.
-    expect(latinOnly.filter((k) => !['settings.languageEn'].includes(k))).toEqual([]);
+    expect(latinOnly.filter((k) => !['settings.languageEn', 'step.XI'].includes(k))).toEqual([]);
   });
 });
 

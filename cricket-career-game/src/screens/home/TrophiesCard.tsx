@@ -1,3 +1,4 @@
+import { useT } from '@/i18n/react';
 import { Lock, Trophy as TrophyIcon } from 'lucide-react';
 import { Card, CardHeader } from '@/components';
 import { featuredTrophies } from '@/lib/selectors';
@@ -15,12 +16,13 @@ function shortName(name: string): string {
 /** Won trophies in colour, everything still to come behind a padlock. */
 export function TrophiesCard({ state }: { state: GameState }) {
   const trophies = featuredTrophies(state, 4);
+  const t = useT();
 
   return (
     <Card className="flex flex-col">
       <CardHeader
-        title="Trophies & Milestones"
-        action={{ label: 'View All', to: '/awards' }}
+        title={t('trophies.title')}
+        action={{ label: t('common.viewAll'), to: '/awards' }}
         className="mb-2.5"
       />
       <ul className="grid grid-cols-4 gap-2">
@@ -55,13 +57,13 @@ export function TrophiesCard({ state }: { state: GameState }) {
                 {trophy.unlocked ? (trophy.seasonYear ?? '') : ''}
               </span>
             </span>
-            <span className="sr-only">{trophy.unlocked ? 'unlocked' : 'locked'}</span>
+            <span className="sr-only">{t(trophy.unlocked ? 'trophies.unlocked' : 'trophies.locked')}</span>
           </li>
         ))}
       </ul>
 
       <p className="font-hand mt-auto pt-4 text-center text-[20px] text-ink">
-        “Collect moments, not just trophies.”
+        {t('trophies.quote')}
       </p>
     </Card>
   );

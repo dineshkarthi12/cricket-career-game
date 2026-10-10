@@ -3,6 +3,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppShell } from '@/layout/AppShell';
 import SettingsScreen from '@/screens/settings/SettingsScreen';
+import Home from '@/screens/Home';
+import { act } from '@testing-library/react';
 import { useAppSettings } from '@/store/appSettings';
 import { useGameStore } from '@/store/gameStore';
 import { formatLongDate } from '@/lib/format';
@@ -36,6 +38,23 @@ describe('switching language', () => {
     // And back.
     fireEvent.click(within(screen.getByRole('radiogroup', { name: 'மொழி' })).getByRole('radio', { name: 'English' }));
     expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
+  });
+
+  it('Home re-renders in Tamil when the language changes', () => {
+    localStorage.clear();
+    useGameStore.getState().loadDemoCareer(1);
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'Next Match' })).toBeInTheDocument();
+    act(() => useAppSettings.getState().set({ language: 'ta' }));
+    expect(screen.getByRole('heading', { name: 'அடுத்த மேட்ச்' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'அடுத்து' })).toBeInTheDocument();
+    expect(screen.getByText('உங்கள் கேரியர் பயணம்')).toBeInTheDocument();
+    // The player's name and the teams stay as they are.
+    expect(screen.getByRole('heading', { level: 1, name: 'Dinesh' })).toBeInTheDocument();
   });
 
   it('dates use Tamil month names, with Western digits', () => {

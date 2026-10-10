@@ -1,10 +1,11 @@
+import { useT } from '@/i18n/react';
+import { tr, type Key } from '@/i18n/core';
 import { CheckCircle2, Circle, Lock, SkipForward, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge, Card, CardHeader, ProgressBar, Stepper, type BadgeTone } from '@/components';
 import { CAREER_STAGES, getStage } from '@/data/stages';
 import { STAGE_AGE_LIMIT, STAGE_TARGETS, describeTarget } from '@/data/stageTargets';
 import { evaluateTargets } from '@/engine/career/targets';
-import { STATUS_LABEL } from '@/engine/career/squads';
 import { stageCompetitions } from '@/engine/career/involvement';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { careerSteps } from '@/lib/selectors';
@@ -45,7 +46,7 @@ const STATUS_STYLE: Record<CareerStageProgress['status'], { label: string; tone:
 
 export default function CareerPathScreen() {
   const state = useGameStore((s) => s.state);
-  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">Loading your career…</p>;
+  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">{tr('common.loadingCareer')}</p>;
   return <CareerPath state={state} />;
 }
 
@@ -55,50 +56,52 @@ function CareerPath({ state }: { state: GameState }) {
   const target = STAGE_TARGETS[stage.id];
   const places = [...stageCompetitions(stage.id).map((id) => state.career.squads[id]), ...(state.pro ? proPlaces(state) : [])].filter(Boolean);
   const pro = state.pro ? proTargets(state) : [];
+  const tx = useT();
+  const stageName = (id: string) => tx(`stage.${id}` as Key);
 
   return (
     <div className="flex flex-col gap-3 pb-4">
       <div>
-        <h1 className="text-[22px] leading-tight font-bold text-ink">Career Path</h1>
+        <h1 className="text-[22px] leading-tight font-bold text-ink">{tx('path.title')}</h1>
         <p className="text-[13px] text-ink-muted">
-          Stage {stage.order} of 20 · {stage.name} · age {state.player.age}. Nothing is handed out: every step is earned.
+          {tx('path.intro', { n: stage.order, stage: stageName(stage.id), age: state.player.age })}
         </p>
       </div>
 
       <DecisionsCard state={state} />
 
       <Card>
-        <CardHeader title="The 20 stages" className="mb-3" />
-        <Stepper steps={careerSteps(state)} endLabel="Retirement" />
+        <CardHeader title={tx('path.stages')} className="mb-3" />
+        <Stepper steps={careerSteps(state)} endLabel={tx('journey.retirement')} />
       </Card>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Where you are" subtitle={stage.description} className="mb-3" />
+          <CardHeader title={tx('path.where')} subtitle={tx(`stage.${stage.id}.desc` as Key)} className="mb-3" />
           <ul className="flex flex-col gap-2">
             {places.map((p) => (
               <li key={p.tournamentId} className="rounded-tile bg-page p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[14px] font-semibold text-ink">{TOURNAMENTS_BY_ID[p.tournamentId]?.name ?? p.tournamentId}</span>
                   <Badge tone={p.status === 'SQUAD' || p.status === 'FAST_TRACK' ? 'green' : p.status === 'DROPPED' || p.status === 'NOT_SELECTED' ? 'red' : 'orange'}>
-                    {STATUS_LABEL[p.status]}
+                    {tx(`status.${p.status}` as Key)}
                   </Badge>
                 </div>
                 <p className="mt-1 text-[12.5px] text-ink-muted">{p.reason}</p>
               </li>
             ))}
           </ul>
-          <Link to="/selection" className="mt-3 inline-block text-[13px] font-semibold text-brand-blue">Competition for places</Link>
+          <Link to="/selection" className="mt-3 inline-block text-[13px] font-semibold text-brand-blue">{tx('path.competition')}</Link>
         </Card>
 
         <Card>
-          <CardHeader title="Next targets" subtitle={target ? describeTarget(target) : pro.length ? 'The professional game: the IPL and the national side run side by side.' : 'Keep performing - the next steps open with the runs and wickets.'} className="mb-3" />
+          <CardHeader title={tx('path.targets')} subtitle={target ? describeTarget(target) : pro.length ? tx('path.targetsPro') : tx('path.targetsKeep')} className="mb-3" />
           {target ? (
             <>
               <div className="mb-3">
                 <div className="mb-1 flex justify-between text-[12px] text-ink-muted">
-                  <span>Season so far</span>
-                  <span>{Math.round(progress.ratio * 100)}% of the target</span>
+                  <span>{tx('path.soFar')}</span>
+                  <span>{tx('journey.target', { pct: Math.round(progress.ratio * 100) })}</span>
                 </div>
                 <ProgressBar value={progress.ratio * 100} tone={progress.met ? 'green' : progress.ratio >= 0.7 ? 'orange' : 'blue'} />
               </div>
@@ -114,8 +117,8 @@ function CareerPath({ state }: { state: GameState }) {
                 ))}
               </ul>
               <p className="mt-3 text-[12.5px] text-ink-muted">
-                Meeting the targets makes selection likely, not certain: form, fitness, the rivals ahead of you and the selectors' trust still decide it.
-                {target.nextAgeLimit ? ` The next level is under-${target.nextAgeLimit} on 1 September - miss it and you move on without it.` : ''}
+                {tx('path.likely')}
+                {target.nextAgeLimit ? tx('path.nextAge', { n: target.nextAgeLimit }) : ''}
               </p>
             </>
           ) : null}
@@ -134,30 +137,30 @@ function CareerPath({ state }: { state: GameState }) {
       </div>
 
       <Card>
-        <CardHeader title="The path you have taken" subtitle="Season by season" className="mb-3" />
+        <CardHeader title={tx('path.taken')} subtitle={tx('path.bySeason')} className="mb-3" />
         {state.career.path.length === 0 ? (
-          <p className="text-[13px] text-ink-muted">Your first season is under way. The path fills in at the end of each season.</p>
+          <p className="text-[13px] text-ink-muted">{tx('path.firstSeason')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-[13px]">
               <thead className="text-[12px] text-ink-muted">
                 <tr>
-                  <th className="py-1.5 pr-3 font-medium">Season</th>
-                  <th className="py-1.5 pr-3 font-medium">Stage</th>
-                  <th className="py-1.5 pr-3 font-medium">Side</th>
-                  <th className="py-1.5 pr-3 font-medium">Status</th>
-                  <th className="py-1.5 pr-3 font-medium">Outcome</th>
-                  <th className="py-1.5 font-medium">Note</th>
+                  <th className="py-1.5 pr-3 font-medium">{tx('path.col.season')}</th>
+                  <th className="py-1.5 pr-3 font-medium">{tx('path.col.stage')}</th>
+                  <th className="py-1.5 pr-3 font-medium">{tx('path.col.side')}</th>
+                  <th className="py-1.5 pr-3 font-medium">{tx('path.col.status')}</th>
+                  <th className="py-1.5 pr-3 font-medium">{tx('path.col.outcome')}</th>
+                  <th className="py-1.5 font-medium">{tx('path.col.note')}</th>
                 </tr>
               </thead>
               <tbody>
                 {[...state.career.path].reverse().map((entry) => (
                   <tr key={`${entry.seasonYear}-${entry.stageId}`} className="border-t border-line">
                     <td className="py-2 pr-3 font-semibold text-ink">{entry.seasonYear}-{String((entry.seasonYear + 1) % 100).padStart(2, '0')}</td>
-                    <td className="py-2 pr-3 text-ink">{getStage(entry.stageId).shortLabel}</td>
+                    <td className="py-2 pr-3 text-ink">{tx(`stage.${entry.stageId}.short` as Key)}</td>
                     <td className="py-2 pr-3 text-ink-muted">{entry.teamName || '-'}</td>
-                    <td className="py-2 pr-3 text-ink">{entry.status === 'PLAYED' ? 'Played' : STATUS_LABEL[entry.status]}</td>
-                    <td className="py-2 pr-3">{entry.outcome ? <Badge tone={OUTCOME_TONE[entry.outcome]}>{OUTCOME_LABEL[entry.outcome]}</Badge> : '-'}</td>
+                    <td className="py-2 pr-3 text-ink">{entry.status === 'PLAYED' ? tx('path.played') : tx(`status.${entry.status}` as Key)}</td>
+                    <td className="py-2 pr-3">{entry.outcome ? <Badge tone={OUTCOME_TONE[entry.outcome]}>{tx(`outcome.${entry.outcome}` as Key)}</Badge> : '-'}</td>
                     <td className="py-2 text-ink-muted">{entry.note}</td>
                   </tr>
                 ))}
@@ -168,7 +171,7 @@ function CareerPath({ state }: { state: GameState }) {
       </Card>
 
       <Card>
-        <CardHeader title="All 20 stages" subtitle="What each one asks, and how far you got" className="mb-3" />
+        <CardHeader title={tx('path.all')} subtitle={tx('path.allHint')} className="mb-3" />
         <ol className="flex flex-col gap-2">
           {CAREER_STAGES.map((s) => {
             const p = state.career.stages[s.id];
@@ -181,21 +184,21 @@ function CareerPath({ state }: { state: GameState }) {
                 <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-[13px] font-semibold text-ink">{s.order}</span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[14px] font-semibold text-ink">{s.name}</span>
+                    <span className="text-[14px] font-semibold text-ink">{stageName(s.id)}</span>
                     <Badge tone={style.tone}>
                       <Icon className="size-3" aria-hidden />
-                      {style.label}
+                      {tx(`stageStatus.${p.status}` as Key)}
                     </Badge>
-                    {limit ? <span className="text-[12px] text-ink-muted">Under-{limit}</span> : null}
+                    {limit ? <span className="text-[12px] text-ink-muted">{tx('path.under', { n: limit })}</span> : null}
                   </div>
-                  <p className="mt-0.5 text-[12.5px] text-ink-muted">{s.description}</p>
-                  {t && s.order <= 10 ? <p className="mt-1 text-[12.5px] text-ink">Next: {describeTarget(t)}</p> : null}
+                  <p className="mt-0.5 text-[12.5px] text-ink-muted">{tx(`stage.${s.id}.desc` as Key)}</p>
+                  {t && s.order <= 10 ? <p className="mt-1 text-[12.5px] text-ink">{tx('path.next', { target: describeTarget(t) })}</p> : null}
                   {p.seasonsSpent || p.matchesPlayed || p.enteredOn ? (
                     <p className="mt-1 text-[12px] text-ink-muted">
-                      {p.enteredOn ? `From ${formatLongDate(p.enteredOn)}` : ''}
-                      {p.completedOn ? ` to ${formatLongDate(p.completedOn)}` : ''}
-                      {p.seasonsSpent ? ` · ${p.seasonsSpent} season${p.seasonsSpent === 1 ? '' : 's'}` : ''}
-                      {p.matchesPlayed ? ` · ${p.matchesPlayed} matches` : ''}
+                      {p.enteredOn ? tx('path.from', { date: formatLongDate(p.enteredOn) }) : ''}
+                      {p.completedOn ? tx('path.to', { date: formatLongDate(p.completedOn) }) : ''}
+                      {p.seasonsSpent ? (p.seasonsSpent === 1 ? tx('path.season') : tx('path.seasons', { n: p.seasonsSpent })) : ''}
+                      {p.matchesPlayed ? tx('path.matches', { n: p.matchesPlayed }) : ''}
                     </p>
                   ) : null}
                 </div>
@@ -206,7 +209,7 @@ function CareerPath({ state }: { state: GameState }) {
       </Card>
 
       <Card>
-        <CardHeader title="Turning points" className="mb-3" />
+        <CardHeader title={tx('path.turning')} className="mb-3" />
         <ul className="flex flex-col gap-2">
           {[...state.career.events].reverse().slice(0, 15).map((e) => (
             <li key={e.id} className="flex gap-3 text-[13px]">

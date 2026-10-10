@@ -17,6 +17,7 @@ import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { daysBetweenDates } from '@/engine/development';
 import { formatLakh } from '@/engine/pro/common';
 import { proPlaces } from './pro';
+import { currentLang, isKey, t, type Key, type Lang } from '@/i18n/core';
 import type { Fixture, GameState } from '@/types';
 
 export type NextActionKind =
@@ -58,38 +59,41 @@ export interface NextAction {
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-function ordinal(n: number): string {
+function ordinal(n: number, lang: Lang): string {
+  if (lang === 'ta') return `${n}-வது`;
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 }
 
 /** "Friday", "next Tuesday" or "on 14 Aug", relative to today. */
-function when(today: string, date: string): string {
+function when(today: string, date: string, lang: Lang): string {
   const days = daysBetweenDates(today, date);
-  const day = WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()];
-  if (days === 0) return 'today';
-  if (days === 1) return 'tomorrow';
-  if (days > 1 && days < 7) return day;
-  if (days >= 7 && days < 14) return `next ${day}`;
   const d = new Date(`${date}T00:00:00Z`);
-  return `on ${d.getUTCDate()} ${d.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' })}`;
+  const dayIndex = d.getUTCDay();
+  const day = lang === 'ta' ? t(lang, `date.day.${dayIndex}` as Key) : WEEKDAYS[dayIndex];
+  if (days === 0) return t(lang, 'next.when.today');
+  if (days === 1) return t(lang, 'next.when.tomorrow');
+  if (days > 1 && days < 7) return day;
+  if (days >= 7 && days < 14) return t(lang, 'next.when.next', { day });
+  return t(lang, 'next.when.on', { date: t(lang, 'date.dayMonth', { day: d.getUTCDate(), month: t(lang, `date.mon.${d.getUTCMonth()}` as Key) }) });
 }
 
 /** "Ranji squad picked Friday - you're 3rd among all-rounders", or null. */
-export function selectionLine(state: GameState, journeys?: CompetitionJourney[]): string | null {
+export function selectionLine(state: GameState, journeys?: CompetitionJourney[], lang: Lang = currentLang()): string | null {
   const list = journeys ?? selectionJourney(state, state.pro ? proPlaces(state).map((p) => p.tournamentId) : []);
   const today = state.season.currentDate;
   const withEvent = list.filter((j) => j.nextEvent && j.nextEvent.date >= today).sort((a, b) => a.nextEvent!.date.localeCompare(b.nextEvent!.date));
   const j = withEvent[0] ?? list[0];
   if (!j) return null;
-  const group = j.rank ? (j.rank.group.endsWith('s') ? j.rank.group : `${j.rank.group}s`) : '';
-  const rank = j.rank ? `you're ${ordinal(j.rank.position)} among ${group}` : null;
+  const groupKey = j.rank ? `group.${j.rank.group}` : '';
+  const group = !j.rank ? '' : lang === 'ta' && isKey(groupKey) ? t(lang, groupKey) : j.rank.group.endsWith('s') ? j.rank.group : `${j.rank.group}s`;
+  const rank = j.rank ? t(lang, 'next.sel.rank', { pos: ordinal(j.rank.position, lang), group }) : null;
   if (j.nextEvent) {
-    const picked = /trial/i.test(j.nextEvent.title) ? `${j.shortName} trial ${when(today, j.nextEvent.date)}` : `${j.shortName} squad picked ${when(today, j.nextEvent.date)}`;
-    return rank ? `${picked} - ${rank}` : picked;
+    const picked = t(lang, /trial/i.test(j.nextEvent.title) ? 'next.sel.trial' : 'next.sel.squad', { comp: j.shortName, when: when(today, j.nextEvent.date, lang) });
+    return rank ? t(lang, 'next.sel.joined', { a: picked, b: rank }) : picked;
   }
-  return rank ? `${j.shortName}: ${rank}` : j.headline;
+  return rank ? t(lang, 'next.sel.only', { comp: j.shortName, rank }) : j.headline;
 }
 
 function matchLine(state: GameState, f: Fixture): string {
@@ -100,8 +104,9 @@ function matchLine(state: GameState, f: Fixture): string {
   return comp ? `${comp}: ${teams}` : teams;
 }
 
-export function nextAction(state: GameState): NextAction {
+export function nextAction(state: GameState, lang: Lang = currentLang()): NextAction {
   const today = state.season.currentDate;
+  const tt = (key: Key, vars?: Record<string, string | number>) => t(lang, key, vars);
 
   // 1. A match or trial today: the week cannot go on without it.
   const match = pendingMatch(state);
@@ -109,11 +114,11 @@ export function nextAction(state: GameState): NextAction {
     const selected = match.involvesUser !== false;
     return {
       kind: 'MATCH',
-      title: 'Match day',
-      label: selected ? 'Play the match' : 'Watch the match',
-      reason: `${matchLine(state, match)} - play it ball by ball, or sim it to carry on.`,
+      title: tt('next.MATCH.title'),
+      label: tt(selected ? 'next.MATCH.play' : 'next.MATCH.watch'),
+      reason: tt('next.MATCH.reason', { match: matchLine(state, match) }),
       action: { kind: 'PLAY', fixtureId: match.id },
-      secondary: { kind: 'SIM', label: 'Sim', fixtureId: match.id },
+      secondary: { kind: 'SIM', label: tt('next.sim'), fixtureId: match.id },
       tone: 'blue',
     };
   }
@@ -121,11 +126,11 @@ export function nextAction(state: GameState): NextAction {
   if (trial) {
     return {
       kind: 'TRIAL',
-      title: 'Trial day',
-      label: 'Attend the trial',
-      reason: `${trial.title}: the selectors are watching. Make the calls yourself, or let the coach decide.`,
+      title: tt('next.TRIAL.title'),
+      label: tt('next.TRIAL.label'),
+      reason: tt('next.TRIAL.reason', { title: trial.title }),
       action: { kind: 'ATTEND', fixtureId: trial.id },
-      secondary: { kind: 'COACH', label: 'Coach decides', fixtureId: trial.id },
+      secondary: { kind: 'COACH', label: tt('next.coach'), fixtureId: trial.id },
       tone: 'blue',
     };
   }
@@ -136,9 +141,9 @@ export function nextAction(state: GameState): NextAction {
     const lot = auction.userLot;
     return {
       kind: 'AUCTION',
-      title: auction.mega ? 'Mega auction' : 'IPL auction',
-      label: 'Watch the room live',
-      reason: lot ? `You are in the ${auction.mega ? 'mega ' : ''}auction at a base price of ${formatLakh(lot.basePrice)} - see who bids.` : 'The franchises are building their squads - watch who goes where.',
+      title: tt(auction.mega ? 'next.AUCTION.mega' : 'next.AUCTION.title'),
+      label: tt('next.AUCTION.label'),
+      reason: lot ? tt('next.AUCTION.reasonIn', { base: formatLakh(lot.basePrice) }) : tt('next.AUCTION.reasonOut'),
       action: { kind: 'GO', to: '/auction/live' },
       secondary: null,
       tone: 'gold',
@@ -148,9 +153,9 @@ export function nextAction(state: GameState): NextAction {
   if (retention) {
     return {
       kind: 'RETENTION',
-      title: 'Retention offer',
-      label: 'Answer the offer',
-      reason: `Your franchise wants to keep you at ${formatLakh(retention.salary)} a season - accept, decline or name your price before the auction.`,
+      title: tt('next.RETENTION.title'),
+      label: tt('next.RETENTION.label'),
+      reason: tt('next.RETENTION.reason', { salary: formatLakh(retention.salary) }),
       action: { kind: 'GO', to: '/auction' },
       secondary: null,
       tone: 'gold',
@@ -160,9 +165,9 @@ export function nextAction(state: GameState): NextAction {
   if (trade) {
     return {
       kind: 'TRADE',
-      title: 'Trade offer',
-      label: 'Decide on the trade',
-      reason: `Another franchise will take over your contract (${formatLakh(trade.salary)}) and wants you in their XI.`,
+      title: tt('next.TRADE.title'),
+      label: tt('next.TRADE.label'),
+      reason: tt('next.TRADE.reason', { salary: formatLakh(trade.salary) }),
       action: { kind: 'GO', to: '/auction' },
       secondary: null,
       tone: 'gold',
@@ -172,9 +177,9 @@ export function nextAction(state: GameState): NextAction {
   if (offer) {
     return {
       kind: 'CAPTAINCY',
-      title: offer.role === 'CAPTAIN' ? 'Captaincy offer' : 'Vice-captaincy offer',
-      label: 'Answer the offer',
-      reason: `${offer.teamName} want you as ${offer.role === 'CAPTAIN' ? 'captain' : 'vice-captain'}.`,
+      title: tt(offer.role === 'CAPTAIN' ? 'next.CAPTAINCY.captain' : 'next.CAPTAINCY.vice'),
+      label: tt('next.CAPTAINCY.label'),
+      reason: tt(offer.role === 'CAPTAIN' ? 'next.CAPTAINCY.reasonCaptain' : 'next.CAPTAINCY.reasonVice', { team: offer.teamName }),
       action: { kind: 'GO', to: '/career' },
       secondary: null,
       tone: 'gold',
@@ -183,9 +188,9 @@ export function nextAction(state: GameState): NextAction {
   if (state.career.pendingReview) {
     return {
       kind: 'SEASON_REVIEW',
-      title: 'Season review',
-      label: 'Read the review',
-      reason: 'The season is done - see what the selectors and coaches made of it.',
+      title: tt('next.SEASON_REVIEW.title'),
+      label: tt('next.SEASON_REVIEW.label'),
+      reason: tt('next.SEASON_REVIEW.reason'),
       action: { kind: 'GO', to: '/season-review' },
       secondary: null,
       tone: 'gold',
@@ -197,8 +202,8 @@ export function nextAction(state: GameState): NextAction {
   if (news.length) {
     return {
       kind: 'SELECTION_NEWS',
-      title: 'Selection news',
-      label: news.length === 1 ? 'Read the news' : `Read ${news.length} updates`,
+      title: tt('next.SELECTION_NEWS.title'),
+      label: news.length === 1 ? tt('next.SELECTION_NEWS.one') : tt('next.SELECTION_NEWS.many', { n: news.length }),
       reason: news[0].subject,
       action: { kind: 'NEWS' },
       secondary: null,
@@ -214,9 +219,9 @@ export function nextAction(state: GameState): NextAction {
     const weeks = Math.max(1, Math.round(back / 7));
     return {
       kind: 'INJURY',
-      title: 'Injured',
-      label: rehab ? 'Check the rehab' : 'Start the rehab',
-      reason: `${injury.name}${back > 0 ? ` - back in about ${weeks} week${weeks === 1 ? '' : 's'}` : ' - nearly fit'}${rehab ? ` (rehab ${rehab.weeksDone}/${rehab.weeksNeeded} weeks)` : ''}.`,
+      title: tt('next.INJURY.title'),
+      label: tt(rehab ? 'next.INJURY.check' : 'next.INJURY.start'),
+      reason: `${back > 0 ? (weeks === 1 ? tt('next.INJURY.backWeek', { injury: injury.name }) : tt('next.INJURY.backWeeks', { injury: injury.name, n: weeks })) : tt('next.INJURY.nearly', { injury: injury.name })}${rehab ? tt('next.INJURY.rehab', { done: rehab.weeksDone, needed: rehab.weeksNeeded }) : ''}.`,
       action: { kind: 'GO', to: '/training/rehab' },
       secondary: null,
       tone: 'red',
@@ -229,9 +234,9 @@ export function nextAction(state: GameState): NextAction {
   if (exams) {
     return {
       kind: 'EXAMS',
-      title: 'Exam week',
-      label: 'Plan the week',
-      reason: `Exams ${exams.start <= today ? 'this week' : when(today, exams.start)} - balance revision with training so grades and family stay happy.`,
+      title: tt('next.EXAMS.title'),
+      label: tt('next.EXAMS.label'),
+      reason: exams.start <= today ? tt('next.EXAMS.now') : tt('next.EXAMS.soon', { when: when(today, exams.start, lang) }),
       action: { kind: 'GO', to: '/training' },
       secondary: null,
       tone: 'orange',
@@ -242,9 +247,9 @@ export function nextAction(state: GameState): NextAction {
   if (state.trainingPlan.sessions.length === 0) {
     return {
       kind: 'TRAINING_PLAN',
-      title: 'No training plan',
-      label: 'Set up training',
-      reason: 'A week without a plan is a week without progress - pick your sessions.',
+      title: tt('next.TRAINING_PLAN.title'),
+      label: tt('next.TRAINING_PLAN.label'),
+      reason: tt('next.TRAINING_PLAN.reason'),
       action: { kind: 'GO', to: '/training' },
       secondary: null,
       tone: 'green',
@@ -254,9 +259,9 @@ export function nextAction(state: GameState): NextAction {
   // 7. Nothing pressing: the week goes on.
   return {
     kind: 'CONTINUE',
-    title: 'Next week',
-    label: 'Continue',
-    reason: selectionLine(state) ?? 'Train, stay fit and keep the numbers coming.',
+    title: tt('next.CONTINUE.title'),
+    label: tt('next.CONTINUE.label'),
+    reason: selectionLine(state, undefined, lang) ?? tt('next.CONTINUE.quiet'),
     action: { kind: 'CONTINUE' },
     secondary: null,
     tone: 'gold',

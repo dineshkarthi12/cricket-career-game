@@ -4,12 +4,13 @@
  * happened or what it takes. Under it: where the selectors rank you, what the
  * scouts are writing, and the next selection event and match.
  */
+import { isKey, type Key } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarClock, Check, Eye, Swords, X } from 'lucide-react';
 import { Badge, Card, CardHeader } from '@/components';
 import { selectionJourney, type CompetitionJourney, type JourneyStep } from '@/engine/career/journey';
-import { STATUS_LABEL } from '@/engine/career/squads';
 import { formatDayMonth } from '@/lib/format';
 import { proPlaces } from '@/lib/pro';
 import { cn } from '@/lib/cn';
@@ -22,19 +23,21 @@ export function RoadToSelectionCard({ state, compact = false }: { state: GameSta
     [state],
   );
   const [picked, setPicked] = useState<string | null>(null);
+  const t = useT();
+  const groupName = (g: string) => (isKey(`group.${g}`) ? t(`group.${g}` as Key) : g);
   if (journeys.length === 0 || state.pro?.retirement.complete) return null;
   const journey = journeys.find((j) => j.tournamentId === picked) ?? journeys[0];
 
   return (
     <Card className={compact ? 'p-4' : undefined}>
       <CardHeader
-        title="Road to selection"
+        title={t('road.title')}
         subtitle={journey.headline}
-        action={{ label: 'Selection', to: '/selection' }}
+        action={{ label: t('road.action'), to: '/selection' }}
         className="mb-3"
       />
       {journeys.length > 1 ? (
-        <div className={cn('mb-3 flex gap-1.5', compact ? '-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]' : 'flex-wrap')} role="tablist" aria-label="Competitions">
+        <div className={cn('mb-3 flex gap-1.5', compact ? '-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]' : 'flex-wrap')} role="tablist" aria-label={t('road.competitions')}>
           {journeys.map((j) => (
             <button
               key={j.tournamentId}
@@ -57,7 +60,7 @@ export function RoadToSelectionCard({ state, compact = false }: { state: GameSta
       {compact ? (
         journey.rank ? (
           <p className="mt-2 text-[12px] text-ink-muted">
-            You are <strong className="text-ink">#{journey.rank.position}</strong> of {journey.rank.of} {journey.rank.group}s · XI {journey.rank.xi} · squad {journey.rank.squad}
+            {t('road.rank', { pos: journey.rank.position, of: journey.rank.of, group: groupName(journey.rank.group), xi: journey.rank.xi, squad: journey.rank.squad })}
           </p>
         ) : null
       ) : (
@@ -77,6 +80,7 @@ function dotTone(j: CompetitionJourney): string {
 
 /** The six steps, with the one in play highlighted and explained. */
 export function JourneySteps({ journey, showNow = true }: { journey: CompetitionJourney; showNow?: boolean }) {
+  const t = useT();
   return (
     <div>
       <ol className="grid grid-cols-6 pb-1">
@@ -94,8 +98,8 @@ export function JourneySteps({ journey, showNow = true }: { journey: Competition
             <span className="relative">
               <StepNode step={step} index={i + 1} current={step === journey.current} />
             </span>
-            <span className={cn('px-0.5 text-center text-[10px] leading-tight sm:text-[10.5px]', step.status === 'locked' ? 'text-ink-soft' : 'font-semibold text-ink')}>
-              {step.label}
+            <span className={cn('px-0.5 text-center text-[10px] leading-tight break-words sm:text-[10.5px]', step.status === 'locked' ? 'text-ink-soft' : 'font-semibold text-ink')}>
+              {t(`step.${step.id}` as Key)}
             </span>
           </li>
         ))}
@@ -108,7 +112,7 @@ export function JourneySteps({ journey, showNow = true }: { journey: Competition
         )}
       >
         <p className="text-[11px] font-bold tracking-wide text-brand-blue uppercase">
-          {journey.steps.every((s) => s.status === 'done') ? 'Established' : `Now: ${journey.current.label}`}
+          {journey.steps.every((s) => s.status === 'done') ? t('road.established') : t('road.now', { step: t(`step.${journey.current.id}` as Key) })}
         </p>
         <p className="text-[12.5px] leading-snug text-ink">{journey.current.detail}</p>
       </div>
@@ -139,12 +143,14 @@ function StepNode({ step, index, current }: { step: JourneyStep; index: number; 
 
 function JourneyDetails({ journey }: { journey: CompetitionJourney }) {
   const rank = journey.rank;
+  const t = useT();
+  const groupName = (g: string) => (isKey(`group.${g}`) ? t(`group.${g}` as Key) : g);
   return (
     <div className="mt-3 grid gap-2.5 border-t border-line pt-3 md:grid-cols-3">
       <div className="min-w-0">
         <p className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-ink">
           <Swords className="size-3.5 text-brand-blue" aria-hidden />
-          Competition for places
+          {t('road.competition')}
         </p>
         {rank ? (
           <>
@@ -160,24 +166,24 @@ function JourneyDetails({ journey }: { journey: CompetitionJourney }) {
               ))}
             </div>
             <p className="mt-1 text-[12px] text-ink-muted">
-              You are <strong className="text-ink">#{rank.position}</strong> of {rank.of} {rank.group}s · XI {rank.xi} · squad {rank.squad}
+              {t('road.rank', { pos: rank.position, of: rank.of, group: groupName(rank.group), xi: rank.xi, squad: rank.squad })}
             </p>
           </>
         ) : (
-          <p className="text-[12px] text-ink-muted">{journey.status ? STATUS_LABEL[journey.status] : 'Not ranked yet'}</p>
+          <p className="text-[12px] text-ink-muted">{journey.status ? t(`status.${journey.status}` as Key) : t('road.notRanked')}</p>
         )}
       </div>
       <div className="min-w-0">
         <p className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-ink">
           <Eye className="size-3.5 text-brand-blue" aria-hidden />
-          Scouts
+          {t('road.scouts')}
         </p>
         <p className="text-[12px] leading-snug text-ink-muted">{journey.scoutReport.replace(/^Scout report: /, '')}</p>
       </div>
       <div className="min-w-0">
         <p className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-ink">
           <CalendarClock className="size-3.5 text-brand-blue" aria-hidden />
-          Coming up
+          {t('road.comingUp')}
         </p>
         {journey.nextEvent ? (
           <p className="text-[12px] text-ink-muted">
@@ -187,12 +193,12 @@ function JourneyDetails({ journey }: { journey: CompetitionJourney }) {
         {journey.nextMatch ? (
           <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-ink-muted">
             <strong className="text-ink">{formatDayMonth(journey.nextMatch.date)}</strong> {journey.nextMatch.title}
-            {journey.nextMatch.withYou ? <Badge tone="green" className="px-2 py-0 text-[11px]">You play</Badge> : <Badge tone="grey" className="px-2 py-0 text-[11px]">Without you</Badge>}
+            {journey.nextMatch.withYou ? <Badge tone="green" className="px-2 py-0 text-[11px]">{t('road.youPlay')}</Badge> : <Badge tone="grey" className="px-2 py-0 text-[11px]">{t('road.without')}</Badge>}
           </p>
         ) : null}
-        {!journey.nextEvent && !journey.nextMatch ? <p className="text-[12px] text-ink-muted">Nothing scheduled.</p> : null}
+        {!journey.nextEvent && !journey.nextMatch ? <p className="text-[12px] text-ink-muted">{t('road.nothing')}</p> : null}
         <Link to={`/tournaments/${journey.tournamentId}`} className="mt-1 inline-block text-[12px] font-semibold text-brand-blue">
-          {journey.shortName} table
+          {t('road.table', { comp: journey.shortName })}
         </Link>
       </div>
     </div>

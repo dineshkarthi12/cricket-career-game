@@ -1,4 +1,4 @@
-import { currentLang, tr, type Key } from '@/i18n/core';
+import { currentLang, isKey, tr, type Key } from '@/i18n/core';
 import type {
   BattingStyle,
   BowlingStyle,
@@ -67,11 +67,16 @@ const COUNTRY_FLAGS: Record<string, string> = {
   Afghanistan: '🇦🇫',
 };
 
-export const battingStyleLabel = (style: BattingStyle) => BATTING_STYLE_LABELS[style];
-export const bowlingStyleLabel = (style: BowlingStyle) => BOWLING_STYLE_LABELS[style];
-export const roleLabel = (role: PlayerRole) => ROLE_LABELS[role];
-export const formLabel = (band: FormBand) => FORM_LABELS[band];
-export const moraleLabel = (band: MoraleBand) => MORALE_LABELS[band];
+// In the game's language (the English tables above are the source; see `i18n/en.ts`).
+const label = <T extends string>(prefix: string, id: T, english: Record<T, string>) => {
+  const key = `${prefix}.${id}`;
+  return isKey(key) ? tr(key) : english[id];
+};
+export const battingStyleLabel = (style: BattingStyle) => label('bat', style, BATTING_STYLE_LABELS);
+export const bowlingStyleLabel = (style: BowlingStyle) => label('bowl', style, BOWLING_STYLE_LABELS);
+export const roleLabel = (role: PlayerRole) => label('role', role, ROLE_LABELS);
+export const formLabel = (band: FormBand) => label('form', band, FORM_LABELS);
+export const moraleLabel = (band: MoraleBand) => label('morale', band, MORALE_LABELS);
 export const countryFlag = (country: string) => COUNTRY_FLAGS[country] ?? '';
 
 /** Short month and weekday names, in the language the game is in. */
