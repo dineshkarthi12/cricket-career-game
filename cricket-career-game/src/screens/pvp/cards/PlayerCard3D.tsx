@@ -6,8 +6,10 @@
  */
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { Lock } from 'lucide-react';
-import { ROLE_LABEL, type PlayerCard } from '@/engine/pvp';
+import type { PlayerCard } from '@/engine/pvp';
 import { cn } from '@/lib/cn';
+import { useLang, useT } from '@/i18n/react';
+import { bowlingStyleLabel, roleLabel, seriesLabel } from '../labels';
 import { CardFace } from './CardFace';
 import { BACKGROUND_URL, FRAME_URL, clipPath, designFor } from './designs';
 
@@ -40,6 +42,8 @@ interface Props {
 export function PlayerCard3D({ card, overall, upgrades = 0, owned = true, size = 'md', flipped = false, onClick, className, still, serial }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
+  const t = useT();
+  const lang = useLang();
   const style = TIER_STYLE[card.tier];
   const design = designFor(card);
   const reduce = typeof document !== 'undefined' && document.documentElement.dataset.reduceMotion === 'true';
@@ -74,7 +78,7 @@ export function PlayerCard3D({ card, overall, upgrades = 0, owned = true, size =
       ref={ref}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      aria-label={`${card.name}, ${card.country}, ${ROLE_LABEL[card.role]}, rated ${value}, ${design.label}${owned ? '' : ', not owned'}`}
+      aria-label={t('pvp.card.aria', { name: card.name, country: card.country, role: roleLabel(t, card.role), n: value, design: seriesLabel(t, design.label), owned: owned ? '' : t('pvp.card.notOwned') })}
       onClick={onClick}
       onKeyDown={key}
       onPointerEnter={() => tilt && setActive(true)}
@@ -113,17 +117,17 @@ export function PlayerCard3D({ card, overall, upgrades = 0, owned = true, size =
           <div className="absolute flex flex-col gap-[2%] text-white" style={{ left: '9%', right: '9%', top: '8%', bottom: '10%' }}>
             <p className={cn('font-bold leading-tight', size === 'sm' ? 'text-[10px]' : 'text-[13px]')}>{card.name}</p>
             <p className="text-[9.5px] leading-snug text-white/75">
-              {card.country} · {ROLE_LABEL[card.role]} · {card.battingStyle === 'LEFT_HAND_BAT' ? 'Left-hand bat' : 'Right-hand bat'}
-              {card.bowlingStyle !== 'NONE' ? ` · ${card.bowlingStyle.replaceAll('_', ' ').toLowerCase()}` : ''}
+              {card.country} · {roleLabel(t, card.role)} · {t(card.battingStyle === 'LEFT_HAND_BAT' ? 'pvp.card.leftBat' : 'pvp.card.rightBat')}
+              {card.bowlingStyle !== 'NONE' ? ` · ${bowlingStyleLabel(t, lang, card.bowlingStyle)}` : ''}
             </p>
             {size !== 'sm'
               ? (
                   [
-                    ['Batting', card.batting],
-                    ['Bowling', card.bowling],
-                    ['Fielding', card.fielding],
-                    ['Fitness', card.fitness],
-                    ['Mental', card.mental],
+                    [t('pvp.attr.batting'), card.batting],
+                    [t('pvp.attr.bowling'), card.bowling],
+                    [t('pvp.attr.fielding'), card.fielding],
+                    [t('pvp.attr.fitness'), card.fitness],
+                    [t('pvp.attr.mental'), card.mental],
                   ] as const
                 ).map(([k, v]) => (
                   <div key={k}>
@@ -138,7 +142,7 @@ export function PlayerCard3D({ card, overall, upgrades = 0, owned = true, size =
                 ))
               : null}
             <p className={cn('mt-auto text-[9px] leading-snug text-white/60', size !== 'lg' && 'hidden')}>
-              {card.series} · {card.cls === 'FREE' ? 'Free player (45-65)' : 'Premium player (70-99)'}. Ratings are gameplay values.
+              {t('pvp.card.backNote', { series: seriesLabel(t, card.series), cls: t(card.cls === 'FREE' ? 'pvp.card.free' : 'pvp.card.premium') })}
             </p>
           </div>
         </div>

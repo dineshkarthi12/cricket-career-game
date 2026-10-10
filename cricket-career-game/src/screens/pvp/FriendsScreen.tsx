@@ -4,6 +4,7 @@ import { Copy, DoorOpen, Mail, UserPlus } from 'lucide-react';
 import { Badge, Card, CardHeader } from '@/components';
 import type { FriendView } from '@/engine/pvp';
 import { usePvpStore } from '@/store/pvpStore';
+import { rich, useT } from '@/i18n/react';
 import { SectionTitle, primaryButton, secondaryButton } from './ui';
 
 export default function FriendsScreen() {
@@ -18,6 +19,7 @@ export default function FriendsScreen() {
   const [friends, setFriends] = useState<FriendView[]>([]);
   const [code, setCode] = useState('');
   const [roomCode, setRoomCode] = useState('');
+  const t = useT();
   const online = mode === 'ONLINE';
 
   useEffect(() => {
@@ -28,15 +30,15 @@ export default function FriendsScreen() {
   if (!online) {
     return (
       <div className="flex flex-col gap-4">
-        <SectionTitle title="Friends & private rooms" />
+        <SectionTitle title={t('pvp.fr.title')} />
         <Card>
-          <CardHeader title="Needs the online server" subtitle="Friends, invitations and private rooms are real online features - the offline demo has no other players to connect to." />
+          <CardHeader title={t('pvp.fr.needs')} subtitle={t('pvp.fr.needsSub')} />
           <ol className="mt-3 list-decimal pl-5 text-[13px] text-ink-muted">
             <li>
-              Start the server: <code className="rounded bg-page px-1">npm run pvp:server</code> (in the <code className="rounded bg-page px-1">cricket-career-game</code> folder).
+              {rich(t('pvp.fr.step1'), { cmd: <code className="rounded bg-page px-1">npm run pvp:server</code>, folder: <code className="rounded bg-page px-1">cricket-career-game</code> })}
             </li>
-            <li>On Live PvP home, enter its address (for example ws://localhost:8787) under Connection and press Connect.</li>
-            <li>Share your friend code or a room code with a friend connected to the same server.</li>
+            <li>{t('pvp.fr.step2')}</li>
+            <li>{t('pvp.fr.step3')}</li>
           </ol>
         </Card>
       </div>
@@ -45,22 +47,22 @@ export default function FriendsScreen() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionTitle title="Friends & private rooms" subtitle="Private matches are unranked. Both players use their saved XI." />
+      <SectionTitle title={t('pvp.fr.title')} subtitle={t('pvp.fr.subtitle')} />
       {invites.length ? (
         <Card className="border-brand-blue/40">
-          <CardHeader title="Invitations" />
+          <CardHeader title={t('pvp.fr.invites')} />
           <ul className="mt-2 flex flex-col gap-2">
             {invites.map((i) => (
               <li key={i.code} className="flex flex-wrap items-center gap-2 text-[13px]">
                 <Mail className="size-4 text-brand-blue" aria-hidden />
                 <span className="flex-1">
-                  <b>{i.fromName}</b> invited you to room {i.code}
+                  {rich(t('pvp.fr.invited', { code: i.code }), { name: <b>{i.fromName}</b> })}
                 </span>
                 <button type="button" className={primaryButton('py-1.5 text-[13px]')} onClick={() => void joinRoom(i.code).then(() => dismissInvite(i.code))}>
-                  Join
+                  {t('pvp.fr.join')}
                 </button>
                 <button type="button" className={secondaryButton('py-1.5 text-[13px]')} onClick={() => dismissInvite(i.code)}>
-                  Decline
+                  {t('pvp.fr.decline')}
                 </button>
               </li>
             ))}
@@ -69,21 +71,21 @@ export default function FriendsScreen() {
       ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Private room" />
+          <CardHeader title={t('pvp.home.privateRoom')} />
           <div className="mt-3 flex flex-col gap-3">
             {room ? (
               <div className="rounded-tile bg-brand-blue-soft p-3 text-center">
-                <p className="text-[12px] text-ink-muted">Your room code - waiting for a friend to join</p>
+                <p className="text-[12px] text-ink-muted">{t('pvp.fr.waiting')}</p>
                 <p className="text-[30px] font-extrabold tracking-[0.3em] text-brand-blue">{room}</p>
                 <button type="button" className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-brand-blue" onClick={() => void navigator.clipboard?.writeText(room)}>
                   <Copy className="size-3.5" aria-hidden />
-                  Copy code
+                  {t('pvp.fr.copy')}
                 </button>
               </div>
             ) : (
               <button type="button" className={primaryButton()} onClick={() => void createRoom()}>
                 <DoorOpen className="size-4" aria-hidden />
-                Create a room
+                {t('pvp.fr.create')}
               </button>
             )}
             <form
@@ -93,15 +95,15 @@ export default function FriendsScreen() {
                 if (roomCode.trim()) void joinRoom(roomCode);
               }}
             >
-              <input value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} maxLength={6} placeholder="ROOM CODE" aria-label="Room code" className="min-w-0 flex-1 rounded-xl border border-line bg-page px-3 py-2 text-[14px] tracking-widest uppercase" />
+              <input value={roomCode} onChange={(e) => setRoomCode(e.target.value.toUpperCase())} maxLength={6} placeholder={t('pvp.fr.roomPh')} aria-label={t('pvp.fr.roomCode')} className="min-w-0 flex-1 rounded-xl border border-line bg-page px-3 py-2 text-[14px] tracking-widest uppercase" />
               <button type="submit" className={secondaryButton()}>
-                Join
+                {t('pvp.fr.join')}
               </button>
             </form>
           </div>
         </Card>
         <Card>
-          <CardHeader title="Friends" subtitle={`Your friend code: ${profile.friendCode}`} />
+          <CardHeader title={t('pvp.nav.friends')} subtitle={t('pvp.fr.yourCode', { code: profile.friendCode })} />
           <form
             className="mt-3 flex gap-2"
             onSubmit={async (e) => {
@@ -113,10 +115,10 @@ export default function FriendsScreen() {
               }
             }}
           >
-            <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={6} placeholder="Friend code" aria-label="Friend code" className="min-w-0 flex-1 rounded-xl border border-line bg-page px-3 py-2 text-[14px] tracking-widest uppercase" />
+            <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={6} placeholder={t('pvp.fr.friendCode')} aria-label={t('pvp.fr.friendCode')} className="min-w-0 flex-1 rounded-xl border border-line bg-page px-3 py-2 text-[14px] tracking-widest uppercase" />
             <button type="submit" className={primaryButton()}>
               <UserPlus className="size-4" aria-hidden />
-              Add
+              {t('pvp.fr.add')}
             </button>
           </form>
           <ul className="mt-3 divide-y divide-line">
@@ -125,18 +127,18 @@ export default function FriendsScreen() {
                 <span className="min-w-0 flex-1">
                   <b>{f.displayName}</b>
                   <span className="block text-[11.5px] text-ink-muted">
-                    {f.rating !== null ? `Rating ${f.rating}` : 'Unranked'} · {f.friendCode}
+                    {f.rating !== null ? t('pvp.fr.rating', { n: f.rating }) : t('pvp.unranked')} · {f.friendCode}
                   </span>
                 </span>
                 <Badge tone={f.online ? 'green' : 'grey'} className="text-[10.5px]">
-                  {f.online ? 'Online' : 'Offline'}
+                  {t(f.online ? 'pvp.fr.online' : 'pvp.fr.offline')}
                 </Badge>
                 <button type="button" disabled={!f.online} className={secondaryButton('py-1.5 text-[12.5px]')} onClick={() => void call('friends.invite', { userId: f.userId }).then((r) => r.ok && usePvpStore.setState({ room: r.data.code ?? null }))}>
-                  Invite
+                  {t('pvp.fr.invite')}
                 </button>
               </li>
             ))}
-            {friends.length === 0 ? <li className="py-2 text-[13px] text-ink-muted">No friends yet. Swap friend codes to add each other.</li> : null}
+            {friends.length === 0 ? <li className="py-2 text-[13px] text-ink-muted">{t('pvp.fr.none')}</li> : null}
           </ul>
         </Card>
       </div>

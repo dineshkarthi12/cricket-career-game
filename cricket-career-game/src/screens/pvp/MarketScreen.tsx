@@ -7,8 +7,10 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { Card, CardHeader, ConfirmDialog, Tabs } from '@/components';
-import { CATALOG, ECONOMY, ROLE_LABEL, TIER_RULES, type CardRole, type PlayerCard } from '@/engine/pvp';
+import { CATALOG, ECONOMY, TIER_RULES, type CardRole, type PlayerCard } from '@/engine/pvp';
 import { usePvpStore } from '@/store/pvpStore';
+import { rich, useT } from '@/i18n/react';
+import { roleLabel, tierLabel } from './labels';
 import { PlayerCard3D } from './cards/PlayerCard3D';
 import { InspectModal } from './CollectionScreen';
 import { Price, SectionTitle, chip, formatNumber } from './ui';
@@ -19,6 +21,7 @@ export default function MarketScreen() {
   const profile = usePvpStore((s) => s.profile)!;
   const economy = usePvpStore((s) => s.economy);
   const [params, setParams] = useSearchParams();
+  const t = useT();
   const tab = (params.get('tab') as Tab) ?? 'current';
   const [query, setQuery] = useState('');
   const [role, setRole] = useState<CardRole | 'ALL'>('ALL');
@@ -30,8 +33,8 @@ export default function MarketScreen() {
   const featured = useMemo(() => {
     // A rotating daily selection: one card from each tier.
     const day = Math.floor(Date.now() / 86_400_000);
-    return Object.keys(TIER_RULES).map((t) => {
-      const pool = CATALOG.filter((c) => c.tier === t);
+    return Object.keys(TIER_RULES).map((tier) => {
+      const pool = CATALOG.filter((c) => c.tier === tier);
       return pool[day % pool.length];
     });
   }, []);
@@ -50,39 +53,39 @@ export default function MarketScreen() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SectionTitle title="Player Market" subtitle="Fixed prices, no auctions, no randomness. Free players for coins; premium players and legends for gems." />
+      <SectionTitle title={t('pvp.nav.market')} subtitle={t('pvp.mkt.subtitle')} />
       <Tabs
         tabs={[
-          { id: 'current', label: 'Current era' },
-          { id: 'legends', label: 'Retired legends' },
-          { id: 'featured', label: 'Featured today' },
-          { id: 'history', label: 'Transactions' },
+          { id: 'current', label: t('pvp.mkt.current') },
+          { id: 'legends', label: t('pvp.mkt.legends') },
+          { id: 'featured', label: t('pvp.mkt.featured') },
+          { id: 'history', label: t('pvp.mkt.history') },
         ]}
         value={tab}
         onChange={(id) => setParams({ tab: id })}
-        label="Market sections"
+        label={t('pvp.mkt.sections')}
       />
 
       {tab === 'history' ? (
         <Card>
-          <CardHeader title="Transaction history" subtitle="Every coin, gem and card movement on this profile." />
+          <CardHeader title={t('pvp.mkt.historyTitle')} subtitle={t('pvp.mkt.historySub')} />
           {profile.ledger.length ? (
             <ul className="mt-2 divide-y divide-line">
-              {[...profile.ledger].reverse().map((t) => (
-                <li key={t.id} className="flex flex-wrap items-center gap-2 py-2.5 text-[13px]">
-                  <span className="w-24 shrink-0 text-[11.5px] text-ink-muted">{new Date(t.at).toLocaleDateString()}</span>
+              {[...profile.ledger].reverse().map((x) => (
+                <li key={x.id} className="flex flex-wrap items-center gap-2 py-2.5 text-[13px]">
+                  <span className="w-24 shrink-0 text-[11.5px] text-ink-muted">{new Date(x.at).toLocaleDateString()}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="font-semibold text-ink">{t.note}</span>
-                    {t.cards.length ? <span className="block text-[11.5px] text-ink-muted">{t.cards.length} card{t.cards.length > 1 ? 's' : ''}</span> : null}
+                    <span className="font-semibold text-ink">{x.note}</span>
+                    {x.cards.length ? <span className="block text-[11.5px] text-ink-muted">{t(x.cards.length > 1 ? 'pvp.cards.many' : 'pvp.cards.one', { n: x.cards.length })}</span> : null}
                   </span>
-                  {t.coins ? <span className={t.coins > 0 ? 'text-brand-green' : 'text-brand-red'}>{t.coins > 0 ? '+' : ''}{formatNumber(t.coins)} coins</span> : null}
-                  {t.gems ? <span className={t.gems > 0 ? 'text-brand-green' : 'text-brand-red'}>{t.gems > 0 ? '+' : ''}{formatNumber(t.gems)} gems</span> : null}
-                  {t.eventTokens ? <span className={t.eventTokens > 0 ? 'text-brand-green' : 'text-brand-red'}>{t.eventTokens > 0 ? '+' : ''}{t.eventTokens} token</span> : null}
+                  {x.coins ? <span className={x.coins > 0 ? 'text-brand-green' : 'text-brand-red'}>{t('pvp.coinsN', { n: `${x.coins > 0 ? '+' : ''}${formatNumber(x.coins)}` })}</span> : null}
+                  {x.gems ? <span className={x.gems > 0 ? 'text-brand-green' : 'text-brand-red'}>{t('pvp.gemsN', { n: `${x.gems > 0 ? '+' : ''}${formatNumber(x.gems)}` })}</span> : null}
+                  {x.eventTokens ? <span className={x.eventTokens > 0 ? 'text-brand-green' : 'text-brand-red'}>{t('pvp.tokenN', { n: `${x.eventTokens > 0 ? '+' : ''}${x.eventTokens}` })}</span> : null}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-[13px] text-ink-muted">No transactions yet.</p>
+            <p className="mt-2 text-[13px] text-ink-muted">{t('pvp.mkt.noTxn')}</p>
           )}
         </Card>
       ) : (
@@ -91,25 +94,25 @@ export default function MarketScreen() {
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 shadow-sm">
                 <Search className="size-4 text-ink-soft" aria-hidden />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the market" className="w-full bg-transparent text-[13px] outline-none" aria-label="Search the market" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('pvp.mkt.search')} className="w-full bg-transparent text-[13px] outline-none" aria-label={t('pvp.mkt.search')} />
               </label>
               <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
                 {(['ALL', 'BATTER', 'BOWLER', 'ALL_ROUNDER', 'WICKET_KEEPER'] as const).map((r) => (
                   <button key={r} type="button" className={chip(role === r)} onClick={() => setRole(r)}>
-                    {r === 'ALL' ? 'All roles' : ROLE_LABEL[r]}
+                    {r === 'ALL' ? t('pvp.allRoles') : roleLabel(t, r)}
                   </button>
                 ))}
                 {tab === 'current'
                   ? (['ALL', 'FREE', 'PREMIUM'] as const).map((b) => (
                       <button key={b} type="button" className={chip(band === b)} onClick={() => setBand(b)}>
-                        {b === 'ALL' ? 'All ratings' : b === 'FREE' ? 'Free 45-65' : 'Premium 70-99'}
+                        {t(b === 'ALL' ? 'pvp.mkt.allRatings' : b === 'FREE' ? 'pvp.mkt.free' : 'pvp.mkt.premium')}
                       </button>
                     ))
                   : null}
               </div>
             </div>
           ) : (
-            <p className="text-[13px] text-ink-muted">One player from every tier, changing daily.</p>
+            <p className="text-[13px] text-ink-muted">{t('pvp.mkt.featuredNote')}</p>
           )}
           <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] justify-items-center gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(176px,1fr))]">
             {list.map((c) => {
@@ -124,11 +127,7 @@ export default function MarketScreen() {
                     onClick={() => setBuy(c)}
                     className="flex items-center justify-center gap-2 rounded-xl bg-surface px-3 py-2 text-[13px] font-semibold shadow-sm hover:bg-brand-blue-soft disabled:opacity-60"
                   >
-                    {have ? 'Owned' : (
-                      <>
-                        Buy <Price currency={p.currency} amount={p.amount} />
-                      </>
-                    )}
+                    {have ? t('pvp.owned') : <span>{rich(t('pvp.mkt.buy'), { price: <Price currency={p.currency} amount={p.amount} /> })}</span>}
                   </button>
                 </div>
               );
@@ -139,9 +138,21 @@ export default function MarketScreen() {
 
       <ConfirmDialog
         open={Boolean(buy)}
-        title={buy ? `Buy ${buy.name}?` : ''}
-        message={buy && price ? `${TIER_RULES[buy.tier].label} ${ROLE_LABEL[buy.role]}, rated ${buy.overall}. Price: ${formatNumber(price.amount)} ${price.currency === 'COINS' ? 'coins' : 'gems'}. You have ${formatNumber(balance)}.${balance < price.amount ? ' Not enough to buy.' : ''}` : ''}
-        confirmLabel="Buy player"
+        title={buy ? t('pvp.mkt.buyQ', { name: buy.name }) : ''}
+        message={
+          buy && price
+            ? t('pvp.mkt.buyMsg', {
+                tier: tierLabel(t, buy.tier),
+                role: roleLabel(t, buy.role),
+                n: buy.overall,
+                price: formatNumber(price.amount),
+                cur: t(price.currency === 'COINS' ? 'pvp.cur.coins' : 'pvp.cur.gems'),
+                have: formatNumber(balance),
+                short: balance < price.amount ? t('pvp.mkt.short') : '',
+              })
+            : ''
+        }
+        confirmLabel={t('pvp.mkt.buyPlayer')}
         onConfirm={async () => {
           const c = buy;
           setBuy(null);

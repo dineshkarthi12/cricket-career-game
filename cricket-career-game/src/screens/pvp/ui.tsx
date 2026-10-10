@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Coins, Gem, Ticket } from 'lucide-react';
 import { CATALOG_BY_ID, effectiveOverall, type Currency, type OwnedCard, type PlayerCard } from '@/engine/pvp';
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n/react';
 
 export function formatNumber(n: number): string {
   return n.toLocaleString('en-IN');
@@ -10,7 +11,8 @@ export function formatNumber(n: number): string {
 
 export function Price({ currency, amount, className }: { currency: Currency; amount: number; className?: string }) {
   const Icon = currency === 'COINS' ? Coins : currency === 'GEMS' ? Gem : Ticket;
-  const label = currency === 'COINS' ? 'coins' : currency === 'GEMS' ? 'gems' : amount === 1 ? 'event token' : 'event tokens';
+  const t = useT();
+  const label = t(currency === 'COINS' ? 'pvp.cur.coins' : currency === 'GEMS' ? 'pvp.cur.gems' : amount === 1 ? 'pvp.cur.token' : 'pvp.cur.tokens');
   return (
     <span className={cn('inline-flex items-center gap-1 font-semibold', className)}>
       <Icon className={cn('size-4', currency === 'COINS' ? 'text-brand-gold' : currency === 'GEMS' ? 'text-violet-500' : 'text-brand-green')} aria-hidden />
