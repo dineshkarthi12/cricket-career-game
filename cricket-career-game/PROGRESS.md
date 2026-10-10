@@ -541,8 +541,9 @@ First-class career averages against mixed opposition: 39.0 / 44.2.
 **Tests - 371 passing across 32 files.**
 
 **Known limits**
-- A match in progress lives in memory: leaving the screen resumes it, a page
-  reload restarts the fixture.
+- ~~A match in progress lives in memory: a page reload restarts the
+  fixture.~~ Fixed: matches are checkpointed and resume after a reload (see
+  "Match save and resume across reloads").
 - "In line for a bigger captaincy" is recorded and announced; the move itself
   comes with Phase 5's progression.
 
@@ -1896,3 +1897,281 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   The records book now has the real holders (`data/records.ts`, as at 2025).
 - Tests: retention offer flow, real-only squads through three auctions,
   the broadcast graphics.
+
+## Match save and resume across reloads
+- A live match is checkpointed after every ball and when the page is hidden
+  or closed, and picks up from the same ball after a reload, with a toast
+  ("Match resumed - 2nd innings, 14.3 overs").
+- How: the engine is deterministic, so `engine/match/checkpoint.ts` records
+  every call into a `LiveMatch` (`recordLiveMatch`) and a checkpoint is the
+  setup plus that log plus a fingerprint of the score. `restoreLiveMatch`
+  replays it, which rebuilds the random state, a peeked delivery, an open
+  question, DLS, the impact sub and the follow-on exactly - no engine
+  internals are serialised. Chosen over dumping the engine's state (closures,
+  Maps, the innings state) because it cannot drift from the engine as the
+  engine changes; a replay that misses the fingerprint is refused.
+- Anti-cheat: a reload replays the same calls, so the next ball comes out
+  the same; a peeked delivery is in the log and stays the same delivery.
+- Storage: `save/matchCheckpoint.ts`, IndexedDB key
+  `cricket-career:match:{career|manager}:{slot}:{fixtureId}`, a per-key write
+  queue (only the newest state waits), failures reported as toasts.
+  Overrides are deduplicated, so a 50-over innings is a few tens of KB.
+- Deleted on completion (played or simulated), on quick sim, and when the
+  slot's career is deleted, replaced or imported over. A checkpoint that
+  will not read or replay, or belongs to another career, is cleared; the
+  first two with a toast, and the fixture starts again.
+- IPL Manager matchdays checkpoint the same way. Live PvP practice runs on
+  its own engine (`engine/pvp`), not `LiveMatch`, so it is not covered;
+  online PvP is skipped as asked.
+- Ball, innings and alert ids are regenerated on a replay (they are
+  timestamps); the cricket is identical.
+- Tests: engine (T20, ODI and multi-day rebuilt mid-play then both copies
+  played to the end with the same inputs give identical scorecards; a
+  reload after peeking gives the same delivery and ball; an open question
+  survives; corrupted, tampered and wrong-version checkpoints are refused;
+  size), store (resume with toast, same next ball, cleared on completion,
+  corrupted and tampered fallbacks, another career's checkpoint, slot
+  deletion), and an IPL Manager matchday resumed after a reload.
+
+## Home: next action first, compact mobile layout
+- **Next action** (`lib/nextAction.ts`, pure and unit-tested; `NextActionCard`)
+  sits right under the hero: one big button that does the most pressing
+  thing, plus one line on why. Priority: a match (or trial) today, with Play
+  and Sim > a decision waiting (the auction room, a retention or trade
+  offer, a captaincy offer, the season review) > unread selection news (opens
+  in place and is marked read) > injured (to the rehab, with when they are
+  back) > exams this week > no training plan > Continue, with where the
+  player stands ("Ranji squad picked Friday - you're 3rd among
+  all-rounders"). A press conference is answered on the post-match screen,
+  so it never waits on Home.
+- The Continue logic moved into `layout/useContinue.ts` plus
+  `store/clockStore.ts`, so the Continue bar and the card share it.
+- **Phones (<768px):** a slim hero (name, style, the four tiles, a story
+  button by the name), Next action, then three compact cards (Next match,
+  Road to selection with the chips in one scrolling row, Inbox with two
+  messages). The rest is behind tabs: Progress (career journey) | Stats
+  (player stats, recent match, skills) | Schedule (upcoming, this week's
+  training) | More (decisions, trophies, community, banner). On the phone
+  Home the Continue bar shows only the date and climate, because the Next
+  action card carries its buttons. The first-visit tip sits below Next
+  match, so the hero, Next action and Next match fit on a 390x844 screen.
+  Home went from about 4,300px to under about 1,800px at 390px.
+- **Tablet and desktop:** the grid as before, with Next action first. Skill
+  Development, Trophies and Community fold away, and the choice is
+  remembered in this device's settings (`homeCollapsed`).
+- **Early career:** the Community card is hidden until people follow the
+  player (100+ followers or stories), and Player Stats hides level tabs with
+  no matches yet (the age group and Overall always show; IPL and India
+  already appeared only once played).
+- Tests:
+  - the priority function, case by case and in priority order;
+  - Home on a match day, an auction day, injured, a quiet week, and with
+    selection news;
+  - the phone layout with its tabs;
+  - a folded card remembered across visits.
+
+## Animated highlights replay, with video export
+- **Clip picker** (`lib/clips.ts`, pure): every wicket, every six, the
+  boundary (or run) that brings up a fifty or hundred, the winning runs of a
+  chase, hat-trick balls, overturned reviews, and all of the player's own
+  boundaries and wickets (as batter, bowler, the batter out, or the
+  fielder). At most 20, in match order; when there are more, the biggest
+  moments stay (the player's own count extra). There is a "Your moments
+  only" filter. Title cards read like TV ("WICKET - Bumrah b. Smith
+  34(22)").
+- **Player** (`screens/match/highlights/HighlightsPlayer.tsx`):
+  - each clip replays its ball on the existing `GroundView`: the bowler,
+    the ball's path to where it pitched and where it went, the batters;
+  - the score after the ball, the commentary line, and the title card;
+  - play / pause, previous / next, 1x / 2x;
+  - the match sounds through `sfxForBall`, which respect the sound
+    settings;
+  - with reduced motion it steps through still frames: no autoplay and
+    nothing animates.
+- **Where it shows:**
+  - a "Replay" tab beside "Big moments" in the post-match Match highlights
+    card;
+  - a "Watch highlights" button (opening a modal) on the scorecard of any
+    match that still has its ball-by-ball (the latest two);
+  - older matches keep the text reel only.
+- **Save as video** (`highlights/video.ts`):
+  - records the reel from a 720x1080 canvas drawn with the same ground
+    geometry (`lib/ground`), with a CRICKET CAREER watermark;
+  - uses MediaRecorder, WebM (VP9 or VP8), or MP4 where that is all the
+    browser records (iOS Safari 14.3+);
+  - where nothing records, it saves the best moment as a PNG card
+    ("Save as image");
+  - phones get the share sheet (Web Share API with files) when available;
+    otherwise the file downloads.
+  - Checked in Chromium: a 20-clip reel records to a 2 MB WebM. MediaRecorder
+    WebM files carry no duration header, so some players do not show the
+    length.
+- Nothing new is stored in saves; the reel is built when it is opened.
+- Tests:
+  - the clip picker on a hand-made match (`src/test/reelMatch.ts`) with a
+    hundred, a five-for with an overturned review and a last-ball finish:
+    the expected clips in order, a long reel cut to 20 in order, the "mine"
+    filter, archived matches;
+  - the player stepping through clips, the filter, autoplay at 1x and 2x
+    and pausing, no animation with reduced motion, and "Save as image"
+    where there is no MediaRecorder (jsdom).
+
+## Tamil / English (in passes)
+- **i18n layer** (`src/i18n`): typed dictionaries `en.ts` and `ta.ts` (`ta`
+  is typed as `Dict`, so a missing or extra key is a compile error),
+  `{name}` interpolation (a variable that starts with `@` is a key, which is
+  translated too), `t(lang, key, vars)` for the engine and `useT()` /
+  `useLang()` for React, plus `tr()` / `currentLang()` for code outside React
+  (date formatting, toasts from stores).
+  - **Why not react-i18next:** two languages, every string bundled, no
+    namespaces or plural engine needed. A typed object and a 20-line `t()`
+    do it, and the compiler checks every Tamil key.
+- **Setting:** Settings > Language (English / தமிழ்) is kept with this
+  device's settings and applies instantly: screens re-render through
+  `useT()`, and the routed screen is keyed by language so dates and other
+  derived text redraw too. A first visit follows the browser language
+  (`ta-*` gives Tamil).
+- **Font:** Noto Sans Tamil (`@fontsource/noto-sans-tamil`, the Google Font
+  packaged like the app's Poppins), imported dynamically only when Tamil is
+  on, so it costs nothing in English and still works offline. `<html lang>`
+  switches the font stack: Poppins for Latin and digits, Noto Sans Tamil for
+  Tamil script, with a little more line height.
+- **Dates:** Western digits, Tamil month and weekday names (full month names
+  in the long date), Tamil "ago" phrases.
+- **Pass (a), done:**
+  - layout: sidebar, rail and phone tab bar with the More sheet, the top
+    bar and player titles, the install / update banner, the Continue bar
+    (including the climate line), notifications, the toast close button and
+    the resume toasts;
+  - Settings, with the new Language card, difficulty, sim speeds and
+    animation.
+  - Tests:
+    - every English key has non-empty Tamil with the same placeholders, and
+      Tamil strings use Tamil script;
+    - interpolation and key-in-variable;
+    - the first-visit browser language;
+    - switching in Settings re-renders the screen, the navigation and the
+      top bar, and is remembered;
+    - Tamil dates.
+- **Pass (b), done:** Home and Career.
+  - Home: the hero, the next-action card, the phone tabs, Next Match, the
+    journey and Road to Selection (stages, steps, groups), the inbox
+    chrome, the schedule, training focus, stats tiles and tabs, recent
+    match, skills and the radar legend, trophies, community, the bottom
+    banner, decisions, the story modal and tutorial tips.
+  - Career Path: every label, stage names and descriptions, status
+    badges, the outcome lines.
+  - Roles, batting / bowling styles, form, morale and player titles are
+    keys, so they read in Tamil wherever they appear.
+  - Still English by design: text the engine writes into the save (inbox
+    messages, selection target lines like "300+ runs", path notes, coach
+    hints, fixture titles), plus player, team and tournament names.
+  - At 390px in Tamil, Home and Career Path have no horizontal overflow.
+    Long step labels were shortened (ஸ்கவுட், பட்டியல், XI) and wrap.
+  - Test: Home re-renders in Tamil when the language changes.
+- **Pass (c), done:** match screens and scorecards.
+  - Match keys live in their own pair, `src/i18n/en/match.ts` and
+    `src/i18n/ta/match.ts`, spread into the main dictionaries. The Tamil one
+    is typed against the English one.
+  - Translated:
+    - pre-match (selection, the XI, opposition, quick sim) and the toss,
+      including the conditions reading (`tossHint`);
+    - pitch, weather and the match info card;
+    - the score strip and full scorecards;
+    - the "You" panel, the batting, bowling and aggression controls,
+      lengths, lines and variations, and the field editor with its
+      fielding-law warnings;
+    - the captain panel, playback controls, charts and the ground labels;
+    - the catch, run-out and review prompts, the innings break and the
+      impact player;
+    - the post-match screen and press-conference chrome, the Matches list
+      and match detail;
+    - the big-moment banners, highlight lines, the highlights card and
+      reel player (canvas text in the video uses Noto Sans Tamil too), and
+      the TV milestone and record graphics.
+  - `rich()` (`i18n/react.ts`) fills a translated template with styled
+    parts, so each language puts the bold team or decision where its
+    grammar wants it.
+  - Result summaries stay in English in saves ("Won by 8 wickets").
+    `summaryText()` (`lib/matchText.ts`) reads the engine's known shapes
+    back into Tamil. Anything else shows as written.
+  - Fix: a match with a ball bowled no longer drops back to the toss card
+    when the screen is drawn again, after navigating away or switching
+    language.
+  - Still English:
+    - the ball commentary and live alerts (pass d);
+    - engine prose: selection reasons and notes, the XI warnings,
+      press-conference questions and answers, record names;
+    - fielding position names on the ground;
+    - scorecard abbreviations (R, B, 4s, 6s, SR, O, M, W) and dismissal
+      notation, which Tamil TV scorecards keep too.
+  - QA: `QA_LANG=ta npm run qa` drives the usual flow and takes every
+    screenshot in Tamil (into `qa-screenshots-ta/`, ignored by git), through
+    a dev-only `window.__setLang`. The match screens at 390px show no
+    overflow.
+  - Tests:
+    - switching language mid-match re-renders the match screen, from the
+      selection through the toss to the ground, and back;
+    - a review prompt in Tamil;
+    - result summaries read in Tamil and are unchanged in English.
+- **Pass (d), done:** match commentary.
+  - Every ball keeps its English `commentary`, so old saves and the engine
+    tests read as before. New balls also carry `commentaryCode`: the
+    dictionary keys and variables the line was made from
+    (`engine/match/commentary.ts`: `commentate`, `say`, `sayVariant`).
+  - Screens read the code in the app's language through `commentaryFor`:
+    the commentary feed, the highlights reel and the exported video. A ball
+    without a code (an old save) shows its English.
+  - Keys live in `src/i18n/en/commentary.ts` and `ta/commentary.ts`.
+  - Variants: 5 each for four, six and dot balls; 4 for every wicket type
+    (bowled, lbw, caught, caught on the rope, caught behind, caught and
+    bowled, stumped, run out, hit wicket, out leaving the ball), for drops,
+    and for the fifty, hundred and five-for milestone lines. Wides,
+    no-balls, byes, runs, misfields and reviews have 2-4 each.
+  - The variant is picked from the delivery, not the rng, so a replayed
+    match reads the same.
+  - The ad-hoc lines in `delivery.ts` are keys now: the tap-timing prefix,
+    the leave and leave-out lines, the drop, the batting review overturned,
+    umpire's call, the lbw appeals and the misfield.
+  - Tamil is spoken TV style: சிக்ஸர், ஃபோர், விக்கெட், LBW, கேட்ச் and
+    shot names as people say them. Player names stay in English.
+  - Live alerts work the same way. `LiveAlert.code` and `UserMoment.key`
+    are new, and `alertText()` renders them. The result alert is read back
+    with `summaryText`.
+  - Tests:
+    - a fixed seeded over renders in English (identical to the stored
+      line) and in Tamil (Tamil script, every variable filled, names
+      kept);
+    - every ball of three whole matches renders in Tamil;
+    - the variant counts;
+    - phrasing varies across a match;
+    - old balls and old alerts keep their English;
+    - an exported save with English-only commentary imports and shows its
+      ball-by-ball on the Tamil Matches screen.
+- **Pass (e), done:** everything else, one dictionary pair per area
+  (`src/i18n/en|ta/{misc,career,pro,manager,pvp}.ts`, about 2,000 keys).
+  - misc: training, rehab, calendar, stats, the start screen, new career,
+    save slots, and shared components (Modal, ConfirmDialog,
+    ScreenLoading, ErrorBoundary, Stepper, ...). `lib/training.ts` and
+    `lib/calendar.ts` labels translate at read time.
+  - career: selection, selection news, trials, tournaments (results go
+    through `summaryText`), season review, challenges, rivals and the
+    career card.
+  - pro: IPL (auction, live auction, retention offers), international,
+    awards, community, legacy.
+  - manager: all of IPL Manager mode, including the matchday screen and
+    the match report.
+  - pvp: all of Live PvP. `screens/pvp/labels.ts` translates engine
+    labels (roles, tiers, packs) at render, falling back to the English.
+  - Still English by design:
+    - engine-written prose (coach hints, squad reasons, inbox, news,
+      manager phase texts, AI notes, PvP server messages);
+    - competition and award names, fixture and window titles;
+    - scorecard and table abbreviations;
+    - the printed PvP card art (its text-fitting is measured for Latin
+      capitals);
+    - dev-only tools.
+  - Fix: on a phone, the start screen's IPL Manager and Live PvP buttons
+    now drop below their description instead of squeezing it.
+  - QA: the full `QA_LANG=ta npm run qa` flow (66 screens at 1440, 820
+    and 390px) reports no horizontal overflow.

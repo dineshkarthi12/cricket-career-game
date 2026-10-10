@@ -33,44 +33,50 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Avatar, ProgressBar, ScreenLoading } from '@/components';
-import { MANAGER, PHASE_LABEL, formatMoney } from '@/engine/manager';
+import { formatMoney } from '@/engine/manager';
 import { cn } from '@/lib/cn';
 import { Logo } from '@/layout/Logo';
 import { useManagerStore } from '@/store/managerStore';
-import { FranchiseCrest } from './ui';
+import { FranchiseCrest, phaseLabel, rankLabel } from './ui';
 import { PhaseBar } from './PhaseFlow';
+import type { Key } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
 interface Item {
-  label: string;
+  /** The label's dictionary key. */
+  key: Key;
+  /** A shorter label for the phone tab bar. */
+  short?: Key;
   to: string;
   icon: LucideIcon;
 }
 
 export const MANAGER_NAV: Item[] = [
-  { label: 'Home', to: '/manager', icon: Home },
-  { label: 'Career', to: '/manager/profile', icon: Briefcase },
-  { label: 'Scouting', to: '/manager/scouting', icon: Radar },
-  { label: 'Players', to: '/manager/players', icon: Search },
-  { label: 'Trials', to: '/manager/trials', icon: ClipboardList },
-  { label: 'Auction Prep', to: '/manager/auction-prep', icon: Target },
-  { label: 'Live Auction', to: '/manager/auction', icon: Gavel },
-  { label: 'Squad', to: '/manager/squad', icon: Users },
-  { label: 'Playing XI', to: '/manager/xi', icon: Shirt },
-  { label: 'Tactics', to: '/manager/tactics', icon: BarChart3 },
-  { label: 'Fixtures', to: '/manager/fixtures', icon: CalendarDays },
-  { label: 'Points Table', to: '/manager/table', icon: Table2 },
-  { label: 'Development', to: '/manager/development', icon: Dumbbell },
-  { label: 'Staff', to: '/manager/staff', icon: UserCog },
-  { label: 'Contracts', to: '/manager/contracts', icon: FileSignature },
-  { label: 'Finances', to: '/manager/finances', icon: Wallet },
-  { label: 'News', to: '/manager/news', icon: Newspaper },
-  { label: 'Awards', to: '/manager/awards', icon: Award },
-  { label: 'Legacy', to: '/manager/legacy', icon: Landmark },
+  { key: 'mgr.nav.home', to: '/manager', icon: Home },
+  { key: 'mgr.nav.career', to: '/manager/profile', icon: Briefcase },
+  { key: 'mgr.nav.scouting', to: '/manager/scouting', icon: Radar },
+  { key: 'mgr.nav.players', to: '/manager/players', icon: Search },
+  { key: 'mgr.nav.trials', to: '/manager/trials', icon: ClipboardList },
+  { key: 'mgr.nav.auctionPrep', to: '/manager/auction-prep', icon: Target },
+  { key: 'mgr.nav.auction', short: 'mgr.nav.auctionShort', to: '/manager/auction', icon: Gavel },
+  { key: 'mgr.nav.squad', to: '/manager/squad', icon: Users },
+  { key: 'mgr.nav.xi', to: '/manager/xi', icon: Shirt },
+  { key: 'mgr.nav.tactics', to: '/manager/tactics', icon: BarChart3 },
+  { key: 'mgr.nav.fixtures', to: '/manager/fixtures', icon: CalendarDays },
+  { key: 'mgr.nav.table', to: '/manager/table', icon: Table2 },
+  { key: 'mgr.nav.development', to: '/manager/development', icon: Dumbbell },
+  { key: 'mgr.nav.staff', to: '/manager/staff', icon: UserCog },
+  { key: 'mgr.nav.contracts', to: '/manager/contracts', icon: FileSignature },
+  { key: 'mgr.nav.finances', to: '/manager/finances', icon: Wallet },
+  { key: 'mgr.nav.news', to: '/manager/news', icon: Newspaper },
+  { key: 'mgr.nav.awards', to: '/manager/awards', icon: Award },
+  { key: 'mgr.nav.legacy', to: '/manager/legacy', icon: Landmark },
 ];
 
 const MOBILE_PRIMARY = ['/manager', '/manager/squad', '/manager/fixtures', '/manager/auction'];
 
 function NavList({ compact, onNavigate }: { compact?: boolean; onNavigate?: () => void }) {
+  const t = useT();
   return (
     <ul className="flex flex-col gap-0.5">
       {MANAGER_NAV.map((item) => (
@@ -78,7 +84,7 @@ function NavList({ compact, onNavigate }: { compact?: boolean; onNavigate?: () =
           <NavLink
             to={item.to}
             end={item.to === '/manager'}
-            title={compact ? item.label : undefined}
+            title={compact ? t(item.key) : undefined}
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
@@ -92,7 +98,7 @@ function NavList({ compact, onNavigate }: { compact?: boolean; onNavigate?: () =
               <>
                 {isActive && !compact ? <span className="absolute top-1.5 -left-2 h-[calc(100%-12px)] w-1 rounded-full bg-brand-blue" aria-hidden /> : null}
                 <item.icon className="size-[18px] shrink-0" strokeWidth={1.8} aria-hidden />
-                {compact ? <span className="sr-only">{item.label}</span> : <span>{item.label}</span>}
+                {compact ? <span className="sr-only">{t(item.key)}</span> : <span>{t(item.key)}</span>}
               </>
             )}
           </NavLink>
@@ -103,6 +109,7 @@ function NavList({ compact, onNavigate }: { compact?: boolean; onNavigate?: () =
 }
 
 function ManagerSidebar({ compact = false }: { compact?: boolean }) {
+  const t = useT();
   return (
     <aside className={cn('fixed inset-y-0 left-0 z-30 flex flex-col border-r border-line/70 bg-surface/60', compact ? 'w-[72px]' : 'w-[200px]')}>
       <div className={cn('shrink-0 pt-5 pb-2', compact ? 'px-2' : 'px-4')}>
@@ -110,21 +117,21 @@ function ManagerSidebar({ compact = false }: { compact?: boolean }) {
         {compact ? null : (
           <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-brand-gold/20 px-2 py-1 text-[11px] font-bold tracking-wide text-[#8a6a00] uppercase">
             <Crown className="size-3.5 fill-brand-gold text-brand-gold" aria-hidden />
-            IPL Manager
+            {t('mgr.ipl')}
           </p>
         )}
       </div>
-      <nav aria-label="IPL Manager" className={cn('no-scrollbar min-h-0 flex-1 overflow-y-auto pb-3', compact ? 'px-2' : 'px-3')}>
+      <nav aria-label={t('mgr.ipl')} className={cn('no-scrollbar min-h-0 flex-1 overflow-y-auto pb-3', compact ? 'px-2' : 'px-3')}>
         <NavList compact={compact} />
       </nav>
       <div className={cn('shrink-0 border-t border-line/70 py-2', compact ? 'px-2' : 'px-3')}>
         <Link
           to="/start"
-          title="Player Career mode"
+          title={t('mgr.playerCareerMode')}
           className={cn('flex items-center rounded-xl text-[12.5px] font-semibold text-ink-muted hover:bg-page hover:text-ink', compact ? 'justify-center py-2.5' : 'gap-3 px-3 py-2')}
         >
           <Repeat className="size-[17px]" aria-hidden />
-          {compact ? <span className="sr-only">Player Career mode</span> : 'Player Career mode'}
+          {compact ? <span className="sr-only">{t('mgr.playerCareerMode')}</span> : t('mgr.playerCareerMode')}
         </Link>
       </div>
     </aside>
@@ -132,6 +139,7 @@ function ManagerSidebar({ compact = false }: { compact?: boolean }) {
 }
 
 function ManagerTopBar() {
+  const t = useT();
   const state = useManagerStore((s) => s.state)!;
   const saving = useManagerStore((s) => s.saving);
   const f = state.franchises[state.franchiseId];
@@ -143,14 +151,14 @@ function ManagerTopBar() {
         <div className="min-w-0">
           <p className="truncate text-[14px] font-semibold text-ink">{f.name}</p>
           <p className="text-[12px] text-ink-muted">
-            Season {state.season.year} · {PHASE_LABEL[state.season.phase]}
-            {state.season.phase === 'LEAGUE' ? ` · Round ${state.season.round}` : ''}
-            <span className="sr-only" aria-live="polite">{saving ? 'Saving' : ''}</span>
+            {t('mgr.seasonN', { year: state.season.year })} · {phaseLabel(state.season.phase)}
+            {state.season.phase === 'LEAGUE' ? ` · ${t('mgr.roundN', { n: state.season.round })}` : ''}
+            <span className="sr-only" aria-live="polite">{saving ? t('mgr.saving') : ''}</span>
           </p>
         </div>
       </div>
       <div className="ml-auto flex items-center gap-3 sm:gap-4">
-        <Link to="/manager/news" className="relative grid size-10 place-items-center rounded-xl border border-line bg-surface text-ink-muted hover:text-brand-blue" aria-label={`News, ${unread} unread`}>
+        <Link to="/manager/news" className="relative grid size-10 place-items-center rounded-xl border border-line bg-surface text-ink-muted hover:text-brand-blue" aria-label={t('mgr.newsUnread', { n: unread })}>
           <Newspaper className="size-[18px]" aria-hidden />
           {unread > 0 ? <span className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-brand-red px-1 text-[10.5px] font-bold text-white">{unread > 9 ? '9+' : unread}</span> : null}
         </Link>
@@ -158,16 +166,16 @@ function ManagerTopBar() {
           <Avatar name={state.profile.name} size={38} ring />
           <div className="hidden leading-tight sm:block">
             <p className="text-[14px] font-semibold text-ink">{state.profile.name}</p>
-            <p className="text-[12px] text-ink-muted">{MANAGER.ranks.label[state.profile.rank]}</p>
+            <p className="text-[12px] text-ink-muted">{rankLabel(state.profile.rank)}</p>
           </div>
         </Link>
         <div className="hidden h-8 w-px bg-line lg:block" aria-hidden />
         <div className="hidden min-w-[210px] lg:block">
           <div className="mb-1.5 flex items-baseline justify-between gap-4">
-            <span className="text-[13px] font-bold text-ink">Reputation {Math.round(state.profile.reputation)}</span>
-            <span className="text-[12px] font-medium text-ink-muted">Purse {formatMoney(f.purse)}</span>
+            <span className="text-[13px] font-bold text-ink">{t('mgr.reputationN', { n: Math.round(state.profile.reputation) })}</span>
+            <span className="text-[12px] font-medium text-ink-muted">{t('mgr.purseN', { money: formatMoney(f.purse) })}</span>
           </div>
-          <ProgressBar value={state.profile.reputation} tone="gold" label="Manager reputation" />
+          <ProgressBar value={state.profile.reputation} tone="gold" label={t('mgr.managerReputation')} />
         </div>
       </div>
     </header>
@@ -175,6 +183,7 @@ function ManagerTopBar() {
 }
 
 function ManagerTabBar() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const primary = MANAGER_NAV.filter((i) => MOBILE_PRIMARY.includes(i.to));
   const TAB = 'flex min-h-14 flex-1 flex-col items-center justify-center gap-1 py-2 text-[10.5px] font-medium';
@@ -182,31 +191,31 @@ function ManagerTabBar() {
     <>
       {open ? (
         <div className="fixed inset-0 z-40 md:hidden">
-          <button type="button" aria-label="Close menu" onClick={() => setOpen(false)} className="absolute inset-0 cursor-default bg-brand-navy/50" />
+          <button type="button" aria-label={t('nav.closeMenu')} onClick={() => setOpen(false)} className="absolute inset-0 cursor-default bg-brand-navy/50" />
           <div className="absolute inset-x-0 bottom-0 max-h-[calc(var(--vh)*75)] overflow-y-auto rounded-t-card bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+76px)] shadow-card-hover">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-[15px] font-semibold text-ink">IPL Manager</p>
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close menu" className="grid size-11 place-items-center rounded-lg text-ink-muted hover:bg-page">
+              <p className="text-[15px] font-semibold text-ink">{t('mgr.ipl')}</p>
+              <button type="button" onClick={() => setOpen(false)} aria-label={t('nav.closeMenu')} className="grid size-11 place-items-center rounded-lg text-ink-muted hover:bg-page">
                 <X className="size-4" />
               </button>
             </div>
             <NavList onNavigate={() => setOpen(false)} />
             <Link to="/start" className="mt-2 flex min-h-11 items-center gap-3 rounded-xl bg-page px-3 text-[13px] font-semibold text-ink">
-              <Repeat className="size-4" aria-hidden /> Player Career mode
+              <Repeat className="size-4" aria-hidden /> {t('mgr.playerCareerMode')}
             </Link>
           </div>
         </div>
       ) : null}
-      <nav aria-label="IPL Manager" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav aria-label={t('mgr.ipl')} className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {primary.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.to === '/manager'} className={({ isActive }) => cn(TAB, isActive ? 'text-brand-blue' : 'text-ink-soft')}>
             <item.icon className="size-5" strokeWidth={1.8} aria-hidden />
-            {item.label.replace('Live ', '')}
+            {t(item.short ?? item.key)}
           </NavLink>
         ))}
         <button type="button" onClick={() => setOpen(true)} aria-expanded={open} className={cn(TAB, open ? 'text-brand-blue' : 'text-ink-soft')}>
           <MoreHorizontal className="size-5" aria-hidden />
-          More
+          {t('nav.more')}
         </button>
       </nav>
     </>
@@ -214,6 +223,7 @@ function ManagerTabBar() {
 }
 
 export function ManagerShell({ children }: { children: ReactNode }) {
+  const t = useT();
   const booted = useManagerStore((s) => s.booted);
   const boot = useManagerStore((s) => s.boot);
   const state = useManagerStore((s) => s.state);
@@ -245,7 +255,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-page">
-      <a href="#manager-main" className="skip-link">Skip to content</a>
+      <a href="#manager-main" className="skip-link">{t('nav.skip')}</a>
       <div className="hidden md:block lg:hidden">
         <ManagerSidebar compact />
       </div>

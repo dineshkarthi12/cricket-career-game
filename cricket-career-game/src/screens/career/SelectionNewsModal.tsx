@@ -7,6 +7,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList, Eye, Gavel, Route } from 'lucide-react';
+import { rich, useT } from '@/i18n/react';
 import { Modal } from '@/components';
 import { competitionJourney } from '@/engine/career/journey';
 import { IN_SQUAD } from '@/engine/career/squads';
@@ -14,6 +15,7 @@ import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { formatLongDate } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { JourneySteps } from '../home/RoadToSelectionCard';
+import { groupName } from './SelectionScreen';
 import type { GameState, InboxMessage } from '@/types';
 
 type Tone = 'good' | 'bad' | 'neutral';
@@ -38,20 +40,15 @@ const TONE_CLASS: Record<Tone, string> = {
   neutral: 'border-brand-blue bg-brand-blue-soft',
 };
 
-const TONE_WORD: Record<Tone, string> = {
-  good: 'Good news',
-  bad: 'Tough news',
-  neutral: 'The word from the selectors',
-};
-
 const STAGES = [
-  { id: 'scouts', label: 'Scouting', icon: Eye },
-  { id: 'meeting', label: 'Selectors meet', icon: ClipboardList },
-  { id: 'verdict', label: 'Verdict', icon: Gavel },
-  { id: 'road', label: 'The road ahead', icon: Route },
+  { id: 'scouts', icon: Eye },
+  { id: 'meeting', icon: ClipboardList },
+  { id: 'verdict', icon: Gavel },
+  { id: 'road', icon: Route },
 ] as const;
 
 export function SelectionNewsModal({ state, messages, onClose }: { state: GameState; messages: InboxMessage[]; onClose: () => void }) {
+  const t = useT();
   const [stage, setStage] = useState(0);
   // The competition the news is about, when it names one.
   const tournamentId =
@@ -62,23 +59,23 @@ export function SelectionNewsModal({ state, messages, onClose }: { state: GameSt
   const last = stage === STAGES.length - 1;
 
   return (
-    <Modal open onClose={onClose} title="Selection news" subtitle={formatLongDate(messages[0]?.date ?? state.season.currentDate)}>
-      <ol className="mb-4 flex items-center gap-1" aria-label="Steps">
+    <Modal open onClose={onClose} title={t('next.SELECTION_NEWS.title')} subtitle={formatLongDate(messages[0]?.date ?? state.season.currentDate)}>
+      <ol className="mb-4 flex items-center gap-1" aria-label={t('car.news.steps')}>
         {STAGES.map((s, i) => {
           const Icon = s.icon;
           return (
-            <li key={s.id} className="flex flex-1 items-center gap-1">
+            <li key={s.id} className="flex min-w-0 flex-1 items-center gap-1">
               <button
                 type="button"
                 onClick={() => setStage(i)}
                 aria-current={i === stage ? 'step' : undefined}
                 className={cn(
-                  'flex w-full flex-col items-center gap-1 rounded-lg px-1 py-1.5 text-[10.5px] font-semibold transition-colors',
+                  'flex w-full min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-1.5 text-center text-[10.5px] font-semibold break-words transition-colors',
                   i === stage ? 'bg-brand-navy text-white' : i < stage ? 'bg-brand-green/15 text-brand-green' : 'bg-page text-ink-soft',
                 )}
               >
                 <Icon className="size-4" aria-hidden />
-                {s.label}
+                {t(`car.news.step.${s.id}`)}
               </button>
             </li>
           );
@@ -88,18 +85,18 @@ export function SelectionNewsModal({ state, messages, onClose }: { state: GameSt
       <div className="min-h-[150px]">
         {stage === 0 ? (
           <div>
-            <p className="text-[13.5px] font-semibold text-ink">The scouts filed their report</p>
+            <p className="text-[13.5px] font-semibold text-ink">{t('car.news.scoutsTitle')}</p>
             <p className="mt-1.5 rounded-tile bg-page px-3 py-2.5 text-[13px] leading-snug text-ink">
-              {journey?.scoutReport ?? 'Your matches, your form and your fitness - it all goes in the file.'}
+              {journey?.scoutReport ?? t('car.news.scoutsFallback')}
             </p>
-            <p className="mt-2 text-[12px] text-ink-muted">
-              Every innings and every spell at every level is watched. Form counts most - the last eight matches, the newest heaviest.
-            </p>
+            <p className="mt-2 text-[12px] text-ink-muted">{t('car.news.watched')}</p>
           </div>
         ) : stage === 1 ? (
           <div>
             <p className="text-[13.5px] font-semibold text-ink">
-              The {journey?.name ?? ''} selectors met{journey?.teamName ? ` to pick ${journey.teamName}` : ''}
+              {journey?.teamName
+                ? t('car.news.metPick', { name: journey?.name ?? '', team: journey.teamName })
+                : t('car.news.met', { name: journey?.name ?? '' })}
             </p>
             {journey?.rank ? (
               <>
@@ -115,12 +112,19 @@ export function SelectionNewsModal({ state, messages, onClose }: { state: GameSt
                   ))}
                 </div>
                 <p className="mt-1.5 text-[13px] text-ink">
-                  On their sheet you were <strong>#{journey.rank.position}</strong> of {journey.rank.of} {journey.rank.group}s. The XI has room for{' '}
-                  {journey.rank.xi}, the squad for {journey.rank.squad}.
+                  {rich(
+                    t('car.news.rank', {
+                      of: journey.rank.of,
+                      group: groupName(t, journey.rank.group),
+                      xi: journey.rank.xi,
+                      squad: journey.rank.squad,
+                    }),
+                    { pos: <strong>#{journey.rank.position}</strong> },
+                  )}
                 </p>
               </>
             ) : (
-              <p className="mt-1.5 text-[13px] text-ink-muted">They talked through form, figures, fitness and trust.</p>
+              <p className="mt-1.5 text-[13px] text-ink-muted">{t('car.news.talked')}</p>
             )}
           </div>
         ) : stage === 2 ? (
@@ -129,7 +133,7 @@ export function SelectionNewsModal({ state, messages, onClose }: { state: GameSt
               const tone = toneOf(state, m);
               return (
                 <li key={m.id} className={cn('animate-moment-in rounded-tile border-l-4 px-3 py-2.5', TONE_CLASS[tone])}>
-                  <p className="text-[11px] font-bold tracking-wide text-ink-muted uppercase">{TONE_WORD[tone]}</p>
+                  <p className="text-[11px] font-bold tracking-wide text-ink-muted uppercase">{t(`car.news.tone.${tone}`)}</p>
                   <p className="text-[14.5px] leading-snug font-bold text-ink">{m.subject}</p>
                   <p className="mt-1 text-[12.5px] leading-snug text-ink-muted">{m.body}</p>
                 </li>
@@ -142,27 +146,32 @@ export function SelectionNewsModal({ state, messages, onClose }: { state: GameSt
             <JourneySteps journey={journey} />
             {journey.nextMatch ? (
               <p className="mt-2 text-[12.5px] text-ink-muted">
-                Next {journey.shortName} match: {formatLongDate(journey.nextMatch.date)}, {journey.nextMatch.title} -{' '}
-                <strong className={journey.nextMatch.withYou ? 'text-brand-green' : 'text-brand-orange'}>
-                  {journey.nextMatch.withYou ? 'you play' : 'played without you'}
-                </strong>
-                .
+                {rich(
+                  t('car.news.nextMatch', { comp: journey.shortName, date: formatLongDate(journey.nextMatch.date), title: journey.nextMatch.title }),
+                  {
+                    status: (
+                      <strong className={journey.nextMatch.withYou ? 'text-brand-green' : 'text-brand-orange'}>
+                        {t(journey.nextMatch.withYou ? 'car.news.youPlay' : 'car.news.without')}
+                      </strong>
+                    ),
+                  },
+                )}
               </p>
             ) : null}
           </div>
         ) : (
-          <p className="text-[13px] text-ink-muted">Keep performing - the selectors meet again soon.</p>
+          <p className="text-[13px] text-ink-muted">{t('car.news.keepGoing')}</p>
         )}
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-line pt-3">
         <Link to="/selection" onClick={onClose} className="text-[12.5px] font-semibold text-brand-blue">
-          Selection details
+          {t('car.news.details')}
         </Link>
         <div className="flex gap-2">
           {!last ? (
             <button type="button" onClick={onClose} className="rounded-xl border border-line px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page">
-              Skip
+              {t('car.news.skip')}
             </button>
           ) : null}
           <button
@@ -170,7 +179,7 @@ export function SelectionNewsModal({ state, messages, onClose }: { state: GameSt
             onClick={() => (last ? onClose() : setStage((s) => s + 1))}
             className="rounded-xl bg-brand-blue px-4 py-2 text-[13px] font-semibold text-white hover:bg-brand-blue/90"
           >
-            {last ? 'Back to the career' : 'Next'}
+            {last ? t('car.news.backCareer') : t('car.news.next')}
           </button>
         </div>
       </div>

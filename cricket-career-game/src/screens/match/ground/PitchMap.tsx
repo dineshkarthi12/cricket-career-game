@@ -6,6 +6,7 @@
  * batter from the bowler's end.
  */
 import { memo } from 'react';
+import { tr, type Key } from '@/i18n/core';
 import type { Ball, DeliveryLength, DeliveryLine } from '@/types';
 
 /** Distance down the pitch, 0 at the batter's crease to 1 at the bowler's. */
@@ -63,7 +64,7 @@ export const PitchMap = memo(function PitchMap({
   const mirror = leftHanded ? -1 : 1;
 
   return (
-    <svg viewBox="0 0 60 100" className={className} role="img" aria-label="Pitch map">
+    <svg viewBox="0 0 60 100" className={className} role="img" aria-label={tr('chart.pitchMapLabel')}>
       {/* The strip, seen from behind the bowler. */}
       <rect x={16} y={0} width={28} height={100} fill="#cdb782" rx={1} />
       <rect x={16} y={0} width={28} height={100} fill="none" stroke="#e8ecf5" strokeWidth={0.6} />
@@ -107,7 +108,7 @@ export const Beehive = memo(function Beehive({
   const mirror = leftHanded ? -1 : 1;
 
   return (
-    <svg viewBox="0 0 60 60" className={className} role="img" aria-label="Beehive">
+    <svg viewBox="0 0 60 60" className={className} role="img" aria-label={tr('chart.beehiveLabel')}>
       <rect x={0} y={0} width={60} height={60} fill="#f4f6fb" rx={1} />
       {/* Stumps, seen from the bowler's end. */}
       <rect x={26.4} y={30} width={7.2} height={22} fill="#e8ecf5" />
@@ -131,9 +132,9 @@ export const Beehive = memo(function Beehive({
   );
 });
 
-export const DELIVERY_LEGEND = [
-  { label: 'Wicket', colour: '#e5484d' },
-  { label: 'Boundary', colour: '#f5c518' },
-  { label: 'Scored', colour: '#1e5ef0' },
-  { label: 'Dot', colour: '#8a93a6' },
+export const DELIVERY_LEGEND: { key: Key; colour: string }[] = [
+  { key: 'legend.wicket', colour: '#e5484d' },
+  { key: 'legend.boundary', colour: '#f5c518' },
+  { key: 'legend.scored', colour: '#1e5ef0' },
+  { key: 'legend.dot', colour: '#8a93a6' },
 ];

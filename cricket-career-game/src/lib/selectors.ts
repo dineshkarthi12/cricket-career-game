@@ -1,3 +1,5 @@
+import { en } from '@/i18n/en';
+import { tr, type Key } from '@/i18n/core';
 import { CAREER_STAGES, CAREER_STAGES_BY_ID } from '@/data/stages';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { battingAverage, strikeRate } from '@/engine/records';
@@ -26,14 +28,19 @@ export function currentStage(state: GameState): CareerStage {
 
 /** Title under the player's name in the top bar, taken from the career stage. */
 export function playerTitle(state: GameState): string {
+  return en[playerTitleKey(state)];
+}
+
+/** The title under the name in the top bar, as a translation key. */
+export function playerTitleKey(state: GameState): Key {
   const { order } = currentStage(state);
-  if (order <= 3) return 'Aspiring Cricketer';
-  if (order <= 6) return 'Age-Group Prospect';
-  if (order <= 10) return 'State Cricketer';
-  if (order <= 12) return 'Franchise Player';
-  if (order <= 15) return 'India Prospect';
-  if (order <= 19) return 'International Cricketer';
-  return 'Living Legend';
+  if (order <= 3) return 'title.aspiring';
+  if (order <= 6) return 'title.ageGroup';
+  if (order <= 10) return 'title.state';
+  if (order <= 12) return 'title.franchise';
+  if (order <= 15) return 'title.indiaProspect';
+  if (order <= 19) return 'title.international';
+  return 'title.legend';
 }
 
 /** The 20 stages as stepper nodes, coloured by how far the career has got. */
@@ -46,7 +53,7 @@ export function careerSteps(state: GameState): StepItem[] {
         : progress?.status === 'COMPLETED' || progress?.status === 'SKIPPED'
           ? 'done'
           : 'locked';
-    return { id: stage.id, index: stage.order, label: stage.shortLabel, status };
+    return { id: stage.id, index: stage.order, label: tr(`stage.${stage.id}.short` as Key), status };
   });
 }
 
@@ -138,7 +145,14 @@ export function statsTabs(state: GameState): StatsTabDefinition[] {
   const intl = ['intl-test', 'intl-odi', 'intl-t20i', 't20-world-cup', 'odi-world-cup', 'champions-trophy', 'world-test-championship'];
   if (played(['ipl'])) tabs.splice(tabs.length - 1, 0, { id: 'ipl', label: 'IPL', tournamentIds: ['ipl'] });
   if (played(intl)) tabs.splice(tabs.length - 1, 0, { id: 'intl', label: 'India', tournamentIds: intl });
-  return tabs;
+  // Early in a career, levels not reached yet stay out of the way (the age group and Overall always show).
+  return tabs.filter((t) => t.id === 'overall' || t.id.startsWith('u') || hasMatches(state, t));
+}
+
+function hasMatches(state: GameState, tab: StatsTabDefinition): boolean {
+  return Object.entries(state.player.record.byCompetition).some(
+    ([id, rec]) => rec.batting.matches > 0 && (tab.tournamentIds ? tab.tournamentIds.includes(id) : tab.formats ? tab.formats.includes(rec.format) : true),
+  );
 }
 
 const EMPTY_BATTING: BattingRecord = {

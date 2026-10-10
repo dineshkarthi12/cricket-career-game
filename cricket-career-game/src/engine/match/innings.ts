@@ -1024,6 +1024,7 @@ function applyOutcome(
       ? { bowlingAggression: prepared.context.bowlingAggression }
       : {}),
     commentary: outcome.commentary,
+    ...(outcome.commentaryCode ? { commentaryCode: outcome.commentaryCode } : {}),
     phase,
   };
   state.deliveries.push(ball);

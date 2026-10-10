@@ -6,6 +6,7 @@ import { Card } from '@/components';
 import { ballsToOvers } from '@/lib/format';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { Ball, BatterInningsLine } from '@/types';
+import { useT } from '@/i18n/react';
 
 function ballLabel(ball: Ball): { text: string; tone: string } {
   if (ball.wicket) return { text: 'W', tone: 'bg-brand-red text-white' };
@@ -33,6 +34,7 @@ export function ScoreStrip({
   /** The player's own cricketer, highlighted wherever they appear. */
   userId?: string | null;
 }) {
+  const t = useT();
   const cur = snap.current;
   if (!cur) return null;
 
@@ -46,9 +48,9 @@ export function ScoreStrip({
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <p className="text-[12px] font-semibold tracking-wide text-ink-muted uppercase">
-            {battingTeam} <span className="text-ink-soft">v {bowlingTeam}</span>
+            {battingTeam} <span className="text-ink-soft">{t('m.v')} {bowlingTeam}</span>
             {snap.format === 'MULTI_DAY' || snap.format === 'TEST' ? (
-              <span className="ml-2 text-ink-soft">Day {cur.day} · Inns {cur.number}</span>
+              <span className="ml-2 text-ink-soft">{t('strip.dayInns', { day: cur.day, n: cur.number })}</span>
             ) : null}
           </p>
           <p className="text-[30px] leading-none font-bold text-ink">
@@ -66,12 +68,12 @@ export function ScoreStrip({
           {cur.requiredRate !== null ? (
             <Figure label="RRR" value={Math.max(0, cur.requiredRate).toFixed(2)} tone="text-brand-orange" />
           ) : null}
-          {cur.target !== null ? <Figure label="Target" value={String(cur.target)} /> : null}
+          {cur.target !== null ? <Figure label={t('strip.target')} value={String(cur.target)} /> : null}
           {needed !== null && needed > 0 ? (
-            <Figure label="Need" value={`${needed}`} tone="text-brand-blue" />
+            <Figure label={t('strip.need')} value={`${needed}`} tone="text-brand-blue" />
           ) : null}
-          <Figure label="P'ship" value={`${cur.partnership.runs} (${cur.partnership.balls})`} />
-          <Figure label="Extras" value={String(cur.extrasTotal)} />
+          <Figure label={t('strip.pship')} value={`${cur.partnership.runs} (${cur.partnership.balls})`} />
+          <Figure label={t('strip.extras')} value={String(cur.extrasTotal)} />
         </dl>
       </div>
 
@@ -93,23 +95,23 @@ export function ScoreStrip({
             <>
               <p className="truncate font-semibold text-ink">{bowler.name}</p>
               <p className="text-ink-muted">
-                {bowler.wickets}/{bowler.runsConceded} ({bowler.overs.toFixed(1)}) · econ{' '}
+                {bowler.wickets}/{bowler.runsConceded} ({bowler.overs.toFixed(1)}) · {t('strip.econ')}{' '}
                 {bowler.economy.toFixed(2)}
               </p>
             </>
           ) : (
-            <p className="text-ink-muted">Waiting for the bowler.</p>
+            <p className="text-ink-muted">{t('strip.waitingBowler')}</p>
           )}
           {cur.freeHit ? (
             <p className="mt-1 inline-block rounded bg-brand-orange/15 px-1.5 py-0.5 text-[11px] font-bold text-brand-orange">
-              FREE HIT
+              {t('strip.freeHit')}
             </p>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-1.5" aria-label="Last six balls">
+        <div className="flex items-center gap-1.5" aria-label={t('strip.lastSix')}>
           {cur.lastSix.length === 0 ? (
-            <span className="text-[12.5px] text-ink-soft">No balls yet</span>
+            <span className="text-[12.5px] text-ink-soft">{t('strip.noBalls')}</span>
           ) : (
             cur.lastSix.map((ball) => {
               const label = ballLabel(ball);
@@ -149,16 +151,17 @@ function BatterLine({
   onStrike?: boolean;
   isUser?: boolean;
 }) {
+  const t = useT();
   return (
     <p className={`flex items-baseline gap-1.5 text-[13px] ${isUser ? 'rounded bg-brand-gold/15 px-1' : ''}`}>
       <span className={onStrike ? 'truncate font-semibold text-ink' : 'truncate text-ink-muted'}>
         {name}
-        {isUser ? <span className="ml-1 text-[10.5px] font-bold text-brand-navy">YOU</span> : null}
+        {isUser ? <span className="ml-1 text-[10.5px] font-bold text-brand-navy">{t('m.you')}</span> : null}
         {onStrike ? <span className="text-brand-blue"> *</span> : null}
       </span>
       {onStrike ? (
-        <span className="shrink-0 rounded bg-brand-blue px-1 py-px text-[9.5px] font-bold tracking-wide text-white" aria-label="on strike">
-          ON STRIKE
+        <span className="shrink-0 rounded bg-brand-blue px-1 py-px text-[9.5px] font-bold tracking-wide text-white" aria-label={t('strip.onStrikeLabel')}>
+          {t('strip.onStrike')}
         </span>
       ) : null}
       <span className="ml-auto shrink-0 font-semibold text-ink tabular-nums">

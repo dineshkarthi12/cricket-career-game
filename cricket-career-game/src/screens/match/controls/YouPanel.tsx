@@ -15,6 +15,8 @@ import { AggressionBar } from './AggressionBar';
 import { BattingControls, CarryToggle } from './BattingControls';
 import { BowlingControls } from './BowlingControls';
 import { getAvailableMatchActions, roleMatchNote } from '@/engine/roles';
+import { tr } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
 export interface YouPanelProps {
   snap: LiveSnapshot;
@@ -38,30 +40,32 @@ export interface YouPanelProps {
 export function statusLine(snap: LiveSnapshot, meId: string | undefined): string {
   const cur = snap.current;
   const i = snap.involvement;
-  if (!i.playing) return 'Not in the XI - watching from the dressing room.';
-  if (!cur || !meId) return 'Waiting for play.';
+  if (!i.playing) return tr('you.notInXi');
+  if (!cur || !meId) return tr('you.waiting');
   if (snap.userBatting) {
     const line = cur.batting.find((b) => b.playerId === meId);
-    if (i.onStrike) return `On strike: ${line?.runs ?? 0} (${line?.balls ?? 0})`;
-    if (i.atCrease) return `At the non-striker's end: ${line?.runs ?? 0} (${line?.balls ?? 0})`;
-    if (line?.out) return `Out for ${line.runs} - ${line.dismissalText}`;
+    if (i.onStrike) return tr('you.onStrike', { runs: line?.runs ?? 0, balls: line?.balls ?? 0 });
+    if (i.atCrease) return tr('you.nonStriker', { runs: line?.runs ?? 0, balls: line?.balls ?? 0 });
+    if (line?.out) return tr('you.outFor', { runs: line.runs, how: line.dismissalText });
     const done = snap.completed.find((inn) => inn.battingTeamId === cur.battingTeamId && inn.number < cur.number);
     const earlier = done?.batting.find((b) => b.playerId === meId);
-    return `Padded up${earlier ? ` (made ${earlier.runs} first time round)` : ''} - waiting to bat.`;
+    return tr('you.paddedUp', { earlier: earlier ? tr('you.madeFirst', { runs: earlier.runs }) : '' });
   }
   const bowl = cur.bowling.find((b) => b.playerId === meId);
   if (i.bowling) {
-    return `Your over. Figures ${bowl?.wickets ?? 0}/${bowl?.runsConceded ?? 0} (${bowl?.overs.toFixed(1) ?? '0.0'})`;
+    return tr('you.yourOver', { w: bowl?.wickets ?? 0, r: bowl?.runsConceded ?? 0, o: bowl?.overs.toFixed(1) ?? '0.0' });
   }
   const spot = snap.field?.fielders.find((f) => f.playerId === meId)?.position;
   const keeper = snap.field?.keeperId === meId;
-  return `In the field${keeper ? ' - keeping wicket' : spot ? ` at ${spot}` : ''}${
-    bowl ? `. Bowled ${bowl.overs.toFixed(1)}: ${bowl.wickets}/${bowl.runsConceded}` : ''
-  }.`;
+  return tr('you.inField', {
+    where: keeper ? tr('you.keeping') : spot ? tr('you.at', { spot }) : '',
+    bowled: bowl ? tr('you.bowled', { o: bowl.overs.toFixed(1), w: bowl.wickets, r: bowl.runsConceded }) : '',
+  });
 }
 
 export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
   const { snap, me, name, decisions, busy } = props;
+  const t = useT();
   const cur = snap.current;
   const i = snap.involvement;
   const status = statusLine(snap, me?.id);
@@ -81,9 +85,9 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-[13.5px] font-semibold text-ink">
             <UserRound className="size-3.5 text-brand-gold" aria-hidden />
-            You
+            {t('you.title')}
           </p>
-          <p className="truncate text-[12.5px] text-ink-muted">{status}</p>
+          <p className="line-clamp-2 text-[12.5px] leading-snug text-ink-muted">{status}</p>
         </div>
       </div>
 
@@ -121,18 +125,18 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
         <div className="rounded-lg bg-page px-3 py-3">
           <p className="text-[12.5px] text-ink-muted">
             {!i.playing
-              ? 'The match will play itself out. Watch it, or sim to the end.'
+              ? t('you.playsItself')
               : snap.userBatting
-                ? 'Your controls appear the moment you are on strike.'
+                ? t('you.onStrikeSoon')
                 : actions?.setBowlingAggression
-                  ? 'Your controls appear if the captain throws you the ball - and a catch or run-out coming your way is yours to take.'
-                  : `${me ? roleMatchNote(me) : ''} A catch or run-out coming your way is yours to take.`}
+                  ? t('you.ifBowling')
+                  : `${me ? roleMatchNote(me) : ''} ${t('you.catchYours')}`}
           </p>
           {i.playing ? (
             <div className="mt-3 flex flex-col gap-2.5">
               <AggressionBar
                 compact
-                label={i.atCrease ? 'Batting aggression (at the other end)' : 'Batting aggression'}
+                label={i.atCrease ? t('you.batAggOther') : t('you.batAgg')}
                 kind="batting"
                 level={decisions.batting}
                 risk={props.risk}
@@ -144,7 +148,7 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
               {actions?.setBowlingAggression ? (
                 <AggressionBar
                   compact
-                  label="Bowling aggression"
+                  label={t('you.bowlAgg')}
                   kind="bowling"
                   level={decisions.bowling}
                   onChange={(bowling) => bowling !== null && props.onDecisions({ bowling })}
@@ -160,7 +164,7 @@ export const YouPanel = memo(function YouPanel(props: YouPanelProps) {
               className="size-4 accent-brand-blue"
             />
             <Eye className="size-3.5" aria-hidden />
-            Play on at speed until I’m needed
+            {t('you.autoWatch')}
           </label>
         </div>
       )}

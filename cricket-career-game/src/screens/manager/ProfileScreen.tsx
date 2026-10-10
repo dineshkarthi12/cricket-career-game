@@ -6,22 +6,14 @@ import { Card, CardHeader, ConfirmDialog, ProgressBar, Stepper, type StepItem } 
 import { MANAGER, acceptJob, holds, jobOffers, promotionOutlook, retireManager, setFullControl } from '@/engine/manager';
 import type { Responsibility } from '@/types/manager';
 import { useManagerStore } from '@/store/managerStore';
-import { Button, InfoCard, PageHeader, StatLine, shortOf, useManager } from './ui';
+import { rich, useT } from '@/i18n/react';
+import { Button, InfoCard, PageHeader, StatLine, rankLabel, shortOf, useManager } from './ui';
 
-const RESPONSIBILITY_LABEL: Record<Responsibility, string> = {
-  SCOUTING: 'Scouting network',
-  TRIALS: 'Trials & recruitment',
-  AUCTION: 'Auction & retentions',
-  DEVELOPMENT: 'Player development',
-  SELECTION: 'Team selection',
-  TACTICS: 'Tactics',
-  MATCHDAY: 'Matchday decisions',
-  CONTRACTS: 'Contracts',
-  STAFF: 'Staff hiring',
-  FINANCE: 'Budgets',
-};
+/** Labels: `mgr.resp.<id>`. */
+const RESPONSIBILITIES: Responsibility[] = ['SCOUTING', 'TRIALS', 'AUCTION', 'DEVELOPMENT', 'SELECTION', 'TACTICS', 'MATCHDAY', 'CONTRACTS', 'STAFF', 'FINANCE'];
 
 export default function ProfileScreen() {
+  const t = useT();
   const { state, apply } = useManager();
   const exportCareer = useManagerStore((s) => s.exportCareer);
   const navigate = useNavigate();
@@ -29,68 +21,68 @@ export default function ProfileScreen() {
   const p = state.profile;
   const order = MANAGER.ranks.order;
   const current = order.indexOf(p.rank);
-  const steps: StepItem[] = order.map((r, i) => ({ id: r, index: i + 1, label: MANAGER.ranks.label[r], status: i < current ? 'done' : i === current ? 'current' : 'locked' }));
+  const steps: StepItem[] = order.map((r, i) => ({ id: r, index: i + 1, label: rankLabel(r), status: i < current ? 'done' : i === current ? 'current' : 'locked' }));
   const outlook = promotionOutlook(state);
-  const all = Object.keys(RESPONSIBILITY_LABEL) as Responsibility[];
+  const all = RESPONSIBILITIES;
   const offers = jobOffers(state);
 
   return (
     <div className="flex flex-col gap-3 pb-4">
-      <PageHeader title="Manager career" subtitle={`${p.name} · ${p.pathway === 'SCOUTING' ? 'Scouting pathway' : 'Direct appointment'} · ${p.difficulty.toLowerCase()} difficulty`}>
-        <Button variant="secondary" onClick={exportCareer}>Export save</Button>
+      <PageHeader title={t('mgr.prof.title')} subtitle={`${p.name} · ${p.pathway === 'SCOUTING' ? t('mgr.prof.pathScouting') : t('mgr.prof.pathDirect')} · ${t(`mgr.prof.diff.${p.difficulty}`)}`}>
+        <Button variant="secondary" onClick={exportCareer}>{t('mgr.prof.export')}</Button>
       </PageHeader>
 
       <Card>
-        <CardHeader title="Career path" subtitle="Promotion is earned at the season review - reputation and objectives, never automatic." className="mb-3" />
-        <Stepper steps={steps} endLabel="Legacy" />
+        <CardHeader title={t('mgr.prof.path')} subtitle={t('mgr.prof.pathSub')} className="mb-3" />
+        <Stepper steps={steps} endLabel={t('mgr.nav.legacy')} />
         {outlook.next ? (
           <p className="mt-3 text-[13px] text-ink">
-            Next: <strong>{MANAGER.ranks.label[outlook.next]}</strong> - needs reputation {outlook.reputationNeeded} (now {Math.round(p.reputation)}) and {Math.round((outlook.objectiveShare ?? 0) * 100)}% of the board's objectives met.
+            {rich(t('mgr.prof.next', { rep: outlook.reputationNeeded ?? 0, now: Math.round(p.reputation), pct: Math.round((outlook.objectiveShare ?? 0) * 100) }), { rank: <strong>{rankLabel(outlook.next)}</strong> })}
           </p>
         ) : (
-          <p className="mt-3 text-[13px] text-ink">You hold the top job. Now build a dynasty.</p>
+          <p className="mt-3 text-[13px] text-ink">{t('mgr.prof.top')}</p>
         )}
       </Card>
 
       <div className="grid gap-3 lg:grid-cols-3">
-        <InfoCard title="Standing">
+        <InfoCard title={t('mgr.prof.standing')}>
           <div className="mb-2">
-            <div className="mb-1 flex justify-between text-[12.5px]"><span className="text-ink-muted">Reputation</span><span className="font-semibold">{Math.round(p.reputation)}/100</span></div>
-            <ProgressBar value={p.reputation} tone="gold" label="Reputation" />
+            <div className="mb-1 flex justify-between text-[12.5px]"><span className="text-ink-muted">{t('mgr.reputation')}</span><span className="font-semibold">{Math.round(p.reputation)}/100</span></div>
+            <ProgressBar value={p.reputation} tone="gold" label={t('mgr.reputation')} />
           </div>
           <div className="mb-2">
-            <div className="mb-1 flex justify-between text-[12.5px]"><span className="text-ink-muted">Board confidence</span><span className="font-semibold">{Math.round(p.boardConfidence)}%</span></div>
-            <ProgressBar value={p.boardConfidence} tone={p.boardConfidence < MANAGER.board.warnBelow ? 'red' : 'green'} label="Board confidence" />
-            {p.boardConfidence < MANAGER.board.warnBelow ? <p className="mt-1 text-[12px] text-brand-red">Below {MANAGER.board.sackBelow}% at a review and you are out.</p> : null}
+            <div className="mb-1 flex justify-between text-[12.5px]"><span className="text-ink-muted">{t('mgr.boardConfidence')}</span><span className="font-semibold">{Math.round(p.boardConfidence)}%</span></div>
+            <ProgressBar value={p.boardConfidence} tone={p.boardConfidence < MANAGER.board.warnBelow ? 'red' : 'green'} label={t('mgr.boardConfidence')} />
+            {p.boardConfidence < MANAGER.board.warnBelow ? <p className="mt-1 text-[12px] text-brand-red">{t('mgr.prof.sackWarn', { n: MANAGER.board.sackBelow })}</p> : null}
           </div>
-          <StatLine label="Seasons managed" value={p.seasonsManaged} />
-          <StatLine label="Titles / finals / playoffs" value={`${p.trophies} / ${p.finals} / ${p.playoffApps}`} />
-          <StatLine label="Experience" value={`${p.experience} matches`} />
-          <StatLine label="Discoveries" value={p.discoveries.length} />
+          <StatLine label={t('mgr.prof.seasons')} value={p.seasonsManaged} />
+          <StatLine label={t('mgr.prof.tfp')} value={`${p.trophies} / ${p.finals} / ${p.playoffApps}`} />
+          <StatLine label={t('mgr.prof.experience')} value={t('mgr.prof.matchesN', { n: p.experience })} />
+          <StatLine label={t('mgr.prof.discoveries')} value={p.discoveries.length} />
         </InfoCard>
 
-        <InfoCard title="Your responsibilities">
+        <InfoCard title={t('mgr.prof.resp')}>
           <ul className="grid gap-1.5">
             {all.map((r) => {
               const has = holds(state, r);
               return (
                 <li key={r} className="flex items-center gap-2 text-[13px]">
                   {has ? <Check className="size-4 text-brand-green" aria-hidden /> : <Lock className="size-4 text-ink-soft" aria-hidden />}
-                  <span className={has ? 'text-ink' : 'text-ink-muted'}>{RESPONSIBILITY_LABEL[r]}</span>
-                  <span className="sr-only">{has ? '(yours)' : '(not yet yours)'}</span>
+                  <span className={has ? 'text-ink' : 'text-ink-muted'}>{t(`mgr.resp.${r}`)}</span>
+                  <span className="sr-only">{has ? t('mgr.prof.yours') : t('mgr.prof.notYours')}</span>
                 </li>
               );
             })}
           </ul>
         </InfoCard>
 
-        <InfoCard title={`Board objectives ${state.season.year}`}>
+        <InfoCard title={`${t('mgr.boardObjectives')} ${state.season.year}`}>
           <ul className="grid gap-2">
             {state.season.objectives.map((o) => (
               <li key={o.id} className="text-[13px] text-ink">
                 {o.label}
-                <span className="ml-1 text-[11.5px] text-ink-muted">(weight {o.weight})</span>
-                {o.met !== null ? <span className={o.met ? 'ml-1 font-semibold text-brand-green' : 'ml-1 font-semibold text-brand-red'}>{o.met ? 'Met' : 'Missed'}</span> : null}
+                <span className="ml-1 text-[11.5px] text-ink-muted">{t('mgr.prof.weight', { n: o.weight })}</span>
+                {o.met !== null ? <span className={o.met ? 'ml-1 font-semibold text-brand-green' : 'ml-1 font-semibold text-brand-red'}>{o.met ? t('mgr.prof.met') : t('mgr.prof.missed')}</span> : null}
               </li>
             ))}
           </ul>
@@ -99,31 +91,29 @@ export default function ProfileScreen() {
 
       <Card className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold text-ink">Full control {p.fullControl ? <span className="text-brand-green">· On</span> : <span className="text-ink-muted">· Off</span>}</p>
+          <p className="text-[14px] font-semibold text-ink">{t('mgr.fullControl')} {p.fullControl ? <span className="text-brand-green">· {t('mgr.prof.on')}</span> : <span className="text-ink-muted">· {t('mgr.prof.off')}</span>}</p>
           <p className="text-[12.5px] text-ink-muted">
-            {p.fullControl
-              ? 'Every job is yours - scouting, trials, retentions, the auction, the XI, tactics and every match. The staff never act for you.'
-              : 'Jobs above your rank are done by the franchise staff, so Continue plays them for you. Switch on to do everything yourself.'}
+            {p.fullControl ? t('mgr.prof.fcOn') : t('mgr.prof.fcOff')}
           </p>
         </div>
         <Button
           variant={p.fullControl ? 'secondary' : 'gold'}
           disabled={p.retired}
-          onClick={() => apply(setFullControl(state, !p.fullControl), p.fullControl ? 'The staff take the jobs above your rank again.' : 'Full control: every decision is yours.')}
+          onClick={() => apply(setFullControl(state, !p.fullControl), p.fullControl ? t('mgr.prof.toastStaff') : t('mgr.prof.toastFull'))}
         >
-          {p.fullControl ? 'Hand jobs to staff' : 'Take full control'}
+          {p.fullControl ? t('mgr.prof.handJobs') : t('mgr.takeFullControl')}
         </Button>
       </Card>
 
       {p.unemployed ? (
         <Card>
-          <CardHeader title="Job offers" subtitle="The board let you go. These franchises would take you on." className="mb-3" />
-          {offers.length === 0 ? <p className="text-[13px] text-ink-muted">No offers. Retiring is the only option left.</p> : null}
+          <CardHeader title={t('mgr.prof.jobs')} subtitle={t('mgr.prof.jobsSub')} className="mb-3" />
+          {offers.length === 0 ? <p className="text-[13px] text-ink-muted">{t('mgr.prof.noOffers')}</p> : null}
           <ul className="grid gap-2 sm:grid-cols-3">
             {offers.map((o) => (
               <li key={o.franchiseId}>
-                <Button className="w-full" onClick={() => apply(acceptJob(state, o.franchiseId), 'A fresh start.') && navigate('/manager')}>
-                  {shortOf(state, o.franchiseId)} - {MANAGER.ranks.label[o.rank]}
+                <Button className="w-full" onClick={() => apply(acceptJob(state, o.franchiseId), t('mgr.prof.freshStart')) && navigate('/manager')}>
+                  {shortOf(state, o.franchiseId)} - {rankLabel(o.rank)}
                 </Button>
               </li>
             ))}
@@ -133,20 +123,20 @@ export default function ProfileScreen() {
 
       <Card className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[14px] font-semibold text-ink">Retirement</p>
-          <p className="text-[12.5px] text-ink-muted">Your decision alone, at the end of a season. Everything you built stays in your legacy.</p>
+          <p className="text-[14px] font-semibold text-ink">{t('mgr.prof.retirement')}</p>
+          <p className="text-[12.5px] text-ink-muted">{t('mgr.prof.retirementSub')}</p>
         </div>
         <Button variant="danger" disabled={p.retired || (state.season.phase !== 'SEASON_END' && !p.unemployed)} onClick={() => setConfirmRetire(true)}>
-          {p.retired ? 'Retired' : 'Retire'}
+          {p.retired ? t('mgr.prof.retired') : t('mgr.prof.retire')}
         </Button>
       </Card>
 
       <ConfirmDialog
         open={confirmRetire}
         danger
-        title="Retire from management?"
-        message="Your manager career ends here. The save, its seasons and your legacy are kept, but no more seasons can be played in it."
-        confirmLabel="Retire"
+        title={t('mgr.prof.retireTitle')}
+        message={t('mgr.prof.retireBody')}
+        confirmLabel={t('mgr.prof.retire')}
         onCancel={() => setConfirmRetire(false)}
         onConfirm={() => {
           setConfirmRetire(false);

@@ -5,6 +5,7 @@
  * which refuses to send an illegal field to the engine - the umpire would not
  * let the captain use it either.
  */
+import { tr } from '@/i18n/core';
 import { fieldersAllowedOutside } from '@/engine/match/field';
 import type { FieldSetting } from '@/engine/match/types';
 import { groundBox, insideCircle } from './ground';
@@ -34,16 +35,16 @@ export function fieldProblems(
     const allowed = fieldersAllowedOutside(format, over);
     const outside = outsideCount(field, venue);
     if (outside > allowed) {
-      problems.push(`${outside} outside the circle — only ${allowed} allowed right now.`);
+      problems.push(tr('field.tooManyOut', { n: outside, allowed }));
     }
     const legSide = field.fielders.filter((f) => f.angle > 180 && f.angle < 360).length;
-    if (legSide > 5) problems.push(`${legSide} on the leg side — no more than five.`);
+    if (legSide > 5) problems.push(tr('field.legSide', { n: legSide }));
   }
 
   // Law 28.4: no more than two behind square on the leg side, in any format.
   const behindSquare = field.fielders.filter((f) => f.angle > 180 && f.angle < 270).length;
   if (behindSquare > 2) {
-    problems.push(`${behindSquare} behind square on the leg side — the law allows two.`);
+    problems.push(tr('field.behindSquare', { n: behindSquare }));
   }
 
   return problems;

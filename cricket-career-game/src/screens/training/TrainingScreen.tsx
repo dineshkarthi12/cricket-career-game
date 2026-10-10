@@ -5,7 +5,6 @@ import { HeartPulse, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts';
 import { Badge, Card, CardHeader, ProgressBar, StatTile, TutorialTip } from '@/components';
 import { DRILLS, DRILLS_BY_ID } from '@/data/drills';
-import { TRAITS_BY_ID } from '@/data/traits';
 import { TRAINING } from '@/engine/config';
 import {
   addDays,
@@ -20,7 +19,9 @@ import {
 } from '@/engine/development';
 import { createRng } from '@/engine/match/rng';
 import { BATTING_LEVELS, BOWLING_LEVELS } from '../match/controls/AggressionBar';
-import { categoryMeta, drillEffect } from '@/lib/training';
+import { attributeIdLabel, categoryMeta, drillDescription, drillEffect, drillLabel, injuryName, severityLabel, traitDescription, traitLabel } from '@/lib/training';
+import { useT } from '@/i18n/react';
+import type { Key } from '@/i18n/core';
 import { formatLongDate } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useGameStore } from '@/store/gameStore';
@@ -41,12 +42,14 @@ const CATEGORY_ORDER: DrillCategory[] = ['BATTING', 'BOWLING', 'FIELDING', 'FITN
 /** The weekly plan: sessions within an energy budget, lifestyle, studies and what it all adds up to. */
 export default function TrainingScreen() {
   const state = useGameStore((s) => s.state);
-  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">Loading your career…</p>;
+  const t = useT();
+  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">{t('common.loadingCareer')}</p>;
   return <Training state={state} />;
 }
 
 function Training({ state }: { state: GameState }) {
   const setSessions = useGameStore((s) => s.setSessions);
+  const t = useT();
   const { player, trainingPlan: plan } = state;
   const today = state.season.currentDate;
   const weekEnd = addDays(today, 7);
@@ -67,14 +70,12 @@ function Training({ state }: { state: GameState }) {
     <div className="flex flex-col gap-3 pb-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-[22px] leading-tight font-bold text-ink">Training</h1>
-          <p className="text-[13px] text-ink-muted">
-            Week from {formatLongDate(addDays(today, 1))}. Sessions run top to bottom until the energy runs out.
-          </p>
+          <h1 className="text-[22px] leading-tight font-bold text-ink">{t('misc.train.title')}</h1>
+          <p className="text-[13px] text-ink-muted">{t('misc.train.week', { date: formatLongDate(addDays(today, 1)) })}</p>
         </div>
         <div className="flex gap-1.5">
-          {examWeek ? <Badge tone="orange">Exam week - half the energy</Badge> : null}
-          {player.condition.injury ? <Badge tone="red">Injured - rehab only</Badge> : null}
+          {examWeek ? <Badge tone="orange">{t('misc.train.examWeek')}</Badge> : null}
+          {player.condition.injury ? <Badge tone="red">{t('misc.train.injured')}</Badge> : null}
         </div>
       </div>
       <TutorialTip id="training" />
@@ -82,26 +83,26 @@ function Training({ state }: { state: GameState }) {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-3">
           <Card>
-            <CardHeader title="This week" className="mb-3" />
+            <CardHeader title={t('misc.train.thisWeek')} className="mb-3" />
             <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-              <StatTile label="Energy" value={`${preview.used}/${preview.budget}`} />
-              <StatTile label="Fatigue" value={`${Math.round(player.condition.fatigue)} → ${Math.round(preview.fatigueAfter)}`} />
-              <StatTile label="Fitness" value={`${Math.round(player.condition.fitness)}%`} />
-              <StatTile label="Injury risk" value={`${(preview.injuryChance * 100).toFixed(1)}%`} detail={riskWord(preview.injuryChance)} />
-              <StatTile label="Match fitness" value={`${Math.round(player.development.matchFitness)}%`} />
+              <StatTile label={t('misc.train.energy')} value={`${preview.used}/${preview.budget}`} />
+              <StatTile label={t('misc.train.fatigue')} value={`${Math.round(player.condition.fatigue)} → ${Math.round(preview.fatigueAfter)}`} />
+              <StatTile label={t('misc.train.fitness')} value={`${Math.round(player.condition.fitness)}%`} />
+              <StatTile label={t('misc.train.injuryRisk')} value={`${(preview.injuryChance * 100).toFixed(1)}%`} detail={t(riskWord(preview.injuryChance))} />
+              <StatTile label={t('misc.train.matchFitness')} value={`${Math.round(player.development.matchFitness)}%`} />
             </div>
             <ProgressBar
               value={(preview.used / Math.max(1, preview.budget)) * 100}
               tone={preview.used >= preview.budget ? 'orange' : 'blue'}
               className="mt-3"
-              label="Energy used"
+              label={t('misc.train.energyUsed')}
             />
           </Card>
 
           <Card>
             <CardHeader
-              title="Weekly plan"
-              subtitle={`Up to ${TRAINING.maxSessions} sessions. Light 1, Normal 2, Hard 3 energy; rest is free.`}
+              title={t('misc.train.plan')}
+              subtitle={t('misc.train.planHint', { n: TRAINING.maxSessions })}
               className="mb-3"
             />
             <ol className="flex flex-col gap-2">
@@ -132,7 +133,7 @@ function Training({ state }: { state: GameState }) {
                 className="inline-flex items-center gap-1.5 rounded-xl bg-brand-blue px-3.5 py-2 text-[12.5px] font-semibold text-white hover:bg-brand-blue/90 disabled:opacity-40"
               >
                 <Plus className="size-3.5" aria-hidden />
-                Add session
+                {t('misc.train.add')}
               </button>
               <button
                 type="button"
@@ -140,27 +141,30 @@ function Training({ state }: { state: GameState }) {
                 className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-[12.5px] font-semibold text-ink hover:bg-page"
               >
                 <RotateCcw className="size-3.5" aria-hidden />
-                Coach’s plan
+                {t('misc.train.coachPlan')}
               </button>
               <span className="self-center text-[11.5px] text-ink-soft">
                 {plan.weeksActive > 0
-                  ? `Same plan ${plan.weeksActive} week${plan.weeksActive === 1 ? '' : 's'} running: +${Math.round(Math.min(TRAINING.consistencyCap, plan.weeksActive * TRAINING.consistencyPerWeek) * 100)}% from consistency`
-                  : 'Changing the plan resets the consistency bonus.'}
+                  ? t(plan.weeksActive === 1 ? 'misc.train.samePlan.one' : 'misc.train.samePlan.many', {
+                      n: plan.weeksActive,
+                      pct: Math.round(Math.min(TRAINING.consistencyCap, plan.weeksActive * TRAINING.consistencyPerWeek) * 100),
+                    })
+                  : t('misc.train.resets')}
               </span>
             </div>
           </Card>
 
           <div className="grid gap-3 md:grid-cols-2">
             <Card>
-              <CardHeader title="Expected this week" subtitle="Before luck. Near your ceiling, gains shrink." className="mb-2.5" />
+              <CardHeader title={t('misc.train.expected')} subtitle={t('misc.train.expectedHint')} className="mb-2.5" />
               {preview.gains.length === 0 ? (
-                <p className="py-3 text-[13px] text-ink-muted">Nothing will move this week.</p>
+                <p className="py-3 text-[13px] text-ink-muted">{t('misc.train.nothing')}</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
                   {preview.gains.slice(0, 8).map((gain) => (
                     <li key={gain.key} className="flex items-center gap-2 text-[12.5px]">
-                      <span className="w-[120px] truncate text-ink-muted">{gain.label}</span>
-                      <ProgressBar value={Math.min(100, Math.abs(gain.amount) * 100)} tone={gain.amount >= 0 ? 'green' : 'red'} height={6} className="flex-1" label={gain.label} />
+                      <span className="w-[120px] truncate text-ink-muted">{attributeIdLabel(gain.key)}</span>
+                      <ProgressBar value={Math.min(100, Math.abs(gain.amount) * 100)} tone={gain.amount >= 0 ? 'green' : 'red'} height={6} className="flex-1" label={attributeIdLabel(gain.key)} />
                       <span className={cn('w-12 text-right font-semibold', gain.amount >= 0 ? 'text-brand-green' : 'text-brand-red')}>
                         {gain.amount >= 0 ? '+' : ''}
                         {gain.amount.toFixed(2)}
@@ -189,11 +193,11 @@ function Training({ state }: { state: GameState }) {
   );
 }
 
-function riskWord(chance: number): string {
-  if (chance < 0.01) return 'Low';
-  if (chance < 0.025) return 'Moderate';
-  if (chance < 0.05) return 'High';
-  return 'Very high';
+function riskWord(chance: number): Key {
+  if (chance < 0.01) return 'misc.train.risk.low';
+  if (chance < 0.025) return 'misc.train.risk.moderate';
+  if (chance < 0.05) return 'misc.train.risk.high';
+  return 'misc.train.risk.veryHigh';
 }
 
 function SessionRow({
@@ -213,6 +217,7 @@ function SessionRow({
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
 }) {
+  const t = useT();
   const drill = DRILLS_BY_ID[session.drill];
   const meta = categoryMeta(drill.category);
   const levels = drill.practises === 'BOWLING' ? BOWLING_LEVELS : BATTING_LEVELS;
@@ -225,7 +230,7 @@ function SessionRow({
           <meta.icon className="size-4" strokeWidth={2} />
         </span>
         <label className="sr-only" htmlFor={`drill-${session.id}`}>
-          Session {index + 1} drill
+          {t('misc.train.sessionDrill', { n: index + 1 })}
         </label>
         <select
           id={`drill-${session.id}`}
@@ -237,50 +242,50 @@ function SessionRow({
           className="h-9 min-w-[10rem] flex-1 rounded-xl border border-line bg-surface px-2 text-[13px] text-ink focus:border-brand-blue/50 focus:outline-none"
         >
           {CATEGORY_ORDER.map((category) => (
-            <optgroup key={category} label={categoryMeta(category).label}>
+            <optgroup key={category} label={t(`misc.drillcat.${category}` as Key)}>
               {DRILLS.filter((d) => d.category === category).map((d) => (
                 <option key={d.id} value={d.id} disabled={!drillAllowed(d, state.player)}>
-                  {d.label}
+                  {drillLabel(d.id)}
                 </option>
               ))}
             </optgroup>
           ))}
         </select>
         <Segmented<TrainingIntensity>
-          label={`Session ${index + 1} intensity`}
+          label={t('misc.train.sessionIntensity', { n: index + 1 })}
           size="sm"
           value={session.intensity}
           onChange={(intensity) => onChange({ intensity })}
           options={[
-            { value: 'LIGHT', label: 'Light' },
-            { value: 'NORMAL', label: 'Normal' },
-            { value: 'HARD', label: 'Hard' },
+            { value: 'LIGHT', label: t('misc.train.light') },
+            { value: 'NORMAL', label: t('misc.train.normal') },
+            { value: 'HARD', label: t('misc.train.hard') },
           ]}
         />
-        <span className="w-14 text-right text-[11.5px] font-semibold text-ink-muted">{sessionEnergy(session)} energy</span>
+        <span className="min-w-14 text-right text-[11.5px] font-semibold whitespace-nowrap text-ink-muted">{t('misc.train.energyN', { n: sessionEnergy(session) })}</span>
         <div className="flex items-center">
-          <button type="button" aria-label="Move up" onClick={() => onMove(-1)} className="rounded px-1 text-ink-soft hover:text-ink">
+          <button type="button" aria-label={t('misc.train.moveUp')} onClick={() => onMove(-1)} className="rounded px-1 text-ink-soft hover:text-ink">
             ↑
           </button>
-          <button type="button" aria-label="Move down" onClick={() => onMove(1)} className="rounded px-1 text-ink-soft hover:text-ink">
+          <button type="button" aria-label={t('misc.train.moveDown')} onClick={() => onMove(1)} className="rounded px-1 text-ink-soft hover:text-ink">
             ↓
           </button>
-          <button type="button" aria-label={`Remove session ${index + 1}`} onClick={onRemove} className="ml-1 rounded p-1 text-ink-soft hover:text-brand-red">
+          <button type="button" aria-label={t('misc.train.remove', { n: index + 1 })} onClick={onRemove} className="ml-1 rounded p-1 text-ink-soft hover:text-brand-red">
             <Trash2 className="size-3.5" />
           </button>
         </div>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-10">
         <span className="text-[11.5px] text-ink-soft">
-          {drillEffect(session.drill)} · {drill.description}
+          {drillEffect(session.drill)} · {drillDescription(session.drill)}
         </span>
-        {!runs ? <Badge tone="orange">Won’t fit this week</Badge> : null}
+        {!runs ? <Badge tone="orange">{t('misc.train.wontFit')}</Badge> : null}
       </div>
       {drill.practises && session.aggression !== null ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-10">
-          <span className="text-[11.5px] text-ink-muted">Practise at</span>
+          <span className="text-[11.5px] text-ink-muted">{t('misc.train.practiseAt')}</span>
           <Segmented<number>
-            label={`Session ${index + 1} aggression`}
+            label={t('misc.train.sessionAgg', { n: index + 1 })}
             size="sm"
             value={session.aggression}
             onChange={(aggression) => onChange({ aggression })}
@@ -295,33 +300,34 @@ function SessionRow({
 
 function LastWeekCard({ state }: { state: GameState }) {
   const report = state.player.development.weeklyReports[0];
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="Last week" subtitle={report ? `Week to ${formatLongDate(report.weekOf)}` : 'No week trained yet'} className="mb-2.5" />
+      <CardHeader title={t('misc.train.lastWeek')} subtitle={report ? t('misc.train.weekTo', { date: formatLongDate(report.weekOf) }) : t('misc.train.noWeek')} className="mb-2.5" />
       {report ? (
         <>
           <p className="font-hand text-[18px] leading-tight text-ink">“{report.coachNote}”</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {report.changes.length === 0 ? (
-              <span className="text-[12px] text-ink-muted">No attribute moved a full point.</span>
+              <span className="text-[12px] text-ink-muted">{t('misc.train.noMove')}</span>
             ) : (
               report.changes.map((c) => (
                 <Badge key={c.key} tone={c.delta > 0 ? 'green' : 'red'}>
                   {c.delta > 0 ? '+' : ''}
-                  {c.delta} {c.label}
+                  {c.delta} {attributeIdLabel(c.key)}
                 </Badge>
               ))
             )}
           </div>
           <div className="mt-2">
-            <Row label="Energy used">{`${report.energyUsed}/${report.energyBudget}`}</Row>
-            <Row label="Fatigue">{`${Math.round(report.fatigue[0])} → ${Math.round(report.fatigue[1])}`}</Row>
-            <Row label="Overall">{`${report.overall[0]} → ${report.overall[1]}`}</Row>
+            <Row label={t('misc.train.energyUsed')}>{`${report.energyUsed}/${report.energyBudget}`}</Row>
+            <Row label={t('misc.train.fatigue')}>{`${Math.round(report.fatigue[0])} → ${Math.round(report.fatigue[1])}`}</Row>
+            <Row label={t('misc.train.overall')}>{`${report.overall[0]} → ${report.overall[1]}`}</Row>
             <Row label="XP">{`+${report.xpEarned}`}</Row>
           </div>
         </>
       ) : (
-        <p className="text-[13px] text-ink-muted">Press Continue to run your first week.</p>
+        <p className="text-[13px] text-ink-muted">{t('misc.train.pressContinue')}</p>
       )}
     </Card>
   );
@@ -329,19 +335,20 @@ function LastWeekCard({ state }: { state: GameState }) {
 
 function OverallHistoryCard({ state }: { state: GameState }) {
   const data = state.player.development.overallHistory.map((h) => ({ age: h.age, overall: h.overall }));
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="Development" subtitle="Overall by age" className="mb-2" />
+      <CardHeader title={t('misc.train.development')} subtitle={t('misc.train.byAge')} className="mb-2" />
       {data.length < 2 ? (
-        <p className="py-6 text-[13px] text-ink-muted">The line starts after your first month.</p>
+        <p className="py-6 text-[13px] text-ink-muted">{t('misc.train.lineStarts')}</p>
       ) : (
-        <div className="h-[180px]" role="img" aria-label={`Overall from ${data[0].overall} to ${data[data.length - 1].overall}`}>
+        <div className="h-[180px]" role="img" aria-label={t('misc.train.overallFrom', { from: data[0].overall, to: data[data.length - 1].overall })}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -20 }}>
               <CartesianGrid stroke="#E6EAF2" vertical={false} />
               <XAxis dataKey="age" type="number" domain={['dataMin', 'dataMax']} tick={{ fontSize: 11 }} tickFormatter={(v: number) => (data[data.length - 1].age - data[0].age < 3 ? v.toFixed(1) : String(Math.floor(v)))} />
               <YAxis domain={['dataMin - 3', 'dataMax + 3']} tick={{ fontSize: 11 }} allowDecimals={false} />
-              <ChartTooltip formatter={(v) => [v, 'OVR']} labelFormatter={(v) => `Age ${Number(v).toFixed(1)}`} />
+              <ChartTooltip formatter={(v) => [v, 'OVR']} labelFormatter={(v) => t('misc.train.ageN', { n: Number(v).toFixed(1) })} />
               <Line type="monotone" dataKey="overall" stroke="#1E5EF0" strokeWidth={2.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -354,39 +361,40 @@ function OverallHistoryCard({ state }: { state: GameState }) {
 function InjuryCard({ state }: { state: GameState }) {
   const injury = state.player.condition.injury;
   const rehab = state.player.development.rehab;
+  const t = useT();
   if (!injury) {
     const last = state.player.development.injuryHistory[0];
     return (
       <Card>
-        <CardHeader title="Body" className="mb-2" />
+        <CardHeader title={t('misc.train.body')} className="mb-2" />
         <p className="flex items-center gap-2 text-[13px] text-ink">
           <HeartPulse className="size-4 text-brand-green" aria-hidden />
-          Fully fit.
+          {t('misc.train.fullyFit')}
         </p>
         {last ? (
           <p className="mt-1 text-[12px] text-ink-muted">
-            Last injury: {last.name.toLowerCase()} ({last.weeksOut} weeks{last.rushed ? ', rushed back' : ''}).
+            {t(last.rushed ? 'misc.train.lastInjuryRushed' : 'misc.train.lastInjury', { name: injuryName(last.type, last.name).toLowerCase(), n: last.weeksOut })}
           </p>
         ) : null}
         <Link to="/training/rehab" className="mt-2 inline-block text-[12.5px] font-semibold text-brand-blue">
-          Injury history →
+          {t('misc.train.history')}
         </Link>
       </Card>
     );
   }
   return (
     <Card className="border border-brand-red/30">
-      <CardHeader title={injury.name} subtitle={`${injury.severity.toLowerCase()} · back around ${formatLongDate(injury.expectedReturn)}`} className="mb-2" />
+      <CardHeader title={injuryName(injury.type, injury.name)} subtitle={t('misc.train.backAround', { severity: severityLabel(injury.severity), date: formatLongDate(injury.expectedReturn) })} className="mb-2" />
       {rehab ? (
         <>
-          <ProgressBar value={(rehab.weeksDone / rehab.weeksNeeded) * 100} tone="red" label="Rehab progress" />
+          <ProgressBar value={(rehab.weeksDone / rehab.weeksNeeded) * 100} tone="red" label={t('misc.train.rehabProgress')} />
           <p className="mt-1.5 text-[12px] text-ink-muted">
-            Rehab week {rehab.weeksDone} of {rehab.weeksNeeded} ({rehab.plan.toLowerCase()} plan). Only mental work and rest count.
+            {t('misc.train.rehabWeek', { done: rehab.weeksDone, needed: rehab.weeksNeeded, plan: t(`misc.rehab.plan.${rehab.plan}` as Key).toLowerCase() })}
           </p>
         </>
       ) : null}
       <Link to="/training/rehab" className="mt-2 inline-block rounded-xl bg-brand-red px-3.5 py-2 text-[12.5px] font-semibold text-white">
-        Rehab plan
+        {t('misc.train.rehabPlan')}
       </Link>
     </Card>
   );
@@ -395,46 +403,47 @@ function InjuryCard({ state }: { state: GameState }) {
 function LifestyleCard({ state }: { state: GameState }) {
   const setLifestyle = useGameStore((s) => s.setLifestyle);
   const { lifestyle } = state.trainingPlan;
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="Lifestyle" subtitle="Small effects on fitness and injury risk" className="mb-2.5" />
+      <CardHeader title={t('misc.train.lifestyle')} subtitle={t('misc.train.lifestyleHint')} className="mb-2.5" />
       <div className="flex flex-col gap-2.5">
         <div>
-          <p className="mb-1 text-[12px] font-medium text-ink">Sleep</p>
+          <p className="mb-1 text-[12px] font-medium text-ink">{t('misc.train.sleep')}</p>
           <Segmented<SleepHabit>
-            label="Sleep"
+            label={t('misc.train.sleep')}
             value={lifestyle.sleep}
             onChange={(sleep) => setLifestyle({ sleep })}
             options={[
-              { value: 'SHORT', label: 'Late nights', title: '+1 energy, slower recovery, more injuries' },
-              { value: 'NORMAL', label: 'Normal' },
-              { value: 'FULL', label: 'Full 9 hours', title: 'Better recovery, fewer injuries' },
+              { value: 'SHORT', label: t('misc.train.sleep.SHORT'), title: t('misc.train.sleep.SHORT.help') },
+              { value: 'NORMAL', label: t('misc.train.normal') },
+              { value: 'FULL', label: t('misc.train.sleep.FULL'), title: t('misc.train.sleep.FULL.help') },
             ]}
           />
         </div>
         <div>
-          <p className="mb-1 text-[12px] font-medium text-ink">Diet</p>
+          <p className="mb-1 text-[12px] font-medium text-ink">{t('misc.train.diet')}</p>
           <Segmented<DietHabit>
-            label="Diet"
+            label={t('misc.train.diet')}
             value={lifestyle.diet}
             onChange={(diet) => setLifestyle({ diet })}
             options={[
-              { value: 'CARELESS', label: 'Anything goes', title: 'Fitness slips, more injuries' },
-              { value: 'BALANCED', label: 'Balanced' },
-              { value: 'STRICT', label: 'Strict', title: 'Fitness builds, fewer injuries, a little joyless' },
+              { value: 'CARELESS', label: t('misc.train.diet.CARELESS'), title: t('misc.train.diet.CARELESS.help') },
+              { value: 'BALANCED', label: t('misc.train.diet.BALANCED') },
+              { value: 'STRICT', label: t('misc.train.diet.STRICT'), title: t('misc.train.diet.STRICT.help') },
             ]}
           />
         </div>
         <div>
-          <p className="mb-1 text-[12px] font-medium text-ink">Recovery routine</p>
+          <p className="mb-1 text-[12px] font-medium text-ink">{t('misc.train.recovery')}</p>
           <Segmented<RecoveryRoutine>
-            label="Recovery routine"
+            label={t('misc.train.recovery')}
             value={lifestyle.recovery}
             onChange={(recovery) => setLifestyle({ recovery })}
             options={[
-              { value: 'NONE', label: 'None' },
-              { value: 'STRETCHING', label: 'Stretching' },
-              { value: 'FULL', label: 'Ice + physio', title: 'Costs 1 energy; best recovery and injury protection' },
+              { value: 'NONE', label: t('misc.train.recovery.NONE') },
+              { value: 'STRETCHING', label: t('misc.train.recovery.STRETCHING') },
+              { value: 'FULL', label: t('misc.train.recovery.FULL'), title: t('misc.train.recovery.FULL.help') },
             ]}
           />
         </div>
@@ -447,16 +456,17 @@ function StudiesCard({ state }: { state: GameState }) {
   const setStudyFocus = useGameStore((s) => s.setStudyFocus);
   const { studies } = state.player.development;
   const focus = state.trainingPlan.studyFocus;
+  const t = useT();
   const nextExam = Object.values(state.fixtures)
     .filter((f) => f.kind === 'EXAMS' && f.date >= state.season.currentDate)
     .sort((a, b) => a.date.localeCompare(b.date))[0];
   return (
     <Card>
-      <CardHeader title="School" subtitle="Books vs cricket, until 16" className="mb-2.5" />
+      <CardHeader title={t('misc.train.school')} subtitle={t('misc.train.schoolHint')} className="mb-2.5" />
       <label htmlFor="study-focus" className="flex justify-between text-[12px] text-ink-muted">
-        <span>Cricket</span>
-        <span className="font-semibold text-ink">Study focus {focus}%</span>
-        <span>Books</span>
+        <span>{t('misc.train.cricket')}</span>
+        <span className="font-semibold text-ink">{t('misc.train.studyFocus', { n: focus })}</span>
+        <span>{t('misc.train.books')}</span>
       </label>
       <input
         id="study-focus"
@@ -469,15 +479,15 @@ function StudiesCard({ state }: { state: GameState }) {
         className="mt-1 w-full accent-brand-blue"
       />
       <p className="text-[11.5px] text-ink-soft">
-        Studying costs up to {TRAINING.studyEnergy} energy a week. Below 35% your marks slide.
+        {t('misc.train.studyCost', { n: TRAINING.studyEnergy })}
       </p>
       <div className="mt-2">
-        <Row label="Grades">{Math.round(studies.grades)}</Row>
-        <ProgressBar value={studies.grades} tone={studies.grades < 45 ? 'red' : 'green'} height={6} label="Grades" />
-        <Row label="Family happy with the balance">{Math.round(studies.family)}</Row>
-        <ProgressBar value={studies.family} tone={studies.family < 35 ? 'red' : 'blue'} height={6} label="Family" />
+        <Row label={t('misc.train.grades')}>{Math.round(studies.grades)}</Row>
+        <ProgressBar value={studies.grades} tone={studies.grades < 45 ? 'red' : 'green'} height={6} label={t('misc.train.grades')} />
+        <Row label={t('misc.train.familyHappy')}>{Math.round(studies.family)}</Row>
+        <ProgressBar value={studies.family} tone={studies.family < 35 ? 'red' : 'blue'} height={6} label={t('misc.train.family')} />
       </div>
-      {nextExam ? <p className="mt-2 text-[12px] text-ink-muted">Next: {nextExam.title}, {formatLongDate(nextExam.date)}</p> : null}
+      {nextExam ? <p className="mt-2 text-[12px] text-ink-muted">{t('misc.train.nextExam', { title: nextExam.title, date: formatLongDate(nextExam.date) })}</p> : null}
     </Card>
   );
 }
@@ -485,6 +495,7 @@ function StudiesCard({ state }: { state: GameState }) {
 function ComfortCard({ state }: { state: GameState }) {
   const { comfort, preferredAggression } = state.player.development;
   const bowls = canTrainBowling(state.player);
+  const t = useT();
   const bars = (values: number[], names: { name: string }[], preferred: number | null) => (
     <ul className="flex flex-col gap-1">
       {values.map((value, i) => (
@@ -492,7 +503,7 @@ function ComfortCard({ state }: { state: GameState }) {
           <span className={cn('w-[112px] truncate', preferred === i + 1 ? 'font-semibold text-ink' : 'text-ink-muted')}>
             {i + 1} {names[i].name}
           </span>
-          <ProgressBar value={value} tone={value >= 70 ? 'green' : value >= 40 ? 'orange' : 'red'} height={6} className="flex-1" label={`Comfort at level ${i + 1}`} />
+          <ProgressBar value={value} tone={value >= 70 ? 'green' : value >= 40 ? 'orange' : 'red'} height={6} className="flex-1" label={t('misc.train.comfortAt', { n: i + 1 })} />
           <span className="w-7 text-right font-semibold text-ink">{Math.round(value)}</span>
         </li>
       ))}
@@ -500,12 +511,12 @@ function ComfortCard({ state }: { state: GameState }) {
   );
   return (
     <Card>
-      <CardHeader title="Aggression comfort" subtitle="Playing below 70 costs a little. Practise a level in the nets to own it." className="mb-2.5" />
-      <p className="mb-1 text-[12px] font-medium text-ink">Batting</p>
+      <CardHeader title={t('misc.train.comfort')} subtitle={t('misc.train.comfortHint')} className="mb-2.5" />
+      <p className="mb-1 text-[12px] font-medium text-ink">{t('misc.train.batting')}</p>
       {bars(comfort.batting, BATTING_LEVELS, preferredAggression)}
       {bowls ? (
         <>
-          <p className="mt-2.5 mb-1 text-[12px] font-medium text-ink">Bowling</p>
+          <p className="mt-2.5 mb-1 text-[12px] font-medium text-ink">{t('misc.train.bowling')}</p>
           {bars(comfort.bowling, BOWLING_LEVELS, null)}
         </>
       ) : null}
@@ -515,24 +526,25 @@ function ComfortCard({ state }: { state: GameState }) {
 
 function FitnessTestsCard({ state }: { state: GameState }) {
   const tests = state.player.development.fitnessTests;
+  const t = useT();
   const next = Object.values(state.fixtures)
     .filter((f) => f.kind === 'FITNESS_ASSESSMENT' && !f.played && f.date >= state.season.currentDate)
     .sort((a, b) => a.date.localeCompare(b.date))[0];
   return (
     <Card>
-      <CardHeader title="Fitness tests" subtitle="Yo-yo and 20 m sprint at camps" className="mb-2" />
-      {next ? <p className="mb-2 text-[12.5px] text-ink">Next: {formatLongDate(next.date)} - {next.subtitle}</p> : null}
+      <CardHeader title={t('misc.train.tests')} subtitle={t('misc.train.testsHint')} className="mb-2" />
+      {next ? <p className="mb-2 text-[12.5px] text-ink">{t('misc.train.nextTest', { date: formatLongDate(next.date), what: next.subtitle })}</p> : null}
       {tests.length === 0 ? (
-        <p className="text-[12.5px] text-ink-muted">No tests taken yet.</p>
+        <p className="text-[12.5px] text-ink-muted">{t('misc.train.noTests')}</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
-          {tests.slice(0, 4).map((t) => (
-            <li key={t.id} className="flex items-center justify-between gap-2 text-[12px]">
-              <span className="min-w-0 truncate text-ink-muted">{formatLongDate(t.date)}</span>
+          {tests.slice(0, 4).map((test) => (
+            <li key={test.id} className="flex items-center justify-between gap-2 text-[12px]">
+              <span className="min-w-0 truncate text-ink-muted">{formatLongDate(test.date)}</span>
               <span className="text-ink">
-                yo-yo {t.yoyo} / {t.yoyoTarget} · {t.sprint}s / {t.sprintTarget}s
+                {t('misc.train.yoyo')} {test.yoyo} / {test.yoyoTarget} · {test.sprint}s / {test.sprintTarget}s
               </span>
-              <Badge tone={t.passed ? 'green' : 'red'}>{t.passed ? 'Pass' : 'Fail'}</Badge>
+              <Badge tone={test.passed ? 'green' : 'red'}>{test.passed ? t('misc.train.pass') : t('misc.train.fail')}</Badge>
             </li>
           ))}
         </ul>
@@ -543,9 +555,10 @@ function FitnessTestsCard({ state }: { state: GameState }) {
 
 function CoachCard({ state }: { state: GameState }) {
   const { development } = state.player;
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="What the coaches say" className="mb-2" />
+      <CardHeader title={t('misc.train.coaches')} className="mb-2" />
       <ul className="flex flex-col gap-1">
         {development.coachHints.map((hint) => (
           <li key={hint} className="font-hand text-[18px] leading-tight text-ink">
@@ -554,12 +567,12 @@ function CoachCard({ state }: { state: GameState }) {
         ))}
       </ul>
       <p className="mt-2 text-[12px] text-ink-muted">
-        Coaching quality {development.coachQuality}/100. Better coaching at higher levels and camps makes training go further.
+        {t('misc.train.coachQuality', { n: development.coachQuality })}
       </p>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {development.traits.map((t) => (
-          <Badge key={t} tone="blue">
-            <span title={TRAITS_BY_ID[t].description}>{TRAITS_BY_ID[t].label}</span>
+        {development.traits.map((trait) => (
+          <Badge key={trait} tone="blue">
+            <span title={traitDescription(trait)}>{traitLabel(trait)}</span>
           </Badge>
         ))}
       </div>

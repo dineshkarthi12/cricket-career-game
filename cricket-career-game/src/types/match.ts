@@ -55,6 +55,15 @@ export interface Fielder {
   point: GroundPoint;
 }
 
+/**
+ * One piece of a commentary line: a dictionary key and its variables (a
+ * variable starting with `@` is itself a key). See `engine/match/commentary.ts`.
+ */
+export interface CommentaryPart {
+  k: string;
+  v?: Record<string, string | number>;
+}
+
 /** One delivery. The atomic unit of the match engine and the commentary feed. */
 export interface Ball {
   id: Id;
@@ -108,8 +117,10 @@ export interface Ball {
   bowlingAggression?: number;
   /** Two-touch batting: the side the player tapped and the timing. Optional. */
   touch?: { side: 'LEG' | 'OFF'; timing: 'EARLY' | 'GOOD' | 'PERFECT' | 'LATE' };
-  /** Ball-by-ball text commentary line. */
+  /** Ball-by-ball text commentary line, in English. */
   commentary: string;
+  /** The same line as keys and variables, to read it in the app's language. Missing on balls saved before it existed. */
+  commentaryCode?: CommentaryPart[];
   /** Snapshot of the conditions for this delivery. */
   phase: MatchPhase;
 }

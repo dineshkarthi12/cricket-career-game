@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { headlineOf, inningsHighlights, type Highlight, type MatchTally } from '@/lib/highlights';
 import { cn } from '@/lib/cn';
 import type { Ball, Innings } from '@/types';
+import { useT } from '@/i18n/react';
 
 const TONE: Record<Highlight['kind'], string> = {
   FOUR: 'bg-brand-green text-white',
@@ -22,23 +23,6 @@ const TONE: Record<Highlight['kind'], string> = {
   THREE_FOR: 'bg-brand-red text-white',
   MAIDEN: 'bg-brand-navy text-white',
   ALL_ROUND: 'bg-brand-gold text-brand-navy',
-};
-
-const TITLE: Record<Highlight['kind'], string> = {
-  FOUR: 'FOUR!',
-  SIX: 'SIX!',
-  WICKET: 'OUT!',
-  FIFTY: 'FIFTY!',
-  HUNDRED: 'HUNDRED!',
-  BIG_HUNDRED: 'WHAT AN INNINGS!',
-  FIVE_FOR: 'FIVE-FOR!',
-  HAT_TRICK: 'HAT-TRICK!',
-  TEAM: 'MILESTONE',
-  PARTNERSHIP: 'PARTNERSHIP',
-  DROP: 'DROPPED!',
-  THREE_FOR: 'THREE WICKETS!',
-  MAIDEN: 'MAIDEN!',
-  ALL_ROUND: 'ALL-ROUND SHOW!',
 };
 
 /** How long the banner stays up. */
@@ -68,6 +52,7 @@ export function MomentBanner({
     return headlineOf(list);
   }, [ball, innings, battingTeam, prior, userId]);
 
+  const t = useT();
   const [hiddenFor, setHiddenFor] = useState<string | null>(null);
   useEffect(() => {
     if (!ball || !moment) return;
@@ -88,8 +73,8 @@ export function MomentBanner({
         mine && 'ring-4 ring-brand-gold',
       )}
     >
-      {mine ? <span className="mb-0.5 text-[10px] font-bold tracking-[0.2em] uppercase opacity-90">You</span> : null}
-      <span className="text-[22px] leading-none font-black tracking-wide sm:text-[28px]">{TITLE[moment.kind]}</span>
+      {mine ? <span className="mb-0.5 text-[10px] font-bold tracking-[0.2em] uppercase opacity-90">{t('moment.you')}</span> : null}
+      <span className="text-[22px] leading-none font-black tracking-wide sm:text-[28px]">{t(`moment.${moment.kind}`)}</span>
       {moment.kind !== 'FOUR' && moment.kind !== 'SIX' ? (
         <span className="mt-1 text-[11.5px] leading-snug font-semibold opacity-95">{moment.text}</span>
       ) : null}

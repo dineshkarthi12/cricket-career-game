@@ -1,8 +1,10 @@
+import { useT } from '@/i18n/react';
 import { Link } from 'react-router-dom';
 import { Logo } from '@/layout/Logo';
 
 /** Navy closing banner: the game's promise, and the way back into the career. */
 export function BottomBanner() {
+  const t = useT();
   return (
     <div className="relative overflow-hidden rounded-card bg-brand-navy shadow-card">
       <img
@@ -17,18 +19,18 @@ export function BottomBanner() {
         <Logo variant="light" className="shrink-0" />
 
         <p className="font-hand hidden flex-1 text-center text-[27px] leading-none text-white lg:block">
-          More Than A Game.
+          {t('banner.tagline')}
         </p>
 
         <div className="flex items-center gap-4">
           <p className="hidden text-[12px] font-semibold tracking-[0.08em] text-white/90 sm:block">
-            REAL PLAYERS. REAL JOURNEYS.
+            {t('banner.real')}
           </p>
           <Link
             to="/calendar"
             className="rounded-lg bg-brand-gold px-5 py-2.5 text-[13px] font-bold tracking-[0.04em] text-brand-navy transition-colors hover:bg-[#ffd633]"
           >
-            Continue Career
+            {t('banner.continue')}
           </Link>
         </div>
       </div>

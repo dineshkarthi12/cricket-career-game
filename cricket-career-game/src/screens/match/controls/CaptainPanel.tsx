@@ -13,23 +13,16 @@ import type { CaptainDecisions, PlayerDecisions } from '@/store/matchStore';
 import type { CaptainDelegation, Venue } from '@/types';
 import { AggressionBar } from './AggressionBar';
 import { FieldEditor } from './FieldEditor';
+import { rich, useT } from '@/i18n/react';
 
-const INSTRUCTIONS: { id: CaptainDecisions['instruction']; label: string; help: string }[] = [
-  { id: null, label: 'Their own game', help: 'Each batter reads the situation.' },
-  { id: 'ATTACK', label: 'Attack', help: 'Up the tempo - more boundaries, more risk.' },
-  { id: 'ROTATE', label: 'Rotate', help: 'Singles and gaps. Keep the board moving.' },
-  { id: 'PROTECT', label: 'Protect the wicket', help: 'See it through. Wickets matter most.' },
+const INSTRUCTIONS: { id: CaptainDecisions['instruction']; key: 'OWN' | 'ATTACK' | 'ROTATE' | 'PROTECT' }[] = [
+  { id: null, key: 'OWN' },
+  { id: 'ATTACK', key: 'ATTACK' },
+  { id: 'ROTATE', key: 'ROTATE' },
+  { id: 'PROTECT', key: 'PROTECT' },
 ];
 
-const DELEGATION: { id: keyof CaptainDelegation; label: string }[] = [
-  { id: 'toss', label: 'Toss' },
-  { id: 'battingOrder', label: 'Batting order' },
-  { id: 'instructions', label: 'Instructions to batters' },
-  { id: 'bowling', label: 'Bowling changes' },
-  { id: 'field', label: 'Field placings' },
-  { id: 'reviews', label: 'Reviews (DRS)' },
-  { id: 'declarations', label: 'Declarations and follow-on' },
-];
+const DELEGATION: (keyof CaptainDelegation)[] = ['toss', 'battingOrder', 'instructions', 'bowling', 'field', 'reviews', 'declarations'];
 
 export const CaptainPanel = memo(function CaptainPanel({
   snap,
@@ -68,6 +61,7 @@ export const CaptainPanel = memo(function CaptainPanel({
   onDelegate: (patch: Partial<CaptainDelegation>) => void;
   onDeclare: () => void;
 }) {
+  const t = useT();
   const cur = snap.current;
   const [tab, setTab] = useState(snap.userBowling ? 'bowling' : 'batting');
 
@@ -75,13 +69,13 @@ export const CaptainPanel = memo(function CaptainPanel({
   const batterBar = (id: string, end: string) => {
     const mine = id === userId;
     const level = mine ? player.batting : (decisions.batterLevels[id] ?? null);
-    const name = playerById(id)?.name ?? 'Batter';
+    const name = playerById(id)?.name ?? t('play.batter');
     return (
       <AggressionBar
         key={id}
         compact
         allowAuto={!mine}
-        label={`${name}${mine ? ' (you)' : ''} · ${end}`}
+        label={`${name}${mine ? t('cap.you') : ''} · ${end}`}
         kind="batting"
         level={level}
         risk={level !== null ? riskFor(id, level) : null}
@@ -108,7 +102,7 @@ export const CaptainPanel = memo(function CaptainPanel({
         key={bowler.id}
         compact
         allowAuto={!mine}
-        label={`${bowler.name}${mine ? ' (you)' : ''}`}
+        label={`${bowler.name}${mine ? t('cap.you') : ''}`}
         kind="bowling"
         level={level}
         onChange={(next) => {
@@ -131,66 +125,61 @@ export const CaptainPanel = memo(function CaptainPanel({
     ...(current ? [current] : []),
     ...available.filter((b) => b.id !== current?.id),
   ];
-  const tabs = [
-    { id: 'batting', label: 'Batting' },
-    { id: 'bowling', label: 'Bowling' },
-    { id: 'field', label: 'Field' },
-    { id: 'delegate', label: 'Delegate' },
-  ];
+  const tabs = (['batting', 'bowling', 'field', 'delegate'] as const).map((id) => ({ id, label: t(`cap.tab.${id}`) }));
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
           <Crown className="size-4 text-brand-gold" aria-hidden />
-          Captain
+          {t('cap.title')}
         </p>
-        <Badge tone="blue">{snap.userBatting ? 'Batting' : 'In the field'}</Badge>
+        <Badge tone="blue">{snap.userBatting ? t('cap.batting') : t('cap.inField')}</Badge>
       </div>
 
-      <Tabs tabs={tabs} value={tab} onChange={setTab} label="Captaincy" />
+      <Tabs tabs={tabs} value={tab} onChange={setTab} label={t('cap.captaincy')} />
 
       {tab === 'batting' ? (
         delegate.instructions ? (
-          <Delegated area="instructions to the batters" onTakeBack={() => onDelegate({ instructions: false })} />
+          <Delegated area={t('cap.area.instructions')} onTakeBack={() => onDelegate({ instructions: false })} />
         ) : (
           <div className="flex flex-col gap-3">
             {!snap.userBatting ? (
-              <p className="text-[12px] text-ink-muted">These apply when your side bats.</p>
+              <p className="text-[12px] text-ink-muted">{t('cap.whenBatting')}</p>
             ) : cur ? (
               <div className="flex flex-col gap-2">
-                <p className="text-[12.5px] font-semibold text-ink">Aggression at the crease</p>
-                {batterBar(cur.strikerId, 'striker')}
-                {batterBar(cur.nonStrikerId, 'non-striker')}
+                <p className="text-[12.5px] font-semibold text-ink">{t('cap.aggAtCrease')}</p>
+                {batterBar(cur.strikerId, t('cap.striker'))}
+                {batterBar(cur.nonStrikerId, t('cap.nonStriker'))}
                 <p className="text-[11px] text-ink-soft">
-                  A level you set stays until you change it. Auto: the batter reads the game.
+                  {t('cap.levelStays')}
                 </p>
               </div>
             ) : null}
             <fieldset>
-              <legend className="text-[12.5px] font-semibold text-ink">Instructions to the batters</legend>
+              <legend className="text-[12.5px] font-semibold text-ink">{t('cap.instructions')}</legend>
               <div className="mt-2 grid grid-cols-2 gap-1.5">
                 {INSTRUCTIONS.map((option) => (
                   <button
-                    key={option.label}
+                    key={option.key}
                     type="button"
                     onClick={() => onDecisions({ instruction: option.id })}
                     aria-pressed={decisions.instruction === option.id}
-                    title={option.help}
+                    title={t(`cap.instr.${option.key}.help`)}
                     className={pill(decisions.instruction === option.id)}
                   >
-                    {option.label}
+                    {t(`cap.instr.${option.key}`)}
                   </button>
                 ))}
               </div>
               <p className="mt-1.5 text-[11px] text-ink-soft">
-                {INSTRUCTIONS.find((o) => o.id === decisions.instruction)?.help} Your own batting
-                is still yours.
+                {t(`cap.instr.${INSTRUCTIONS.find((o) => o.id === decisions.instruction)?.key ?? 'OWN'}.help`)}{' '}
+                {t('cap.ownStill')}
               </p>
             </fieldset>
             <div>
               <label htmlFor="target-bowler" className="text-[12.5px] font-semibold text-ink">
-                Target a bowler
+                {t('cap.target')}
               </label>
               <select
                 id="target-bowler"
@@ -198,7 +187,7 @@ export const CaptainPanel = memo(function CaptainPanel({
                 onChange={(event) => onDecisions({ targetBowlerId: event.target.value || null })}
                 className="mt-1.5 w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-[12.5px] text-ink"
               >
-                <option value="">Nobody in particular</option>
+                <option value="">{t('cap.nobody')}</option>
                 {opposingBowlers.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -212,26 +201,26 @@ export const CaptainPanel = memo(function CaptainPanel({
 
       {tab === 'bowling' ? (
         delegate.bowling ? (
-          <Delegated area="bowling changes" onTakeBack={() => onDelegate({ bowling: false })} />
+          <Delegated area={t('cap.area.bowling')} onTakeBack={() => onDelegate({ bowling: false })} />
         ) : snap.userBowling && cur ? (
           <div className="flex flex-col gap-2.5">
             {suggestion ? (
               <div className="flex items-center justify-between gap-2 rounded-lg bg-brand-blue-soft px-3 py-2">
                 <p className="flex items-center gap-1.5 text-[12px] text-brand-blue">
                   <Lightbulb className="size-3.5 shrink-0" aria-hidden />
-                  Vice-captain suggests <span className="font-semibold">{suggestion.name}</span>
+                  {rich(t('cap.suggests'), { name: <span className="font-semibold">{suggestion.name}</span> })}
                 </p>
                 <button
                   type="button"
                   onClick={() => onDecisions({ nextBowlerId: suggestion.id })}
                   className="shrink-0 text-[11.5px] font-semibold text-brand-blue hover:underline"
                 >
-                  Use
+                  {t('cap.use')}
                 </button>
               </div>
             ) : null}
             <label htmlFor="next-bowler" className="text-[12.5px] font-semibold text-ink">
-              Next over
+              {t('cap.nextOver')}
             </label>
             <ul className="grid gap-1 sm:grid-cols-2">
               {available.map((bowler) => {
@@ -252,15 +241,14 @@ export const CaptainPanel = memo(function CaptainPanel({
                       <span className="min-w-0">
                         <span className="block truncate font-semibold text-ink">
                           {bowler.name}
-                          {bowler.isUser ? <span className="ml-1 text-brand-gold">(you)</span> : null}
+                          {bowler.isUser ? <span className="ml-1 text-brand-gold">{t('cap.you')}</span> : null}
                         </span>
                         <span className="text-[11px] text-ink-muted">
-                          {kindOf(bowler)} · {line ? `${line.wickets}/${line.runsConceded}` : 'yet to bowl'}
+                          {t(`cap.kind.${kindOf(bowler)}`)} · {line ? `${line.wickets}/${line.runsConceded}` : t('cap.yetToBowl')}
                         </span>
                       </span>
                       <span className="shrink-0 text-[11px] font-semibold text-ink-soft tabular-nums">
-                        {bowled}
-                        {maxOvers !== null ? `/${maxOvers}` : ''} ov
+                        {t('cap.ov', { n: `${bowled}${maxOvers !== null ? `/${maxOvers}` : ''}` })}
                       </span>
                     </button>
                   </li>
@@ -269,24 +257,24 @@ export const CaptainPanel = memo(function CaptainPanel({
             </ul>
             <p className="text-[11px] text-ink-soft">
               {decisions.nextBowlerId
-                ? 'Your choice bowls the next over.'
-                : 'Nobody chosen: the vice-captain will pick.'}{' '}
-              Bowlers at their quota are not offered.
+                ? t('cap.yourChoice')
+                : t('cap.nobodyChosen')}{' '}
+              {t('cap.quota')}
             </p>
             <div className="mt-1 flex flex-col gap-2 border-t border-line pt-3">
-              <p className="text-[12.5px] font-semibold text-ink">Bowling aggression</p>
+              <p className="text-[12.5px] font-semibold text-ink">{t('cap.bowlAgg')}</p>
               {bowlersForBars.map(bowlerBar)}
-              <p className="text-[11px] text-ink-soft">Auto: the bowler’s normal game.</p>
+              <p className="text-[11px] text-ink-soft">{t('cap.autoBowler')}</p>
             </div>
           </div>
         ) : (
-          <p className="text-[12.5px] text-ink-muted">Bowling changes are made while your side is in the field.</p>
+          <p className="text-[12.5px] text-ink-muted">{t('cap.bowlChangesWhen')}</p>
         )
       ) : null}
 
       {tab === 'field' ? (
         delegate.field ? (
-          <Delegated area="field placings" onTakeBack={() => onDelegate({ field: false })} />
+          <Delegated area={t('cap.area.field')} onTakeBack={() => onDelegate({ field: false })} />
         ) : snap.userBowling && cur ? (
           <FieldEditor
             field={decisions.field ?? snap.field}
@@ -299,7 +287,7 @@ export const CaptainPanel = memo(function CaptainPanel({
             onReset={() => onDecisions({ field: null })}
           />
         ) : (
-          <p className="text-[12.5px] text-ink-muted">You set the field while your side is bowling.</p>
+          <p className="text-[12.5px] text-ink-muted">{t('cap.fieldWhen')}</p>
         )
       ) : null}
 
@@ -307,18 +295,18 @@ export const CaptainPanel = memo(function CaptainPanel({
         <div className="flex flex-col gap-2">
           <p className="flex items-center gap-1.5 text-[12px] text-ink-muted">
             <UserCog className="size-3.5" aria-hidden />
-            Hand any of these to the vice-captain. Remembered for next time.
+            {t('cap.handOver')}
           </p>
           {DELEGATION.map((area) => (
             <label
-              key={area.id}
+              key={area}
               className="flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-[12.5px] text-ink"
             >
-              {area.label}
+              {t(`cap.del.${area}`)}
               <input
                 type="checkbox"
-                checked={delegate[area.id]}
-                onChange={(event) => onDelegate({ [area.id]: event.target.checked })}
+                checked={delegate[area]}
+                onChange={(event) => onDelegate({ [area]: event.target.checked })}
                 className="size-4 accent-brand-blue"
               />
             </label>
@@ -331,12 +319,12 @@ export const CaptainPanel = memo(function CaptainPanel({
           <button
             type="button"
             onClick={() => {
-              if (!cur || window.confirm(`Declare on ${cur.runs}/${cur.wickets}?`)) onDeclare();
+              if (!cur || window.confirm(t('cap.declareConfirm', { score: `${cur.runs}/${cur.wickets}` }))) onDeclare();
             }}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-brand-navy/90"
           >
             <Flag className="size-4" aria-hidden />
-            Declare
+            {t('cap.declare')}
           </button>
         </div>
       ) : null}
@@ -345,20 +333,21 @@ export const CaptainPanel = memo(function CaptainPanel({
 });
 
 function Delegated({ area, onTakeBack }: { area: string; onTakeBack: () => void }) {
+  const t = useT();
   return (
     <div className="rounded-lg bg-page px-3 py-3 text-[12.5px] text-ink-muted">
-      The vice-captain is handling {area}.{' '}
+      {t('cap.delegated', { area })}{' '}
       <button type="button" onClick={onTakeBack} className="font-semibold text-brand-blue hover:underline">
-        Take it back
+        {t('cap.takeBack')}
       </button>
     </div>
   );
 }
 
-function kindOf(player: SimPlayer): string {
+function kindOf(player: SimPlayer): 'spin' | 'pace' | 'partTimer' {
   const style = player.bowlingStyle;
   if (style.includes('SPIN') || style.includes('ORTHODOX')) return 'spin';
-  if (style === 'NONE') return 'part-timer';
+  if (style === 'NONE') return 'partTimer';
   return 'pace';
 }
 

@@ -2,6 +2,10 @@
  * Fixtures and results. Every played match opens its full scorecard; every
  * fixture still to come can be played out or simulated.
  */
+import { Film } from 'lucide-react';
+import { Modal } from '@/components';
+import { hasBallByBall } from '@/lib/clips';
+import { ReplayFor } from './match/highlights/ReplayFor';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Play, Trophy, Zap } from 'lucide-react';
@@ -17,6 +21,7 @@ import { CommentaryFeed } from './match/panels/CommentaryFeed';
 import { Scorecard } from './match/panels/Scorecard';
 import { MatchHighlights } from './match/panels/MatchHighlights';
 import type { Fixture, GameState, Match } from '@/types';
+import { tr } from '@/i18n/core';
 
 /** Results shown at a time: a full career has hundreds. */
 const PAGE = 30;
@@ -28,7 +33,7 @@ export default function MatchesScreen() {
   if (!state) {
     return (
       <Card>
-        <p className="text-[13.5px] text-ink-muted">No career loaded.</p>
+        <p className="text-[13.5px] text-ink-muted">{tr('m.noCareer')}</p>
       </Card>
     );
   }
@@ -68,16 +73,16 @@ function MatchList({ state }: { state: GameState }) {
     <div className="flex flex-col gap-4 pb-4">
       <Card>
         <CardHeader
-          title="Matches"
-          subtitle="Everything you have played, and everything still to come."
+          title={tr('mt.title')}
+          subtitle={tr('mt.subtitle')}
         />
       </Card>
 
       <Card>
-        <CardHeader title="Still to play" titleSuffix={`(${upcoming.length})`} />
+        <CardHeader title={tr('mt.toPlay')} titleSuffix={`(${upcoming.length})`} />
         {upcoming.length === 0 ? (
           <p className="mt-2.5 text-[13px] text-ink-muted">
-            Nothing scheduled. Train and wait for the selectors.
+            {tr('mt.nothing')}
           </p>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
@@ -98,9 +103,9 @@ function MatchList({ state }: { state: GameState }) {
       </Card>
 
       <Card>
-        <CardHeader title="Results" titleSuffix={`(${played.length})`} />
+        <CardHeader title={tr('mt.results')} titleSuffix={`(${played.length})`} />
         {played.length === 0 ? (
-          <p className="mt-2.5 text-[13px] text-ink-muted">No matches played yet.</p>
+          <p className="mt-2.5 text-[13px] text-ink-muted">{tr('mt.none')}</p>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
             {played.slice(0, shown).map((match) => (
@@ -114,7 +119,7 @@ function MatchList({ state }: { state: GameState }) {
             onClick={() => setShown((n) => n + PAGE)}
             className="mt-3 w-full rounded-xl border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-page"
           >
-            Show {Math.min(PAGE, played.length - shown)} more of {played.length - shown}
+            {tr('mt.more', { n: Math.min(PAGE, played.length - shown), total: played.length - shown })}
           </button>
         ) : null}
       </Card>
@@ -146,10 +151,10 @@ function FixtureRow({
       </div>
       <div className="min-w-[12rem] flex-1">
         <p className="truncate text-[13px] font-semibold text-ink">
-          {home?.shortName ?? 'TBC'} v {away?.shortName ?? 'TBC'}
+          {home?.shortName ?? tr('m.tbc')} {tr('m.v')} {away?.shortName ?? tr('m.tbc')}
         </p>
         <p className="truncate text-[11.5px] text-ink-muted">
-          {tournament?.name ?? 'Friendly'} · {formatLongDate(fixture.date)}
+          {tournament?.name ?? tr('m.friendly')} · {formatLongDate(fixture.date)}
           {venue ? ` · ${venue.city}` : ''}
         </p>
       </div>
@@ -160,7 +165,7 @@ function FixtureRow({
           className="flex items-center gap-1.5 rounded-lg bg-brand-blue px-3 py-2 text-[12px] font-semibold text-white hover:bg-brand-blue/90"
         >
           <Play className="size-3.5 fill-white" aria-hidden />
-          Play
+          {tr('mt.play')}
         </button>
         <button
           type="button"
@@ -168,7 +173,7 @@ function FixtureRow({
           className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] font-semibold text-ink hover:bg-page"
         >
           <Zap className="size-3.5" aria-hidden />
-          Quick Sim
+          {tr('mt.quickSim')}
         </button>
       </div>
     </li>
@@ -195,7 +200,7 @@ function ResultRow({ state, match }: { state: GameState; match: Match }) {
         </div>
         <div className="min-w-[12rem] flex-1">
           <p className="truncate text-[13px] font-semibold text-ink">
-            {home?.shortName} v {away?.shortName}
+            {home?.shortName} {tr('m.v')} {away?.shortName}
           </p>
           <p className="truncate text-[11.5px] text-ink-muted">
             {match.innings
@@ -210,9 +215,9 @@ function ResultRow({ state, match }: { state: GameState; match: Match }) {
         </div>
         {performance ? (
           <p className="shrink-0 text-[12px] text-ink-muted">
-            You {performance.runs}
-            {performance.notOut ? '*' : ''}
-            {performance.wickets > 0 ? `, ${performance.wickets} wkt` : ''}
+            {tr('mt.you', {
+              line: `${performance.runs}${performance.notOut ? '*' : ''}${performance.wickets > 0 ? tr('mt.wkt', { n: performance.wickets }) : ''}`,
+            })}
           </p>
         ) : null}
         <Badge tone={won ? 'green' : lost ? 'red' : 'blue'}>
@@ -225,6 +230,7 @@ function ResultRow({ state, match }: { state: GameState; match: Match }) {
 
 function MatchDetail({ state, match }: { state: GameState; match: Match }) {
   const [tab, setTab] = useState('0');
+  const [watching, setWatching] = useState(false);
   const teamNameOf = (id: string) => state.teams[id]?.shortName ?? id;
   const venue = state.venues[match.venueId] ?? Object.values(state.venues)[0];
   const tournament = TOURNAMENTS_BY_ID[match.tournamentId];
@@ -246,16 +252,16 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
           className="mb-2 flex w-fit items-center gap-1.5 text-[12.5px] font-semibold text-brand-blue hover:underline"
         >
           <ArrowLeft className="size-3.5" aria-hidden />
-          All matches
+          {tr('post.allMatches')}
         </Link>
         <h1 className="text-[20px] leading-tight font-semibold text-ink">
-          {teamNameOf(match.homeTeamId)} <span className="text-brand-orange">v</span>{' '}
+          {teamNameOf(match.homeTeamId)} <span className="text-brand-orange">{tr('m.v')}</span>{' '}
           {teamNameOf(match.awayTeamId)}
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-ink-muted">
           <span className="flex items-center gap-1.5">
             <Trophy className="size-3.5" aria-hidden />
-            {tournament?.name ?? 'Friendly'} · {match.stage}
+            {tournament?.name ?? tr('m.friendly')} · {match.stage}
           </span>
           <span className="flex items-center gap-1.5">
             <CalendarDays className="size-3.5" aria-hidden />
@@ -267,27 +273,41 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
           {resultHeadline(match, teamNameOf)}
           {match.result?.manOfTheMatchId ? (
             <span className="ml-2 font-normal text-ink-muted">
-              · Player of the match:{' '}
+              · {tr('post.potm')}{' '}
               {match.innings
                 .flatMap((i) => [...i.batting, ...i.bowling])
-                .find((line) => line.playerId === match.result?.manOfTheMatchId)?.name ?? 'unknown'}
+                .find((line) => line.playerId === match.result?.manOfTheMatchId)?.name ?? tr('mt.unknown')}
             </span>
           ) : null}
         </p>
+        {hasBallByBall(match) ? (
+          <button
+            type="button"
+            onClick={() => setWatching(true)}
+            className="mt-2.5 flex items-center gap-1.5 rounded-xl bg-brand-blue px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-brand-blue/90"
+          >
+            <Film className="size-4" aria-hidden />
+            {tr('mt.watch')}
+          </button>
+        ) : null}
         {match.tossWinnerTeamId ? (
           <p className="mt-1 text-[12.5px] text-ink-muted">
-            {teamNameOf(match.tossWinnerTeamId)} won the toss and chose to{' '}
-            {match.tossDecision === 'BAT' ? 'bat' : 'bowl'}.
+            {tr('m.tossResult', { team: teamNameOf(match.tossWinnerTeamId), decision: `@m.decision.${match.tossDecision === 'BAT' ? 'BAT' : 'BOWL'}` })}
           </p>
         ) : null}
       </Card>
 
       <MatchHighlights match={match} teamNameOf={teamNameOf} userId={state.player.id} />
+      {watching ? (
+        <Modal open onClose={() => setWatching(false)} title={tr('mt.highlights')} subtitle={`${teamNameOf(match.homeTeamId)} ${tr('m.v')} ${teamNameOf(match.awayTeamId)}`}>
+          <ReplayFor match={match} teamNameOf={teamNameOf} />
+        </Modal>
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Card>
-          <CardHeader title="Scorecard" />
-          <Tabs tabs={tabs} value={tab} onChange={setTab} className="mt-2.5" label="Innings" />
+          <CardHeader title={tr('mt.scorecard')} />
+          <Tabs tabs={tabs} value={tab} onChange={setTab} className="mt-2.5" label={tr('post.innings')} />
           {shown ? (
             <div className="mt-3">
               <Scorecard
@@ -302,29 +322,28 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
 
         <div className="flex flex-col gap-4">
           <Card>
-            <CardHeader title="Runs over by over" />
+            <CardHeader title={tr('post.worm')} />
             <div className="mt-2">
               <Worm innings={chartInnings(match.innings, null)} />
             </div>
           </Card>
           {shown && isArchived(match) ? (
             <Card>
-              <CardHeader title="Ball by ball" />
+              <CardHeader title={tr('mt.ballByBall')} />
               <p className="mt-2 text-[13px] text-ink-muted">
-                Commentary, the wagon wheel and per-over charts are kept for your latest matches only. The scorecard
-                above is complete.
+                {tr('mt.archived')}
               </p>
             </Card>
           ) : shown ? (
             <>
               <Card>
-                <CardHeader title="Runs per over" />
+                <CardHeader title={tr('post.perOver')} />
                 <div className="mt-2">
                   <Manhattan deliveries={shown.deliveries} />
                 </div>
               </Card>
               <Card>
-                <CardHeader title="Wagon wheel" />
+                <CardHeader title={tr('post.wagon')} />
                 <div className="mt-2">
                   <WagonWheelPanel
                     venue={venue}
@@ -334,7 +353,7 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
                 </div>
               </Card>
               <Card>
-                <CardHeader title="Commentary" />
+                <CardHeader title={tr('mt.commentary')} />
                 <div className="mt-2.5 max-h-[420px] overflow-y-auto">
                   <CommentaryFeed
                     deliveries={shown.deliveries}

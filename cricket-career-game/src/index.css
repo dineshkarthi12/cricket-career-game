@@ -476,3 +476,28 @@ html[data-reduce-motion='true'] .pvp-glow {
 .safe-bottom {
   padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
+
+/* Highlights: the title card comes in from below. */
+@keyframes tv-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tv-slide-in {
+  animation: tv-slide-in 0.35s ease-out 0.55s both;
+}
+
+/* Tamil: Noto Sans Tamil first (loaded only when Tamil is chosen), Poppins for Latin text and digits. */
+:root:lang(ta) {
+  --font-sans: 'Poppins', 'Noto Sans Tamil', ui-sans-serif, system-ui, sans-serif;
+}
+:root:lang(ta) body {
+  /* Tamil script needs a little more room between lines. */
+  line-height: 1.55;
+}

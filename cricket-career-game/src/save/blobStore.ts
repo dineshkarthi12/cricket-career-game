@@ -6,7 +6,7 @@
  * Falls back to memory (clearly reported as not persistent) when IndexedDB is
  * unavailable - some private-browsing modes block it.
  */
-import { createStore, del, get, set, type UseStore } from 'idb-keyval';
+import { createStore, del, get, keys, set, type UseStore } from 'idb-keyval';
 
 export type BlobStoreKind = 'indexeddb' | 'memory';
 
@@ -15,6 +15,8 @@ export interface BlobStore {
   get(key: string): Promise<string | undefined>;
   set(key: string, value: string): Promise<void>;
   del(key: string): Promise<void>;
+  /** Every key in the store. */
+  keys(): Promise<string[]>;
 }
 
 function indexedDbAvailable(): boolean {
@@ -33,6 +35,7 @@ function idbStore(): BlobStore {
     get: (key) => get<string>(key, handle()),
     set: (key, value) => set(key, value, handle()),
     del: (key) => del(key, handle()),
+    keys: async () => (await keys(handle())).map(String),
   };
 }
 
@@ -47,6 +50,7 @@ export function memoryStore(): BlobStore {
     del: async (key) => {
       map.delete(key);
     },
+    keys: async () => [...map.keys()],
   };
 }
 

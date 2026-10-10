@@ -5,6 +5,7 @@
 import { memo, useMemo } from 'react';
 import { groundBox, shotEnd, type GroundBox } from '@/lib/ground';
 import type { Ball, Venue } from '@/types';
+import { tr } from '@/i18n/core';
 
 const RUN_COLOUR: Record<number, string> = {
   1: '#8a93a6',
@@ -91,7 +92,7 @@ export function WagonWheel({
       viewBox={`0 0 ${box.width} ${box.height}`}
       className={className}
       role="img"
-      aria-label="Wagon wheel of scoring shots"
+      aria-label={tr('chart.wagonLabel')}
     >
       <ellipse
         cx={box.centre.x}

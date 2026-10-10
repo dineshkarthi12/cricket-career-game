@@ -1,5 +1,6 @@
 import { Modal } from './Modal';
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n/react';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -15,13 +16,14 @@ interface ConfirmDialogProps {
 }
 
 /** "Are you sure?" for anything that cannot be taken back. Cancel is focused first. */
-export function ConfirmDialog({ open, title, message, confirmLabel, cancelLabel = 'Cancel', danger = false, onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, message, confirmLabel, cancelLabel, danger = false, onConfirm, onCancel }: ConfirmDialogProps) {
+  const t = useT();
   return (
-    <Modal open={open} onClose={onCancel} title={title} subtitle={danger ? 'This cannot be undone.' : undefined}>
+    <Modal open={open} onClose={onCancel} title={title} subtitle={danger ? t('misc.comp.undone') : undefined}>
       <p className="text-[13.5px] text-ink">{message}</p>
       <div className="mt-4 flex flex-wrap justify-end gap-2">
         <button type="button" onClick={onCancel} className="rounded-xl border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-page">
-          {cancelLabel}
+          {cancelLabel ?? t('common.cancel')}
         </button>
         <button
           type="button"

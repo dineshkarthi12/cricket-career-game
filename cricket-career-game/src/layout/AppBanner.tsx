@@ -1,3 +1,4 @@
+import { useT } from '@/i18n/react';
 import { useState } from 'react';
 import { Download, RefreshCw, X } from 'lucide-react';
 import { applyUpdate, promptInstall, usePwa } from '@/lib/pwa';
@@ -20,14 +21,15 @@ function dismissedBefore(): boolean {
 export function AppBanner() {
   const { canInstall, updateReady } = usePwa();
   const [dismissed, setDismissed] = useState(dismissedBefore);
+  const t = useT();
 
   if (updateReady) {
     return (
       <div role="status" className="mb-3 flex items-center gap-3 rounded-card bg-brand-navy px-4 py-2.5 text-[13px] text-white">
         <RefreshCw className="size-4 shrink-0 text-brand-gold" aria-hidden />
-        <span className="flex-1">A new version of Cricket Career is ready.</span>
+        <span className="flex-1">{t('banner.update')}</span>
         <button type="button" onClick={applyUpdate} className="rounded-lg bg-white px-3 py-1.5 text-[12.5px] font-semibold text-brand-navy">
-          Update
+          {t('banner.updateButton')}
         </button>
       </div>
     );
@@ -44,11 +46,11 @@ export function AppBanner() {
   return (
     <div className="mb-3 flex items-center gap-3 rounded-card bg-brand-navy px-4 py-2.5 text-[13px] text-white">
       <Download className="size-4 shrink-0 text-brand-gold" aria-hidden />
-      <span className="flex-1">Install Cricket Career to play from your home screen, even offline.</span>
+      <span className="flex-1">{t('banner.install')}</span>
       <button type="button" onClick={() => void promptInstall()} className="rounded-lg bg-brand-gold px-3 py-1.5 text-[12.5px] font-semibold text-brand-navy">
-        Install app
+        {t('banner.installButton')}
       </button>
-      <button type="button" onClick={dismiss} aria-label="Not now" className="rounded p-1 text-white/70 hover:text-white">
+      <button type="button" onClick={dismiss} aria-label={t('banner.notNow')} className="rounded p-1 text-white/70 hover:text-white">
         <X className="size-4" aria-hidden />
       </button>
     </div>

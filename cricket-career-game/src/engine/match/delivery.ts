@@ -20,7 +20,7 @@ import {
   pressureBite,
   setLevel,
 } from './skill';
-import { describeBall } from './commentary';
+import { commentate, prefixed, say, sayVariant } from './commentary';
 import { timingLabel, touchAngle, touchEffect, touchShot } from './touch';
 import type { Rng } from './rng';
 import type { DeliveryContext, DeliveryOutcome } from './types';
@@ -409,7 +409,9 @@ export function resolveDelivery(input: DeliveryContext, rng: Rng): DeliveryOutco
   const outcome = resolveDeliveryCore(input, rng);
   // Say how the player's tap was timed, when they actually played a shot.
   if (input.touch && !input.leave && outcome.isLegalDelivery && outcome.shot !== 'LEAVE' && outcome.wicket?.type !== 'RUN_OUT') {
-    return { ...outcome, commentary: `${timingLabel(input.touch.timing)}. ${outcome.commentary}` };
+    if (!outcome.commentaryCode) return { ...outcome, commentary: `${timingLabel(input.touch.timing)}. ${outcome.commentary}` };
+    const line = { commentary: outcome.commentary, commentaryCode: outcome.commentaryCode };
+    return { ...outcome, ...prefixed({ k: `cv.timing.${input.touch.timing}` }, line) };
   }
   return outcome;
 }
@@ -445,7 +447,7 @@ function resolveDeliveryCore(input: DeliveryContext, rng: Rng): DeliveryOutcome 
       review: null,
       dropped: null,
       retired: null,
-      commentary: describeBall({ context, kind: illegal.type === 'WIDE' ? 'WIDE' : 'NO_BALL' }),
+      ...commentate({ context, kind: illegal.type === 'WIDE' ? 'WIDE' : 'NO_BALL' }),
     };
   }
 
@@ -615,9 +617,7 @@ function resolveLeave(
       wicket: { type: lbw ? 'LBW' : 'BOWLED', bowlerId: bowler.id, fielderId: null },
       dismissedPlayerId: striker.id,
       fielderName: null,
-      commentary: lbw
-        ? `${striker.name} shoulders arms and it raps the pad in front. Plumb - out lbw.`
-        : `${striker.name} leaves it... and hears the death rattle. Bowled, leaving!`,
+      ...sayVariant(`${striker.name}${context.strikerBallsFaced}${context.oversBowled}leave`, lbw ? 'cv.leaveLbw' : 'cv.leaveBowled', { batter: striker.name }),
     };
   }
 
@@ -627,10 +627,11 @@ function resolveLeave(
     wicket: null,
     dismissedPlayerId: null,
     fielderName: context.field.keeperName,
-    commentary:
-      context.plan.line === 'OFF_STUMP' || context.plan.line === 'MIDDLE'
-        ? `${striker.name} leaves it, and it goes perilously close to the off stump.`
-        : `${striker.name} leaves it alone outside off. Good judgement.`,
+    ...sayVariant(
+      `${striker.name}${context.strikerBallsFaced}${context.oversBowled}leave`,
+      context.plan.line === 'OFF_STUMP' || context.plan.line === 'MIDDLE' ? 'cv.leaveClose' : 'cv.leaveSafe',
+      { batter: striker.name },
+    ),
   };
 }
 
@@ -781,7 +782,11 @@ function resolveWicket(
           review: null,
           dropped: { fielderName: nearest.fielder.name },
           retired: null,
-          commentary: `Chance! ${nearest.fielder.name} puts down ${striker.name} off ${context.bowler.name}.`,
+          ...sayVariant(`${striker.name}${context.strikerBallsFaced}${context.oversBowled}drop`, 'cv.drop', {
+            fielder: nearest.fielder.name,
+            batter: striker.name,
+            bowler: context.bowler.name,
+          }),
         };
       }
     }
@@ -848,7 +853,7 @@ function resolveWicket(
               review: { by: 'BATTING', outcome: 'OVERTURNED' },
               dropped: null,
               retired: null,
-              commentary: `${striker.name} reviews... and the replay saves him. Not out, the decision is overturned.`,
+              ...sayVariant(`${striker.name}${context.strikerBallsFaced}review`, 'cv.revSaved', { batter: striker.name }),
             };
           }
         } else {
@@ -876,10 +881,9 @@ function resolveWicket(
     review,
     dropped: null,
     retired: null,
-    commentary:
-      review?.outcome === 'UMPIRES_CALL'
-        ? `${striker.name} reviews, and it is umpire's call. The decision stands - out.`
-        : describeBall({ context, kind: 'WICKET', dismissal: type, fielderName, shot }),
+    ...(review?.outcome === 'UMPIRES_CALL'
+      ? say({ k: 'cv.revUmpiresCall', v: { batter: striker.name } })
+      : commentate({ context, kind: 'WICKET', dismissal: type, fielderName, shot })),
   };
 }
 
@@ -930,7 +934,7 @@ function resolveBoundary(
         review: null,
         dropped: null,
         retired: null,
-        commentary: describeBall({
+        ...commentate({
           context,
           kind: 'WICKET',
           dismissal: 'CAUGHT',
@@ -960,7 +964,7 @@ function resolveBoundary(
     review: null,
     dropped: null,
     retired: null,
-    commentary: describeBall({ context, kind: input.six ? 'SIX' : 'FOUR', shot }),
+    ...commentate({ context, kind: input.six ? 'SIX' : 'FOUR', shot }),
   };
 }
 
@@ -1064,7 +1068,7 @@ function resolvePlacedShot(
         review: null,
         dropped: null,
         retired: null,
-        commentary: describeBall({ context, kind: 'BYE', runs: byes }),
+        ...commentate({ context, kind: 'BYE', runs: byes }),
       };
     }
     if (rng.chance(extrasCfg.legByeChance)) {
@@ -1087,7 +1091,7 @@ function resolvePlacedShot(
         review: null,
         dropped: null,
         retired: null,
-        commentary: describeBall({ context, kind: 'LEG_BYE', runs: legByes }),
+        ...commentate({ context, kind: 'LEG_BYE', runs: legByes }),
       };
     }
   }
@@ -1120,9 +1124,9 @@ function resolvePlacedShot(
     review: null,
     dropped: null,
     retired: null,
-    commentary: misfield
-      ? `${fielder?.name} fumbles it, and they come back for an extra run.`
-      : describeBall({ context, kind: 'RUNS', runs, shot, fielderName: fielder?.name ?? null }),
+    ...(misfield
+      ? sayVariant(`${fielder?.name}${context.strikerBallsFaced}${context.oversBowled}misfield`, 'cv.misfield', { fielder: fielder?.name ?? '' })
+      : commentate({ context, kind: 'RUNS', runs, shot, fielderName: fielder?.name ?? null })),
   };
 }
 
@@ -1191,7 +1195,7 @@ function rollAppeal(
       wicket: null,
       dismissedPlayerId: null,
       review: { by: 'BOWLING', outcome: 'UPHELD' },
-      commentary: `Big shout for lbw against ${striker.name}, turned down. They review - and it is missing. Review lost.`,
+      ...say({ k: 'cv.appealLost', v: { batter: striker.name } }),
     };
   }
   if (rng.chance(cfg.umpiresCallShare)) {
@@ -1200,7 +1204,7 @@ function rollAppeal(
       wicket: null,
       dismissedPlayerId: null,
       review: { by: 'BOWLING', outcome: 'UMPIRES_CALL' },
-      commentary: `Appeal against ${striker.name}, not out. Reviewed: umpire's call. The not-out stands, review retained.`,
+      ...say({ k: 'cv.appealUmpiresCall', v: { batter: striker.name } }),
     };
   }
   return {
@@ -1208,7 +1212,7 @@ function rollAppeal(
     wicket: { type: 'LBW', bowlerId: bowler.id, fielderId: null },
     dismissedPlayerId: striker.id,
     review: { by: 'BOWLING', outcome: 'OVERTURNED' },
-    commentary: `Given not out, but ${bowler.name} was sure. Reviewed - three reds. ${striker.name} is out lbw, overturned!`,
+    ...say({ k: 'cv.appealOverturned', v: { batter: striker.name, bowler: bowler.name } }),
   };
 }
 
@@ -1273,7 +1277,7 @@ function rollRunOut(
     review: null,
     dropped: null,
     retired: null,
-    commentary: describeBall({
+    ...commentate({
       context,
       kind: 'WICKET',
       dismissal: 'RUN_OUT',

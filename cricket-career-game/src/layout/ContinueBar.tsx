@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useT } from '@/i18n/react';
+import type { Key } from '@/i18n/core';
 import { CalendarDays, ChevronRight, ClipboardCheck, CloudRain, Gavel, HeartPulse, Play, ScrollText, Sun, Snowflake, X, Zap } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components';
+import { cn } from '@/lib/cn';
 import { climateNote, pendingMatch, pendingTrial } from '@/engine/calendar';
 import { formatLongDate } from '@/lib/format';
 import { unwatchedAuction } from '@/engine/pro/ipl';
+import { useClockStore } from '@/store/clockStore';
+import { freshSelectionNews, useContinue } from './useContinue';
 import { daysBetweenDates } from '@/engine/development';
 import { useGameStore } from '@/store/gameStore';
 import { useMatchStore } from '@/store/matchStore';
 import type { ClimateKind } from '@/engine/calendar';
-import type { GameState, InboxMessage } from '@/types';
+import type { GameState } from '@/types';
 import { SelectionNewsModal } from '@/screens/career/SelectionNewsModal';
 
 const CLIMATE_ICON: Record<ClimateKind, typeof Sun> = {
@@ -30,13 +34,16 @@ export function ContinueBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const state = useGameStore((s) => s.state);
-  const advanceWeek = useGameStore((s) => s.advanceWeek);
   const quickSim = useMatchStore((s) => s.quickSim);
   const coachTrial = useGameStore((s) => s.coachTrial);
   // A note belongs to the day (and the match day) it was written about.
-  const [noteState, setNoteState] = useState<{ text: string; date: string; fixtureId: string | null } | null>(null);
+  const noteState = useClockStore((s) => s.note);
   // Selection news the week brought, told step by step.
-  const [news, setNews] = useState<InboxMessage[] | null>(null);
+  const news = useClockStore((s) => s.news);
+  const setNews = useClockStore((s) => s.setNews);
+  const setNoteState = useClockStore((s) => s.setNote);
+  const onContinue = useContinue();
+  const t = useT();
 
   // A match in progress has its own controls; the clock waits for it.
   if (!state || pathname.startsWith('/match/') || pathname.startsWith('/trial/') || pathname === '/auction/live') return null;
@@ -60,40 +67,8 @@ export function ContinueBar() {
 
   /** Open the selection news, if the week brought any. */
   const showNews = (before: GameState, after: GameState) => {
-    const seen = new Set(before.inbox.map((m) => m.id));
-    const fresh = after.inbox.filter((m) => !seen.has(m.id) && m.category === 'SELECTION');
+    const fresh = freshSelectionNews(before, after);
     if (fresh.length) setNews(fresh);
-  };
-
-  const onContinue = () => {
-    const hadReview = Boolean(state.career.pendingReview);
-    const result = advanceWeek();
-    if (!result) return;
-    showNews(state, result.state);
-    if (!hadReview && result.state.career.pendingReview) {
-      navigate('/season-review');
-      return;
-    }
-    if (unwatchedAuction(result.state) && !unwatchedAuction(state)) {
-      navigate('/auction/live');
-      return;
-    }
-    if (result.trial) {
-      navigate(`/trial/${result.trial.id}`);
-      return;
-    }
-    if (result.stoppedFor) {
-      setNote(`Match day: ${result.stoppedFor.title}. Play it or sim it to carry on.`, result.state.season.currentDate, result.stoppedFor.id);
-      return;
-    }
-    const report = result.state.player.development.weeklyReports[0];
-    const gains = report?.changes.filter((c) => c.delta > 0).map((c) => `+${c.delta} ${c.label}`) ?? [];
-    setNote(
-      `${formatLongDate(result.state.season.currentDate)}. ` +
-        (gains.length ? gains.slice(0, 3).join(', ') + '. ' : '') +
-        (report ? report.coachNote : ''),
-      result.state.season.currentDate,
-    );
   };
 
   return (
@@ -103,18 +78,18 @@ export function ContinueBar() {
           <CalendarDays className="size-4 text-brand-blue" aria-hidden />
           {formatLongDate(today)}
         </span>
-        <span className="hidden text-[12px] text-ink-muted sm:inline">{state.season.label} season</span>
-        <span className="flex items-center gap-1 text-[12px] text-ink-muted" title={climate.detail}>
+        <span className="hidden text-[12px] text-ink-muted sm:inline">{t('clock.season', { label: state.season.label })}</span>
+        <span className="flex items-center gap-1 text-[12px] text-ink-muted" title={t(`climate.${climate.kind}.detail` as Key)}>
           <ClimateIcon className="size-3.5" aria-hidden />
-          {climate.label}
+          {t(climate.kind === 'MONSOON' && climate.label.startsWith('North') ? 'climate.NE_MONSOON' : (`climate.${climate.kind}` as Key))}
         </span>
-        {exams ? <Badge tone="orange">Exam week</Badge> : null}
+        {exams ? <Badge tone="orange">{t('clock.examWeek')}</Badge> : null}
         {injury ? (
           <Badge tone="red">
             <span className="inline-flex items-center gap-1">
               <HeartPulse className="size-3" aria-hidden />
               {injury.name}
-              {rehab ? ` · rehab ${rehab.weeksDone}/${rehab.weeksNeeded} wk` : ''}
+              {rehab ? t('clock.rehab', { done: rehab.weeksDone, needed: rehab.weeksNeeded }) : ''}
             </span>
           </Badge>
         ) : null}
@@ -122,24 +97,25 @@ export function ContinueBar() {
         {review ? (
           <button type="button" onClick={() => navigate('/season-review')} className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]">
             <ScrollText className="size-3.5" aria-hidden />
-            Season review ready
+            {t('clock.review')}
           </button>
         ) : null}
 
         {auctionInMatch && pending ? (
-          <span className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]" title="The room opens live as soon as the match ends.">
+          <span className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]" title={t('clock.auctionInMatchHint')}>
             <Gavel className="size-3.5" aria-hidden />
-            {auctionInMatch.title} on day {daysBetweenDates(pending.date, auctionInMatch.date) + 1} of this match - live after stumps
+            {t('clock.auctionInMatch', { title: auctionInMatch.title, day: daysBetweenDates(pending.date, auctionInMatch.date) + 1 })}
           </span>
         ) : null}
         {auction ? (
           <button type="button" onClick={() => navigate('/auction/live')} className="flex items-center gap-1 rounded-full bg-brand-red px-3 py-1 text-[12px] font-semibold text-white">
             <Gavel className="size-3.5" aria-hidden />
-            {auction.mega ? 'Mega auction' : 'IPL auction'}: watch live
+            {t('clock.auctionLive', { name: t(auction.mega ? 'clock.megaAuction' : 'clock.iplAuction') })}
           </button>
         ) : null}
 
-        <div className="ml-auto flex items-center gap-2">
+        {/* On the phone Home the Next action card carries these buttons. */}
+        <div className={cn('ml-auto items-center gap-2', pathname === '/' ? 'hidden md:flex' : 'flex')}>
           {trial ? (
             <>
               <button
@@ -148,7 +124,7 @@ export function ContinueBar() {
                 className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-brand-blue/90"
               >
                 <ClipboardCheck className="size-3.5" aria-hidden />
-                Trial day: attend
+                {t('clock.trial')}
               </button>
               <button
                 type="button"
@@ -156,11 +132,11 @@ export function ContinueBar() {
                   coachTrial(trial.id);
                   const after = useGameStore.getState().state;
                   if (after) showNews(state, after);
-                  setNote(`${trial.title}: the coach made the calls. See Selection / News for the verdict.`);
+                  setNote(t('clock.coachNote', { title: trial.title }));
                 }}
                 className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page"
               >
-                Coach decides
+                {t('clock.coach')}
               </button>
             </>
           ) : pending ? (
@@ -171,7 +147,7 @@ export function ContinueBar() {
                 className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-brand-blue/90"
               >
                 <Play className="size-3.5 fill-white" aria-hidden />
-                Match day: play
+                {t('clock.matchDay')}
               </button>
               <button
                 type="button"
@@ -182,7 +158,7 @@ export function ContinueBar() {
                 className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page"
               >
                 <Zap className="size-3.5" aria-hidden />
-                Sim
+                {t('clock.sim')}
               </button>
             </>
           ) : (
@@ -191,7 +167,7 @@ export function ContinueBar() {
               onClick={onContinue}
               className="flex items-center gap-1 rounded-xl bg-brand-gold px-4 py-2 text-[13px] font-bold text-brand-navy hover:bg-brand-gold/90"
             >
-              Continue
+              {t('clock.continue')}
               <ChevronRight className="size-4" aria-hidden />
             </button>
           )}
@@ -206,7 +182,7 @@ export function ContinueBar() {
           className="mt-1.5 flex items-start justify-between gap-3 rounded-tile bg-brand-blue-soft px-3 py-2 text-[12.5px] text-ink"
         >
           <span>{note}</span>
-          <button type="button" onClick={() => setNote(null)} aria-label="Dismiss" className="text-ink-muted hover:text-ink">
+          <button type="button" onClick={() => setNote(null)} aria-label={t('common.dismiss')} className="text-ink-muted hover:text-ink">
             <X className="size-3.5" />
           </button>
         </p>

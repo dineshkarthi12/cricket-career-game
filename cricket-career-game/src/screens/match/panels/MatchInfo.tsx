@@ -5,32 +5,26 @@
 import { CloudSun, Droplets, MapPin, ShieldCheck, Sun, Thermometer, Trophy, Wind } from 'lucide-react';
 import { ProgressBar } from '@/components';
 import type { LiveSnapshot } from '@/engine/match/live';
+import { rich, useT } from '@/i18n/react';
 import type { MatchConditions, Venue } from '@/types';
 
-const FORMAT_LABELS: Record<string, string> = {
-  T20: 'Twenty over',
-  ODI: '50 over',
-  ONE_DAY: '50 over',
-  MULTI_DAY: 'Multi-day',
-  TEST: 'Test',
-};
-
 export function PitchReport({ conditions }: { conditions: MatchConditions }) {
+  const t = useT();
   const p = conditions.pitch;
   const rows: { label: string; value: number; tone: 'blue' | 'green' | 'orange' }[] = [
-    { label: 'Batting ease', value: p.battingEase, tone: 'green' },
-    { label: 'Seam', value: p.seamMovement, tone: 'blue' },
-    { label: 'Swing', value: p.swing, tone: 'blue' },
-    { label: 'Turn', value: p.turn, tone: 'orange' },
-    { label: 'Bounce', value: p.bounce, tone: 'blue' },
-    { label: 'Pace', value: p.pace, tone: 'blue' },
+    { label: t('pitch.battingEase'), value: p.battingEase, tone: 'green' },
+    { label: t('pitch.seam'), value: p.seamMovement, tone: 'blue' },
+    { label: t('pitch.swing'), value: p.swing, tone: 'blue' },
+    { label: t('pitch.turn'), value: p.turn, tone: 'orange' },
+    { label: t('pitch.bounce'), value: p.bounce, tone: 'blue' },
+    { label: t('pitch.pace'), value: p.pace, tone: 'blue' },
   ];
 
   return (
     <div className="flex flex-col gap-2">
       <p className="text-[12.5px] text-ink-muted">
-        <span className="font-semibold text-ink">{titleCase(p.type)}</span> surface
-        {p.deterioration > 25 ? `, wearing (${Math.round(p.deterioration)}%)` : ''}
+        {rich(t('pitch.surface'), { type: <span className="font-semibold text-ink">{t(`pitch.${p.type}`)}</span> })}
+        {p.deterioration > 25 ? t('pitch.wearing', { n: Math.round(p.deterioration) }) : ''}
       </p>
       <dl className="flex flex-col gap-1.5">
         {rows.map((row) => (
@@ -50,16 +44,17 @@ export function PitchReport({ conditions }: { conditions: MatchConditions }) {
 }
 
 export function WeatherReport({ conditions, dew }: { conditions: MatchConditions; dew?: number }) {
+  const t = useT();
   const w = conditions.weather;
   return (
     <ul className="grid grid-cols-2 gap-x-3 gap-y-2 text-[12.5px]">
-      <Item icon={w.cloudCover > 50 ? CloudSun : Sun} label={titleCase(w.type)} />
+      <Item icon={w.cloudCover > 50 ? CloudSun : Sun} label={t(`weather.${w.type}`)} />
       <Item icon={Thermometer} label={`${Math.round(w.temperature)}°C`} />
-      <Item icon={Droplets} label={`${Math.round(w.humidity)}% humidity`} />
-      <Item icon={Wind} label={`${Math.round(w.wind)} wind`} />
-      <Item icon={CloudSun} label={`${Math.round(w.rainRisk)}% rain risk`} />
+      <Item icon={Droplets} label={t('weather.humidity', { n: Math.round(w.humidity) })} />
+      <Item icon={Wind} label={t('weather.wind', { n: Math.round(w.wind) })} />
+      <Item icon={CloudSun} label={t('weather.rain', { n: Math.round(w.rainRisk) })} />
       {dew !== undefined && dew > 5 ? (
-        <Item icon={Droplets} label={`${Math.round(dew)} dew`} />
+        <Item icon={Droplets} label={t('weather.dew', { n: Math.round(dew) })} />
       ) : null}
     </ul>
   );
@@ -80,6 +75,7 @@ export function MatchInfo({
   awayTeam: string;
   teamNameOf: (id: string) => string;
 }) {
+  const t = useT();
   const cur = snap.current;
   const ball = cur?.conditions.ball;
 
@@ -89,28 +85,25 @@ export function MatchInfo({
         <p className="flex items-center gap-1.5">
           <Trophy className="size-3.5 shrink-0" aria-hidden />
           {tournamentName}
-          <span className="text-ink-soft">· {FORMAT_LABELS[snap.format] ?? snap.format}</span>
+          <span className="text-ink-soft">· {t(`format.${snap.format}`)}</span>
         </p>
         <p className="flex items-center gap-1.5">
           <MapPin className="size-3.5 shrink-0" aria-hidden />
           {venue.name}, {venue.city}
         </p>
         <p className="text-ink">
-          <span className="font-semibold">{homeTeam}</span> v{' '}
+          <span className="font-semibold">{homeTeam}</span> {t('m.v')}{' '}
           <span className="font-semibold">{awayTeam}</span>
         </p>
         {snap.session ? (
           <p className="font-semibold text-ink">
-            Day {snap.session.day}, session {snap.session.session}
+            {t('info.session', { day: snap.session.day, session: snap.session.session })}
           </p>
         ) : null}
         {snap.toss ? (
-          <p>
-            {teamNameOf(snap.toss.winnerTeamId)} won the toss and chose to{' '}
-            {snap.toss.decision === 'BAT' ? 'bat' : 'bowl'}.
-          </p>
+          <p>{t('m.tossResult', { team: teamNameOf(snap.toss.winnerTeamId), decision: `@m.decision.${snap.toss.decision}` })}</p>
         ) : (
-          <p>Toss to come.</p>
+          <p>{t('m.tossToCome')}</p>
         )}
       </div>
 
@@ -118,25 +111,29 @@ export function MatchInfo({
         <>
           <div className="border-t border-line pt-3">
             <h4 className="mb-2 text-[12px] font-semibold tracking-wide text-ink-soft uppercase">
-              Pitch
+              {t('m.pitch')}
             </h4>
             <PitchReport conditions={cur.conditions} />
           </div>
           <div className="border-t border-line pt-3">
             <h4 className="mb-2 text-[12px] font-semibold tracking-wide text-ink-soft uppercase">
-              Conditions
+              {t('m.conditions')}
             </h4>
             <WeatherReport conditions={cur.conditions} dew={cur.dew} />
           </div>
           {ball ? (
             <p className="border-t border-line pt-3 text-[12px] text-ink-muted">
-              Ball {ball.ballNumber}: {ball.ageInBalls} balls old, {Math.round(ball.shine)}% shine
-              {ball.reverseSwingAvailable ? ', reversing' : ''}.
+              {t('info.ball', {
+                n: ball.ballNumber,
+                age: ball.ageInBalls,
+                shine: Math.round(ball.shine),
+                reversing: ball.reverseSwingAvailable ? '@info.reversing' : '',
+              })}
             </p>
           ) : null}
           <p className="flex items-center gap-1.5 text-[12px] text-ink-muted">
             <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-            Reviews left — batting {cur.reviewsLeft.batting}, bowling {cur.reviewsLeft.bowling}
+            {t('info.reviews', { bat: cur.reviewsLeft.batting, bowl: cur.reviewsLeft.bowling })}
           </p>
         </>
       ) : null}
@@ -153,10 +150,3 @@ function Item({ icon: Icon, label }: { icon: typeof Sun; label: string }) {
   );
 }
 
-function titleCase(text: string): string {
-  return text
-    .toLowerCase()
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}

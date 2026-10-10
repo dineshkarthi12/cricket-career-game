@@ -1,4 +1,5 @@
 import type { ScoringProfile } from '../config';
+import type { CommentaryPart } from '@/types';
 /**
  * Types the match engine uses internally. Nothing here is persisted - the
  * saved shapes live in `/src/types`.
@@ -255,4 +256,6 @@ export interface DeliveryOutcome {
   /** The batter had to go off. */
   retired: { playerId: Id; concussion: boolean } | null;
   commentary: string;
+  /** The line as keys and variables (see `commentary.ts`). */
+  commentaryCode?: CommentaryPart[];
 }

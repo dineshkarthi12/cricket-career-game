@@ -1,3 +1,4 @@
+import { tr } from '@/i18n/core';
 import { lazy, Suspense } from 'react';
 import type { SkillRadarProps } from './SkillRadarChart';
 
@@ -29,11 +30,11 @@ export function RadarLegend({ current, potential }: { current: number; potential
     <div className="mt-1 flex items-center justify-center gap-6 text-[12px] text-ink-muted">
       <span className="inline-flex items-center gap-2">
         <span className="h-1.5 w-4 rounded-full bg-brand-blue" aria-hidden />
-        Current ({current})
+        {tr('radar.current', { n: current })}
       </span>
       <span className="inline-flex items-center gap-2">
         <span className="h-1.5 w-4 rounded-full bg-[#9DC2FB]" aria-hidden />
-        Potential ({potential})
+        {tr('radar.potential', { n: potential })}
       </span>
     </div>
   );

@@ -9,21 +9,18 @@ import { MATCH } from '@/engine/config';
 import type { BowlerPlan, SimPlayer } from '@/engine/match/types';
 import type { BowlerInningsLine, DeliveryLength, DeliveryLine } from '@/types';
 import { AggressionBar } from './AggressionBar';
+import { isKey, tr } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
-const LENGTHS: { value: DeliveryLength; label: string }[] = [
-  { value: 'YORKER', label: 'Yorker' },
-  { value: 'FULL', label: 'Full' },
-  { value: 'GOOD', label: 'Good' },
-  { value: 'SHORT_OF_GOOD', label: 'Back of a length' },
-  { value: 'SHORT', label: 'Short' },
-];
+const LENGTHS: DeliveryLength[] = ['YORKER', 'FULL', 'GOOD', 'SHORT_OF_GOOD', 'SHORT'];
 
-const LINES: { value: DeliveryLine; label: string }[] = [
-  { value: 'OUTSIDE_OFF', label: 'Outside off' },
-  { value: 'OFF_STUMP', label: 'Off stump' },
-  { value: 'MIDDLE', label: 'Middle' },
-  { value: 'LEG_STUMP', label: 'Leg stump' },
-];
+const LINES: DeliveryLine[] = ['OUTSIDE_OFF', 'OFF_STUMP', 'MIDDLE', 'LEG_STUMP'];
+
+/** A variation's name in the app's language (the engine keeps the English one). */
+export function variationLabel(variation: string): string {
+  const key = `var.${variation}`;
+  return isKey(key) ? tr(key) : variation;
+}
 
 const PACE_VARIATIONS = ['slower ball', 'cutter', 'bouncer', 'wide yorker', 'knuckle ball'];
 const WRIST_VARIATIONS = ['googly', 'flipper', 'slider', 'top spinner'];
@@ -67,6 +64,7 @@ export const BowlingControls = memo(function BowlingControls({
   onBowl: () => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3.5">
       {bowler && bowlerLine ? (
@@ -81,22 +79,22 @@ export const BowlingControls = memo(function BowlingControls({
             </p>
           </div>
           <p className="mt-0.5 text-[11.5px] text-ink-muted">
-            Economy {bowlerLine.economy.toFixed(2)} · {bowlerLine.maidens} maiden
-            {bowlerLine.maidens === 1 ? '' : 's'}
-            {oversLeft !== null ? ` · ${oversLeft} over${oversLeft === 1 ? '' : 's'} left` : ''}
+            {t('bowlc.economy', { e: bowlerLine.economy.toFixed(2) })} ·{' '}
+            {t(bowlerLine.maidens === 1 ? 'bowlc.maiden' : 'bowlc.maidens', { n: bowlerLine.maidens })}
+            {oversLeft !== null ? ` · ${t(oversLeft === 1 ? 'bowlc.overLeft' : 'bowlc.oversLeft', { n: oversLeft })}` : ''}
           </p>
           <p className="mt-0.5 text-[11.5px] text-ink-muted">
-            Spell: {spellOvers} over{spellOvers === 1 ? '' : 's'}
+            {t(spellOvers === 1 ? 'bowlc.spell1' : 'bowlc.spell', { n: spellOvers })}
             {spellOvers > spellLimitOf(bowler) ? (
-              <span className="ml-1 font-semibold text-brand-orange">— tiring, losing their edge</span>
+              <span className="ml-1 font-semibold text-brand-orange">{t('bowlc.tiring')}</span>
             ) : (
-              <span className="text-ink-soft"> of about {spellLimitOf(bowler)} before tiring</span>
+              <span className="text-ink-soft">{t('bowlc.ofAbout', { n: spellLimitOf(bowler) })}</span>
             )}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <span className="flex items-center gap-1 text-[11px] text-ink-muted">
               <Gauge className="size-3.5" aria-hidden />
-              Fatigue
+              {t('bowlc.fatigue')}
             </span>
             <ProgressBar
               value={bowler.condition.fatigue}
@@ -111,7 +109,7 @@ export const BowlingControls = memo(function BowlingControls({
       ) : null}
 
       <AggressionBar
-        label="Your bowling aggression"
+        label={t('bowlc.yourAgg')}
         kind="bowling"
         level={level}
         hotkeys
@@ -120,49 +118,47 @@ export const BowlingControls = memo(function BowlingControls({
 
       <fieldset className="border-t border-line pt-3">
         <legend className="text-[12.5px] font-semibold text-ink">
-          Length <span className="font-normal text-ink-soft">- or leave it to your aggression</span>
+          {t('bowlc.length')} <span className="font-normal text-ink-soft">{t('bowlc.lengthHint')}</span>
         </legend>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <Pill active={!plan.length} onClick={() => onPlan({ length: undefined })}>
-            Bowler's choice
+            {t('bowlc.bowlersChoice')}
           </Pill>
           {LENGTHS.map((option) => (
             <Pill
-              key={option.value}
-              active={plan.length === option.value}
-              onClick={() =>
-                onPlan({ length: plan.length === option.value ? undefined : option.value })
-              }
+              key={option}
+              active={plan.length === option}
+              onClick={() => onPlan({ length: plan.length === option ? undefined : option })}
             >
-              {option.label}
+              {t(`len.${option}`)}
             </Pill>
           ))}
         </div>
       </fieldset>
 
       <fieldset>
-        <legend className="text-[12.5px] font-semibold text-ink">Line</legend>
+        <legend className="text-[12.5px] font-semibold text-ink">{t('bowlc.line')}</legend>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <Pill active={!plan.line} onClick={() => onPlan({ line: undefined })}>
-            Bowler's choice
+            {t('bowlc.bowlersChoice')}
           </Pill>
           {LINES.map((option) => (
             <Pill
-              key={option.value}
-              active={plan.line === option.value}
-              onClick={() => onPlan({ line: plan.line === option.value ? undefined : option.value })}
+              key={option}
+              active={plan.line === option}
+              onClick={() => onPlan({ line: plan.line === option ? undefined : option })}
             >
-              {option.label}
+              {t(`line.${option}`)}
             </Pill>
           ))}
         </div>
       </fieldset>
 
       <fieldset>
-        <legend className="text-[12.5px] font-semibold text-ink">Variation</legend>
+        <legend className="text-[12.5px] font-semibold text-ink">{t('bowlc.variation')}</legend>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <Pill active={!plan.variation} onClick={() => onPlan({ variation: null })}>
-            Stock ball
+            {t('bowlc.stock')}
           </Pill>
           {variationsFor(bowler).map((option) => (
             <Pill
@@ -170,23 +166,23 @@ export const BowlingControls = memo(function BowlingControls({
               active={plan.variation === option}
               onClick={() => onPlan({ variation: plan.variation === option ? null : option })}
             >
-              {option}
+              {variationLabel(option)}
             </Pill>
           ))}
         </div>
         <p className="mt-1.5 text-[11px] text-ink-soft">
-          A variation the bowler is not good at will go wrong more often.
+          {t('bowlc.variationNote')}
         </p>
       </fieldset>
 
       <fieldset className="border-t border-line pt-3">
-        <legend className="text-[12.5px] font-semibold text-ink">Angle</legend>
+        <legend className="text-[12.5px] font-semibold text-ink">{t('bowlc.angle')}</legend>
         <div className="mt-1.5 flex gap-1.5">
           <Pill active={!roundTheWicket} onClick={() => onRoundTheWicket(false)}>
-            Over the wicket
+            {t('bowlc.over')}
           </Pill>
           <Pill active={roundTheWicket} onClick={() => onRoundTheWicket(true)}>
-            Round the wicket
+            {t('bowlc.round')}
           </Pill>
         </div>
       </fieldset>
@@ -197,7 +193,7 @@ export const BowlingControls = memo(function BowlingControls({
         disabled={disabled}
         className="rounded-xl bg-brand-blue px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-brand-blue/90 disabled:opacity-50"
       >
-        Bowl
+        {t('bowlc.bowl')}
       </button>
     </div>
   );

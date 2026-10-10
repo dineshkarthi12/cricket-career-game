@@ -1,5 +1,6 @@
 import { Check, Crown } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n/react';
 
 export type StepStatus = 'done' | 'current' | 'locked';
 
@@ -25,6 +26,7 @@ const NODE = 'grid size-8 shrink-0 place-items-center rounded-full text-[13px] f
  * stages stay reachable without squashing the labels.
  */
 export function Stepper({ steps, endLabel, className }: StepperProps) {
+  const t = useT();
   return (
     <div className={cn('no-scrollbar relative -mx-1 overflow-x-auto px-1 pt-1 pb-1', className)}>
       <ol className="flex min-w-max items-start">
@@ -55,10 +57,10 @@ export function Stepper({ steps, endLabel, className }: StepperProps) {
                 </span>
                 <span className="sr-only">
                   {step.status === 'done'
-                    ? 'completed'
+                    ? t('misc.comp.done')
                     : step.status === 'current'
-                      ? 'current stage'
-                      : 'locked'}
+                      ? t('misc.comp.currentStage')
+                      : t('misc.comp.locked')}
                 </span>
               </div>
             </li>

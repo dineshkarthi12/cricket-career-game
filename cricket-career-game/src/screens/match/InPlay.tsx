@@ -34,13 +34,9 @@ import type { TvGraphic } from '@/engine/pro/broadcast';
 import { matchTally } from '@/lib/highlights';
 import { Scorecard } from './panels/Scorecard';
 import { ScoreStrip } from './panels/ScoreStrip';
+import { useT } from '@/i18n/react';
 
-const PANEL_TABS = [
-  { id: 'scorecard', label: 'Scorecard' },
-  { id: 'commentary', label: 'Commentary' },
-  { id: 'charts', label: 'Charts' },
-  { id: 'info', label: 'Match' },
-];
+const PANEL_TAB_IDS = ['scorecard', 'commentary', 'charts', 'info'] as const;
 
 export interface InPlayProps {
   snap: LiveSnapshot;
@@ -85,6 +81,8 @@ export interface InPlayProps {
 
 export function InPlay(props: InPlayProps) {
   const { snap, venue, playerById } = props;
+  const t = useT();
+  const PANEL_TABS = PANEL_TAB_IDS.map((id) => ({ id, label: t(`play.tab.${id}`) }));
   const [tab, setTab] = useState('scorecard');
   const [mobileTab, setMobileTab] = useState('you');
   const [showWagonWheel, setShowWagonWheel] = useState(false);
@@ -186,12 +184,12 @@ export function InPlay(props: InPlayProps) {
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
         <ul className="flex flex-wrap items-center gap-2.5">
           <li className="flex items-center gap-1 text-[11px] text-ink-muted">
-            <span className="inline-block size-2 rounded-full bg-brand-gold" /> You
+            <span className="inline-block size-2 rounded-full bg-brand-gold" /> {t('play.legendYou')}
           </li>
           {DELIVERY_LEGEND.map((entry) => (
-            <li key={entry.label} className="flex items-center gap-1 text-[11px] text-ink-muted">
+            <li key={entry.key} className="flex items-center gap-1 text-[11px] text-ink-muted">
               <span className="inline-block size-2 rounded-full" style={{ backgroundColor: entry.colour }} />
-              {entry.label}
+              {t(entry.key)}
             </li>
           ))}
         </ul>
@@ -202,7 +200,7 @@ export function InPlay(props: InPlayProps) {
             onChange={(event) => setShowWagonWheel(event.target.checked)}
             className="accent-brand-blue"
           />
-          Wagon wheel
+          {t('play.wagonWheel')}
         </label>
       </div>
     </Card>
@@ -288,16 +286,16 @@ export function InPlay(props: InPlayProps) {
       case 'charts':
         return (
           <div className="flex flex-col gap-4">
-            <ChartBlock title="Worm">
+            <ChartBlock title={t('chart.worm')}>
               <Worm innings={chartInnings(snap.completed, cur.innings)} />
             </ChartBlock>
-            <ChartBlock title="Runs per over">
+            <ChartBlock title={t('chart.perOver')}>
               <Manhattan deliveries={cur.deliveries} />
             </ChartBlock>
-            <ChartBlock title="Wagon wheel">
+            <ChartBlock title={t('chart.wagon')}>
               <WagonWheelPanel venue={venue} deliveries={cur.deliveries} leftHanded={leftHanded} />
             </ChartBlock>
-            <ChartBlock title="Pitch map - this bowler">
+            <ChartBlock title={t('chart.pitchMap')}>
               <PitchMap
                 balls={cur.deliveries}
                 bowlerId={cur.bowlerId}
@@ -305,7 +303,7 @@ export function InPlay(props: InPlayProps) {
                 className="mx-auto h-[190px] w-auto"
               />
             </ChartBlock>
-            <ChartBlock title="Beehive - this bowler">
+            <ChartBlock title={t('chart.beehive')}>
               <Beehive
                 balls={cur.deliveries}
                 bowlerId={cur.bowlerId}
@@ -313,7 +311,7 @@ export function InPlay(props: InPlayProps) {
                 className="mx-auto h-[180px] w-auto"
               />
             </ChartBlock>
-            <ChartBlock title="Over by over">
+            <ChartBlock title={t('chart.overByOver')}>
               <OverByOver deliveries={cur.deliveries} />
             </ChartBlock>
           </div>
@@ -337,7 +335,7 @@ export function InPlay(props: InPlayProps) {
       snap={snap}
       battingTeam={battingTeam}
       bowlingTeam={bowlingTeam}
-      nameOf={(id) => playerById(id)?.name ?? 'Batter'}
+      nameOf={(id) => playerById(id)?.name ?? t('play.batter')}
       userId={props.userId}
     />
   );
@@ -346,10 +344,10 @@ export function InPlay(props: InPlayProps) {
   // the sim buttons pinned just above the tab bar where a thumb can reach.
   if (!wide) {
     const mobileTabs = [
-      { id: 'you', label: 'You' },
-      ...(props.captain ? [{ id: 'captain', label: 'Captain' }] : []),
+      { id: 'you', label: t('play.tab.you') },
+      ...(props.captain ? [{ id: 'captain', label: t('play.tab.captain') }] : []),
       ...PANEL_TABS,
-      { id: 'alerts', label: 'Alerts' },
+      { id: 'alerts', label: t('play.tab.alerts') },
     ];
     const active = mobileTabs.some((t) => t.id === mobileTab) ? mobileTab : 'you';
     return (
@@ -358,7 +356,7 @@ export function InPlay(props: InPlayProps) {
         {tips}
         {groundCard}
         <Card>
-          <Tabs tabs={mobileTabs} value={active} onChange={setMobileTab} label="Match panels" />
+          <Tabs tabs={mobileTabs} value={active} onChange={setMobileTab} label={t('play.panels')} />
           <div className="mt-3">{panel(active)}</div>
           {active === 'you' ? <div className="mt-4 border-t border-line pt-4">{simControls(false)}</div> : null}
         </Card>
@@ -387,11 +385,11 @@ export function InPlay(props: InPlayProps) {
         {/* Pinned beside the ground, so the scorecard stays in view. */}
         <div className="sticky top-4 flex max-h-[calc(var(--vh)*100-2rem)] flex-col gap-4">
           <Card className="shrink-0">
-            <CardHeader title="Alerts" />
+            <CardHeader title={t('play.alerts')} />
             <div className="mt-2.5 max-h-[150px] overflow-y-auto">{panel('alerts')}</div>
           </Card>
           <Card className="flex min-h-0 flex-1 flex-col">
-            <Tabs tabs={PANEL_TABS} value={tab} onChange={setTab} label="Match panels" />
+            <Tabs tabs={PANEL_TABS} value={tab} onChange={setTab} label={t('play.panels')} />
             <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
               {panel(PANEL_TABS.some((t) => t.id === tab) ? tab : 'scorecard')}
             </div>

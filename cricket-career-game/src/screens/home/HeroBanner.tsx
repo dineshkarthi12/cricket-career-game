@@ -1,10 +1,12 @@
+import type { Key } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 import { useState } from 'react';
 import { Crown, Heart, MapPin, Pencil, Play, Smile, TrendingUp } from 'lucide-react';
 import { HeroStatTile } from '@/components';
 import { StoryModal } from './StoryModal';
 import { battingStyleLabel, bowlingStyleLabel, countryFlag, formLabel, moraleLabel } from '@/lib/format';
 import type { GameState } from '@/types';
-import { ROLE_CATEGORY_LABEL, canUserControlBowling, roleCategory } from '@/engine/roles';
+import { canUserControlBowling, roleCategory } from '@/engine/roles';
 
 /**
  * The hero banner: photograph, the player's identity, the four condition
@@ -12,6 +14,7 @@ import { ROLE_CATEGORY_LABEL, canUserControlBowling, roleCategory } from '@/engi
  */
 export function HeroBanner({ state }: { state: GameState }) {
   const [storyOpen, setStoryOpen] = useState(false);
+  const t = useT();
   const { player } = state;
   const name = `${player.firstName} ${player.lastName}`.trim();
   const flag = countryFlag(player.country);
@@ -54,37 +57,46 @@ export function HeroBanner({ state }: { state: GameState }) {
           </p>
         </div>
 
-        <div className="relative flex min-h-[300px] flex-col justify-between gap-6 p-5 xl:min-h-[318px]">
+        {/* On a phone the banner is slim: name, style and the four tiles; the rest from md up. */}
+        <div className="relative flex flex-col justify-between gap-3 p-4 md:min-h-[300px] md:gap-6 md:p-5 xl:min-h-[318px]">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-[30px] leading-none font-bold text-brand-navy">{name}</h1>
+              <h1 className="text-[24px] leading-none font-bold text-brand-navy md:text-[30px]">{name}</h1>
               <button
                 type="button"
-                aria-label="Edit player details"
+                aria-label={t('hero.edit')}
                 className="grid size-7 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface/70 hover:text-brand-blue"
               >
                 <Pencil className="size-[17px]" strokeWidth={2} />
               </button>
+              <button
+                type="button"
+                onClick={() => setStoryOpen(true)}
+                aria-label={t('hero.story')}
+                className="ml-auto grid size-9 place-items-center rounded-full bg-brand-navy text-white md:hidden"
+              >
+                <Play className="ml-0.5 size-4 fill-white" />
+              </button>
             </div>
 
-            <p className="mt-1.5 text-[14px] font-medium text-ink">
+            <p className="mt-1 text-[13px] font-medium text-ink md:mt-1.5 md:text-[14px]">
               {battingStyleLabel(player.battingStyle)}
               <span className="mx-1.5 text-ink-soft">•</span>
               {canUserControlBowling(player)
                 ? bowlingStyleLabel(player.bowlingStyle)
                 : player.bowlingStyle === 'NONE'
-                  ? ROLE_CATEGORY_LABEL[roleCategory(player.role)]
-                  : `${bowlingStyleLabel(player.bowlingStyle)} (does not bowl)`}
+                  ? t(`roleCat.${roleCategory(player.role)}` as Key)
+                  : t('bowl.doesNotBowl', { style: bowlingStyleLabel(player.bowlingStyle) })}
             </p>
 
-            <p className="mt-2 flex items-center gap-1.5 text-[13.5px] text-ink-muted">
+            <p className="mt-2 hidden items-center gap-1.5 text-[13.5px] text-ink-muted md:flex">
               <MapPin className="size-4 text-brand-navy" strokeWidth={2} />
               {player.hometown}, {player.state}
             </p>
 
-            <p className="mt-1.5 flex items-center gap-2 text-[13.5px] text-ink-muted">
+            <p className="mt-1.5 hidden items-center gap-2 text-[13.5px] text-ink-muted md:flex">
               <span>
-                Age <span className="font-semibold text-ink">{player.age}</span>
+                {t('hero.age')} <span className="font-semibold text-ink">{player.age}</span>
               </span>
               <span className="text-line">|</span>
               <span className="flex items-center gap-1.5">
@@ -93,31 +105,31 @@ export function HeroBanner({ state }: { state: GameState }) {
               </span>
             </p>
 
-            <p className="font-hand mt-2.5 max-w-[260px] text-[20px] leading-[1.2] text-ink">
+            <p className="font-hand mt-2.5 hidden max-w-[260px] text-[20px] leading-[1.2] text-ink md:block">
               “ {player.motto} ”
             </p>
           </div>
 
           <div className="flex items-end gap-2 sm:gap-2.5">
-            <HeroStatTile label="OVR" tint>
+            <HeroStatTile label={t('hero.ovr')} tint>
               <span className="grid size-[38px] place-items-center rounded-full bg-brand-green text-[16px] font-bold text-white ring-[3px] ring-brand-green/30">
                 {player.overall}
               </span>
             </HeroStatTile>
 
-            <HeroStatTile label="Form">
+            <HeroStatTile label={t('hero.form')}>
               <TrendingUp className="size-[22px] text-brand-green" strokeWidth={2.2} />
               <span className="text-[14px] font-semibold text-ink">
                 {formLabel(player.condition.formBand)}
               </span>
             </HeroStatTile>
 
-            <HeroStatTile label="Fitness">
+            <HeroStatTile label={t('hero.fitness')}>
               <Heart className="size-[22px] text-brand-navy" strokeWidth={1.8} />
               <span className="text-[14px] font-semibold text-ink">{Math.round(player.condition.fitness)}%</span>
             </HeroStatTile>
 
-            <HeroStatTile label="Morale">
+            <HeroStatTile label={t('hero.morale')}>
               <Smile className="size-[22px] text-brand-navy" strokeWidth={1.8} />
               <span className="text-[14px] font-semibold text-ink">
                 {moraleLabel(player.condition.moraleBand)}
@@ -132,18 +144,18 @@ export function HeroBanner({ state }: { state: GameState }) {
               <span className="grid size-11 place-items-center rounded-full border-2 border-white/80 bg-white/10 backdrop-blur-sm">
                 <Play className="ml-0.5 size-4 fill-white text-white" />
               </span>
-              Watch Story
+              {t('hero.storyButton')}
             </button>
           </div>
 
-          {/* Phones get the story button in the flow rather than over the photo. */}
+          {/* Tablets get the story button in the flow rather than over the photo (phones: by the name). */}
           <button
             type="button"
             onClick={() => setStoryOpen(true)}
-            className="flex items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-[14px] font-semibold text-white lg:hidden"
+            className="hidden items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-[14px] font-semibold text-white md:flex lg:hidden"
           >
             <Play className="size-4 fill-white" />
-            Watch Story
+            {t('hero.storyButton')}
           </button>
         </div>
       </div>

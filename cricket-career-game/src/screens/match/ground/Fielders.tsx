@@ -9,6 +9,7 @@
 import { memo } from 'react';
 import { pointAt, type GroundBox, type Point } from '@/lib/ground';
 import type { FieldSetting } from '@/engine/match/types';
+import { tr } from '@/i18n/core';
 
 export interface FieldersProps {
   box: GroundBox;
@@ -100,7 +101,7 @@ export const Fielders = memo(function Fielders({
         onClick={onSelect ? () => onSelect(selectedId === 'keeper' ? null : 'keeper') : undefined}
         style={onSelect ? { cursor: 'pointer' } : undefined}
       >
-        <title>{`${field.keeperName} - wicket-keeper`}</title>
+        <title>{tr('ground.keeperTitle', { name: field.keeperName })}</title>
         {keeperIsUser ? <circle cx={keeper.x} cy={keeper.y} r={2.4} fill={GOLD} opacity={0.35} /> : null}
         <circle
           cx={keeper.x}
@@ -111,13 +112,13 @@ export const Fielders = memo(function Fielders({
           strokeWidth={0.35}
         />
         {showAllLabels || selectedId === 'keeper' || keeperIsUser ? (
-          <Label x={keeper.x} y={keeper.y + 4} text={keeperIsUser ? 'You (keeper)' : 'keeper'} gold={keeperIsUser} />
+          <Label x={keeper.x} y={keeper.y + 4} text={keeperIsUser ? tr('ground.youKeeper') : tr('ground.keeper')} gold={keeperIsUser} />
         ) : null}
       </g>
 
       {/* Bowler, at the non-striker's end, on the side they are bowling from. */}
       <g>
-        <title>{bowlerIsUser ? 'You - bowling' : 'Bowler'}</title>
+        <title>{bowlerIsUser ? tr('ground.youBowling') : tr('ground.bowler')}</title>
         {bowlerIsUser ? <circle cx={bowler.x} cy={bowler.y} r={2.4} fill={GOLD} opacity={0.35} /> : null}
         <rect
           x={bowler.x - 1.3}
@@ -175,7 +176,7 @@ export const Fielders = memo(function Fielders({
               strokeWidth={dragging ? 0.5 : 0.28}
             />
             {labelled ? (
-              <Label x={p.x} y={p.y - 2.6} text={isUser ? `You - ${fielder.position}` : fielder.position} gold={isUser} />
+              <Label x={p.x} y={p.y - 2.6} text={isUser ? tr('ground.youAt', { spot: fielder.position }) : fielder.position} gold={isUser} />
             ) : null}
           </g>
         );

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n/react';
 
 interface LogoProps {
   /** Dark text on light backgrounds, light text on the navy banner. */
@@ -10,6 +11,7 @@ interface LogoProps {
 /** The game badge (`public/assets/logo.webp`, from `design/logo-cricket-26.png`) + CRICKET / CAREER wordmark, used in the sidebar and banners. */
 export function Logo({ variant = 'dark', showTagline = false, className }: LogoProps) {
   const ink = variant === 'dark' ? 'text-brand-navy' : 'text-white';
+  const t = useT();
   return (
     <div className={cn('select-none', className)}>
       <div className="flex items-center gap-2">
@@ -35,7 +37,7 @@ export function Logo({ variant = 'dark', showTagline = false, className }: LogoP
             variant === 'dark' ? 'text-ink-soft' : 'text-white/70',
           )}
         >
-          PLAY • IMPROVE • BELONG
+          {t('misc.logo.tagline')}
         </p>
       ) : null}
     </div>

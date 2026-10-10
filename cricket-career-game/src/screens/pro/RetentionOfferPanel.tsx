@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Handshake } from 'lucide-react';
 import { formatLakh, franchiseName } from '@/lib/pro';
 import { useGameStore } from '@/store/gameStore';
+import { useT } from '@/i18n/react';
 import type { RetentionOffer } from '@/types';
 
 const RAISES = [10, 25, 50];
@@ -17,22 +18,23 @@ export function RetentionOfferPanel({ offer, compact = false }: { offer: Retenti
   const final = offer.salary >= offer.limit;
   const askLakh = Math.round(Number(ask) * 100);
   const name = franchiseName(offer.franchiseId);
+  const t = useT();
   return (
     <div className="flex flex-wrap items-start gap-3">
       {compact ? <Handshake className="size-7 text-brand-blue" aria-hidden /> : null}
       <div className="min-w-[14rem] flex-1">
         <p className="text-[14px] font-semibold text-ink">
-          {name} want to retain you: {formatLakh(offer.salary)} a season{final ? ' (final offer)' : offer.round > 1 ? ' (raised offer)' : ''}
+          {t('pro.ret.offer', { team: name, salary: formatLakh(offer.salary), note: final ? '@pro.ret.final' : offer.round > 1 ? '@pro.ret.raised' : '' })}
         </p>
         <p className="text-[12.5px] text-ink-muted">
-          Your three-season contract ({formatLakh(offer.previous)}) is up and it is a mega auction year - only four players stay. Decline and the owner {final ? 'lets you go into the auction' : 'may raise the offer'}; ask for more than the owner's budget and you go into the auction. Unanswered by 16 December, your agent accepts.
+          {t('pro.ret.body', { previous: formatLakh(offer.previous), then: final ? '@pro.ret.letsGo' : '@pro.ret.mayRaise' })}
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
-          <button type="button" onClick={() => answer({ kind: 'ACCEPT' })} className="rounded-full bg-brand-blue px-4 py-1.5 text-[13px] font-semibold text-white">Accept {formatLakh(offer.salary)}</button>
-          <button type="button" onClick={() => answer({ kind: 'DECLINE' })} className="rounded-full border border-line bg-surface px-4 py-1.5 text-[13px] font-semibold text-ink">{final ? 'Decline - go to the auction' : 'Decline'}</button>
+          <button type="button" onClick={() => answer({ kind: 'ACCEPT' })} className="rounded-full bg-brand-blue px-4 py-1.5 text-[13px] font-semibold text-white">{t('pro.ret.accept', { salary: formatLakh(offer.salary) })}</button>
+          <button type="button" onClick={() => answer({ kind: 'DECLINE' })} className="rounded-full border border-line bg-surface px-4 py-1.5 text-[13px] font-semibold text-ink">{final ? t('pro.ret.declineFinal') : t('decisions.decline')}</button>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px]">
-          <span className="text-ink-muted">Ask for:</span>
+          <span className="text-ink-muted">{t('pro.ret.askFor')}</span>
           {RAISES.map((r) => {
             const lakh = Math.round((offer.salary * (1 + r / 100)) / 25) * 25;
             return (
@@ -42,10 +44,10 @@ export function RetentionOfferPanel({ offer, compact = false }: { offer: Retenti
             );
           })}
           <label className="flex items-center gap-1">
-            <span className="sr-only">Your price in crore</span>
+            <span className="sr-only">{t('pro.ret.priceCr')}</span>
             <input type="number" min={0} step={0.25} inputMode="decimal" value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="₹ Cr" className="w-20 rounded-full border border-line bg-surface px-3 py-1 text-ink" />
           </label>
-          <button type="button" disabled={!(askLakh > 0)} onClick={() => answer({ kind: 'ASK', amount: askLakh })} className="rounded-full bg-brand-gold px-3 py-1 font-semibold text-brand-navy disabled:opacity-50">Ask</button>
+          <button type="button" disabled={!(askLakh > 0)} onClick={() => answer({ kind: 'ASK', amount: askLakh })} className="rounded-full bg-brand-gold px-3 py-1 font-semibold text-brand-navy disabled:opacity-50">{t('pro.ret.ask')}</button>
         </div>
       </div>
     </div>

@@ -292,6 +292,23 @@ toast. Settings shows the storage used against the quota and each slot's size.
 - **Autosave** — debounced (`autosaveDebounceMs` 800 ms), flushed on
   `beforeunload` and on tab hide. Every gameplay mutation goes through
   `useGameStore.update()`, which queues one.
+- **Match checkpoints** — a live match survives a reload
+  (`engine/match/checkpoint.ts`, `save/matchCheckpoint.ts`). The engine is
+  deterministic, so a checkpoint is the match's setup (copied as plain data
+  before the first ball) plus a log of every call into it - toss, each ball
+  with its overrides (deduplicated into a table), answers, peeked
+  deliveries, the impact sub, declarations, the follow-on - and a
+  fingerprint of the score. `restoreLiveMatch` replays the log into a fresh
+  engine, which rebuilds the random state, the planned delivery, an open
+  question and DLS exactly; a replay that misses the fingerprint is refused.
+  Stored under `cricket-career:match:{career|manager}:{slot}:{fixtureId}`
+  after every change and on `visibilitychange`/`pagehide`, through a
+  per-key write queue that reports failures as toasts. Deleted when the match
+  completes (played or simulated), when the fixture is quick-simmed, and when
+  the slot's career is deleted, replaced or imported over. A checkpoint that
+  is unreadable or will not replay is cleared and the fixture restarts with a
+  toast. IPL Manager matchdays use the same; Live PvP has its own engine and
+  is not checkpointed.
 - **Export / import** — `exportSave` writes an envelope
   `{ app: 'cricket-career', version, exportedAt, meta, state }`. `importSave`
   rejects a file that is not JSON (`CORRUPT`), not from this game (`WRONG_APP`),

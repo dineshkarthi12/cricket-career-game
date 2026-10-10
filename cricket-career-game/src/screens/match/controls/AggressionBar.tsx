@@ -6,22 +6,24 @@
 import { memo, useEffect, useRef } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import type { RiskEstimate, RiskLabel } from '@/engine/match/innings';
+import { tr } from '@/i18n/core';
+import { useT } from '@/i18n/react';
 
-export const BATTING_LEVELS = [
-  { name: 'Very Defensive', help: 'Blocks and leaves. Very hard to get out, very few runs.' },
-  { name: 'Defensive', help: 'Singles, and only the bad ball punished. Low risk.' },
-  { name: 'Balanced', help: 'Rotates the strike, boundaries off loose balls. Normal risk.' },
-  { name: 'Aggressive', help: 'Looks for boundaries often. Faster runs, more risk.' },
-  { name: 'Very Aggressive', help: 'A big shot almost every ball. Fastest runs, highest risk.' },
-];
+/** One aggression step, read in the language the app is in when it is shown. */
+function aggressionLevel(kind: 'batting' | 'bowling', n: 1 | 2 | 3 | 4 | 5): { readonly name: string; readonly help: string } {
+  return {
+    get name() {
+      return tr(`agg.${kind}.${n}`);
+    },
+    get help() {
+      return tr(`agg.${kind}.${n}.help`);
+    },
+  };
+}
 
-export const BOWLING_LEVELS = [
-  { name: 'Very Defensive', help: 'Tight lines outside off. Contain the runs, few wickets.' },
-  { name: 'Defensive', help: 'Mostly tidy, the odd probing ball.' },
-  { name: 'Balanced', help: 'The bowler’s normal game.' },
-  { name: 'Attacking', help: 'At the stumps, fuller and shorter. More wickets, more runs.' },
-  { name: 'All-out Attack', help: 'Yorkers, bouncers and variations. Wickets - and runs leaked.' },
-];
+export const BATTING_LEVELS = ([1, 2, 3, 4, 5] as const).map((n) => aggressionLevel('batting', n));
+
+export const BOWLING_LEVELS = ([1, 2, 3, 4, 5] as const).map((n) => aggressionLevel('bowling', n));
 
 /** Blue to red, one colour per step. */
 const STEP_COLOUR = ['bg-brand-blue', 'bg-brand-green', 'bg-brand-gold', 'bg-brand-orange', 'bg-brand-red'];
@@ -66,6 +68,7 @@ export const AggressionBar = memo(function AggressionBar({
   disabled?: boolean;
   compact?: boolean;
 }) {
+  const t = useT();
   const levels = kind === 'batting' ? BATTING_LEVELS : BOWLING_LEVELS;
   const current = level ?? 3;
   const info = level === null ? null : levels[level - 1];
@@ -100,13 +103,13 @@ export const AggressionBar = memo(function AggressionBar({
           {risk && level !== null ? (
             <span
               className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${RISK_TONE[risk.label]}`}
-              title={`About a ${Math.max(1, Math.round(1 / Math.max(risk.chance, 1e-4)))}-ball chance of getting out right now`}
+              title={t('agg.riskTitle', { n: Math.max(1, Math.round(1 / Math.max(risk.chance, 1e-4))) })}
             >
-              {risk.label} risk
+              {t('agg.risk', { label: `@agg.risk.${risk.label}` })}
             </span>
           ) : null}
           <span className={`text-[12px] font-bold ${level === null ? 'text-ink-muted' : STEP_TEXT[current - 1]}`}>
-            {level === null ? 'Auto' : `${level} · ${info!.name}`}
+            {level === null ? t('agg.auto') : `${level} · ${info!.name}`}
           </span>
         </div>
       </div>
@@ -116,7 +119,7 @@ export const AggressionBar = memo(function AggressionBar({
           type="button"
           onClick={() => step(-1)}
           disabled={disabled || (level !== null && level <= 1)}
-          aria-label={`Less aggressive${label ? ` - ${label}` : ''}`}
+          aria-label={t('agg.less', { label: label ? ` - ${label}` : '' })}
           className="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface text-ink hover:bg-page disabled:opacity-40"
         >
           <Minus className="size-3.5" aria-hidden />
@@ -127,7 +130,7 @@ export const AggressionBar = memo(function AggressionBar({
             const filled = level !== null && n <= level;
             return (
               <button
-                key={option.name}
+                key={n}
                 type="button"
                 role="radio"
                 aria-checked={level === n}
@@ -154,7 +157,7 @@ export const AggressionBar = memo(function AggressionBar({
           type="button"
           onClick={() => step(1)}
           disabled={disabled || (level !== null && level >= 5)}
-          aria-label={`More aggressive${label ? ` - ${label}` : ''}`}
+          aria-label={t('agg.more', { label: label ? ` - ${label}` : '' })}
           className="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface text-ink hover:bg-page disabled:opacity-40"
         >
           <Plus className="size-3.5" aria-hidden />
@@ -165,8 +168,8 @@ export const AggressionBar = memo(function AggressionBar({
         <div className="mt-1.5 flex items-center justify-between gap-2">
           {!compact ? (
             <p className="min-w-0 text-[11px] text-ink-soft">
-              {info?.help ?? 'Reading the game for themselves.'}
-              {hotkeys ? <span className="hidden md:inline"> Keys 1-5.</span> : null}
+              {info?.help ?? t('agg.ownGame')}
+              {hotkeys ? <span className="hidden md:inline"> {t('agg.keys')}</span> : null}
             </p>
           ) : (
             <span />
@@ -179,7 +182,7 @@ export const AggressionBar = memo(function AggressionBar({
               aria-pressed={level === null}
               className="shrink-0 text-[11px] font-semibold text-brand-blue hover:underline disabled:text-ink-soft disabled:no-underline"
             >
-              Auto
+              {t('agg.auto')}
             </button>
           ) : null}
         </div>

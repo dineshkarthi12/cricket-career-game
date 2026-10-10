@@ -7,10 +7,12 @@ import type { ManagedPlayer } from '@/types/manager';
 import { useSearchParams } from 'react-router-dom';
 import { DataTable, Estimate, Money, PageHeader, RoleTag, ToneBadge, fitnessTone, formWord, useManager } from './ui';
 import { PlayerModal } from './PlayersScreen';
+import { useT } from '@/i18n/react';
 
 type Sort = 'role' | 'value' | 'fitness' | 'form';
 
 export default function SquadScreen() {
+  const t = useT();
   const { state } = useManager();
   const [params, setParams] = useSearchParams();
   const [sort, setSort] = useState<Sort>('role');
@@ -30,32 +32,32 @@ export default function SquadScreen() {
 
   return (
     <div className="flex flex-col gap-3 pb-4">
-      <PageHeader title="Squad" subtitle={`${squad.length} players (${MANAGER.rules.squadMin}-${MANAGER.rules.squadMax}) · ${squad.filter((p) => p.overseas).length}/${MANAGER.rules.overseasSquadMax} overseas · payroll ${(payroll / 100).toFixed(2)} Cr`} />
+      <PageHeader title={t('mgr.nav.squad')} subtitle={t('mgr.squad.sub', { n: squad.length, min: MANAGER.rules.squadMin, max: MANAGER.rules.squadMax, os: squad.filter((p) => p.overseas).length, osMax: MANAGER.rules.overseasSquadMax, cr: (payroll / 100).toFixed(2) })} />
       {problems.length ? (
         <div role="alert" className="rounded-card border border-brand-red/25 bg-brand-red/8 px-4 py-3 text-[13px] text-ink">
           {problems.map((p) => <p key={p}>{p}</p>)}
         </div>
       ) : null}
       <Card>
-        <CardHeader title="Balance" subtitle="Batting depth, pace, spin, finishing, death bowling and keeping" className="mb-2" />
+        <CardHeader title={t('mgr.squad.balance')} subtitle={t('mgr.squad.balanceSub')} className="mb-2" />
         <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {weak.map((w) => (
             <li key={w.area} className="flex items-center justify-between gap-2 rounded-lg bg-page px-3 py-2">
               <span className="text-[12.5px] text-ink">{w.note}</span>
-              <ToneBadge tone={w.severity === 'OK' ? 'green' : w.severity === 'THIN' ? 'orange' : 'red'}>{w.severity.toLowerCase()}</ToneBadge>
+              <ToneBadge tone={w.severity === 'OK' ? 'green' : w.severity === 'THIN' ? 'orange' : 'red'}>{t(`mgr.sev.${w.severity}`)}</ToneBadge>
             </li>
           ))}
         </ul>
       </Card>
       <Card>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-[14px] font-semibold text-ink">Players</h2>
-          <Tabs label="Sort squad" value={sort} onChange={(v) => setSort(v as Sort)} tabs={[{ id: 'role', label: 'By role' }, { id: 'value', label: 'Best' }, { id: 'fitness', label: 'Freshest' }, { id: 'form', label: 'Form' }]} />
+          <h2 className="text-[14px] font-semibold text-ink">{t('mgr.nav.players')}</h2>
+          <Tabs label={t('mgr.squad.sort')} value={sort} onChange={(v) => setSort(v as Sort)} tabs={[{ id: 'role', label: t('mgr.squad.byRole') }, { id: 'value', label: t('mgr.squad.best') }, { id: 'fitness', label: t('mgr.squad.freshest') }, { id: 'form', label: t('mgr.col.form') }]} />
         </div>
         {squad.length === 0 ? (
-          <EmptyState icon={Users} title="No players under contract" message="Sign players at the auction." />
+          <EmptyState icon={Users} title={t('mgr.squad.empty')} message={t('mgr.squad.emptyBody')} />
         ) : (
-          <DataTable caption="Squad" head={['Player', 'Age', 'Role', 'Rating', 'Fitness', 'Form', 'Morale', 'Contract', 'Season']}>
+          <DataTable caption={t('mgr.nav.squad')} head={[t('mgr.col.player'), t('mgr.col.age'), t('mgr.col.role'), t('mgr.col.rating'), t('mgr.col.fitness'), t('mgr.col.form'), t('mgr.col.morale'), t('mgr.col.contract'), t('mgr.col.season')]}>
             {sorted.map((p) => (
               <Row key={p.id} p={p} onOpen={() => setParams({ focus: p.id })} report={<Estimate report={state.reports[p.id]} />} />
             ))}
@@ -68,21 +70,22 @@ export default function SquadScreen() {
 }
 
 function Row({ p, onOpen, report }: { p: ManagedPlayer; onOpen: () => void; report: React.ReactNode }) {
+  const t = useT();
   const fitness = Math.round(100 - p.condition.fatigue);
   return (
     <tr className="border-b border-line/60 last:border-0">
       <td className="px-2 py-2">
         <button type="button" onClick={onOpen} className="text-left font-semibold text-ink hover:text-brand-blue focus-visible:underline focus-visible:outline-none">{p.name}</button>
-        {p.injuredWeeks > 0 ? <ToneBadge tone="red" className="ml-1">Injured {p.injuredWeeks}w</ToneBadge> : null}
+        {p.injuredWeeks > 0 ? <ToneBadge tone="red" className="ml-1">{t('mgr.injuredW', { n: p.injuredWeeks })}</ToneBadge> : null}
       </td>
       <td className="px-2 py-2">{p.age}</td>
       <td className="px-2 py-2"><RoleTag player={p} /></td>
       <td className="px-2 py-2">{report}</td>
       <td className="px-2 py-2"><ToneBadge tone={fitnessTone(p.condition.fatigue)}>{fitness}%</ToneBadge></td>
       <td className="px-2 py-2">{formWord(p.condition.form)}</td>
-      <td className="px-2 py-2">{p.condition.morale >= 65 ? 'High' : p.condition.morale >= 40 ? 'Steady' : 'Low'}</td>
-      <td className="px-2 py-2 whitespace-nowrap">{p.contract ? <><Money lakh={p.contract.salary} /> · {p.contract.years}y</> : '-'}</td>
-      <td className="px-2 py-2 whitespace-nowrap text-[12px]">{p.season.matches}m · {p.season.runs}r · {p.season.wickets}w</td>
+      <td className="px-2 py-2">{t(p.condition.morale >= 65 ? 'morale.HIGH' : p.condition.morale >= 40 ? 'morale.STEADY' : 'morale.LOW')}</td>
+      <td className="px-2 py-2 whitespace-nowrap">{p.contract ? <><Money lakh={p.contract.salary} /> · {t('mgr.yearsShort', { n: p.contract.years })}</> : '-'}</td>
+      <td className="px-2 py-2 whitespace-nowrap text-[12px]">{t('mgr.squad.seasonLine', { m: p.season.matches, r: p.season.runs, w: p.season.wickets })}</td>
     </tr>
   );
 }

@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import type { Ball, Innings, Venue } from '@/types';
 import { WagonWheel, WAGON_LEGEND } from '../ground/WagonWheel';
+import { tr } from '@/i18n/core';
 
 export interface OverSummary {
   over: number;
@@ -71,7 +72,7 @@ export const Worm = memo(function Worm({
   const colours = ['#1e5ef0', '#f59e0b', '#22a45d', '#e5484d'];
 
   return (
-    <div style={{ height }} role="img" aria-label="Runs scored over by over">
+    <div style={{ height }} role="img" aria-label={tr('chart.wormLabel')}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
           <CartesianGrid stroke="#e8ecf5" vertical={false} />
@@ -79,7 +80,7 @@ export const Worm = memo(function Worm({
           <YAxis tick={AXIS} axisLine={false} tickLine={false} width={40} allowDecimals={false} />
           <Tooltip
             contentStyle={{ borderRadius: 12, border: '1px solid #e8ecf5', fontSize: 12 }}
-            labelFormatter={(over) => `Over ${over}`}
+            labelFormatter={(over) => tr('chart.overN', { n: String(over) })}
           />
           {innings.map((i, index) => (
             <Area
@@ -111,7 +112,7 @@ export const Manhattan = memo(function Manhattan({
   const data = useMemo(() => overSummaries(deliveries), [deliveries]);
 
   return (
-    <div style={{ height }} role="img" aria-label="Runs per over, with wickets marked">
+    <div style={{ height }} role="img" aria-label={tr('chart.manhattanLabel')}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
           <CartesianGrid stroke="#e8ecf5" vertical={false} />
@@ -119,9 +120,9 @@ export const Manhattan = memo(function Manhattan({
           <YAxis tick={AXIS} axisLine={false} tickLine={false} width={40} allowDecimals={false} />
           <Tooltip
             contentStyle={{ borderRadius: 12, border: '1px solid #e8ecf5', fontSize: 12 }}
-            labelFormatter={(over) => `Over ${over}`}
+            labelFormatter={(over) => tr('chart.overN', { n: String(over) })}
           />
-          <Bar dataKey="runs" name="Runs" radius={[3, 3, 0, 0]}>
+          <Bar dataKey="runs" name={tr('chart.runs')} radius={[3, 3, 0, 0]}>
             {data.map((row) => (
               <Cell key={row.over} fill={row.wickets > 0 ? '#e5484d' : '#1e5ef0'} />
             ))}
@@ -150,7 +151,7 @@ export const OverByOver = memo(function OverByOver({
     return [...byOver.entries()].sort((a, b) => b[0] - a[0]).slice(0, limit);
   }, [deliveries, limit]);
 
-  if (overs.length === 0) return <p className="text-[13px] text-ink-muted">No overs bowled.</p>;
+  if (overs.length === 0) return <p className="text-[13px] text-ink-muted">{tr('chart.noOvers')}</p>;
 
   return (
     <ul className="flex flex-col gap-1.5">
@@ -235,7 +236,7 @@ export function WagonWheelPanel({
 export function chartInnings(completed: Innings[], current: Innings | null) {
   const all = current ? [...completed, current] : completed;
   return all.map((innings, index) => ({
-    label: `Innings ${innings.number || index + 1}`,
+    label: tr('chart.innings', { n: innings.number || index + 1 }),
     deliveries: innings.deliveries,
   }));
 }

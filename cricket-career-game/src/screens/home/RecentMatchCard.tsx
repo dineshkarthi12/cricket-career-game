@@ -1,3 +1,4 @@
+import { useT } from '@/i18n/react';
 import { ArrowRight, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge, Card, Crest } from '@/components';
@@ -10,13 +11,14 @@ import type { GameState, Innings } from '@/types';
 /** The last completed match: both innings, your own contribution, the result. */
 export function RecentMatchCard({ state }: { state: GameState }) {
   const match = recentMatch(state);
+  const t = useT();
 
   if (!match) {
     return (
       <Card>
-        <h2 className="text-[17px] font-semibold text-ink">Recent Match</h2>
+        <h2 className="text-[17px] font-semibold text-ink">{t('recent.title')}</h2>
         <p className="mt-3 text-[13.5px] text-ink-muted">
-          No matches played yet. Your first one is still ahead of you.
+          {t('recent.none')}
         </p>
       </Card>
     );
@@ -35,7 +37,7 @@ export function RecentMatchCard({ state }: { state: GameState }) {
 
   return (
     <Card className="flex flex-col">
-      <h2 className="text-[14px] leading-tight font-semibold text-ink">Recent Match</h2>
+      <h2 className="text-[14px] leading-tight font-semibold text-ink">{t('recent.title')}</h2>
       {tournament ? (
         <p className="mt-1 flex items-center gap-2 text-[12.5px] text-ink-muted">
           <span className="grid size-[22px] shrink-0 place-items-center rounded-full bg-brand-blue-soft text-brand-blue">
@@ -63,7 +65,7 @@ export function RecentMatchCard({ state }: { state: GameState }) {
       {performance ? (
         <p className="mt-2.5 text-center text-[13px] text-ink">
           <span className="font-semibold">
-            You: {performance.runs}
+            {t('recent.you')} {performance.runs}
             {performance.notOut ? '*' : ''}
           </span>{' '}
           <span className="text-ink-muted">({performance.ballsFaced})</span>
@@ -87,7 +89,7 @@ export function RecentMatchCard({ state }: { state: GameState }) {
         to={`/matches/${match.id}`}
         className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-brand-blue-soft px-4 py-2 text-[13.5px] font-semibold text-brand-blue transition-colors hover:bg-brand-blue/15"
       >
-        View Scorecard
+        {t('recent.scorecard')}
         <ArrowRight className="size-4" aria-hidden />
       </Link>
     </Card>

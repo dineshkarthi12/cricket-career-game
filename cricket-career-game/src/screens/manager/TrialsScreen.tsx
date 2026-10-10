@@ -4,9 +4,11 @@ import { ClipboardList } from 'lucide-react';
 import { Card, CardHeader, EmptyState } from '@/components';
 import { MANAGER, acceptCounter, askingSalary, offerDevelopmentContract, runTrial, trialsLeft, trialsOpen } from '@/engine/manager';
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n/react';
 import { Button, DataTable, Estimate, LockedNotice, PageHeader, RoleTag, ToneBadge, useManager } from './ui';
 
 export default function TrialsScreen() {
+  const t = useT();
   const { state, apply } = useManager();
   const [picked, setPicked] = useState<string[]>([]);
   const [offers, setOffers] = useState<Record<string, string>>({});
@@ -21,14 +23,14 @@ export default function TrialsScreen() {
 
   return (
     <div className="flex flex-col gap-3 pb-4">
-      <PageHeader title="Trials & recruitment" subtitle={`Up to four players a trial day, ${MANAGER.rules.trialsPerSeason} days a season (${MANAGER.rules.trialCost} lakh a player). Impressive uncapped triallists can be offered development contracts before the auction - they may say no.`} />
+      <PageHeader title={t('mgr.trials.title')} subtitle={t('mgr.trials.sub', { days: MANAGER.rules.trialsPerSeason, cost: MANAGER.rules.trialCost })} />
       <LockedNotice responsibility="TRIALS" state={state} />
-      {!open ? <p role="status" className="rounded-card bg-brand-blue-soft px-4 py-3 text-[13px] text-ink">Trials are held during scouting and trials weeks. The next window opens with the new season.</p> : null}
+      {!open ? <p role="status" className="rounded-card bg-brand-blue-soft px-4 py-3 text-[13px] text-ink">{t('mgr.trials.closed')}</p> : null}
 
       <Card>
-        <CardHeader title="Invite to trial" subtitle={`${trialsLeft(state)} trial day${trialsLeft(state) === 1 ? '' : 's'} left · ${picked.length}/4 selected`} className="mb-2" />
+        <CardHeader title={t('mgr.trials.invite')} subtitle={`${t(trialsLeft(state) === 1 ? 'mgr.trials.daysLeft.one' : 'mgr.trials.daysLeft.many', { n: trialsLeft(state) })} · ${t('mgr.trials.selected', { n: picked.length })}`} className="mb-2" />
         {candidates.length === 0 ? (
-          <EmptyState icon={ClipboardList} title="No candidates" message="Shortlist unsigned players, or scout regions to find prospects." action={{ label: 'Go scouting', to: '/manager/scouting' }} />
+          <EmptyState icon={ClipboardList} title={t('mgr.trials.noCandidates')} message={t('mgr.trials.noCandidatesBody')} action={{ label: t('mgr.trials.goScouting'), to: '/manager/scouting' }} />
         ) : (
           <>
             <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -50,43 +52,43 @@ export default function TrialsScreen() {
               ))}
             </ul>
             <Button className="mt-3" disabled={!open || picked.length === 0 || trialsLeft(state) === 0} onClick={() => apply(runTrial(state, picked)) && setPicked([])}>
-              Hold trial day
+              {t('mgr.trials.hold')}
             </Button>
           </>
         )}
       </Card>
 
       <Card>
-        <CardHeader title={`Trial results ${state.season.year}`} subtitle={`${state.season.developmentSignings}/${MANAGER.rules.developmentSignings} development signings used`} className="mb-2" />
+        <CardHeader title={t('mgr.trials.results', { year: state.season.year })} subtitle={t('mgr.trials.devUsed', { n: state.season.developmentSignings, max: MANAGER.rules.developmentSignings })} className="mb-2" />
         {state.season.trials.length === 0 ? (
-          <p className="text-[13px] text-ink-muted">No trials held yet this season.</p>
+          <p className="text-[13px] text-ink-muted">{t('mgr.trials.none')}</p>
         ) : (
-          <DataTable caption="Trial results" head={['Player', 'Bat', 'Bowl', 'Field', 'Fitness', 'Verdict', 'Offer']}>
-            {state.season.trials.map((t) => {
-              const p = state.players[t.playerId];
-              const value = offers[t.playerId] ?? String(askingSalary(state, t.playerId));
+          <DataTable caption={t('mgr.trials.resultsCaption')} head={[t('mgr.col.player'), t('mgr.col.bat'), t('mgr.col.bowl'), t('mgr.col.field'), t('mgr.col.fitness'), t('mgr.col.verdict'), t('mgr.col.offer')]}>
+            {state.season.trials.map((tr) => {
+              const p = state.players[tr.playerId];
+              const value = offers[tr.playerId] ?? String(askingSalary(state, tr.playerId));
               const canOffer = !p.contract && !p.capped;
               return (
-                <tr key={t.playerId} className="border-b border-line/60 last:border-0">
+                <tr key={tr.playerId} className="border-b border-line/60 last:border-0">
                   <td className="px-2 py-2 font-semibold text-ink">{p.name}</td>
-                  <td className="px-2 py-2 tabular-nums">{t.batting}</td>
-                  <td className="px-2 py-2 tabular-nums">{t.bowling > 1 ? t.bowling : '-'}</td>
-                  <td className="px-2 py-2 tabular-nums">{t.fielding}</td>
-                  <td className="px-2 py-2 tabular-nums">{t.fitness}</td>
+                  <td className="px-2 py-2 tabular-nums">{tr.batting}</td>
+                  <td className="px-2 py-2 tabular-nums">{tr.bowling > 1 ? tr.bowling : '-'}</td>
+                  <td className="px-2 py-2 tabular-nums">{tr.fielding}</td>
+                  <td className="px-2 py-2 tabular-nums">{tr.fitness}</td>
                   <td className="px-2 py-2">
-                    <ToneBadge tone={t.verdict === 'IMPRESSIVE' ? 'green' : t.verdict === 'PROMISING' ? 'blue' : t.verdict === 'ORDINARY' ? 'grey' : 'red'}>{t.verdict.toLowerCase()}</ToneBadge>
+                    <ToneBadge tone={tr.verdict === 'IMPRESSIVE' ? 'green' : tr.verdict === 'PROMISING' ? 'blue' : tr.verdict === 'ORDINARY' ? 'grey' : 'red'}>{t(`mgr.verdict.${tr.verdict}`)}</ToneBadge>
                   </td>
                   <td className="px-2 py-2">
                     {p.contract ? (
-                      <span className="text-[12px] text-brand-green">Signed</span>
+                      <span className="text-[12px] text-brand-green">{t('mgr.trials.signed')}</span>
                     ) : canOffer ? (
-                      <form className="flex items-center gap-1.5" onSubmit={(e) => { e.preventDefault(); apply(offerDevelopmentContract(state, t.playerId, Number(value) || 0)); }}>
-                        <label className="sr-only" htmlFor={`offer-${t.playerId}`}>Salary in lakh</label>
-                        <input id={`offer-${t.playerId}`} inputMode="numeric" value={value} onChange={(e) => setOffers({ ...offers, [t.playerId]: e.target.value.replace(/\D/g, '') })} className="min-h-10 w-16 rounded-lg border border-line px-2 text-[12.5px]" />
-                        <Button type="submit" className="min-h-10 px-3" disabled={!open}>Offer</Button>
+                      <form className="flex items-center gap-1.5" onSubmit={(e) => { e.preventDefault(); apply(offerDevelopmentContract(state, tr.playerId, Number(value) || 0)); }}>
+                        <label className="sr-only" htmlFor={`offer-${tr.playerId}`}>{t('mgr.salaryLakh')}</label>
+                        <input id={`offer-${tr.playerId}`} inputMode="numeric" value={value} onChange={(e) => setOffers({ ...offers, [tr.playerId]: e.target.value.replace(/\D/g, '') })} className="min-h-10 w-16 rounded-lg border border-line px-2 text-[12.5px]" />
+                        <Button type="submit" className="min-h-10 px-3" disabled={!open}>{t('mgr.col.offer')}</Button>
                       </form>
                     ) : (
-                      <span className="text-[12px] text-ink-muted">Auction only</span>
+                      <span className="text-[12px] text-ink-muted">{t('mgr.trials.auctionOnly')}</span>
                     )}
                   </td>
                 </tr>
@@ -98,12 +100,12 @@ export default function TrialsScreen() {
 
       {negotiations.length ? (
         <Card>
-          <CardHeader title="Offers" className="mb-2" />
+          <CardHeader title={t('mgr.offers')} className="mb-2" />
           <ul className="grid gap-2">
             {negotiations.map((n) => (
               <li key={n.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-page px-3 py-2">
                 <span className="text-[13px] text-ink">{n.note || state.players[n.playerId]?.name}</span>
-                {n.status === 'COUNTERED' ? <Button className="min-h-9" onClick={() => apply(acceptCounter(state, n.id))}>Meet {n.counterSalary} lakh</Button> : <ToneBadge tone={n.status === 'ACCEPTED' ? 'green' : n.status === 'REJECTED' ? 'red' : 'grey'}>{n.status.toLowerCase()}</ToneBadge>}
+                {n.status === 'COUNTERED' ? <Button className="min-h-9" onClick={() => apply(acceptCounter(state, n.id))}>{t('mgr.meetLakh', { n: n.counterSalary ?? 0 })}</Button> : <ToneBadge tone={n.status === 'ACCEPTED' ? 'green' : n.status === 'REJECTED' ? 'red' : 'grey'}>{t(`mgr.negStatus.${n.status}`)}</ToneBadge>}
               </li>
             ))}
           </ul>

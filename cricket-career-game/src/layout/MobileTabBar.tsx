@@ -1,3 +1,4 @@
+import { useT } from '@/i18n/react';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { MoreHorizontal, X } from 'lucide-react';
@@ -10,6 +11,7 @@ const TAB =
 /** Bottom tab bar shown instead of the sidebar on phones. */
 export function MobileTabBar() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const t = useT();
 
   return (
     <>
@@ -17,17 +19,17 @@ export function MobileTabBar() {
         <div className="fixed inset-0 z-40 md:hidden">
           <button
             type="button"
-            aria-label="Close menu"
+            aria-label={t('nav.closeMenu')}
             onClick={() => setMoreOpen(false)}
             className="absolute inset-0 cursor-default bg-brand-navy/50"
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-card bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+76px)] shadow-card-hover">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-[15px] font-semibold text-ink">More</p>
+              <p className="text-[15px] font-semibold text-ink">{t('nav.more')}</p>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                aria-label="Close menu"
+                aria-label={t('nav.closeMenu')}
                 className="grid size-8 place-items-center rounded-lg text-ink-muted hover:bg-page"
               >
                 <X className="size-4" />
@@ -47,7 +49,7 @@ export function MobileTabBar() {
                     }
                   >
                     <item.icon className="size-[18px]" strokeWidth={1.8} />
-                    {item.label}
+                    {t(item.key)}
                   </NavLink>
                 </li>
               ))}
@@ -57,7 +59,7 @@ export function MobileTabBar() {
       ) : null}
 
       <nav
-        aria-label="Primary"
+        aria-label={t('nav.primary')}
         className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         {MOBILE_NAV_ITEMS.map((item) => (
@@ -70,7 +72,7 @@ export function MobileTabBar() {
             }
           >
             <item.icon className="size-[20px]" strokeWidth={1.8} />
-            {item.label === 'Career Path' ? 'Career' : item.label}
+            {t(item.key === 'nav.career' ? 'nav.careerShort' : item.key)}
           </NavLink>
         ))}
         <button
@@ -80,7 +82,7 @@ export function MobileTabBar() {
           aria-expanded={moreOpen}
         >
           <MoreHorizontal className="size-[20px]" strokeWidth={1.8} />
-          More
+          {t('nav.more')}
         </button>
       </nav>
     </>

@@ -12,13 +12,17 @@ import { FRANCHISES, FRANCHISES_BY_ID } from '@/data/franchises';
 import { IPL_RULES } from '@/engine/config';
 import { iplYearLabel } from '@/engine/pro/ipl';
 import { daysBetweenDates } from '@/engine/development';
-import { IPL_STATUS_LABEL, formatLakh, franchiseName } from '@/lib/pro';
+import { formatLakh, franchiseName } from '@/lib/pro';
+import { rich, useT } from '@/i18n/react';
+import type { Key, Vars } from '@/i18n/core';
 import { formatLongDate, roleLabel } from '@/lib/format';
 import { playSfx } from '@/lib/audio/player';
 import { cn } from '@/lib/cn';
 import { useReducedMotion } from '@/store/appSettings';
 import { useGameStore } from '@/store/gameStore';
 import type { AuctionRoomLot, AuctionSummary, GameState, PlayerRole } from '@/types';
+
+type T = (key: Key, vars?: Vars) => string;
 
 const SPEEDS = [1, 2, 4, 8];
 
@@ -32,14 +36,15 @@ const PACE = {
 
 export default function LiveAuctionScreen() {
   const state = useGameStore((s) => s.state);
-  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">Loading your career…</p>;
+  const t = useT();
+  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">{t('common.loadingCareer')}</p>;
   const summary = state.pro.ipl.auctions.at(-1);
   if (!summary?.room?.length) {
     return (
       <Card>
-        <CardHeader title="IPL auction - live" subtitle="Nothing to watch yet" className="mb-2" />
-        <p className="text-[13px] text-ink-muted">The auction is held on 16 December every season. When the day comes the clock stops and the room opens here, lot by lot.</p>
-        <Link to="/auction" className="mt-3 inline-block text-[13px] font-semibold text-brand-blue">Back to the IPL</Link>
+        <CardHeader title={t('pro.live.title')} subtitle={t('pro.live.nothing')} className="mb-2" />
+        <p className="text-[13px] text-ink-muted">{t('pro.live.when')}</p>
+        <Link to="/auction" className="mt-3 inline-block text-[13px] font-semibold text-brand-blue">{t('pro.live.back')}</Link>
       </Card>
     );
   }
@@ -115,6 +120,7 @@ function Room({ state, summary, room }: { state: GameState; summary: AuctionSumm
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
   const [over, setOver] = useState(false);
+  const tx = useT();
 
   const books = useMemo(() => booksAfter(summary, room), [summary, room]);
   const userIndex = room.findIndex((l) => l.isUser);
@@ -168,7 +174,7 @@ function Room({ state, summary, room }: { state: GameState; summary: AuctionSumm
   const shownBooks: Books = done ? books[index] : index > 0 ? books[index - 1] : booksBefore(summary);
   const sales = room.slice(0, done ? index + 1 : index).filter((l) => l.soldTo && l.price);
   const nextSet = room.findIndex((l, i) => i > index && l.set !== lot.set);
-  const title = `${iplYearLabel(summary.seasonYear)} ${summary.mega ? 'Mega Auction' : 'Auction'}`;
+  const title = tx(summary.mega ? 'pro.live.titleMega' : 'pro.live.titleMini', { year: iplYearLabel(summary.seasonYear) });
   // A match the user was playing when the auction was held.
   const atMatch = Object.values(state.fixtures).find((f) => f.kind === 'MATCH' && f.involvesUser && f.date < summary.date && f.endDate >= summary.date);
 
@@ -178,12 +184,12 @@ function Room({ state, summary, room }: { state: GameState; summary: AuctionSumm
         <div>
           <h1 className="flex items-center gap-2 text-[22px] leading-tight font-bold text-ink">
             <span className="inline-flex items-center gap-1 rounded bg-brand-red px-2 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">
-              <span className={cn('size-1.5 rounded-full bg-white', !reduceMotion && playing && 'animate-pulse')} /> Live
+              <span className={cn('size-1.5 rounded-full bg-white', !reduceMotion && playing && 'animate-pulse')} /> {tx('pro.live.live')}
             </span>
             {title}
           </h1>
           <p className="text-[13px] text-ink-muted">
-            {formatLongDate(summary.date)} · {room.length} lots · purse {formatLakh(Math.max(...Object.values(summary.pursesBefore ?? { x: 0 })))} at most · {IPL_RULES.squadSize} a squad, {IPL_RULES.maxOverseasSquad} overseas
+            {tx('pro.live.sub', { date: formatLongDate(summary.date), lots: room.length, purse: formatLakh(Math.max(...Object.values(summary.pursesBefore ?? { x: 0 }))), squad: IPL_RULES.squadSize, overseas: IPL_RULES.maxOverseasSquad })}
           </p>
         </div>
         <Controls
@@ -200,14 +206,14 @@ function Room({ state, summary, room }: { state: GameState; summary: AuctionSumm
 
       {atMatch ? (
         <p className="rounded-tile bg-brand-blue-soft px-3 py-2 text-[12.5px] text-ink">
-          <span className="font-semibold">{atMatch.title}</span> was on when the room met (day {daysBetweenDates(atMatch.date, summary.date) + 1}) - the squad watches it together in the dressing room after stumps.
+          {rich(tx('pro.live.atMatch', { day: daysBetweenDates(atMatch.date, summary.date) + 1 }), { title: <span className="font-semibold">{atMatch.title}</span> })}
         </p>
       ) : null}
 
       <div className="grid gap-3 lg:grid-cols-[1.45fr_1fr]">
         <Stage lot={lot} step={step} phase={phase} number={index + 1} total={room.length} reduceMotion={reduceMotion} user={state} />
         <Card>
-          <CardHeader title="The ten franchises" subtitle="Purse left · squad · overseas" className="mb-2" />
+          <CardHeader title={tx('pro.live.ten')} subtitle={tx('pro.live.tenSub')} className="mb-2" />
           <ul className="flex flex-col gap-1">
             {[...FRANCHISES].sort((a, b) => (shownBooks.purses[b.id] ?? 0) - (shownBooks.purses[a.id] ?? 0)).map((f) => {
               const team = state.teams[f.id];
@@ -237,15 +243,15 @@ function Room({ state, summary, room }: { state: GameState; summary: AuctionSumm
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Sold so far" subtitle={`${sales.length} player${sales.length === 1 ? "" : "s"} · ${formatLakh(sales.reduce((n, l) => n + (l.price ?? 0), 0))} spent`} className="mb-2" />
-          {sales.length === 0 ? <p className="text-[13px] text-ink-muted">The first lot is under the hammer.</p> : null}
+          <CardHeader title={tx('pro.live.soldSoFar')} subtitle={tx(sales.length === 1 ? 'pro.live.soldSub.one' : 'pro.live.soldSub.many', { n: sales.length, spent: formatLakh(sales.reduce((n, l) => n + (l.price ?? 0), 0)) })} className="mb-2" />
+          {sales.length === 0 ? <p className="text-[13px] text-ink-muted">{tx('pro.live.firstLot')}</p> : null}
           <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto">
             {[...sales].reverse().slice(0, 30).map((l) => <SaleRow key={l.playerId} lot={l} />)}
           </ul>
         </Card>
         <Card>
-          <CardHeader title="Biggest buys" subtitle="So far in the room" className="mb-2" />
-          {sales.length === 0 ? <p className="text-[13px] text-ink-muted">No sales yet.</p> : null}
+          <CardHeader title={tx('pro.av.biggest')} subtitle={tx('pro.live.soFar')} className="mb-2" />
+          {sales.length === 0 ? <p className="text-[13px] text-ink-muted">{tx('pro.live.noSales')}</p> : null}
           <ul className="flex flex-col gap-1">
             {[...sales].sort((a, b) => (b.price ?? 0) - (a.price ?? 0)).slice(0, 8).map((l, i) => <SaleRow key={l.playerId} lot={l} rank={i + 1} />)}
           </ul>
@@ -266,13 +272,14 @@ function Controls(props: {
   onEnd: () => void;
 }) {
   const btn = 'inline-flex items-center gap-1 rounded-xl border border-line bg-surface px-3 py-2 text-[12.5px] font-semibold text-ink hover:bg-page';
+  const t = useT();
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <button type="button" onClick={props.onPlay} className="inline-flex items-center gap-1 rounded-xl bg-brand-blue px-3 py-2 text-[12.5px] font-semibold text-white">
         {props.playing ? <Pause className="size-3.5" aria-hidden /> : <Play className="size-3.5" aria-hidden />}
-        {props.playing ? 'Pause' : 'Play'}
+        {props.playing ? t('pro.live.pause') : t('pro.live.play')}
       </button>
-      <div className="flex overflow-hidden rounded-xl border border-line" role="group" aria-label="Speed">
+      <div className="flex overflow-hidden rounded-xl border border-line" role="group" aria-label={t('pro.live.speed')}>
         {SPEEDS.map((s) => (
           <button key={s} type="button" onClick={() => props.onSpeed(s)} aria-pressed={props.speed === s} className={cn('px-2.5 py-2 text-[12.5px] font-semibold', props.speed === s ? 'bg-brand-navy text-white' : 'bg-surface text-ink hover:bg-page')}>
             {s}x
@@ -280,41 +287,41 @@ function Controls(props: {
         ))}
       </div>
       <button type="button" onClick={props.onNextLot} className={btn}>
-        <SkipForward className="size-3.5" aria-hidden /> Next lot
+        <SkipForward className="size-3.5" aria-hidden /> {t('pro.live.nextLot')}
       </button>
       <button type="button" onClick={props.onNextSet} className={btn}>
-        <FastForward className="size-3.5" aria-hidden /> Next set
+        <FastForward className="size-3.5" aria-hidden /> {t('pro.live.nextSet')}
       </button>
       {props.onMyLot ? (
         <button type="button" onClick={props.onMyLot} className="inline-flex items-center gap-1 rounded-xl bg-brand-gold px-3 py-2 text-[12.5px] font-bold text-brand-navy">
-          <UserRound className="size-3.5" aria-hidden /> Jump to my lot
+          <UserRound className="size-3.5" aria-hidden /> {t('pro.live.myLot')}
         </button>
       ) : null}
       <button type="button" onClick={props.onEnd} className={btn}>
-        Results
+        {t('pro.live.results')}
       </button>
     </div>
   );
 }
 
-function auctioneer(lot: AuctionRoomLot, phase: Phase, step: number, number: number): string {
+function auctioneer(t: T, lot: AuctionRoomLot, phase: Phase, step: number, number: number): string {
   const bid = lot.bids[Math.min(step, lot.bids.length) - 1];
   const holder = bid ? FRANCHISES_BY_ID[bid.franchiseId]?.name ?? '' : '';
   switch (phase) {
     case 'present':
-      return `Lot ${number}. ${lot.name}, ${roleLabel(lot.role as PlayerRole).toLowerCase()}, base price ${formatLakh(lot.basePrice)}. Who will start?`;
+      return t('pro.auc.present', { n: number, name: lot.name, role: roleLabel(lot.role as PlayerRole).toLowerCase(), price: formatLakh(lot.basePrice) });
     case 'bid':
-      return step === 1 ? `${holder} open the bidding at ${formatLakh(bid.amount)}.` : `${formatLakh(bid.amount)} - with ${holder}.`;
+      return step === 1 ? t('pro.auc.open', { team: holder, price: formatLakh(bid.amount) }) : t('pro.auc.bid', { price: formatLakh(bid.amount), team: holder });
     case 'once':
-      return `${formatLakh(lot.price ?? 0)} with ${franchiseName(lot.soldTo)}… going once…`;
+      return t('pro.auc.once', { price: formatLakh(lot.price ?? 0), team: franchiseName(lot.soldTo) });
     case 'twice':
-      return `Going twice… last chance at ${formatLakh(lot.price ?? 0)}…`;
+      return t('pro.auc.twice', { price: formatLakh(lot.price ?? 0) });
     case 'sold':
-      return `SOLD! ${lot.name} to ${franchiseName(lot.soldTo)} for ${formatLakh(lot.price ?? 0)}.`;
+      return t('pro.auc.sold', { name: lot.name, team: franchiseName(lot.soldTo), price: formatLakh(lot.price ?? 0) });
     case 'silence':
-      return `${formatLakh(lot.basePrice)}… any paddles?… no takers in the room.`;
+      return t('pro.auc.silence', { price: formatLakh(lot.basePrice) });
     case 'unsold':
-      return `${lot.name} goes unsold.`;
+      return t('pro.auc.unsold', { name: lot.name });
   }
 }
 
@@ -327,17 +334,18 @@ function Stage({ lot, step, phase, number, total, reduceMotion, user }: { lot: A
   const unsold = phase === 'unsold';
   const colors = sold && lot.soldTo ? FRANCHISES_BY_ID[lot.soldTo]?.colors : holder?.colors;
   const photoInitials = lot.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const t = useT();
   return (
     <Card flush className={cn('overflow-hidden', lot.isUser && 'ring-4 ring-brand-gold')}>
       <div className="relative bg-brand-navy px-5 pt-4 pb-5 text-white" aria-live="polite">
         {colors ? <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: `linear-gradient(90deg, ${colors[0]}, ${colors[1]})` }} /> : null}
         <div className="flex items-center justify-between gap-2 text-[11.5px] font-semibold tracking-wide text-brand-gold uppercase">
           <span>{lot.set}</span>
-          <span className="text-white/60">Lot {number} of {total}</span>
+          <span className="text-white/60">{t('pro.stage.lotOf', { n: number, total })}</span>
         </div>
         {lot.isUser ? (
           <p className={cn('mt-2 rounded-tile bg-brand-gold px-3 py-1.5 text-center text-[13px] font-bold text-brand-navy', !reduceMotion && phase === 'present' && 'animate-pulse')}>
-            Your name is up! {user.player.firstName}, this is your lot.
+            {t('pro.stage.yourName', { name: user.player.firstName })}
           </p>
         ) : null}
         <div className="mt-3 flex items-center gap-4">
@@ -345,45 +353,45 @@ function Stage({ lot, step, phase, number, total, reduceMotion, user }: { lot: A
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 truncate text-[24px] leading-tight font-bold">
               {lot.name}
-              {lot.real && lot.capped && lot.overall >= 80 ? <Star className="size-4 shrink-0 fill-brand-gold text-brand-gold" aria-label="Star" /> : null}
+              {lot.real && lot.capped && lot.overall >= 80 ? <Star className="size-4 shrink-0 fill-brand-gold text-brand-gold" aria-label={t('pro.stage.star')} /> : null}
             </p>
             <p className="text-[13px] text-white/80">
               {roleLabel(lot.role as PlayerRole)} · {lot.age} · {lot.from} {lot.overseas ? '✈' : ''}
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] font-semibold">
-              <span className="rounded bg-white/15 px-2 py-0.5">{lot.capped ? 'Capped' : 'Uncapped'}</span>
-              {lot.overseas ? <span className="rounded bg-white/15 px-2 py-0.5">Overseas</span> : null}
-              <span className="rounded bg-white/15 px-2 py-0.5">T20 rating {lot.overall}</span>
-              <span className="rounded bg-white/15 px-2 py-0.5">Base {formatLakh(lot.basePrice)}</span>
+              <span className="rounded bg-white/15 px-2 py-0.5">{lot.capped ? t('pro.stage.capped') : t('pro.stage.uncapped')}</span>
+              {lot.overseas ? <span className="rounded bg-white/15 px-2 py-0.5">{t('pro.overseas')}</span> : null}
+              <span className="rounded bg-white/15 px-2 py-0.5">{t('pro.stage.rating', { n: lot.overall })}</span>
+              <span className="rounded bg-white/15 px-2 py-0.5">{t('pro.stage.base', { price: formatLakh(lot.basePrice) })}</span>
             </div>
           </div>
         </div>
 
         <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-[12px] text-white/60">{sold ? 'Sold for' : current ? 'Current bid' : 'Base price'}</p>
+            <p className="text-[12px] text-white/60">{sold ? t('pro.stage.soldFor') : current ? t('pro.stage.current') : t('pro.stage.basePrice')}</p>
             <p className={cn('text-[38px] leading-none font-extrabold text-brand-gold tabular-nums', !reduceMotion && phase === 'bid' && 'transition-transform')}>
               {formatLakh(sold ? lot.price ?? 0 : current?.amount ?? lot.basePrice)}
             </p>
-            <p className="mt-1 text-[13px] text-white/85">{sold ? `to ${franchiseName(lot.soldTo)}` : holder ? `${holder.name} hold the bid` : unsold ? 'No bids' : 'Waiting for a paddle'}</p>
+            <p className="mt-1 text-[13px] text-white/85">{sold ? t('pro.stage.to', { team: franchiseName(lot.soldTo) }) : holder ? t('pro.lot.holds', { team: holder.name }) : unsold ? t('pro.lot.noBids') : t('pro.stage.waiting')}</p>
           </div>
           {sold || unsold ? (
             <div className={cn('flex items-center gap-2 rounded-tile px-4 py-2 text-[22px] font-extrabold tracking-wide', sold ? 'bg-brand-green text-white' : 'bg-brand-red text-white', !reduceMotion && 'animate-bounce')}>
               <Gavel className="size-6" aria-hidden />
-              {sold ? 'SOLD' : 'UNSOLD'}
+              {sold ? t('pro.stage.sold') : t('pro.lot.unsold')}
             </div>
           ) : phase === 'once' || phase === 'twice' ? (
-            <p className="rounded-tile bg-white/10 px-3 py-2 text-[16px] font-bold">{phase === 'once' ? 'Going once…' : 'Going twice…'}</p>
+            <p className="rounded-tile bg-white/10 px-3 py-2 text-[16px] font-bold">{phase === 'once' ? t('pro.stage.once') : t('pro.stage.twice')}</p>
           ) : null}
         </div>
         <p className="mt-4 rounded-tile bg-white/10 px-3 py-2 text-[13px] text-white/90 italic">
-          <span className="font-semibold not-italic text-brand-gold">Auctioneer: </span>
-          {auctioneer(lot, phase, step, number)}
+          <span className="font-semibold not-italic text-brand-gold">{t('pro.stage.auctioneer')}</span>
+          {auctioneer(t, lot, phase, step, number)}
         </p>
       </div>
 
       <div className="px-5 py-3">
-        <p className="mb-2 text-[12px] font-semibold text-ink-muted">Paddles</p>
+        <p className="mb-2 text-[12px] font-semibold text-ink-muted">{t('pro.stage.paddles')}</p>
         <div className="flex flex-wrap gap-1.5">
           {FRANCHISES.map((f) => {
             const active = inBidding.has(f.id);
@@ -400,7 +408,7 @@ function Stage({ lot, step, phase, number, total, reduceMotion, user }: { lot: A
           })}
         </div>
         {bidsSoFar.length ? (
-          <ol className="mt-3 flex max-h-36 flex-col gap-1 overflow-y-auto text-[12.5px]" aria-label="Bids on this lot">
+          <ol className="mt-3 flex max-h-36 flex-col gap-1 overflow-y-auto text-[12.5px]" aria-label={t('pro.stage.bidsAria')}>
             {[...bidsSoFar].reverse().map((b, i) => (
               <li key={bidsSoFar.length - i} className={cn('flex justify-between rounded px-3 py-1', i === 0 ? 'bg-brand-blue-soft font-semibold' : 'bg-page')}>
                 <span className="text-ink">{franchiseName(b.franchiseId)}</span>
@@ -435,12 +443,13 @@ function Result({ state, summary, room, onReplay, onLeave }: { state: GameState;
   const user = summary.userLot;
   const buys = sold.filter((l) => l.soldTo === team).sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
   const squad = state.teams[team]?.squad ?? [];
+  const t = useT();
   return (
     <div className="flex flex-col gap-3 pb-4">
       <div>
-        <h1 className="text-[22px] leading-tight font-bold text-ink">{iplYearLabel(summary.seasonYear)} {summary.mega ? 'Mega Auction' : 'Auction'}: the results</h1>
+        <h1 className="text-[22px] leading-tight font-bold text-ink">{t(summary.mega ? 'pro.res.titleMega' : 'pro.res.titleMini', { year: iplYearLabel(summary.seasonYear) })}</h1>
         <p className="text-[13px] text-ink-muted">
-          {sold.length} sold · {unsold.length} unsold · {formatLakh(sold.reduce((n, l) => n + (l.price ?? 0), 0))} spent
+          {t('pro.res.sub', { sold: sold.length, unsold: unsold.length, spent: formatLakh(sold.reduce((n, l) => n + (l.price ?? 0), 0)) })}
         </p>
       </div>
       <Card className={cn(user?.soldTo ? 'ring-2 ring-brand-gold' : '')}>
@@ -450,66 +459,66 @@ function Result({ state, summary, room, onReplay, onLeave }: { state: GameState;
             {user ? (
               user.soldTo ? (
                 <>
-                  <p className="text-[18px] font-bold text-ink">SOLD to {franchiseName(user.soldTo)} for {formatLakh(user.price ?? 0)}!</p>
+                  <p className="text-[18px] font-bold text-ink">{t('pro.res.soldTo', { team: franchiseName(user.soldTo), price: formatLakh(user.price ?? 0) })}</p>
                   <p className="text-[13px] text-ink-muted">
-                    Base price {formatLakh(user.basePrice)} · {user.bids.length} bids from {new Set(user.bids.map((b) => b.franchiseId)).size} franchises. The franchise camp starts in March.
+                    {t('pro.res.soldBody', { base: formatLakh(user.basePrice), bids: user.bids.length, n: new Set(user.bids.map((b) => b.franchiseId)).size })}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-[18px] font-bold text-ink">Unsold at {formatLakh(user.basePrice)}</p>
-                  <p className="text-[13px] text-ink-muted">It happens to good players. Injuries bring replacement signings before and during the season - stay ready.</p>
+                  <p className="text-[18px] font-bold text-ink">{t('pro.res.unsoldAt', { price: formatLakh(user.basePrice) })}</p>
+                  <p className="text-[13px] text-ink-muted">{t('pro.res.unsoldBody')}</p>
                 </>
               )
             ) : (
               <>
-                <p className="text-[16px] font-bold text-ink">You were not in this auction</p>
-                <p className="text-[13px] text-ink-muted">Your status: {IPL_STATUS_LABEL[summary.userStatus]}.</p>
+                <p className="text-[16px] font-bold text-ink">{t('pro.res.notIn')}</p>
+                <p className="text-[13px] text-ink-muted">{t('pro.res.status', { status: t(`pro.iplStatus.${summary.userStatus}` as Key) })}</p>
               </>
             )}
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={onReplay} className="rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page">Watch again</button>
-            <button type="button" onClick={onLeave} className="rounded-xl bg-brand-gold px-4 py-2 text-[13px] font-bold text-brand-navy">Back to the career</button>
+            <button type="button" onClick={onReplay} className="rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page">{t('pro.res.watchAgain')}</button>
+            <button type="button" onClick={onLeave} className="rounded-xl bg-brand-gold px-4 py-2 text-[13px] font-bold text-brand-navy">{t('pro.res.back')}</button>
           </div>
         </div>
       </Card>
 
       <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr]">
         <Card>
-          <CardHeader title="Biggest buys" className="mb-2" />
+          <CardHeader title={t('pro.av.biggest')} className="mb-2" />
           <ul className="flex flex-col gap-1">
             {[...sold].sort((a, b) => (b.price ?? 0) - (a.price ?? 0)).slice(0, 12).map((l, i) => <SaleRow key={l.playerId} lot={l} rank={i + 1} />)}
           </ul>
         </Card>
         <Card>
-          <CardHeader title="Squads after the auction" subtitle="Bought in the room, and the full squad" className="mb-2" />
-          <Tabs tabs={FRANCHISES.map((f) => ({ id: f.id, label: f.short }))} value={team} onChange={setTeam} label="Franchise" />
+          <CardHeader title={t('pro.res.squads')} subtitle={t('pro.res.squadsSub')} className="mb-2" />
+          <Tabs tabs={FRANCHISES.map((f) => ({ id: f.id, label: f.short }))} value={team} onChange={setTeam} label={t('pro.ipl.franchise')} />
           <div className="mt-2 flex items-center gap-2 text-[12.5px] text-ink-muted">
             {state.teams[team] ? <Crest crest={state.teams[team].crest} size={26} label={franchiseName(team)} /> : null}
             <span className="font-semibold text-ink">{franchiseName(team)}</span>
-            <span>· {squad.length} players · {squad.filter((p) => p.overseas).length} overseas · purse left {formatLakh(summary.pursesAfter[team] ?? 0)}</span>
+            <span>{t('pro.res.teamLine', { n: squad.length, overseas: squad.filter((p) => p.overseas).length, purse: formatLakh(summary.pursesAfter[team] ?? 0) })}</span>
           </div>
-          <h3 className="mt-3 mb-1 text-[13px] font-semibold text-ink">Bought in the room ({buys.length})</h3>
-          {buys.length === 0 ? <p className="text-[13px] text-ink-muted">No buys.</p> : null}
+          <h3 className="mt-3 mb-1 text-[13px] font-semibold text-ink">{t('pro.res.bought', { n: buys.length })}</h3>
+          {buys.length === 0 ? <p className="text-[13px] text-ink-muted">{t('pro.res.noBuys')}</p> : null}
           <ul className="flex flex-col gap-1">
             {buys.map((l) => <SaleRow key={l.playerId} lot={l} />)}
           </ul>
-          <h3 className="mt-3 mb-1 text-[13px] font-semibold text-ink">Full squad</h3>
+          <h3 className="mt-3 mb-1 text-[13px] font-semibold text-ink">{t('pro.res.fullSquad')}</h3>
           <div className="flex flex-wrap gap-1.5">
             {[...squad].sort((a, b) => (b.salary ?? 0) - (a.salary ?? 0)).map((p) => (
               <Badge key={p.id} tone={p.overseas ? 'blue' : 'grey'} className="px-2 py-0.5 text-[11.5px]">
                 {p.name} · {formatLakh(p.salary ?? 20)}
               </Badge>
             ))}
-            {state.pro.ipl.franchiseId === team ? <Badge tone="gold" className="px-2 py-0.5 text-[11.5px]">{state.player.firstName} {state.player.lastName} (you)</Badge> : null}
+            {state.pro.ipl.franchiseId === team ? <Badge tone="gold" className="px-2 py-0.5 text-[11.5px]">{t('pro.res.you', { name: `${state.player.firstName} ${state.player.lastName}` })}</Badge> : null}
           </div>
         </Card>
       </div>
       {unsold.length ? (
         <Card>
-          <CardHeader title="Unsold" subtitle="No franchise bid at their base price" className="mb-2" />
-          <p className="text-[12.5px] text-ink-muted">{unsold.slice(0, 40).map((l) => `${l.name} (${formatLakh(l.basePrice)})`).join(', ')}{unsold.length > 40 ? ` and ${unsold.length - 40} more` : ''}.</p>
+          <CardHeader title={t('pro.iplStatus.UNSOLD')} subtitle={t('pro.res.unsoldSub')} className="mb-2" />
+          <p className="text-[12.5px] text-ink-muted">{unsold.slice(0, 40).map((l) => `${l.name} (${formatLakh(l.basePrice)})`).join(', ')}{unsold.length > 40 ? t('pro.res.more', { n: unsold.length - 40 }) : ''}.</p>
         </Card>
       ) : null}
     </div>

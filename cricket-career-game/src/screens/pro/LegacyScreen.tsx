@@ -1,28 +1,29 @@
 import { useState } from 'react';
 import { Badge, Card, CardHeader, Modal, ProgressBar, StatTile, Tabs } from '@/components';
 import { battingAverage, bowlingAverage, economy, strikeRate } from '@/engine/records';
-import { LEGACY_PART_LABEL, legacyRating, recordsBook, statsByLevel, competitionTotals, type LegacyPart } from '@/engine/pro/legacy';
-import { SCOPE_LABEL, retirableScopes } from '@/engine/pro/retirement';
+import { legacyRating, recordsBook, statsByLevel, competitionTotals, type LegacyPart } from '@/engine/pro/legacy';
+import { retirableScopes } from '@/engine/pro/retirement';
 import { totalCaps } from '@/engine/pro/national';
 import { winPercent } from '@/engine/career/captaincy';
 import { formatLongDate } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useGameStore } from '@/store/gameStore';
+import { useT } from '@/i18n/react';
+import type { Key } from '@/i18n/core';
 import type { GameState, RetirementScope } from '@/types';
 
-const TABS = [
-  { id: 'stats', label: 'Career statistics' },
-  { id: 'records', label: 'Records book' },
-  { id: 'captaincy', label: 'Captaincy' },
-  { id: 'timeline', label: 'Timeline' },
-  { id: 'retirement', label: 'Retirement' },
-];
+const TABS = ['stats', 'records', 'captaincy', 'timeline', 'retirement'];
+
+/** A retirement scope as a noun ("Test cricket") and as what one retires from (the Tamil ablative). */
+const scopeKey = (s: RetirementScope) => `pro.scope.${s}` as Key;
+const scopeFrom = (s: RetirementScope) => `@pro.scopeFrom.${s}`;
 
 const DOMESTIC = ['ranji-trophy', 'vijay-hazare', 'syed-mushtaq-ali', 'duleep-trophy', 'irani-cup'];
 
 export default function LegacyScreen() {
   const state = useGameStore((s) => s.state);
-  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">Loading your career…</p>;
+  const t = useT();
+  if (!state) return <p className="py-20 text-center text-[14px] text-ink-muted">{t('common.loadingCareer')}</p>;
   return <Legacy state={state} />;
 }
 
@@ -37,45 +38,46 @@ function Legacy({ state }: { state: GameState }) {
   const legacy = legacyRating(state);
   const all = competitionTotals(state, Object.keys(state.player.record.byCompetition));
   const done = state.pro.retirement.complete;
+  const t = useT();
   return (
     <div className="flex flex-col gap-3 pb-4">
       <div>
-        <h1 className="text-[22px] leading-tight font-bold text-ink">Legacy</h1>
+        <h1 className="text-[22px] leading-tight font-bold text-ink">{t('nav.legacy')}</h1>
         <p className="text-[13px] text-ink-muted">
-          {done ? `Retired on ${formatLongDate(state.player.retiredOn ?? state.season.currentDate)}, aged ${state.player.age}. This is what the career added up to.` : 'What the career adds up to so far - and when the time comes, how it ends.'}
+          {done ? t('pro.lg.retired', { date: formatLongDate(state.player.retiredOn ?? state.season.currentDate), age: state.player.age }) : t('pro.lg.soFar')}
         </p>
       </div>
       <Card>
         <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <p className="text-[12px] text-ink-muted">Legacy rating</p>
-            <p className="text-[26px] leading-tight font-bold text-ink">{legacy.label}</p>
+          <div className="min-w-0">
+            <p className="text-[12px] text-ink-muted">{t('pro.lg.rating')}</p>
+            <p className="text-[26px] leading-tight font-bold break-words text-ink">{t(`pro.tier.${legacy.tier}` as Key)}</p>
           </div>
           <div className="min-w-[180px] flex-1">
-            <div className="mb-1 flex justify-between text-[12px] text-ink-muted"><span>0</span><span>{legacy.score}/100</span><span>All-Time Great</span></div>
-            <ProgressBar value={legacy.score} tone={legacy.score >= 70 ? 'gold' : legacy.score >= 40 ? 'green' : 'blue'} height={10} label="Legacy score" />
+            <div className="mb-1 flex justify-between gap-2 text-[12px] text-ink-muted"><span>0</span><span>{legacy.score}/100</span><span className="text-right">{t('pro.tier.ALL_TIME_GREAT')}</span></div>
+            <ProgressBar value={legacy.score} tone={legacy.score >= 70 ? 'gold' : legacy.score >= 40 ? 'green' : 'blue'} height={10} label={t('pro.lg.score')} />
           </div>
         </div>
-        {legacy.reasons.length ? <p className="mt-3 text-[13px] text-ink">{legacy.reasons.join(' · ')}</p> : <p className="mt-3 text-[13px] text-ink-muted">A career still being written.</p>}
+        {legacy.reasons.length ? <p className="mt-3 text-[13px] text-ink">{legacy.reasons.join(' · ')}</p> : <p className="mt-3 text-[13px] text-ink-muted">{t('pro.lg.stillWritten')}</p>}
         {legacy.score > 0 ? (
-          <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Where the legacy score comes from">
+          <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={t('pro.lg.where')}>
             {(Object.entries(legacy.parts) as [LegacyPart, number][]).filter(([, v]) => v >= 0.5).map(([k, v]) => (
-              <li key={k}><Badge tone="grey">{LEGACY_PART_LABEL[k]} +{Math.round(v)}</Badge></li>
+              <li key={k}><Badge tone="grey">{t(`pro.part.${k}` as Key)} +{Math.round(v)}</Badge></li>
             ))}
           </ul>
         ) : null}
       </Card>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-        <StatTile label="Matches" value={all.batting.matches} />
-        <StatTile label="Runs" value={all.batting.runs.toLocaleString('en-IN')} />
-        <StatTile label="Wickets" value={all.bowling.wickets} />
-        <StatTile label="India caps" value={totalCaps(state)} />
-        <StatTile label="IPL seasons" value={state.pro.ipl.seasons.filter((s) => s.matches > 0).length} />
-        <StatTile label="Domestic seasons" value={domesticSeasons(state)} />
-        <StatTile label="Awards" value={state.pro.awards.length} />
-        <StatTile label="Trophies" value={state.trophies.filter((t) => t.unlocked).length} />
+        <StatTile label={t('stats.matches')} value={all.batting.matches} />
+        <StatTile label={t('stats.runs')} value={all.batting.runs.toLocaleString('en-IN')} />
+        <StatTile label={t('pro.lg.wickets')} value={all.bowling.wickets} />
+        <StatTile label={t('pro.lg.indiaCaps')} value={totalCaps(state)} />
+        <StatTile label={t('pro.ct.seasons')} value={state.pro.ipl.seasons.filter((s) => s.matches > 0).length} />
+        <StatTile label={t('pro.lg.domesticSeasons')} value={domesticSeasons(state)} />
+        <StatTile label={t('nav.awards')} value={state.pro.awards.length} />
+        <StatTile label={t('pro.aw.trophies')} value={state.trophies.filter((x) => x.unlocked).length} />
       </div>
-      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Legacy sections" />
+      <Tabs tabs={TABS.map((id) => ({ id, label: t(`pro.lg.tab.${id}` as Key) }))} value={tab} onChange={setTab} label={t('pro.lg.tabsLabel')} />
       {tab === 'stats' ? <Stats state={state} /> : null}
       {tab === 'records' ? <Records state={state} /> : null}
       {tab === 'captaincy' ? <Captaincy state={state} /> : null}
@@ -89,15 +91,16 @@ const fmt = (n: number | null, digits = 2) => (n === null || !Number.isFinite(n)
 
 function Stats({ state }: { state: GameState }) {
   const rows = statsByLevel(state);
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="Statistics by level and format" className="mb-2" />
-      {rows.length === 0 ? <p className="text-[13px] text-ink-muted">No matches yet.</p> : null}
+      <CardHeader title={t('pro.lg.statsTitle')} className="mb-2" />
+      {rows.length === 0 ? <p className="text-[13px] text-ink-muted">{t('pro.lg.noMatches')}</p> : null}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-left text-[12.5px]">
           <thead className="text-[11.5px] text-ink-muted">
             <tr>
-              {['', 'M', 'Inn', 'Runs', 'HS', 'Avg', 'SR', '100s', '50s', 'Wkts', 'Best', 'Avg', 'Econ', '5w', 'Ct', 'St'].map((h, i) => (
+              {['', 'M', 'Inn', t('stats.runs'), 'HS', 'Avg', 'SR', '100s', '50s', 'Wkts', t('pro.lg.best'), 'Avg', 'Econ', '5w', 'Ct', 'St'].map((h, i) => (
                 <th key={i} className="py-1 pr-2 font-medium">{h}</th>
               ))}
             </tr>
@@ -108,7 +111,7 @@ function Stats({ state }: { state: GameState }) {
               const w = r.record.bowling;
               return (
                 <tr key={`${r.level}-${r.format}`} className={cn('border-t border-line', r.level === 'INTERNATIONAL' && 'font-semibold')}>
-                  <td className="py-1.5 pr-2 text-ink">{r.label}</td>
+                  <td className="py-1.5 pr-2 text-ink">{t(`pro.row.${r.level}.${r.format}` as Key)}</td>
                   <td className="py-1.5 pr-2 text-ink">{b.matches}</td>
                   <td className="py-1.5 pr-2 text-ink">{b.innings}</td>
                   <td className="py-1.5 pr-2 text-ink">{b.runs}</td>
@@ -137,17 +140,18 @@ function Stats({ state }: { state: GameState }) {
 function Records({ state }: { state: GameState }) {
   const book = recordsBook(state);
   const broken = book.filter((b) => b.entry?.broke);
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="Records book" subtitle={broken.length ? `${broken.length} record${broken.length === 1 ? '' : 's'} broken` : 'National and league records - and how close you are'} className="mb-2" />
+      <CardHeader title={t('pro.lg.tab.records')} subtitle={broken.length ? t(broken.length === 1 ? 'pro.lg.broken.one' : 'pro.lg.broken.many', { n: broken.length }) : t('pro.lg.recordsSub')} className="mb-2" />
       <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] text-left text-[12.5px]">
           <thead className="text-[11.5px] text-ink-muted">
             <tr>
-              <th className="py-1 pr-2 font-medium">Book</th>
-              <th className="py-1 pr-2 font-medium">Record</th>
-              <th className="py-1 pr-2 font-medium">Holder</th>
-              <th className="py-1 pr-2 font-medium">Yours</th>
+              <th className="py-1 pr-2 font-medium">{t('pro.lg.col.book')}</th>
+              <th className="py-1 pr-2 font-medium">{t('pro.lg.col.record')}</th>
+              <th className="py-1 pr-2 font-medium">{t('pro.lg.col.holder')}</th>
+              <th className="py-1 pr-2 font-medium">{t('pro.lg.col.yours')}</th>
               <th className="py-1 font-medium" />
             </tr>
           </thead>
@@ -156,15 +160,15 @@ function Records({ state }: { state: GameState }) {
               <tr key={def.id} className={cn('border-t border-line', entry?.broke && 'bg-brand-gold/10')}>
                 <td className="py-1.5 pr-2 text-ink-muted">{def.book}</td>
                 <td className="py-1.5 pr-2 text-ink">{def.label}</td>
-                <td className="py-1.5 pr-2 text-ink">{entry?.broke ? 'You' : `${def.holder}, ${def.display}`}</td>
+                <td className="py-1.5 pr-2 text-ink">{entry?.broke ? t('player.you') : `${def.holder}, ${def.display}`}</td>
                 <td className="py-1.5 pr-2 font-semibold text-ink">{entry?.value ?? (mine.value > 0 ? mine.display : '-')}</td>
-                <td className="py-1.5">{entry?.broke ? <Badge tone="gold">Record</Badge> : null}</td>
+                <td className="py-1.5">{entry?.broke ? <Badge tone="gold">{t('pro.lg.col.record')}</Badge> : null}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-[12px] text-ink-muted">Season records keep your best season; the others are career figures across the competitions shown.</p>
+      <p className="mt-2 text-[12px] text-ink-muted">{t('pro.lg.recordsNote')}</p>
     </Card>
   );
 }
@@ -173,30 +177,31 @@ function Captaincy({ state }: { state: GameState }) {
   const l = state.pro.leadership;
   const records = Object.entries(l.records);
   const juniors = Object.entries(state.career.captaincy.byTeam).filter(([id]) => !['STATE_SENIOR', 'FRANCHISE', 'INTERNATIONAL'].includes(state.teams[id]?.level ?? ''));
+  const t = useT();
   return (
     <div className="grid gap-3 lg:grid-cols-2">
       <Card>
-        <CardHeader title="Leadership" subtitle={`${l.posts.length} appointment${l.posts.length === 1 ? '' : 's'} · ${l.declined} declined`} className="mb-2" />
-        {l.posts.length === 0 ? <p className="text-[13px] text-ink-muted">Never appointed. Leadership, temperament, form and seniority bring the offers.</p> : null}
+        <CardHeader title={t('pro.lg.leadership')} subtitle={t(l.posts.length === 1 ? 'pro.lg.appts.one' : 'pro.lg.appts.many', { n: l.posts.length, declined: l.declined })} className="mb-2" />
+        {l.posts.length === 0 ? <p className="text-[13px] text-ink-muted">{t('pro.lg.neverAppointed')}</p> : null}
         <ul className="flex flex-col gap-1.5">
           {[...l.posts].reverse().map((p, i) => (
             <li key={i} className="rounded-tile bg-page px-3 py-2 text-[13px]">
-              <span className="font-semibold text-ink">{p.role === 'CAPTAIN' ? 'Captain' : 'Vice-captain'}, {p.teamName}</span>
-              <span className="text-ink-muted"> · {formatLongDate(p.since)}{p.until ? ` to ${formatLongDate(p.until)}` : ' - present'}</span>
+              <span className="font-semibold text-ink">{p.role === 'CAPTAIN' ? t('m.captain') : t('pro.viceCaptain')}, {p.teamName}</span>
+              <span className="text-ink-muted"> · {p.until ? t('pro.lg.span', { from: formatLongDate(p.since), to: formatLongDate(p.until) }) : t('pro.lg.present', { from: formatLongDate(p.since) })}</span>
             </li>
           ))}
         </ul>
       </Card>
       <Card>
-        <CardHeader title="Captaincy record" subtitle="Per team and format" className="mb-2" />
-        {records.length + juniors.length === 0 ? <p className="text-[13px] text-ink-muted">No matches as captain.</p> : null}
+        <CardHeader title={t('pro.lg.capRecord')} subtitle={t('pro.lg.capRecordSub')} className="mb-2" />
+        {records.length + juniors.length === 0 ? <p className="text-[13px] text-ink-muted">{t('pro.lg.noCapMatches')}</p> : null}
         <table className="w-full text-left text-[12.5px]">
           <tbody>
             {records.map(([key, r]) => {
               const [level, format] = key.split('|');
               return (
                 <tr key={key} className="border-t border-line">
-                  <td className="py-1.5 pr-2 text-ink">{level === 'INDIA' ? `India ${format === 'TEST' ? 'Tests' : format === 'ODI' ? 'ODIs' : 'T20Is'}` : level === 'IPL' ? 'IPL' : 'State'}</td>
+                  <td className="py-1.5 pr-2 text-ink">{level === 'INDIA' ? `India ${t(format === 'TEST' ? 'pro.fmt.TEST' : format === 'ODI' ? 'pro.fmt.ODI' : 'pro.fmt.T20I')}` : level === 'IPL' ? 'IPL' : t('pro.lg.state')}</td>
                   <td className="py-1.5 pr-2 text-ink">P {r.matches} · W {r.won} · L {r.lost} · D {r.drawn + r.tied}</td>
                   <td className="py-1.5 text-ink">{winPercent(r) !== null ? `${winPercent(r)}%` : '-'}</td>
                 </tr>
@@ -220,14 +225,15 @@ function Timeline({ state }: { state: GameState }) {
   const events = state.career.events.filter((e) => ['DEBUT', 'PROMOTION', 'CONTRACT', 'CAPTAINCY', 'AWARD', 'RETIREMENT', 'SELECTION', 'DROPPED', 'MILESTONE'].includes(e.kind));
   const dob = state.player.dateOfBirth;
   const ageAt = (date: string) => Math.floor((new Date(date).getTime() - new Date(dob).getTime()) / (365.25 * 86400000));
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="Career timeline" subtitle="Every turning point, oldest first" className="mb-2" />
+      <CardHeader title={t('pro.lg.timeline')} subtitle={t('pro.lg.timelineSub')} className="mb-2" />
       <ol className="relative ml-2 border-l-2 border-line pl-4">
         {events.map((e) => (
           <li key={e.id} className="mb-2.5">
             <span className={cn('absolute -left-[7px] mt-1.5 size-3 rounded-full', e.kind === 'DEBUT' || e.kind === 'AWARD' ? 'bg-brand-gold' : e.kind === 'DROPPED' ? 'bg-brand-red' : 'bg-brand-blue')} aria-hidden />
-            <p className="text-[12px] text-ink-muted">{formatLongDate(e.date)} · age {ageAt(e.date)}</p>
+            <p className="text-[12px] text-ink-muted">{formatLongDate(e.date)} · {t('pro.lg.age', { n: ageAt(e.date) })}</p>
             <p className="text-[13px] text-ink"><span className="font-semibold">{e.title}</span> - {e.detail}</p>
           </li>
         ))}
@@ -241,32 +247,33 @@ function Retirement({ state }: { state: GameState }) {
   const [confirm, setConfirm] = useState<RetirementScope | null>(null);
   const r = state.pro.retirement;
   const scopes = retirableScopes(state);
+  const t = useT();
   return (
     <Card>
-      <CardHeader title="Retirement" subtitle="Your call. Retire from one format at a time, or from all cricket." className="mb-2" />
+      <CardHeader title={t('pro.lg.tab.retirement')} subtitle={t('pro.lg.retireSub')} className="mb-2" />
       {r.retiredFrom.length ? (
         <ul className="mb-3 flex flex-col gap-1 text-[13px]">
           {r.retiredFrom.map((s) => (
-            <li key={s} className="text-ink">Retired from {SCOPE_LABEL[s]} on {formatLongDate(r.retiredOn[s] ?? '')}</li>
+            <li key={s} className="text-ink">{t('pro.lg.retiredFrom', { scope: scopeFrom(s), date: formatLongDate(r.retiredOn[s] ?? '') })}</li>
           ))}
         </ul>
       ) : null}
-      {r.overlooked.length ? <p className="mb-3 text-[13px] text-brand-red">The selectors have moved on in: {r.overlooked.map((s) => SCOPE_LABEL[s]).join(', ')}.</p> : null}
+      {r.overlooked.length ? <p className="mb-3 text-[13px] text-brand-red">{t('pro.lg.movedOn', { list: r.overlooked.map((s) => t(scopeKey(s))).join(', ') })}</p> : null}
       {r.complete ? (
-        <p className="text-[13px] text-ink">The career is over. Thank you for playing it.</p>
+        <p className="text-[13px] text-ink">{t('pro.lg.over')}</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {scopes.map((s) => (
             <button key={s} type="button" onClick={() => setConfirm(s)} className={cn('rounded-full border px-3 py-1.5 text-[13px] font-semibold', s === 'ALL' ? 'border-brand-red bg-brand-red text-white' : 'border-line bg-surface text-ink hover:bg-page')}>
-              Retire from {SCOPE_LABEL[s]}
+              {t('pro.lg.retireFrom', { scope: scopeFrom(s) })}
             </button>
           ))}
         </div>
       )}
       <p className="mt-3 text-[12px] text-ink-muted">
-        Age brings decline (from about 31), injuries come back, and selectors look to younger players. Many players leave Tests first and play white-ball cricket for longer. Retiring from all cricket ends the career and completes stage 20.
+        {t('pro.lg.decline')}
       </p>
-      <Modal open={confirm !== null} onClose={() => setConfirm(null)} title={confirm ? `Retire from ${SCOPE_LABEL[confirm]}?` : ''} subtitle="This cannot be undone.">
+      <Modal open={confirm !== null} onClose={() => setConfirm(null)} title={confirm ? t('pro.lg.confirm', { scope: scopeFrom(confirm) }) : ''} subtitle={t('pro.lg.cannotUndo')}>
         <div className="flex gap-2">
           <button
             type="button"
@@ -276,10 +283,10 @@ function Retirement({ state }: { state: GameState }) {
             }}
             className="rounded-full bg-brand-red px-4 py-2 text-[13px] font-semibold text-white"
           >
-            Retire
+            {t('pro.lg.retire')}
           </button>
           <button type="button" onClick={() => setConfirm(null)} className="rounded-full border border-line px-4 py-2 text-[13px] font-semibold text-ink">
-            Not yet
+            {t('pro.lg.notYet')}
           </button>
         </div>
       </Modal>
