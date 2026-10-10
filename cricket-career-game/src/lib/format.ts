@@ -1,3 +1,4 @@
+import { currentLang, tr, type Key } from '@/i18n/core';
 import type {
   BattingStyle,
   BowlingStyle,
@@ -73,21 +74,10 @@ export const formLabel = (band: FormBand) => FORM_LABELS[band];
 export const moraleLabel = (band: MoraleBand) => MORALE_LABELS[band];
 export const countryFlag = (country: string) => COUNTRY_FLAGS[country] ?? '';
 
-const MONTHS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** Short month and weekday names, in the language the game is in. */
+const monthShort = (m: number) => tr(`date.mon.${m}` as Key);
+const monthLong = (m: number) => tr(`date.month.${m}` as Key);
+const weekday = (d: number) => tr(`date.day.${d}` as Key);
 
 /** Parse an ISO date as a plain calendar date, free of timezone drift. */
 export function parseISODate(date: ISODate): Date {
@@ -98,13 +88,15 @@ export function parseISODate(date: ISODate): Date {
 /** "Thu, 15 Oct 2026" - the date line on the Next Match card. */
 export function formatLongDate(date: ISODate): string {
   const d = parseISODate(date);
-  return `${WEEKDAYS[d.getUTCDay()]}, ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  // English keeps its short forms ("Thu, 15 Oct 2026"); Tamil uses the full month name.
+  const month = currentLang() === 'ta' ? monthLong(d.getUTCMonth()) : monthShort(d.getUTCMonth());
+  return tr('date.long', { weekday: weekday(d.getUTCDay()), day: d.getUTCDate(), month, year: d.getUTCFullYear() });
 }
 
 /** "15 OCT" - the date column on the Upcoming Schedule card. */
 export function formatDayMonth(date: ISODate): string {
   const d = parseISODate(date);
-  return `${String(d.getUTCDate()).padStart(2, '0')} ${MONTHS[d.getUTCMonth()].toUpperCase()}`;
+  return tr('date.dayMonth', { day: String(d.getUTCDate()).padStart(2, '0'), month: monthShort(d.getUTCMonth()).toUpperCase() });
 }
 
 /** Whole days between two in-game dates. Negative when `date` is in the past. */
@@ -119,15 +111,15 @@ export function daysBetween(from: ISODate, to: ISODate): number {
  */
 export function relativeInGameDate(date: ISODate, today: ISODate): string {
   const days = daysBetween(date, today);
-  if (days <= 0) return 'Today';
-  if (days === 1) return '1 day ago';
-  if (days < 7) return `${days} days ago`;
+  if (days <= 0) return tr('date.ago.today');
+  if (days === 1) return tr('date.ago.day');
+  if (days < 7) return tr('date.ago.days', { n: days });
   if (days < 30) {
     const weeks = Math.floor(days / 7);
-    return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    return weeks === 1 ? tr('date.ago.week') : tr('date.ago.weeks', { n: weeks });
   }
   const months = Math.floor(days / 30);
-  return months === 1 ? '1 month ago' : `${months} months ago`;
+  return months === 1 ? tr('date.ago.month') : tr('date.ago.months', { n: months });
 }
 
 /** One decimal place, or an em dash when the figure does not exist yet. */
@@ -140,7 +132,7 @@ export function decimal(value: number | null, places = 1): string {
 export function formatTimestamp(ms: number): string {
   const d = new Date(ms);
   const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${time}`;
+  return `${d.getDate()} ${monthShort(d.getMonth())} ${d.getFullYear()}, ${time}`;
 }
 
 /** Balls into overs, e.g. 291 -> "48.3". */

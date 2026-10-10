@@ -6,6 +6,7 @@ import { ScreenLoading } from '@/components/ScreenLoading';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { installAutosaveGuards, useGameStore } from '@/store/gameStore';
 import { useAppSettings } from '@/store/appSettings';
+import { useLanguageEffect } from '@/i18n/react';
 import Home from './screens/Home';
 import SlotPicker from './screens/SlotPicker';
 import StartScreen from './screens/StartScreen';
@@ -42,6 +43,8 @@ export default function App() {
   const { pathname } = useLocation();
   const careerReduce = useGameStore((s) => s.state?.settings.reduceMotion ?? false);
   const deviceReduce = useAppSettings((s) => s.reduceMotion);
+  // English or Tamil: <html lang>, the Tamil font, and the language outside React.
+  useLanguageEffect();
 
   useEffect(() => {
     document.documentElement.dataset.reduceMotion = String(careerReduce || deviceReduce);

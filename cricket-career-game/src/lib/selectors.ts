@@ -1,3 +1,5 @@
+import { en } from '@/i18n/en';
+import type { Key } from '@/i18n/core';
 import { CAREER_STAGES, CAREER_STAGES_BY_ID } from '@/data/stages';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { battingAverage, strikeRate } from '@/engine/records';
@@ -26,14 +28,19 @@ export function currentStage(state: GameState): CareerStage {
 
 /** Title under the player's name in the top bar, taken from the career stage. */
 export function playerTitle(state: GameState): string {
+  return en[playerTitleKey(state)];
+}
+
+/** The title under the name in the top bar, as a translation key. */
+export function playerTitleKey(state: GameState): Key {
   const { order } = currentStage(state);
-  if (order <= 3) return 'Aspiring Cricketer';
-  if (order <= 6) return 'Age-Group Prospect';
-  if (order <= 10) return 'State Cricketer';
-  if (order <= 12) return 'Franchise Player';
-  if (order <= 15) return 'India Prospect';
-  if (order <= 19) return 'International Cricketer';
-  return 'Living Legend';
+  if (order <= 3) return 'title.aspiring';
+  if (order <= 6) return 'title.ageGroup';
+  if (order <= 10) return 'title.state';
+  if (order <= 12) return 'title.franchise';
+  if (order <= 15) return 'title.indiaProspect';
+  if (order <= 19) return 'title.international';
+  return 'title.legend';
 }
 
 /** The 20 stages as stepper nodes, coloured by how far the career has got. */

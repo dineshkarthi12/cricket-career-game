@@ -2015,3 +2015,41 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   - the player stepping through clips, the filter, autoplay at 1x and 2x
     and pausing, no animation with reduced motion, and "Save as image"
     where there is no MediaRecorder (jsdom).
+
+## Tamil / English (in passes)
+- **i18n layer** (`src/i18n`): typed dictionaries `en.ts` and `ta.ts` (`ta`
+  is typed as `Dict`, so a missing or extra key is a compile error),
+  `{name}` interpolation (a variable that starts with `@` is a key, which is
+  translated too), `t(lang, key, vars)` for the engine and `useT()` /
+  `useLang()` for React, plus `tr()` / `currentLang()` for code outside React
+  (date formatting, toasts from stores).
+  - **Why not react-i18next:** two languages, every string bundled, no
+    namespaces or plural engine needed. A typed object and a 20-line `t()`
+    do it, and the compiler checks every Tamil key.
+- **Setting:** Settings > Language (English / தமிழ்) is kept with this
+  device's settings and applies instantly: screens re-render through
+  `useT()`, and the routed screen is keyed by language so dates and other
+  derived text redraw too. A first visit follows the browser language
+  (`ta-*` gives Tamil).
+- **Font:** Noto Sans Tamil (`@fontsource/noto-sans-tamil`, the Google Font
+  packaged like the app's Poppins), imported dynamically only when Tamil is
+  on, so it costs nothing in English and still works offline. `<html lang>`
+  switches the font stack: Poppins for Latin and digits, Noto Sans Tamil for
+  Tamil script, with a little more line height.
+- **Dates:** Western digits, Tamil month and weekday names (full month names
+  in the long date), Tamil "ago" phrases.
+- **Pass (a), done:**
+  - layout: sidebar, rail and phone tab bar with the More sheet, the top
+    bar and player titles, the install / update banner, the Continue bar
+    (including the climate line), notifications, the toast close button and
+    the resume toasts;
+  - Settings, with the new Language card, difficulty, sim speeds and
+    animation.
+  - Tests:
+    - every English key has non-empty Tamil with the same placeholders, and
+      Tamil strings use Tamil script;
+    - interpolation and key-in-variable;
+    - the first-visit browser language;
+    - switching in Settings re-renders the screen, the navigation and the
+      top bar, and is remembered;
+    - Tamil dates.

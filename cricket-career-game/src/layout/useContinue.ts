@@ -7,6 +7,7 @@
 import { useNavigate } from 'react-router-dom';
 import { unwatchedAuction } from '@/engine/pro/ipl';
 import { formatLongDate } from '@/lib/format';
+import { tr } from '@/i18n/core';
 import { useClockStore } from '@/store/clockStore';
 import { useGameStore } from '@/store/gameStore';
 import type { GameState } from '@/types';
@@ -44,7 +45,7 @@ export function useContinue(): () => void {
     }
     const date = result.state.season.currentDate;
     if (result.stoppedFor) {
-      setNote({ text: `Match day: ${result.stoppedFor.title}. Play it or sim it to carry on.`, date, fixtureId: result.stoppedFor.id });
+      setNote({ text: tr('clock.matchDayNote', { title: result.stoppedFor.title }), date, fixtureId: result.stoppedFor.id });
       return;
     }
     const report = result.state.player.development.weeklyReports[0];

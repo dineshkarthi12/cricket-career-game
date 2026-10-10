@@ -1,3 +1,4 @@
+import { useT } from '@/i18n/react';
 import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from './navItems';
 import { Logo } from './Logo';
@@ -9,6 +10,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ compact = false }: SidebarProps) {
+  const t = useT();
   return (
     <aside
       className={cn(
@@ -25,7 +27,7 @@ export function Sidebar({ compact = false }: SidebarProps) {
       </div>
 
       <nav
-        aria-label="Primary"
+        aria-label={t('nav.primary')}
         className={cn('no-scrollbar shrink-0 overflow-y-auto pb-3', compact ? 'px-2' : 'px-3')}
       >
         <ul className="flex flex-col gap-0.5">
@@ -34,7 +36,7 @@ export function Sidebar({ compact = false }: SidebarProps) {
               <NavLink
                 to={item.to}
                 end={item.to === '/'}
-                title={compact ? item.label : undefined}
+                title={compact ? t(item.key) : undefined}
                 className={({ isActive }) =>
                   cn(
                     'relative flex items-center rounded-xl text-[13.5px] font-medium transition-colors',
@@ -54,7 +56,7 @@ export function Sidebar({ compact = false }: SidebarProps) {
                       />
                     ) : null}
                     <item.icon className="size-[18px] shrink-0" strokeWidth={1.8} />
-                    {compact ? <span className="sr-only">{item.label}</span> : <span>{item.label}</span>}
+                    {compact ? <span className="sr-only">{t(item.key)}</span> : <span>{t(item.key)}</span>}
                   </>
                 )}
               </NavLink>
@@ -70,6 +72,7 @@ export function Sidebar({ compact = false }: SidebarProps) {
 
 /** Handwritten motto sitting over the sidebar photograph. */
 function SidebarFooter() {
+  const t = useT();
   return (
     <div className="relative min-h-[190px] flex-1 overflow-hidden">
       <img
@@ -83,11 +86,13 @@ function SidebarFooter() {
         aria-hidden
       />
       <p className="font-hand relative px-4 pt-3 text-[21px] leading-[1.15] text-brand-navy">
-        Discipline today,
-        <br />
-        International
-        <br />
-        tomorrow.
+        {t('nav.motto')
+          .split('\n')
+          .map((line, i) => (
+            <span key={i} className="block">
+              {line}
+            </span>
+          ))}
       </p>
     </div>
   );

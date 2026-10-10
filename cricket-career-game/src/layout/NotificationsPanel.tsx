@@ -1,3 +1,4 @@
+import { useT } from '@/i18n/react';
 import { useEffect, useRef, useState } from 'react';
 import { Bell, CheckCheck, ChevronDown } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -40,6 +41,7 @@ export function NotificationsPanel() {
     };
   }, [open]);
 
+  const t = useT();
   const inbox = state?.inbox ?? [];
   const unread = inbox.filter((m) => !m.read).length;
   const messages = [...inbox]
@@ -58,7 +60,7 @@ export function NotificationsPanel() {
         aria-expanded={open}
         aria-haspopup="dialog"
         className="relative grid size-10 place-items-center rounded-xl text-ink transition-colors hover:bg-surface"
-        aria-label={`Notifications (${unread} unread)`}
+        aria-label={t('notify.button', { n: unread })}
       >
         <Bell className="size-[19px]" strokeWidth={1.8} />
         {unread > 0 ? (
@@ -71,12 +73,12 @@ export function NotificationsPanel() {
       {open ? (
         <div
           role="dialog"
-          aria-label="Notifications"
+          aria-label={t('notify.title')}
           className="fixed top-16 right-3 z-50 flex max-h-[min(calc(var(--vh)*70),560px)] w-[min(380px,calc(var(--vw)*100-24px))] flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card md:absolute md:top-12 md:right-0"
         >
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
             <p className="text-[14px] font-semibold text-ink">
-              Notifications <span className="font-normal text-ink-muted">({unread} unread)</span>
+              {t('notify.title')} <span className="font-normal text-ink-muted">{t('notify.unread', { n: unread })}</span>
             </p>
             <button
               type="button"
@@ -84,11 +86,11 @@ export function NotificationsPanel() {
               disabled={unread === 0}
               className="flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold text-brand-blue hover:bg-brand-blue-soft disabled:text-ink-soft disabled:hover:bg-transparent"
             >
-              <CheckCheck className="size-3.5" aria-hidden /> Mark all read
+              <CheckCheck className="size-3.5" aria-hidden /> {t('notify.markAll')}
             </button>
           </div>
           {messages.length === 0 ? (
-            <p className="px-4 py-6 text-center text-[13px] text-ink-muted">No messages yet.</p>
+            <p className="px-4 py-6 text-center text-[13px] text-ink-muted">{t('notify.none')}</p>
           ) : (
             <ul className="flex-1 overflow-y-auto overscroll-contain p-2">
               {messages.map((m) => {

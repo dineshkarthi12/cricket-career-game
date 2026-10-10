@@ -1,3 +1,5 @@
+import { useT } from '@/i18n/react';
+import type { Key } from '@/i18n/core';
 import { CalendarDays, ChevronRight, ClipboardCheck, CloudRain, Gavel, HeartPulse, Play, ScrollText, Sun, Snowflake, X, Zap } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components';
@@ -41,6 +43,7 @@ export function ContinueBar() {
   const setNews = useClockStore((s) => s.setNews);
   const setNoteState = useClockStore((s) => s.setNote);
   const onContinue = useContinue();
+  const t = useT();
 
   // A match in progress has its own controls; the clock waits for it.
   if (!state || pathname.startsWith('/match/') || pathname.startsWith('/trial/') || pathname === '/auction/live') return null;
@@ -75,18 +78,18 @@ export function ContinueBar() {
           <CalendarDays className="size-4 text-brand-blue" aria-hidden />
           {formatLongDate(today)}
         </span>
-        <span className="hidden text-[12px] text-ink-muted sm:inline">{state.season.label} season</span>
-        <span className="flex items-center gap-1 text-[12px] text-ink-muted" title={climate.detail}>
+        <span className="hidden text-[12px] text-ink-muted sm:inline">{t('clock.season', { label: state.season.label })}</span>
+        <span className="flex items-center gap-1 text-[12px] text-ink-muted" title={t(`climate.${climate.kind}.detail` as Key)}>
           <ClimateIcon className="size-3.5" aria-hidden />
-          {climate.label}
+          {t(climate.kind === 'MONSOON' && climate.label.startsWith('North') ? 'climate.NE_MONSOON' : (`climate.${climate.kind}` as Key))}
         </span>
-        {exams ? <Badge tone="orange">Exam week</Badge> : null}
+        {exams ? <Badge tone="orange">{t('clock.examWeek')}</Badge> : null}
         {injury ? (
           <Badge tone="red">
             <span className="inline-flex items-center gap-1">
               <HeartPulse className="size-3" aria-hidden />
               {injury.name}
-              {rehab ? ` · rehab ${rehab.weeksDone}/${rehab.weeksNeeded} wk` : ''}
+              {rehab ? t('clock.rehab', { done: rehab.weeksDone, needed: rehab.weeksNeeded }) : ''}
             </span>
           </Badge>
         ) : null}
@@ -94,20 +97,20 @@ export function ContinueBar() {
         {review ? (
           <button type="button" onClick={() => navigate('/season-review')} className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]">
             <ScrollText className="size-3.5" aria-hidden />
-            Season review ready
+            {t('clock.review')}
           </button>
         ) : null}
 
         {auctionInMatch && pending ? (
-          <span className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]" title="The room opens live as soon as the match ends.">
+          <span className="flex items-center gap-1 rounded-full bg-brand-gold/20 px-3 py-1 text-[12px] font-semibold text-[#8a6a00]" title={t('clock.auctionInMatchHint')}>
             <Gavel className="size-3.5" aria-hidden />
-            {auctionInMatch.title} on day {daysBetweenDates(pending.date, auctionInMatch.date) + 1} of this match - live after stumps
+            {t('clock.auctionInMatch', { title: auctionInMatch.title, day: daysBetweenDates(pending.date, auctionInMatch.date) + 1 })}
           </span>
         ) : null}
         {auction ? (
           <button type="button" onClick={() => navigate('/auction/live')} className="flex items-center gap-1 rounded-full bg-brand-red px-3 py-1 text-[12px] font-semibold text-white">
             <Gavel className="size-3.5" aria-hidden />
-            {auction.mega ? 'Mega auction' : 'IPL auction'}: watch live
+            {t('clock.auctionLive', { name: t(auction.mega ? 'clock.megaAuction' : 'clock.iplAuction') })}
           </button>
         ) : null}
 
@@ -121,7 +124,7 @@ export function ContinueBar() {
                 className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-brand-blue/90"
               >
                 <ClipboardCheck className="size-3.5" aria-hidden />
-                Trial day: attend
+                {t('clock.trial')}
               </button>
               <button
                 type="button"
@@ -129,11 +132,11 @@ export function ContinueBar() {
                   coachTrial(trial.id);
                   const after = useGameStore.getState().state;
                   if (after) showNews(state, after);
-                  setNote(`${trial.title}: the coach made the calls. See Selection / News for the verdict.`);
+                  setNote(t('clock.coachNote', { title: trial.title }));
                 }}
                 className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page"
               >
-                Coach decides
+                {t('clock.coach')}
               </button>
             </>
           ) : pending ? (
@@ -144,7 +147,7 @@ export function ContinueBar() {
                 className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-brand-blue/90"
               >
                 <Play className="size-3.5 fill-white" aria-hidden />
-                Match day: play
+                {t('clock.matchDay')}
               </button>
               <button
                 type="button"
@@ -155,7 +158,7 @@ export function ContinueBar() {
                 className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink hover:bg-page"
               >
                 <Zap className="size-3.5" aria-hidden />
-                Sim
+                {t('clock.sim')}
               </button>
             </>
           ) : (
@@ -164,7 +167,7 @@ export function ContinueBar() {
               onClick={onContinue}
               className="flex items-center gap-1 rounded-xl bg-brand-gold px-4 py-2 text-[13px] font-bold text-brand-navy hover:bg-brand-gold/90"
             >
-              Continue
+              {t('clock.continue')}
               <ChevronRight className="size-4" aria-hidden />
             </button>
           )}
@@ -179,7 +182,7 @@ export function ContinueBar() {
           className="mt-1.5 flex items-start justify-between gap-3 rounded-tile bg-brand-blue-soft px-3 py-2 text-[12.5px] text-ink"
         >
           <span>{note}</span>
-          <button type="button" onClick={() => setNote(null)} aria-label="Dismiss" className="text-ink-muted hover:text-ink">
+          <button type="button" onClick={() => setNote(null)} aria-label={t('common.dismiss')} className="text-ink-muted hover:text-ink">
             <X className="size-3.5" />
           </button>
         </p>

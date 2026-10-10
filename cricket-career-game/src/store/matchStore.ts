@@ -11,6 +11,7 @@
  * a closure inside); the store holds only the snapshot the screen renders.
  */
 import { create } from 'zustand';
+import { currentLang, tr } from '@/i18n/core';
 import { isCaptainOf } from '@/engine/career/captaincy';
 import { emptyTacticalLog, type TacticalLog } from '@/engine/career/afterMatch';
 import { applyPressConference, type PressConference } from '@/engine/career/press';
@@ -353,7 +354,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     const toast = useGameStore.getState().pushToast;
     if (!read.ok) {
       void deleteMatchCheckpoint('career', slot, fixture.id);
-      toast({ tone: 'error', message: 'The saved match could not be read, so the fixture starts again.' });
+      toast({ tone: 'error', message: tr('toast.matchUnreadable') });
       return done();
     }
     const saved = read.value as CareerMatchCheckpoint | null;
@@ -369,10 +370,10 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       conditionBefore = saved.conditionBefore ?? conditionBefore;
       set({ ...saved.store, after: null, lastBall: null, autoPlay: false, resuming: false, resumed: true });
       sync(null);
-      toast({ tone: 'success', message: `Match resumed - ${describeCheckpoint(restored.snapshot())}.` });
+      toast({ tone: 'success', message: tr('toast.matchResumed', { where: describeCheckpoint(restored.snapshot(), currentLang()) }) });
     } catch {
       void deleteMatchCheckpoint('career', slot, fixture.id);
-      toast({ tone: 'error', message: 'The saved match could not be restored, so the fixture starts again.' });
+      toast({ tone: 'error', message: tr('toast.matchUnrestorable') });
       done();
     }
   };

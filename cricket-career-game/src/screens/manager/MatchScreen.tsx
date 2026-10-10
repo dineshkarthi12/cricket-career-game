@@ -15,6 +15,7 @@ import { createLiveMatch, type LiveSnapshot } from '@/engine/match/live';
 import { describeCheckpoint, recordLiveMatch, restoreLiveMatch, type LiveCheckpoint, type RecordedLiveMatch } from '@/engine/match/checkpoint';
 import { deleteMatchCheckpoint, readMatchCheckpoint, writeMatchCheckpoint } from '@/save/matchCheckpoint';
 import { useGameStore } from '@/store/gameStore';
+import { currentLang, tr } from '@/i18n/core';
 import {
   PHASE_LABEL,
   applyResult,
@@ -130,7 +131,7 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
       if (cancelled) return;
       const toast = useGameStore.getState().pushToast;
       const saved = read.ok ? (read.value as ManagerMatchCheckpoint | null) : null;
-      if (!read.ok) toast({ tone: 'error', message: 'The saved match could not be read, so the fixture starts again.' });
+      if (!read.ok) toast({ tone: 'error', message: tr('toast.matchUnreadable') });
       if (saved && !sessions.get(fixture.id)) {
         if (saved.kind !== 'manager-match' || saved.managerSeed !== state.seed || saved.fixtureId !== fixture.id) {
           void deleteMatchCheckpoint('manager', slot, fixture.id);
@@ -141,10 +142,10 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
             setLive(m);
             setSnap(m.snapshot());
             if (saved.calls) setCalls(saved.calls);
-            toast({ tone: 'success', message: `Match resumed - ${describeCheckpoint(m.snapshot())}.` });
+            toast({ tone: 'success', message: tr('toast.matchResumed', { where: describeCheckpoint(m.snapshot(), currentLang()) }) });
           } catch {
             void deleteMatchCheckpoint('manager', slot, fixture.id);
-            toast({ tone: 'error', message: 'The saved match could not be restored, so the fixture starts again.' });
+            toast({ tone: 'error', message: tr('toast.matchUnrestorable') });
           }
         }
       } else if (!read.ok) void deleteMatchCheckpoint('manager', slot, fixture.id);

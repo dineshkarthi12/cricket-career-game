@@ -5,6 +5,7 @@
  * just means the defaults every visit.
  */
 import { create } from 'zustand';
+import { browserLang, setCurrentLang, type Lang } from '@/i18n/core';
 
 export type AnimationSpeed = 'SLOW' | 'NORMAL' | 'FAST';
 
@@ -29,6 +30,8 @@ export interface AppSettings {
   volume: number;
   /** Home cards folded away on desktop and tablet, by id. */
   homeCollapsed: string[];
+  /** English or Tamil. A first visit follows the browser's language. */
+  language: Lang;
 }
 
 const KEY = 'cc.appSettings';
@@ -43,12 +46,21 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   buttonClicks: false,
   volume: 0.8,
   homeCollapsed: [],
+  language: 'en',
 };
+
+function firstLanguage(): Lang {
+  try {
+    return browserLang(typeof navigator !== 'undefined' ? navigator.languages : undefined);
+  } catch {
+    return 'en';
+  }
+}
 
 function load(): AppSettings {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return DEFAULT_APP_SETTINGS;
+    if (!raw) return { ...DEFAULT_APP_SETTINGS, language: firstLanguage() };
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     return {
       animationSpeed: parsed.animationSpeed === 'SLOW' || parsed.animationSpeed === 'FAST' ? parsed.animationSpeed : 'NORMAL',
@@ -60,9 +72,10 @@ function load(): AppSettings {
       buttonClicks: parsed.buttonClicks === true,
       volume: typeof parsed.volume === 'number' ? Math.max(0, Math.min(1, parsed.volume)) : 0.8,
       homeCollapsed: Array.isArray(parsed.homeCollapsed) ? parsed.homeCollapsed.filter((x): x is string => typeof x === 'string') : [],
+      language: parsed.language === 'ta' || parsed.language === 'en' ? parsed.language : firstLanguage(),
     };
   } catch {
-    return DEFAULT_APP_SETTINGS;
+    return { ...DEFAULT_APP_SETTINGS, language: firstLanguage() };
   }
 }
 
@@ -84,12 +97,15 @@ interface AppSettingsStore extends AppSettings {
 
 export const useAppSettings = create<AppSettingsStore>((set, get) => {
   const commit = (patch: Partial<AppSettings>) => {
+    if (patch.language) setCurrentLang(patch.language);
     set(patch);
-    const { animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume, homeCollapsed } = get();
-    save({ animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume, homeCollapsed });
+    const { animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume, homeCollapsed, language } = get();
+    save({ animationSpeed, defaultSimSpeed, reduceMotion, tipsSeen, soundEffects, crowdAmbience, buttonClicks, volume, homeCollapsed, language });
   };
+  const initial = load();
+  setCurrentLang(initial.language);
   return {
-    ...load(),
+    ...initial,
     set: commit,
     seeTip: (id) => {
       if (!get().tipsSeen.includes(id)) commit({ tipsSeen: [...get().tipsSeen, id] });

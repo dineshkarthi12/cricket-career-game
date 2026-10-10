@@ -1,3 +1,5 @@
+import { useT } from '@/i18n/react';
+import { t as tFor, type Key } from '@/i18n/core';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Database, Download, FolderOpen, Gauge, HardDrive, Lightbulb, Smartphone, Trash2, Upload, Volume2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -61,11 +63,11 @@ function Toggle({ label, checked, onChange, disabled }: { label: string; checked
   );
 }
 
-const DIFFICULTIES = (Object.keys(DIFFICULTY) as Difficulty[]).map((id) => ({ id, label: DIFFICULTY[id].label }));
-const ANIMATION: { id: AnimationSpeed; label: string }[] = [
-  { id: 'SLOW', label: 'Slow' },
-  { id: 'NORMAL', label: 'Normal' },
-  { id: 'FAST', label: 'Fast' },
+const DIFFICULTIES = Object.keys(DIFFICULTY) as Difficulty[];
+const ANIMATION: { id: AnimationSpeed; key: Key }[] = [
+  { id: 'SLOW', key: 'settings.slow' },
+  { id: 'NORMAL', key: 'settings.normal' },
+  { id: 'FAST', key: 'settings.fast' },
 ];
 
 /** Saves, storage and game options. */
@@ -87,6 +89,7 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
   const [confirm, setConfirm] = useState<null | 'delete' | 'import'>(null);
   const [pending, setPending] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const t = useT();
 
   useEffect(() => {
     let live = true;
@@ -113,25 +116,42 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
 
   return (
     <div className="flex flex-col gap-3 pb-4">
-      <h1 className="text-[22px] leading-tight font-bold text-ink">Settings</h1>
+      <h1 className="text-[22px] leading-tight font-bold text-ink">{t('settings.title')}</h1>
       {devTools}
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Gameplay" subtitle={state ? 'For this career' : 'Start or load a career to change these'} className="mb-1" />
-          <Row title="Difficulty" hint={DIFFICULTY[difficulty].description}>
+          <CardHeader title={t('settings.language')} subtitle={t('settings.onDevice')} className="mb-1" />
+          <Row title={t('settings.language')} hint={t('settings.languageHint')}>
             <Choice
-              label="Difficulty"
+              label={t('settings.language')}
+              value={app.language}
+              options={[
+                { id: 'en', label: t('settings.languageEn') },
+                { id: 'ta', label: t('settings.languageTa') },
+              ]}
+              onChange={(language) => {
+                app.set({ language });
+                pushToast({ tone: 'success', message: tFor(language, 'toast.languageSet') });
+              }}
+            />
+          </Row>
+        </Card>
+        <Card>
+          <CardHeader title={t('settings.gameplay')} subtitle={state ? t('settings.forCareer') : t('settings.noCareer')} className="mb-1" />
+          <Row title={t('settings.difficulty')} hint={t(`difficulty.${difficulty}.desc` as Key)}>
+            <Choice
+              label={t('settings.difficulty')}
               value={difficulty}
-              options={DIFFICULTIES}
+              options={DIFFICULTIES.map((id) => ({ id, label: t(`difficulty.${id}` as Key) }))}
               disabled={!state}
               onChange={(d) => update((s) => ({ ...s, settings: { ...s.settings, difficulty: d } }))}
             />
           </Row>
-          <Row title="Commentary" hint="How much the commentator says each ball">
+          <Row title={t('settings.commentary')} hint={t('settings.commentaryHint')}>
             <Choice
-              label="Commentary detail"
+              label={t('settings.commentaryDetail')}
               value={state?.settings.commentaryDetail ?? 'NORMAL'}
-              options={[{ id: 'BRIEF', label: 'Brief' }, { id: 'NORMAL', label: 'Normal' }, { id: 'DETAILED', label: 'Detailed' }]}
+              options={[{ id: 'BRIEF', label: t('settings.brief') }, { id: 'NORMAL', label: t('settings.normal') }, { id: 'DETAILED', label: t('settings.detailed') }]}
               disabled={!state}
               onChange={(c) => update((s) => ({ ...s, settings: { ...s.settings, commentaryDetail: c } }))}
             />
@@ -141,37 +161,37 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
         <RoleCard />
 
         <Card>
-          <CardHeader title="Matches and motion" subtitle="On this device" className="mb-1" />
-          <Row title="Animation speed" hint="Ball flight on the ground and the auction room">
-            <Choice label="Animation speed" value={app.animationSpeed} options={ANIMATION} onChange={(v) => app.set({ animationSpeed: v })} />
+          <CardHeader title={t('settings.motion')} subtitle={t('settings.onDevice')} className="mb-1" />
+          <Row title={t('settings.animation')} hint={t('settings.animationHint')}>
+            <Choice label={t('settings.animation')} value={app.animationSpeed} options={ANIMATION.map((a) => ({ id: a.id, label: t(a.key) }))} onChange={(v) => app.set({ animationSpeed: v })} />
           </Row>
-          <Row title="Default sim speed" hint="The pace a match starts at when it plays itself">
-            <Choice label="Default sim speed" value={app.defaultSimSpeed} options={BALL_SPEEDS.map((s, i) => ({ id: i, label: s.label }))} onChange={(v) => app.set({ defaultSimSpeed: v })} />
+          <Row title={t('settings.simSpeed')} hint={t('settings.simSpeedHint')}>
+            <Choice label={t('settings.simSpeed')} value={app.defaultSimSpeed} options={BALL_SPEEDS.map((_, i) => ({ id: i, label: t(`speed.${i}` as Key) }))} onChange={(v) => app.set({ defaultSimSpeed: v })} />
           </Row>
-          <Row title="Reduce motion" hint="No ball-flight or pulsing animations. Also follows your system setting.">
-            <Toggle label="Reduce motion" checked={app.reduceMotion} onChange={(v) => app.set({ reduceMotion: v })} />
+          <Row title={t('settings.reduceMotion')} hint={t('settings.reduceMotionHint')}>
+            <Toggle label={t('settings.reduceMotion')} checked={app.reduceMotion} onChange={(v) => app.set({ reduceMotion: v })} />
           </Row>
         </Card>
 
         <Card>
-          <CardHeader title="Sound" subtitle="On this device - the commentary is written on screen" className="mb-1" />
-          <Row title="Sound effects" hint="Bat on ball, stumps, the crowd for fours, sixes and wickets">
-            <Toggle label="Sound effects" checked={app.soundEffects} onChange={(v) => app.set({ soundEffects: v })} />
+          <CardHeader title={t('settings.sound')} subtitle={t('settings.soundHint')} className="mb-1" />
+          <Row title={t('settings.effects')} hint={t('settings.effectsHint')}>
+            <Toggle label={t('settings.effects')} checked={app.soundEffects} onChange={(v) => app.set({ soundEffects: v })} />
           </Row>
-          <Row title="Crowd atmosphere" hint="A quiet crowd murmur while play is on">
-            <Toggle label="Crowd atmosphere" checked={app.crowdAmbience} disabled={!app.soundEffects} onChange={(v) => app.set({ crowdAmbience: v })} />
+          <Row title={t('settings.crowd')} hint={t('settings.crowdHint')}>
+            <Toggle label={t('settings.crowd')} checked={app.crowdAmbience} disabled={!app.soundEffects} onChange={(v) => app.set({ crowdAmbience: v })} />
           </Row>
-          <Row title="Button clicks" hint="A soft tick when you tap a button">
-            <Toggle label="Button clicks" checked={app.buttonClicks} disabled={!app.soundEffects} onChange={(v) => app.set({ buttonClicks: v })} />
+          <Row title={t('settings.clicks')} hint={t('settings.clicksHint')}>
+            <Toggle label={t('settings.clicks')} checked={app.buttonClicks} disabled={!app.soundEffects} onChange={(v) => app.set({ buttonClicks: v })} />
           </Row>
-          <Row title="Volume" hint={`${Math.round(app.volume * 100)}%`}>
+          <Row title={t('settings.volume')} hint={`${Math.round(app.volume * 100)}%`}>
             <input
               type="range"
               min={0}
               max={100}
               step={5}
               value={Math.round(app.volume * 100)}
-              aria-label="Volume"
+              aria-label={t('settings.volume')}
               onChange={(e) => app.set({ volume: Number(e.target.value) / 100 })}
               className="w-40 accent-brand-blue"
             />
@@ -185,110 +205,110 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
             className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2 text-[12.5px] font-semibold text-ink"
           >
             <Volume2 className="size-3.5" aria-hidden />
-            Test the sound
+            {t('settings.testSound')}
           </button>
         </Card>
 
         <Card>
-          <CardHeader title="Storage" subtitle="Careers are kept in this browser's IndexedDB" className="mb-3" />
+          <CardHeader title={t('settings.storage')} subtitle={t('settings.storageHint')} className="mb-3" />
           <div className="flex items-center gap-2 text-[13px] text-ink">
             <Database className="size-4 text-brand-blue" aria-hidden />
             {usage === null ? (
-              <Badge tone="grey">Checking…</Badge>
+              <Badge tone="grey">{t('settings.checking')}</Badge>
             ) : usage.kind === 'memory' ? (
-              <Badge tone="red">Not persistent - IndexedDB is blocked; export your save</Badge>
+              <Badge tone="red">{t('settings.notPersistent')}</Badge>
             ) : (
               <Badge tone="green">IndexedDB</Badge>
             )}
           </div>
           <div className="mt-3">
             <div className="mb-1 flex justify-between text-[12.5px]">
-              <span className="text-ink-muted">Used by this game</span>
+              <span className="text-ink-muted">{t('settings.used')}</span>
               <span className="font-semibold text-ink">
-                {formatBytes(usage?.usage ?? null)} of {formatBytes(usage?.quota ?? null)}
+                {t('settings.usedOf', { used: formatBytes(usage?.usage ?? null), quota: formatBytes(usage?.quota ?? null) })}
               </span>
             </div>
-            <ProgressBar value={share ?? 0} tone={share !== null && share > 80 ? 'red' : 'blue'} label="Storage used" />
-            {usage && share === null ? <p className="mt-1 text-[11.5px] text-ink-muted">This browser does not report its quota.</p> : null}
+            <ProgressBar value={share ?? 0} tone={share !== null && share > 80 ? 'red' : 'blue'} label={t('settings.storageUsed')} />
+            {usage && share === null ? <p className="mt-1 text-[11.5px] text-ink-muted">{t('settings.noQuota')}</p> : null}
           </div>
           <ul className="mt-3 divide-y divide-line">
             {SAVE_SLOT_IDS.map((id) => (
               <li key={id} className="flex items-center justify-between gap-2 py-2 text-[12.5px]">
                 <span className="flex items-center gap-2 text-ink">
                   <HardDrive className="size-3.5 text-ink-soft" aria-hidden />
-                  Slot {id}
-                  {slot === id ? <Badge tone="blue">Current</Badge> : null}
+                  {t('common.slot', { n: id })}
+                  {slot === id ? <Badge tone="blue">{t('common.current')}</Badge> : null}
                 </span>
-                <span className="min-w-0 truncate text-ink-muted">{slots[id - 1]?.playerName ?? 'Empty'}</span>
+                <span className="min-w-0 truncate text-ink-muted">{slots[id - 1]?.playerName ?? t('common.empty')}</span>
                 <span className="font-semibold text-ink">{formatBytes(usage?.slots[id] ?? 0)}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11.5px] text-ink-muted">Ball-by-ball detail is kept for your last two matches; older matches keep full scorecards.</p>
+          <p className="mt-2 text-[11.5px] text-ink-muted">{t('settings.ballByBall')}</p>
         </Card>
 
         <Card>
-          <CardHeader title="Saves" className="mb-1" />
-          <Row title="Autosave" hint="Saves after every week and every match">
-            <Toggle label="Autosave" checked={state?.settings.autosave ?? true} disabled={!state} onChange={(v) => update((s) => ({ ...s, settings: { ...s.settings, autosave: v } }))} />
+          <CardHeader title={t('settings.saves')} className="mb-1" />
+          <Row title={t('settings.autosave')} hint={t('settings.autosaveHint')}>
+            <Toggle label={t('settings.autosave')} checked={state?.settings.autosave ?? true} disabled={!state} onChange={(v) => update((s) => ({ ...s, settings: { ...s.settings, autosave: v } }))} />
           </Row>
           <div className="mt-2 flex flex-wrap gap-2">
             <button type="button" disabled={!state} onClick={() => saveNow()} className="rounded-xl bg-brand-blue px-3.5 py-2 text-[12.5px] font-semibold text-white disabled:opacity-40">
-              Save now
+              {t('settings.saveNow')}
             </button>
-            <button type="button" disabled={!state} onClick={() => exportCareer() && pushToast({ tone: 'success', message: 'Save file downloaded.' })} className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2 text-[12.5px] font-semibold text-ink disabled:opacity-40">
+            <button type="button" disabled={!state} onClick={() => exportCareer() && pushToast({ tone: 'success', message: t('toast.saveDownloaded') })} className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2 text-[12.5px] font-semibold text-ink disabled:opacity-40">
               <Download className="size-3.5" aria-hidden />
-              Export
+              {t('settings.export')}
             </button>
             <button type="button" disabled={slot === null} onClick={() => fileInput.current?.click()} className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2 text-[12.5px] font-semibold text-ink disabled:opacity-40">
               <Upload className="size-3.5" aria-hidden />
-              Import
+              {t('settings.import')}
             </button>
-            <input ref={fileInput} type="file" accept="application/json,.json" className="hidden" aria-label="Import a save file into this slot" onChange={(e) => void onPickFile(e.target.files?.[0])} />
+            <input ref={fileInput} type="file" accept="application/json,.json" className="hidden" aria-label={t('settings.importLabel')} onChange={(e) => void onPickFile(e.target.files?.[0])} />
             <Link to="/slots" className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2 text-[12.5px] font-semibold text-ink">
               <FolderOpen className="size-3.5" aria-hidden />
-              Manage slots
+              {t('settings.manageSlots')}
             </Link>
           </div>
           <div className="mt-4 border-t border-line pt-3">
             <button type="button" disabled={slot === null} onClick={() => setConfirm('delete')} className="inline-flex items-center gap-1.5 rounded-xl border border-brand-red/40 px-3.5 py-2 text-[12.5px] font-semibold text-brand-red hover:bg-brand-red/5 disabled:opacity-40">
               <Trash2 className="size-3.5" aria-hidden />
-              Delete this career
+              {t('settings.delete')}
             </button>
           </div>
         </Card>
 
         <Card>
-          <CardHeader title="Tutorial" className="mb-1" />
-          <Row title="Tips" hint={`${app.tipsSeen.length ? `${app.tipsSeen.length} tip${app.tipsSeen.length === 1 ? '' : 's'} dismissed.` : 'All tips will show.'} Tips appear on the dashboard, training, matches and selection.`}>
+          <CardHeader title={t('settings.tutorial')} className="mb-1" />
+          <Row title={t('settings.tips')} hint={`${app.tipsSeen.length ? (app.tipsSeen.length === 1 ? t('settings.tipDismissed') : t('settings.tipsDismissed', { n: app.tipsSeen.length })) : t('settings.tipsAll')} ${t('settings.tipsWhere')}`}>
             <button
               type="button"
               onClick={() => {
                 app.resetTutorial();
-                pushToast({ tone: 'info', message: 'The tutorial tips will show again.' });
+                pushToast({ tone: 'info', message: t('toast.tipsReset') });
               }}
               className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3.5 py-2 text-[12.5px] font-semibold text-ink"
             >
               <Lightbulb className="size-3.5" aria-hidden />
-              Reset tutorial
+              {t('settings.resetTutorial')}
             </button>
           </Row>
         </Card>
 
         <Card>
-          <CardHeader title="Install the app" subtitle="Play from your home screen, even offline" className="mb-1" />
+          <CardHeader title={t('settings.install')} subtitle={t('settings.installHint')} className="mb-1" />
           {pwa.installed ? (
-            <p className="flex items-center gap-2 py-2 text-[13px] text-ink"><Smartphone className="size-4 text-brand-green" aria-hidden /> Installed on this device.</p>
+            <p className="flex items-center gap-2 py-2 text-[13px] text-ink"><Smartphone className="size-4 text-brand-green" aria-hidden /> {t('settings.installed')}</p>
           ) : pwa.canInstall ? (
-            <Row title="Add Cricket Career to this device" hint="It opens in its own window and works without a connection.">
+            <Row title={t('settings.addToDevice')} hint={t('settings.addToDeviceHint')}>
               <button type="button" onClick={() => void promptInstall()} className="rounded-xl bg-brand-blue px-3.5 py-2 text-[12.5px] font-semibold text-white">
-                Install app
+                {t('banner.installButton')}
               </button>
             </Row>
           ) : pwa.iosManual ? (
-            <p className="py-2 text-[13px] text-ink">On iPhone and iPad: tap <span className="font-semibold">Share</span> in Safari, then <span className="font-semibold">Add to Home Screen</span>.</p>
+            <p className="py-2 text-[13px] text-ink">{t('settings.iosInstall')}</p>
           ) : (
-            <p className="py-2 text-[13px] text-ink-muted">Use your browser's menu (Install app, or Add to Home screen). Once opened, the game is cached for offline play.</p>
+            <p className="py-2 text-[13px] text-ink-muted">{t('settings.browserInstall')}</p>
           )}
         </Card>
       </div>
@@ -296,14 +316,14 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
       <ConfirmDialog
         open={confirm === 'delete'}
         danger
-        title="Delete this career?"
-        message={`${state ? `${state.player.firstName} ${state.player.lastName}'s` : 'This'} career in slot ${slot ?? ''} will be deleted from this browser. Export it first if you might want it back.`}
-        confirmLabel="Delete career"
+        title={t('settings.deleteTitle')}
+        message={t('settings.deleteMessage', { who: state ? t('settings.deleteWho', { name: `${state.player.firstName} ${state.player.lastName}` }) : t('settings.deleteThis'), slot: slot ?? '' })}
+        confirmLabel={t('settings.deleteConfirm')}
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
           setConfirm(null);
           if (slot !== null && deleteCareer(slot)) {
-            pushToast({ tone: 'success', message: 'Career deleted.' });
+            pushToast({ tone: 'success', message: t('toast.careerDeleted') });
             navigate('/slots');
           }
         }}
@@ -311,20 +331,20 @@ export default function SettingsScreen({ devTools }: { devTools?: ReactNode }) {
       <ConfirmDialog
         open={confirm === 'import'}
         danger
-        title="Replace this career?"
-        message={`The save file will replace what is in slot ${slot ?? ''}. Export the current career first if you want to keep it.`}
-        confirmLabel="Import and replace"
+        title={t('settings.importTitle')}
+        message={t('settings.importMessage', { slot: slot ?? '' })}
+        confirmLabel={t('settings.importConfirm')}
         onCancel={() => {
           setConfirm(null);
           setPending(null);
         }}
         onConfirm={() => {
           setConfirm(null);
-          if (pending && slot !== null && importCareer(pending, slot)) pushToast({ tone: 'success', message: 'Save imported.' });
+          if (pending && slot !== null && importCareer(pending, slot)) pushToast({ tone: 'success', message: t('toast.saveImported') });
           setPending(null);
         }}
       />
-      <p className="flex items-center gap-1.5 text-[11.5px] text-ink-muted"><Gauge className="size-3.5" aria-hidden /> Difficulty changes apply from the next selection meeting and match.</p>
+      <p className="flex items-center gap-1.5 text-[11.5px] text-ink-muted"><Gauge className="size-3.5" aria-hidden /> {t('settings.difficultyNote')}</p>
     </div>
   );
 }

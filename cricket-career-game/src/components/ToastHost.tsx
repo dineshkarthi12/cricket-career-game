@@ -1,3 +1,4 @@
+import { tr } from '@/i18n/core';
 import { useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -38,7 +39,7 @@ export function ToastHost() {
           >
             <tone.icon className={cn('mt-0.5 size-4 shrink-0', tone.iconClass)} aria-hidden />
             <p className="flex-1 text-[13px] text-ink">{toast.message}</p>
-            <button type="button" onClick={() => dismiss(toast.id)} aria-label="Dismiss" className="text-ink-soft hover:text-ink">
+            <button type="button" onClick={() => dismiss(toast.id)} aria-label={tr('common.dismiss')} className="text-ink-soft hover:text-ink">
               <X className="size-3.5" />
             </button>
           </div>

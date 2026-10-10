@@ -23,6 +23,7 @@
  */
 import { createLiveMatch, type LiveMatch, type LiveMatchSetup, type LiveSnapshot } from './live';
 import type { BallOverrides } from './innings';
+import { t, type Key, type Lang } from '@/i18n/core';
 
 export const CHECKPOINT_VERSION = 1;
 
@@ -234,13 +235,13 @@ export function restoreLiveMatch(checkpoint: unknown): RecordedLiveMatch {
   return match;
 }
 
-/** "2nd innings, 14.3 overs" - where a resumed match picks up. */
-export function describeCheckpoint(snap: LiveSnapshot): string {
-  const ordinal = (n: number) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
-  if (snap.phase === 'TOSS') return 'before the toss';
-  if (snap.phase === 'INNINGS_BREAK') return `innings break after the ${ordinal(snap.completed.length)} innings`;
-  if (snap.phase === 'COMPLETE') return 'match complete';
+/** "2nd innings, 14.3 overs" - where a resumed match picks up, in the game's language. */
+export function describeCheckpoint(snap: LiveSnapshot, lang: Lang = 'en'): string {
+  const ordinal = (n: number) => t(lang, `ord.${Math.min(4, Math.max(1, n))}` as Key);
+  if (snap.phase === 'TOSS') return t(lang, 'where.toss');
+  if (snap.phase === 'INNINGS_BREAK') return t(lang, 'where.break', { n: ordinal(snap.completed.length) });
+  if (snap.phase === 'COMPLETE') return t(lang, 'where.complete');
   const cur = snap.current;
-  if (!cur) return 'in progress';
-  return `${ordinal(cur.number)} innings, ${cur.overs} overs`;
+  if (!cur) return t(lang, 'where.playing');
+  return t(lang, 'where.innings', { n: ordinal(cur.number), overs: cur.overs });
 }
