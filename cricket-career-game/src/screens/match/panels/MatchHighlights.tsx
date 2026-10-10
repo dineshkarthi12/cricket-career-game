@@ -4,9 +4,9 @@
  * the all-round doubles and any hat-trick - plus your own line, always. Built
  * from the scorecards, so it works for every match, even archived ones.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Star } from 'lucide-react';
-import { Card, CardHeader } from '@/components';
+import { Card, CardHeader, Tabs } from '@/components';
 import { MATCH_FORMATS } from '@/engine/config';
 import { cn } from '@/lib/cn';
 import { inningsHighlights } from '@/lib/highlights';
@@ -130,16 +130,35 @@ const FILTERS = [
 const BAT: ReelKind[] = ['HUNDRED', 'FIFTY', 'ALL_ROUND'];
 const BOWL: ReelKind[] = ['FIVE_FOR', 'THREE_FOR', 'TIGHT', 'HAT_TRICK', 'ALL_ROUND'];
 
-export function MatchHighlights({ match, teamNameOf, userId }: { match: Match; teamNameOf: (id: string) => string; userId: string | null }) {
+/**
+ * `replay` (the animated reel, for matches that kept their ball-by-ball)
+ * becomes a tab beside the big moments, and opens first.
+ */
+export function MatchHighlights({ match, teamNameOf, userId, replay }: { match: Match; teamNameOf: (id: string) => string; userId: string | null; replay?: ReactNode }) {
   const reel = useMemo(() => matchReel(match, teamNameOf, userId), [match, teamNameOf, userId]);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
+  const [view, setView] = useState<'replay' | 'moments'>(replay ? 'replay' : 'moments');
   const shown = reel.filter((r) =>
     filter === 'all' ? true : filter === 'you' ? r.playerId === userId : filter === 'bat' ? BAT.includes(r.kind) : BOWL.includes(r.kind),
   );
 
   return (
     <Card>
-      <CardHeader title="Match highlights" subtitle="The big moments - with the bat, with the ball, and both." />
+      <CardHeader title="Match highlights" subtitle={replay && view === 'replay' ? 'The big balls, replayed on the ground.' : 'The big moments - with the bat, with the ball, and both.'} />
+      {replay ? (
+        <Tabs
+          tabs={[
+            { id: 'replay', label: 'Replay' },
+            { id: 'moments', label: 'Big moments' },
+          ]}
+          value={view}
+          onChange={(id) => setView(id as 'replay' | 'moments')}
+          label="Highlights view"
+          className="mt-2.5 [&>button]:px-3 [&>button]:text-[12.5px]"
+        />
+      ) : null}
+      {replay && view === 'replay' ? <div className="mt-3">{replay}</div> : (
+      <>
       <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Highlights filter">
         {FILTERS.map((f) => (
           <button
@@ -174,6 +193,8 @@ export function MatchHighlights({ match, teamNameOf, userId }: { match: Match; t
             </li>
           ))}
         </ul>
+      )}
+      </>
       )}
     </Card>
   );

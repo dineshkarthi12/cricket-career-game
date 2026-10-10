@@ -2,6 +2,10 @@
  * Fixtures and results. Every played match opens its full scorecard; every
  * fixture still to come can be played out or simulated.
  */
+import { Film } from 'lucide-react';
+import { Modal } from '@/components';
+import { hasBallByBall } from '@/lib/clips';
+import { ReplayFor } from './match/highlights/ReplayFor';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Play, Trophy, Zap } from 'lucide-react';
@@ -225,6 +229,7 @@ function ResultRow({ state, match }: { state: GameState; match: Match }) {
 
 function MatchDetail({ state, match }: { state: GameState; match: Match }) {
   const [tab, setTab] = useState('0');
+  const [watching, setWatching] = useState(false);
   const teamNameOf = (id: string) => state.teams[id]?.shortName ?? id;
   const venue = state.venues[match.venueId] ?? Object.values(state.venues)[0];
   const tournament = TOURNAMENTS_BY_ID[match.tournamentId];
@@ -274,6 +279,16 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
             </span>
           ) : null}
         </p>
+        {hasBallByBall(match) ? (
+          <button
+            type="button"
+            onClick={() => setWatching(true)}
+            className="mt-2.5 flex items-center gap-1.5 rounded-xl bg-brand-blue px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-brand-blue/90"
+          >
+            <Film className="size-4" aria-hidden />
+            Watch highlights
+          </button>
+        ) : null}
         {match.tossWinnerTeamId ? (
           <p className="mt-1 text-[12.5px] text-ink-muted">
             {teamNameOf(match.tossWinnerTeamId)} won the toss and chose to{' '}
@@ -283,6 +298,11 @@ function MatchDetail({ state, match }: { state: GameState; match: Match }) {
       </Card>
 
       <MatchHighlights match={match} teamNameOf={teamNameOf} userId={state.player.id} />
+      {watching ? (
+        <Modal open onClose={() => setWatching(false)} title="Highlights" subtitle={`${teamNameOf(match.homeTeamId)} v ${teamNameOf(match.awayTeamId)}`}>
+          <ReplayFor match={match} teamNameOf={teamNameOf} />
+        </Modal>
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Card>

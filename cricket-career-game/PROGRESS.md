@@ -1969,3 +1969,49 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
     selection news;
   - the phone layout with its tabs;
   - a folded card remembered across visits.
+
+## Animated highlights replay, with video export
+- **Clip picker** (`lib/clips.ts`, pure): every wicket, every six, the
+  boundary (or run) that brings up a fifty or hundred, the winning runs of a
+  chase, hat-trick balls, overturned reviews, and all of the player's own
+  boundaries and wickets (as batter, bowler, the batter out, or the
+  fielder). At most 20, in match order; when there are more, the biggest
+  moments stay (the player's own count extra). There is a "Your moments
+  only" filter. Title cards read like TV ("WICKET - Bumrah b. Smith
+  34(22)").
+- **Player** (`screens/match/highlights/HighlightsPlayer.tsx`):
+  - each clip replays its ball on the existing `GroundView`: the bowler,
+    the ball's path to where it pitched and where it went, the batters;
+  - the score after the ball, the commentary line, and the title card;
+  - play / pause, previous / next, 1x / 2x;
+  - the match sounds through `sfxForBall`, which respect the sound
+    settings;
+  - with reduced motion it steps through still frames: no autoplay and
+    nothing animates.
+- **Where it shows:**
+  - a "Replay" tab beside "Big moments" in the post-match Match highlights
+    card;
+  - a "Watch highlights" button (opening a modal) on the scorecard of any
+    match that still has its ball-by-ball (the latest two);
+  - older matches keep the text reel only.
+- **Save as video** (`highlights/video.ts`):
+  - records the reel from a 720x1080 canvas drawn with the same ground
+    geometry (`lib/ground`), with a CRICKET CAREER watermark;
+  - uses MediaRecorder, WebM (VP9 or VP8), or MP4 where that is all the
+    browser records (iOS Safari 14.3+);
+  - where nothing records, it saves the best moment as a PNG card
+    ("Save as image");
+  - phones get the share sheet (Web Share API with files) when available;
+    otherwise the file downloads.
+  - Checked in Chromium: a 20-clip reel records to a 2 MB WebM. MediaRecorder
+    WebM files carry no duration header, so some players do not show the
+    length.
+- Nothing new is stored in saves; the reel is built when it is opened.
+- Tests:
+  - the clip picker on a hand-made match (`src/test/reelMatch.ts`) with a
+    hundred, a five-for with an overturned review and a last-ball finish:
+    the expected clips in order, a long reel cut to 20 in order, the "mine"
+    filter, archived matches;
+  - the player stepping through clips, the filter, autoplay at 1x and 2x
+    and pausing, no animation with reduced motion, and "Save as image"
+    where there is no MediaRecorder (jsdom).

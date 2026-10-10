@@ -33,6 +33,8 @@ import { BATTING_LEVELS, BOWLING_LEVELS } from './controls/AggressionBar';
 import { Manhattan, WagonWheelPanel, Worm, chartInnings } from './panels/MatchCharts';
 import { Scorecard } from './panels/Scorecard';
 import { MatchHighlights } from './panels/MatchHighlights';
+import { ReplayFor } from './highlights/ReplayFor';
+import { hasBallByBall } from '@/lib/clips';
 
 export function PostMatch({
   after,
@@ -246,7 +248,7 @@ export function PostMatch({
         ) : null}
       </div>
 
-      <MatchHighlights match={match} teamNameOf={teamNameOf} userId={player.id} />
+      <MatchHighlights match={match} teamNameOf={teamNameOf} userId={player.id} replay={hasBallByBall(match) ? <ReplayFor match={match} teamNameOf={teamNameOf} /> : undefined} />
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Card>
