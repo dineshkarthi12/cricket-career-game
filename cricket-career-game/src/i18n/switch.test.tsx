@@ -9,6 +9,11 @@ import { useAppSettings } from '@/store/appSettings';
 import { useGameStore } from '@/store/gameStore';
 import { formatLongDate } from '@/lib/format';
 import { setCurrentLang } from './core';
+import { Route, Routes } from 'react-router-dom';
+import MatchesScreen from '@/screens/Matches';
+import { exportSave, importSave } from '@/save/saveSystem';
+import { useMatchStore } from '@/store/matchStore';
+import type { GameState } from '@/types';
 
 afterEach(() => {
   useAppSettings.getState().set({ language: 'en' });
@@ -62,5 +67,40 @@ describe('switching language', () => {
     expect(formatLongDate('2026-10-15')).toBe('வியாழன், 15 அக்டோபர் 2026');
     setCurrentLang('en');
     expect(formatLongDate('2026-10-15')).toBe('Thu, 15 Oct 2026');
+  });
+
+  it('an old save, with English-only commentary, still loads and reads in Tamil', () => {
+    localStorage.clear();
+    useGameStore.getState().loadDemoCareer(1);
+    const state = useGameStore.getState().state!;
+    const fixture = Object.values(state.fixtures)
+      .filter((f) => f.homeTeamId && f.awayTeamId && (state.teams[f.homeTeamId]?.isUserTeam || state.teams[f.awayTeamId]?.isUserTeam))
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
+    const match = useMatchStore.getState().quickSim(state, fixture)!;
+    expect(match).toBeTruthy();
+    // As a save from before the language setting: commentary in English only.
+    const old = JSON.parse(JSON.stringify(useGameStore.getState().state)) as GameState;
+    for (const m of Object.values(old.matches)) for (const i of m.innings) for (const b of i.deliveries) delete b.commentaryCode;
+    const exported = exportSave(old, 1);
+    expect(exported.ok).toBe(true);
+    const imported = importSave(exported.ok ? exported.value : '');
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    useGameStore.setState({ state: imported.value.state });
+    const saved = imported.value.state.matches[match.id];
+    const line = saved.innings[0].deliveries.at(-1)?.commentary;
+    expect(line).toBeTruthy();
+
+    act(() => useAppSettings.getState().set({ language: 'ta' }));
+    render(
+      <MemoryRouter initialEntries={[`/matches/${match.id}`]}>
+        <Routes>
+          <Route path="/matches/:matchId" element={<MatchesScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    // The screen is in Tamil, and the old ball-by-ball shows as it was saved.
+    expect(screen.getByText('ஸ்கோர்கார்டு')).toBeInTheDocument();
+    expect(screen.getAllByText(line!).length).toBeGreaterThan(0);
   });
 });

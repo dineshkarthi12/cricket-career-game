@@ -43,6 +43,7 @@ import { CommentaryFeed } from '@/screens/match/panels/CommentaryFeed';
 import { Scorecard } from '@/screens/match/panels/Scorecard';
 import { cn } from '@/lib/cn';
 import { Button, FranchiseCrest, LinkButton, PageHeader, Select, StatLine, ToneBadge, nameOf, shortOf, useManager } from './ui';
+import { alertText } from '@/lib/matchText';
 
 /** Live matches survive moving between screens; a reload picks them up from their checkpoint. */
 const sessions = new Map<string, RecordedLiveMatch>();
@@ -450,7 +451,7 @@ function Matchday({ state, fixture }: { state: ManagerState; fixture: ManagerFix
         {tab === 'events' ? (
           <ul className="grid gap-1 text-[12.5px]" aria-live="polite">
             {[...snap.alerts].reverse().slice(0, 30).map((a) => (
-              <li key={a.id} className="flex gap-2"><ToneBadge tone={a.kind === 'WICKET' || a.kind === 'COLLAPSE' ? 'red' : a.kind === 'MILESTONE' ? 'gold' : 'grey'}>{a.kind.toLowerCase()}</ToneBadge> {a.text}</li>
+              <li key={a.id} className="flex gap-2"><ToneBadge tone={a.kind === 'WICKET' || a.kind === 'COLLAPSE' ? 'red' : a.kind === 'MILESTONE' ? 'gold' : 'grey'}>{a.kind.toLowerCase()}</ToneBadge> {alertText(a)}</li>
             ))}
           </ul>
         ) : null}

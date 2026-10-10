@@ -23,6 +23,7 @@ import { useMatchAudio } from '@/lib/audio/useMatchAudio';
 import { broadcastGraphics, figuresIn } from '@/engine/pro/broadcast';
 import { rich, useT } from '@/i18n/react';
 import { tr } from '@/i18n/core';
+import { alertText } from '@/lib/matchText';
 
 export default function MatchScreen() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
@@ -400,7 +401,10 @@ export default function MatchScreen() {
         ) : null}
         {/* Screen readers hear each alert as it happens. */}
         <span className="sr-only" aria-live="polite">
-          {snap.alerts.at(-1)?.text}
+          {(() => {
+            const last = snap.alerts.at(-1);
+            return last ? alertText(last) : null;
+          })()}
         </span>
       </>
     );

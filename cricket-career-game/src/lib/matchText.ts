@@ -1,4 +1,5 @@
-import { currentLang, tr, type Key } from '@/i18n/core';
+import { currentLang, isKey, t, tr, type Key, type Lang } from '@/i18n/core';
+import type { LiveAlert } from '@/engine/match/live';
 import type { Match } from '@/types';
 
 /** The engine's result summaries, as patterns, and the key each reads as. */
@@ -22,17 +23,17 @@ const SUFFIXES: [string, Key][] = [
  * ("Won by 8 wickets"); the known shapes are read back into the language the
  * app is in, and anything else is shown as it was written.
  */
-export function summaryText(summary: string): string {
-  if (currentLang() === 'en') return summary;
+export function summaryText(summary: string, lang: Lang = currentLang()): string {
+  if (lang === 'en') return summary;
   for (const [pattern, key, one] of SUMMARIES) {
     const m = pattern.exec(summary);
     if (!m) continue;
     const n = m[1] !== undefined ? Number(m[1]) : undefined;
-    let text = tr(n === 1 && one ? one : key, n !== undefined ? { n } : undefined);
+    let text = t(lang, n === 1 && one ? one : key, n !== undefined ? { n } : undefined);
     let rest = summary.slice(m[0].length);
     for (const [suffix, suffixKey] of SUFFIXES) {
       if (rest.startsWith(suffix)) {
-        text += tr(suffixKey);
+        text += t(lang, suffixKey);
         rest = rest.slice(suffix.length);
       }
     }
@@ -54,4 +55,11 @@ export function resultHeadline(match: Match, teamNameOf: (id: string) => string)
     return tr('res.headline', { team: teamNameOf(result.winningTeamId), summary });
   }
   return summaryText(result.summary);
+}
+
+/** A live alert in a language: from its key when it has one, the result read back from English. */
+export function alertText(alert: Pick<LiveAlert, 'kind' | 'text' | 'code'>, lang: Lang = currentLang()): string {
+  if (lang === 'en') return alert.text;
+  if (alert.code && isKey(alert.code.k)) return t(lang, alert.code.k, alert.code.v);
+  return alert.kind === 'RESULT' ? summaryText(alert.text, lang) : alert.text;
 }

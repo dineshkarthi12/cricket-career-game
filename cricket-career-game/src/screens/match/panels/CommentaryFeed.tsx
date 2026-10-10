@@ -10,7 +10,8 @@ import { Star } from 'lucide-react';
 import { MILESTONE_KINDS, inningsHighlights, matchTally, overSummaries, type Highlight } from '@/lib/highlights';
 import { cn } from '@/lib/cn';
 import type { Ball, Innings } from '@/types';
-import { useT } from '@/i18n/react';
+import { useLang, useT } from '@/i18n/react';
+import { commentaryFor } from '@/engine/match/commentary';
 
 function toneOf(ball: Ball): string {
   if (ball.wicket) return 'border-brand-red bg-brand-red/8';
@@ -72,6 +73,7 @@ export const CommentaryFeed = memo(function CommentaryFeed({
   className?: string;
 }) {
   const t = useT();
+  const lang = useLang();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
 
   const names = useMemo(() => {
@@ -157,7 +159,7 @@ export const CommentaryFeed = memo(function CommentaryFeed({
                     {chip.text}
                   </span>
                   <span className={cn('min-w-0 text-[12.5px] leading-snug text-ink', big && 'font-semibold')}>
-                    {ball.commentary}
+                    {commentaryFor(ball, lang)}
                   </span>
                 </div>
               </li>

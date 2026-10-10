@@ -13,7 +13,8 @@ import {
   UserRound,
 } from 'lucide-react';
 import type { LiveAlert } from '@/engine/match/live';
-import { useT } from '@/i18n/react';
+import { useLang, useT } from '@/i18n/react';
+import { alertText } from '@/lib/matchText';
 
 const ICONS: Record<LiveAlert['kind'], typeof Star> = {
   MILESTONE: Star,
@@ -53,6 +54,7 @@ export const AlertsFeed = memo(function AlertsFeed({
   className?: string;
 }) {
   const t = useT();
+  const lang = useLang();
   const shown = [...alerts].slice(-limit).reverse();
   if (shown.length === 0) {
     return <p className={`text-[13px] text-ink-muted ${className ?? ''}`}>{t('alerts.none')}</p>;
@@ -67,7 +69,7 @@ export const AlertsFeed = memo(function AlertsFeed({
             <span className={`grid size-6 shrink-0 place-items-center rounded-full ${TONES[alert.kind]}`}>
               <Icon className="size-3.5" strokeWidth={2.4} aria-hidden />
             </span>
-            <span className="min-w-0 text-[12.5px] leading-snug text-ink">{alert.text}</span>
+            <span className="min-w-0 text-[12.5px] leading-snug text-ink">{alertText(alert, lang)}</span>
           </li>
         );
       })}

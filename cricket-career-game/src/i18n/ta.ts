@@ -6,10 +6,12 @@
  * Western. Typed as `Dict`, so a key missing here is a compile error.
  */
 import type { Dict } from './core';
+import { taCommentary } from './ta/commentary';
 import { taMatch } from './ta/match';
 
 export const ta: Dict = {
   ...taMatch,
+  ...taCommentary,
   // --- Shared words ---------------------------------------------------------------------------
   'common.close': 'மூடு',
   'common.dismiss': 'மூடு',

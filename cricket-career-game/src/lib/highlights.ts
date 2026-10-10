@@ -4,7 +4,14 @@
  * hat-trick, the team's hundreds and the big partnerships. Derived on screen,
  * so older saves get them too.
  */
-import { tr } from '@/i18n/core';
+import { tr, variants, type Key } from '@/i18n/core';
+
+/** One of a milestone's numbered variants, chosen by the ball, so it reads the same every time. */
+function variantOf(family: string, seed: string): Key {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return `${family}.${hash % Math.max(1, variants(family))}` as Key;
+}
 import type { Ball, Innings } from '@/types';
 
 export type HighlightKind =
@@ -142,7 +149,7 @@ export function inningsHighlights(
         add(ball, {
           kind,
           label: String(mark),
-          text: tr(mark === 50 ? 'hl.fifty' : mark === 100 ? 'hl.hundred' : 'hl.bigHundred', vars),
+          text: mark === 50 ? tr(variantOf('hl.fifty', ball.id), vars) : mark === 100 ? tr(variantOf('hl.hundred', ball.id), vars) : tr('hl.bigHundred', vars),
           playerId: ball.strikerId,
         });
       }
@@ -192,7 +199,7 @@ export function inningsHighlights(
       const wickets = (bowlerWickets.get(ball.bowlerId) ?? 0) + 1;
       bowlerWickets.set(ball.bowlerId, wickets);
       if (wickets === 3) add(ball, { kind: 'THREE_FOR', label: '3W', text: tr('hl.threeFor', { bowler }), playerId: ball.bowlerId });
-      if (wickets === 5) add(ball, { kind: 'FIVE_FOR', label: '5W', text: tr('hl.fiveFor', { bowler }), playerId: ball.bowlerId });
+      if (wickets === 5) add(ball, { kind: 'FIVE_FOR', label: '5W', text: tr(variantOf('hl.fiveFor', ball.id), { bowler }), playerId: ball.bowlerId });
       allRoundCheck(ball, ball.bowlerId);
     }
 

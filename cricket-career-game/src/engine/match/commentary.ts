@@ -1,9 +1,19 @@
 /**
  * Ball-by-ball commentary. Deterministic: the same delivery always produces
  * the same line, so a replayed match reads identically.
+ *
+ * A line is kept two ways on the ball: `commentary`, the English text (what
+ * older saves have, and what the engine's own tests read), and
+ * `commentaryCode`, the dictionary keys and variables it was made from, so a
+ * screen can read it in the app's language (`commentaryFor`). Each event has
+ * several numbered variants in the dictionaries (`cv.four.0` ...); the
+ * variant is picked from the delivery, not the rng.
  */
+import { isKey, t, variants, type Key, type Lang, type Vars } from '@/i18n/core';
 import type { DeliveryContext } from './types';
-import type { DismissalType, ShotType } from '@/types';
+import type { CommentaryPart, DismissalType, ShotType } from '@/types';
+
+export type { CommentaryPart } from '@/types';
 
 export interface CommentaryInput {
   context: DeliveryContext;
@@ -16,165 +26,143 @@ export interface CommentaryInput {
   onTheRope?: boolean;
 }
 
-const SHOT_WORDS: Record<ShotType, string> = {
-  DEFEND: 'pushes it back',
-  LEAVE: 'shoulders arms',
-  BLOCK: 'blocks it out',
-  DRIVE: 'drives',
-  CUT: 'cuts',
-  PULL: 'pulls',
-  HOOK: 'hooks',
-  SWEEP: 'sweeps',
-  REVERSE_SWEEP: 'reverse-sweeps',
-  FLICK: 'clips it away',
-  LOFT: 'lofts it',
-  RAMP: 'ramps it',
-};
-
-/** The verb for a shot that scored: a leave or a block that ran away is steered or nudged. */
-const SCORING_VERB: Record<ShotType, string> = {
-  DEFEND: 'pushes',
-  LEAVE: 'steers',
-  BLOCK: 'nudges',
-  DRIVE: 'drives',
-  CUT: 'cuts',
-  PULL: 'pulls',
-  HOOK: 'hooks',
-  SWEEP: 'sweeps',
-  REVERSE_SWEEP: 'reverse-sweeps',
-  FLICK: 'flicks',
-  LOFT: 'lofts',
-  RAMP: 'ramps',
-};
+/** What a delivery outcome carries: the English line and how it was made. */
+export interface Commentary {
+  commentary: string;
+  commentaryCode: CommentaryPart[];
+}
 
 /** Every sentence starts with a capital ("A full toss outside off", not "a full toss"). */
 function sentences(text: string): string {
   return text.replace(/(^|[.!?]\s+)([a-z])/g, (_, lead: string, ch: string) => lead + ch.toUpperCase());
 }
 
-const LENGTH_WORDS: Record<string, string> = {
-  FULL_TOSS: 'a full toss',
-  YORKER: 'a yorker',
-  FULL: 'full',
-  GOOD: 'on a good length',
-  SHORT_OF_GOOD: 'back of a length',
-  SHORT: 'short',
-};
+/** The parts, read in a language. */
+export function renderCommentary(code: CommentaryPart[], lang: Lang): string {
+  const text = code
+    .filter((part) => isKey(part.k))
+    .map((part) => t(lang, part.k as Key, part.v))
+    .join(' ');
+  return lang === 'en' ? sentences(text) : text;
+}
 
-const LINE_WORDS: Record<string, string> = {
-  WIDE_OFF: 'well wide of off',
-  OUTSIDE_OFF: 'outside off',
-  OFF_STUMP: 'at off stump',
-  MIDDLE: 'at the stumps',
-  LEG_STUMP: 'on leg stump',
-  DOWN_LEG: 'down the leg side',
-};
+/** A ball's commentary in a language; a ball saved before the codes existed keeps its English. */
+export function commentaryFor(ball: { commentary: string; commentaryCode?: CommentaryPart[] }, lang: Lang): string {
+  if (lang === 'en' || !ball.commentaryCode?.length) return ball.commentary;
+  return renderCommentary(ball.commentaryCode, lang);
+}
+
+/** A line from its parts: the English text and the code, together. */
+export function say(...parts: CommentaryPart[]): Commentary {
+  return { commentary: renderCommentary(parts, 'en'), commentaryCode: parts };
+}
+
+/** Put a part in front of a line (the timing of the player's tap). */
+export function prefixed(part: CommentaryPart, line: Commentary): Commentary {
+  return say(part, ...line.commentaryCode);
+}
 
 /** A tiny deterministic hash, so phrasing varies without needing the rng. */
-function pickBy(seed: string, options: string[]): string {
+function hashOf(seed: string): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  return options[hash % options.length];
+  return hash;
 }
 
+/** One of an event's numbered variants, chosen by the seed. */
+function pick(seed: string, family: string, v: Vars): CommentaryPart {
+  const n = variants(family);
+  return { k: n > 0 ? `${family}.${hashOf(seed) % n}` : family, v };
+}
+
+/** A one-off line by a seed: drops, reviews and fumbles outside `describeBall`. */
+export function sayVariant(seed: string, family: string, v: Vars): Commentary {
+  return say(pick(seed, family, v));
+}
+
+const ref = (key: string): string => `@${key}`;
+
+/** The English line only (kept for callers that want text). */
 export function describeBall(input: CommentaryInput): string {
-  return sentences(describe(input));
+  return commentate(input).commentary;
 }
 
-function describe(input: CommentaryInput): string {
+export function commentate(input: CommentaryInput): Commentary {
+  return say(describe(input));
+}
+
+function describe(input: CommentaryInput): CommentaryPart {
   const { context, kind } = input;
   const bowler = context.bowler.name;
   const batter = context.striker.name;
-  const key = `${bowler}${batter}${context.oversBowled}${context.strikerBallsFaced}${kind}`;
-  const length = LENGTH_WORDS[context.plan.length] ?? 'on a length';
-  const line = LINE_WORDS[context.plan.line] ?? '';
-  const variation = context.plan.variation ? `, the ${context.plan.variation},` : '';
+  const seed = `${bowler}${batter}${context.oversBowled}${context.strikerBallsFaced}${kind}`;
+  const length = isKey(`cv.len.${context.plan.length}`) ? ref(`cv.len.${context.plan.length}`) : ref('cv.len.default');
+  const line = isKey(`cv.line.${context.plan.line}`) ? ref(`cv.line.${context.plan.line}`) : '';
+  const variationName = context.plan.variation;
+  const variation = variationName ? ref('cv.withVar') : '';
+  const vname = variationName ? (isKey(`var.${variationName}`) ? ref(`var.${variationName}`) : variationName) : '';
+  const delivery = { bowler, batter, length, line, variation, vname };
+  const hit = (fallback: string) => (input.shot ? ref(`cv.hit.${input.shot}`) : ref(fallback));
 
   switch (kind) {
     case 'WIDE':
-      return pickBy(key, [
-        `${bowler} sprays it down the leg side. Wide.`,
-        `Too far across ${batter}, and the umpire signals a wide.`,
-        `${bowler} loses his radar there — wide called.`,
-      ]);
+      return pick(seed, 'cv.wide', { bowler, batter });
 
     case 'NO_BALL':
-      return pickBy(key, [
-        `${bowler} oversteps. No ball.`,
-        `Front foot over the line from ${bowler} — no ball, and a free hit to come.`,
-      ]);
+      return pick(seed, 'cv.noBall', { bowler });
 
-    case 'BYE':
-      return `Beats everyone${input.runs === 4 ? ' and races away to the rope' : ''}. ${input.runs} bye${input.runs === 1 ? '' : 's'}.`;
-
-    case 'LEG_BYE':
-      return `Off the pad and away. ${input.runs} leg bye${input.runs === 1 ? '' : 's'}.`;
-
-    case 'FOUR': {
-      const hit = input.shot ? SCORING_VERB[input.shot] : 'drives';
-      return pickBy(key, [
-        `${length}${variation} and ${batter} ${hit} it beautifully — four runs.`,
-        `Short of the mark from ${bowler}. ${batter} ${hit} it through the gap for four.`,
-        `${batter} ${hit} it, and that has beaten the sweeper. Four.`,
-      ]);
+    case 'BYE': {
+      const n = input.runs ?? 1;
+      return pick(seed, 'cv.bye', { n, byes: ref(n === 1 ? 'cv.byes.one' : 'cv.byes.many'), rope: n === 4 ? ref('cv.byes.rope') : '' });
     }
 
-    case 'SIX': {
-      const hit = input.shot ? SCORING_VERB[input.shot] : 'lofts';
-      return pickBy(key, [
-        `${batter} ${hit} it — and that is out of the middle. Six!`,
-        `Into the stands! ${batter} ${hit} ${bowler} for six.`,
-        `${batter} gets under it and ${hit} it all the way. Six runs.`,
-      ]);
+    case 'LEG_BYE': {
+      const n = input.runs ?? 1;
+      return pick(seed, 'cv.legBye', { n, lb: ref(n === 1 ? 'cv.legByes.one' : 'cv.legByes.many') });
     }
+
+    case 'FOUR':
+      return pick(seed, 'cv.four', { ...delivery, hit: hit('cv.hit.DRIVE') });
+
+    case 'SIX':
+      return pick(seed, 'cv.six', { bowler, batter, hit: hit('cv.hit.LOFT') });
 
     case 'WICKET': {
       const who = input.dismissedName ?? batter;
+      const fielder = input.fielderName ?? ref('cv.theFielder');
+      const v = { ...delivery, who, fielder };
       switch (input.dismissal) {
         case 'BOWLED':
-          return `${length}${variation} — through the gate and ${who} is BOWLED! ${bowler} has his man.`;
+          return pick(seed, 'cv.bowled', v);
         case 'LBW':
-          return `${length} ${line}, it thuds into the pad, and the finger goes up. ${who} lbw ${bowler}.`;
+          return pick(seed, 'cv.lbw', v);
         case 'CAUGHT':
-          return input.onTheRope
-            ? `${who} goes big — but ${input.fielderName} takes it on the rope! Caught.`
-            : `${who} finds ${input.fielderName} in the field. Caught, and ${bowler} has the wicket.`;
+          return pick(seed, input.onTheRope ? 'cv.rope' : 'cv.caught', v);
         case 'CAUGHT_BEHIND':
-          return `A thin edge through to ${input.fielderName}, and ${who} has to go. Caught behind off ${bowler}.`;
+          return pick(seed, 'cv.behind', v);
         case 'CAUGHT_AND_BOWLED':
-          return `Straight back at ${bowler}, who takes it himself. ${who} caught and bowled.`;
+          return pick(seed, 'cv.cab', v);
         case 'STUMPED':
-          return `${who} comes down the track, misses, and ${input.fielderName} does the rest. Stumped off ${bowler}.`;
+          return pick(seed, 'cv.stumped', v);
         case 'RUN_OUT':
-          return `Called through for a tight one, ${input.fielderName} swoops, direct hit — ${who} is run out!`;
+          return pick(seed, 'cv.runOut', v);
         case 'HIT_WICKET':
-          return `${who} loses his balance and dislodges the bail. Hit wicket off ${bowler}.`;
+          return pick(seed, 'cv.hitWicket', v);
         default:
-          return `${who} is out off ${bowler}.`;
+          return { k: 'cv.outOther', v: { who, bowler } };
       }
     }
 
     case 'RUNS':
     default: {
       const runs = input.runs ?? 0;
-      const shot = input.shot ? SHOT_WORDS[input.shot] : 'plays it';
       if (runs === 0) {
-        return pickBy(key, [
-          `${length}${variation} ${line}. ${batter} ${shot}. No run.`,
-          `${bowler} gets it ${length}. ${batter} is watchful. Dot ball.`,
-          `Tight from ${bowler}, ${batter} ${shot} to the fielder.`,
-        ]);
+        return pick(seed, 'cv.dot', { ...delivery, play: input.shot ? ref(`cv.play.${input.shot}`) : ref('cv.play.default') });
       }
-      const hit = input.shot ? SCORING_VERB[input.shot] : 'works';
-      if (runs === 1) {
-        return pickBy(key, [
-          `${batter} ${hit} it into the gap and takes a single.`,
-          `Worked away off the hip for one.`,
-          `${batter} ${hit} it to ${input.fielderName ?? 'the fielder'} and they scamper through for one.`,
-        ]);
-      }
-      if (runs === 2) return `${batter} ${hit} it into the outfield and comes back for the second.`;
-      return `Into the gap, ${input.fielderName ?? 'the sweeper'} chases, and they run three.`;
+      const v = { batter, hit: hit('cv.hit.work') };
+      if (runs === 1) return pick(seed, 'cv.one', { ...v, fielder: input.fielderName ?? ref('cv.theFielder') });
+      if (runs === 2) return pick(seed, 'cv.two', { ...v, fielder: input.fielderName ?? ref('cv.theFielder') });
+      return pick(seed, 'cv.three', { ...v, fielder: input.fielderName ?? ref('cv.theSweeper') });
     }
   }
 }

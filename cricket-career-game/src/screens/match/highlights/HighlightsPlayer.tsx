@@ -17,7 +17,8 @@ import { useGameStore } from '@/store/gameStore';
 import type { Match, Venue } from '@/types';
 import { GroundView } from '../ground/GroundView';
 import { momentImage, recordReel, recordableType, shareOrDownload, type ReelContext } from './video';
-import { useT } from '@/i18n/react';
+import { useLang, useT } from '@/i18n/react';
+import { commentaryFor } from '@/engine/match/commentary';
 
 /** Ball flight at 1x, and how long the finished picture holds before the next clip. */
 const FLIGHT_MS = 1600;
@@ -47,6 +48,7 @@ export interface HighlightsPlayerProps {
 
 export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, userLeftHanded = false, reduceMotion }: HighlightsPlayerProps) {
   const t = useT();
+  const lang = useLang();
   const [mineOnly, setMineOnly] = useState(false);
   const clips = useMemo(() => pickClips(match, userId, userName, { mineOnly }), [match, userId, userName, mineOnly]);
   const [index, setIndex] = useState(0);
@@ -186,7 +188,7 @@ export function HighlightsPlayer({ match, venue, teamNameOf, userId, userName, u
             ({t('reel.ov', { n: clip.score.overs })}){clip.target ? t('player.target', { n: clip.target }) : ''}
           </span>
         </p>
-        <p className="mt-0.5 text-[12.5px] leading-snug text-white/85">{ball.commentary}</p>
+        <p className="mt-0.5 text-[12.5px] leading-snug text-white/85">{commentaryFor(ball, lang)}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

@@ -10,7 +10,8 @@
  * where it ended, the score, the title card, the commentary line and a small
  * Cricket Career watermark.
  */
-import { tr } from '@/i18n/core';
+import { currentLang, tr } from '@/i18n/core';
+import { commentaryFor } from '@/engine/match/commentary';
 import { circlePath, groundBox, pitchRect, shotEnd, type GroundBox, type Point } from '@/lib/ground';
 import type { Clip } from '@/lib/clips';
 import type { Venue } from '@/types';
@@ -163,7 +164,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, clip: Clip, t: number, 
   }
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.font = '400 22px Poppins, "Noto Sans Tamil", system-ui, sans-serif';
-  wrap(ctx, clip.ball.commentary, 32, top + 140, WIDTH - 64, 30, 3);
+  wrap(ctx, commentaryFor(clip.ball, currentLang()), 32, top + 140, WIDTH - 64, 30, 3);
 
   // Watermark.
   ctx.fillStyle = 'rgba(255,255,255,0.55)';

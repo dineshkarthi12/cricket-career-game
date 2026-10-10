@@ -9,6 +9,8 @@
  * call and draws whatever it finds.
  */
 import { impactSwap } from '../sim/quickMatch';
+import { t, type Key, type Vars } from '@/i18n/core';
+import type { CommentaryPart } from '@/types';
 import { MATCH, MATCH_FORMATS, matchDaysFor } from '../config';
 import { newId } from '../id';
 import { createPitch, createWeather, newBall } from './conditions';
@@ -119,6 +121,8 @@ export function timedChance(probability: number, timing: number): number {
 export interface UserMoment {
   kind: 'CATCH' | 'RUN_OUT' | 'REVIEW';
   success: boolean;
+  /** What happened, as a dictionary key (`al.you.*`); `text` is the English. */
+  key: Key;
   text: string;
   ballId: string;
 }
@@ -214,7 +218,9 @@ export interface LiveAlert {
     | 'WEATHER'
     | 'SESSION'
     | 'YOU';
+  /** In English; `code` reads it in the app's language (see `alertText`). */
   text: string;
+  code?: CommentaryPart;
   ballNumber: number;
 }
 
@@ -383,7 +389,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       xiOverride[teamId] = xi.map((p) => (p.id === outgoing.id ? { ...incoming, battingPosition: outgoing.battingPosition } : p));
       allPlayers.push(incoming);
       impactsUsed.push({ teamId, inId: incoming.id, outId: outgoing.id });
-      addAlert('INNINGS', `Impact player: ${incoming.name} replaces ${outgoing.name} for ${setup.teamNames?.[teamId] ?? teamId}.`);
+      addAlert('INNINGS', 'al.impact', { in: incoming.name, out: outgoing.name, team: setup.teamNames?.[teamId] ?? teamId });
     }
   }
 
@@ -401,8 +407,8 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   const other = (teamId: string) =>
     teamId === setup.homeTeamId ? setup.awayTeamId : setup.homeTeamId;
 
-  const addAlert = (kind: LiveAlert['kind'], text: string) => {
-    alerts.push({ id: newId('alert'), kind, text, ballNumber: state?.legalBalls ?? 0 });
+  const addAlert = (kind: LiveAlert['kind'], k: Key, v?: Vars) => {
+    alerts.push({ id: newId('alert'), kind, text: t('en', k, v), code: { k, ...(v ? { v } : {}) }, ballNumber: state?.legalBalls ?? 0 });
   };
 
   function buildSetup(p: PendingInnings): InningsSetup {
@@ -480,16 +486,12 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     pending = null;
     phase = 'IN_PLAY';
     const name = setup.teamNames?.[p.battingTeamId] ?? p.battingTeamId;
-    addAlert(
-      'INNINGS',
-      p.superOver
-        ? `Super over: ${name} ${p.target !== null ? `need ${p.target}` : 'bat first'}.`
-        : p.followOn
-          ? `${name} follow on.`
-          : p.target !== null
-            ? `Innings ${p.number}: ${name} need ${p.target} to win.`
-            : `Innings ${p.number}: ${name} batting.`,
-    );
+    if (p.superOver) {
+      if (p.target !== null) addAlert('INNINGS', 'al.superOverNeed', { team: name, n: p.target });
+      else addAlert('INNINGS', 'al.superOverFirst', { team: name });
+    } else if (p.followOn) addAlert('INNINGS', 'al.followOn', { team: name });
+    else if (p.target !== null) addAlert('INNINGS', 'al.chase', { n: p.number, team: name, target: p.target });
+    else addAlert('INNINGS', 'al.batting', { n: p.number, team: name });
   }
 
   /** Multi-day overs left for the next innings. */
@@ -545,7 +547,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         target = dlsTarget;
       }
       if (!hasResult(secondOvers)) {
-        addAlert('INNINGS', 'Rain — not enough time left for a result.');
+        addAlert('INNINGS', 'al.rainNoResult');
         return settle({
           type: 'NO_RESULT',
           winningTeamId: null,
@@ -556,7 +558,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         });
       }
       if (dlsTarget !== null) {
-        addAlert('INNINGS', `Rain: the chase is cut to ${secondOvers} overs, target ${dlsTarget}.`);
+        addAlert('INNINGS', 'al.dls', { overs: secondOvers, target: dlsTarget });
       }
       return breakFor({
         number: 2,
@@ -575,7 +577,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       second.runs === target - 1 && (second.allOut || lastEnding === 'OVERS_COMPLETE');
 
     if (tied && (setup.knockout ?? false)) {
-      addAlert('INNINGS', 'Scores level in a knockout — to a super over.');
+      addAlert('INNINGS', 'al.superOver');
       return breakFor({
         number: 3,
         battingTeamId: other(battingFirstTeamId),
@@ -714,7 +716,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         awaitingFollowOn = true;
         phase = 'INNINGS_BREAK';
         pending = null;
-        addAlert('INNINGS', `A lead of ${firstInningsLead}: enforce the follow-on?`);
+        addAlert('INNINGS', 'al.followOnAsk', { n: firstInningsLead });
         return;
       }
 
@@ -834,7 +836,9 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     match.result = result;
     if (setup.userPlayerId) match.userPerformance = buildPerformance(match, setup.userPlayerId, allPlayers);
 
-    addAlert('RESULT', result?.summary ?? 'Match complete');
+    // The summary stays the engine's English; the alerts feed reads it into the app's language.
+    if (result?.summary) alerts.push({ id: newId('alert'), kind: 'RESULT', text: result.summary, ballNumber: state?.legalBalls ?? 0 });
+    else addAlert('RESULT', 'al.complete');
     finishedMatch = { match, partnerships };
   }
 
@@ -844,32 +848,32 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     if (!s) return;
     if (ball.wicket) {
       const name = allPlayers.find((p) => p.id === ball.wicket?.bowlerId)?.name;
-      addAlert('WICKET', `Wicket! ${s.runs}/${s.wickets}${name ? ` — ${name} strikes` : ''}.`);
+      addAlert('WICKET', 'al.wicket', { score: `${s.runs}/${s.wickets}`, strikes: name ? '@al.strikes' : '', name: name ?? '' });
       const recent = s.wicketBalls.filter((b) => s.legalBalls - b <= 24).length;
       if (recent === 3 || recent === 5) {
-        addAlert('COLLAPSE', `Collapse — ${recent} wickets in four overs.`);
+        addAlert('COLLAPSE', 'al.collapse', { n: recent });
       }
     }
-    if (ball.dropped) addAlert('DROP', `Dropped by ${ball.dropped.fielderName}.`);
-    if (ball.review) addAlert('REVIEW', `Review: ${ball.review.outcome.replace('_', ' ').toLowerCase()}.`);
+    if (ball.dropped) addAlert('DROP', 'al.drop', { name: ball.dropped.fielderName });
+    if (ball.review) addAlert('REVIEW', `al.review.${ball.review.outcome}`);
 
     const bat = s.battingLines.get(ball.strikerId);
     if (bat && ball.runsOffBat > 0) {
       for (const mark of [50, 100, 150, 200]) {
         if (bat.runs >= mark && bat.runs - ball.runsOffBat < mark) {
-          addAlert('MILESTONE', `${bat.name} reaches ${mark} (${bat.balls} balls).`);
+          addAlert('MILESTONE', 'al.reaches', { name: bat.name, mark, balls: bat.balls });
         }
       }
     }
     const bowl = s.bowlingLines.get(ball.bowlerId);
     if (bowl && ball.wicket && bowl.wickets === 5) {
-      addAlert('MILESTONE', `${bowl.name} has five wickets.`);
+      addAlert('MILESTONE', 'al.fiveFor', { name: bowl.name });
     }
 
     // A batter off the field hurt.
     if (s.retiredHurt.length > retiredSeen) {
       const hurt = allPlayers.find((p) => p.id === s.retiredHurt[s.retiredHurt.length - 1]);
-      addAlert('INJURY', `${hurt?.name ?? 'A batter'} retires hurt.`);
+      addAlert('INJURY', 'al.retired', { name: hurt?.name ?? '@al.aBatter' });
       retiredSeen = s.retiredHurt.length;
     }
 
@@ -877,15 +881,10 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     const clock = sessionNow();
     if (clock && clock.day > announcedDay) {
       announcedDay = clock.day;
-      addAlert('SESSION', `Stumps on day ${clock.day - 1}. Day ${clock.day} begins.`);
+      addAlert('SESSION', 'al.stumps', { prev: clock.day - 1, day: clock.day });
       const loss = dayLosses[clock.day];
       if (loss) {
-        addAlert(
-          'WEATHER',
-          loss.cause === 'RAIN'
-            ? `Rain on day ${clock.day}: about ${loss.overs} overs lost.`
-            : `Bad light on day ${clock.day}: about ${loss.overs} overs lost.`,
-        );
+        addAlert('WEATHER', loss.cause === 'RAIN' ? 'al.rainDay' : 'al.lightDay', { day: clock.day, n: loss.overs });
       }
     }
   }
@@ -955,46 +954,38 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     },
   };
 
+  const pushMoment = (m: Omit<UserMoment, 'text'>) => moments.push({ ...m, text: t('en', m.key) });
+
   function recordMoment(q: DecisionQuestion, ball: Ball, reviewed: boolean) {
     if (q.kind === 'CATCH') {
       const held = ball.wicket?.type === 'CAUGHT' && ball.wicket.fielderId === userId;
-      moments.push({
+      pushMoment({
         kind: 'CATCH',
         success: held,
         ballId: ball.id,
-        text: held
-          ? q.onTheRope
-            ? 'You judge it on the rope and hold on!'
-            : 'You hold on to it!'
-          : q.onTheRope
-            ? 'It goes over your hands and into the crowd.'
-            : 'You put it down.',
+        key: held ? (q.onTheRope ? 'al.you.catchRope' : 'al.you.catch') : q.onTheRope ? 'al.you.overRope' : 'al.you.drop',
       });
     } else if (q.kind === 'RUN_OUT') {
       const hit = ball.wicket?.type === 'RUN_OUT';
-      moments.push({
+      pushMoment({
         kind: 'RUN_OUT',
         success: hit,
         ballId: ball.id,
-        text: hit ? 'Direct hit - run out!' : 'The throw misses. They make their ground.',
+        key: hit ? 'al.you.directHit' : 'al.you.throwMissed',
       });
     } else if (reviewed) {
       const good =
         ball.review?.outcome === 'OVERTURNED' ||
         (q.side === 'BOWLING' && ball.review?.outcome === 'UMPIRES_CALL');
-      moments.push({
+      pushMoment({
         kind: 'REVIEW',
         success: good,
         ballId: ball.id,
-        text: good
-          ? 'Review successful.'
-          : ball.review?.outcome === 'UMPIRES_CALL'
-            ? "Umpire's call - the decision stands."
-            : 'Review lost.',
+        key: good ? 'al.you.reviewWon' : ball.review?.outcome === 'UMPIRES_CALL' ? 'al.you.umpiresCall' : 'al.you.reviewLost',
       });
     }
     const latest = moments[moments.length - 1];
-    if (latest && latest.ballId === ball.id) addAlert('YOU', latest.text);
+    if (latest && latest.ballId === ball.id) addAlert('YOU', latest.key);
   }
 
   /** One delivery, asking the player when it is their call. */
@@ -1110,7 +1101,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         const oversLostBefore = rollOversLost(rng, weather.rainRisk, fullOvers);
         firstInningsOvers = Math.max(0, fullOvers - oversLostBefore);
         if (oversLostBefore > 0) {
-          addAlert('INNINGS', `Rain delays the start: ${firstInningsOvers} overs a side.`);
+          addAlert('INNINGS', 'al.rainStart', { n: firstInningsOvers });
         }
         openInnings({
           number: 1,
@@ -1139,12 +1130,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
         }
       }
       if (dayLosses[1]) {
-        addAlert(
-          'INNINGS',
-          dayLosses[1].cause === 'RAIN'
-            ? `Rain about on day 1: around ${dayLosses[1].overs} overs will be lost.`
-            : `Bad light will cost around ${dayLosses[1].overs} overs on day 1.`,
-        );
+        addAlert('INNINGS', dayLosses[1].cause === 'RAIN' ? 'al.rainDay1' : 'al.lightDay1', { n: dayLosses[1].overs });
       }
       maxMatchBalls = Math.max(
         cfg.oversPerDay * 6,
@@ -1307,7 +1293,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       state.ending = 'DECLARED';
       state.complete = true;
       const name = setup.teamNames?.[state.setup.battingTeamId] ?? state.setup.battingTeamId;
-      addAlert('INNINGS', `${name} declare on ${state.runs}/${state.wickets}.`);
+      addAlert('INNINGS', 'al.declare', { team: name, score: `${state.runs}/${state.wickets}` });
       closeInnings();
       return true;
     },

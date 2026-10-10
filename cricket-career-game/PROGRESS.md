@@ -2114,3 +2114,37 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
       selection through the toss to the ground, and back;
     - a review prompt in Tamil;
     - result summaries read in Tamil and are unchanged in English.
+- **Pass (d), done:** match commentary.
+  - Every ball keeps its English `commentary`, so old saves and the engine
+    tests read as before. New balls also carry `commentaryCode`: the
+    dictionary keys and variables the line was made from
+    (`engine/match/commentary.ts`: `commentate`, `say`, `sayVariant`).
+  - Screens read the code in the app's language through `commentaryFor`:
+    the commentary feed, the highlights reel and the exported video. A ball
+    without a code (an old save) shows its English.
+  - Keys live in `src/i18n/en/commentary.ts` and `ta/commentary.ts`.
+  - Variants: 5 each for four, six and dot balls; 4 for every wicket type
+    (bowled, lbw, caught, caught on the rope, caught behind, caught and
+    bowled, stumped, run out, hit wicket, out leaving the ball), for drops,
+    and for the fifty, hundred and five-for milestone lines. Wides,
+    no-balls, byes, runs, misfields and reviews have 2-4 each.
+  - The variant is picked from the delivery, not the rng, so a replayed
+    match reads the same.
+  - The ad-hoc lines in `delivery.ts` are keys now: the tap-timing prefix,
+    the leave and leave-out lines, the drop, the batting review overturned,
+    umpire's call, the lbw appeals and the misfield.
+  - Tamil is spoken TV style: சிக்ஸர், ஃபோர், விக்கெட், LBW, கேட்ச் and
+    shot names as people say them. Player names stay in English.
+  - Live alerts work the same way. `LiveAlert.code` and `UserMoment.key`
+    are new, and `alertText()` renders them. The result alert is read back
+    with `summaryText`.
+  - Tests:
+    - a fixed seeded over renders in English (identical to the stored
+      line) and in Tamil (Tamil script, every variable filled, names
+      kept);
+    - every ball of three whole matches renders in Tamil;
+    - the variant counts;
+    - phrasing varies across a match;
+    - old balls and old alerts keep their English;
+    - an exported save with English-only commentary imports and shows its
+      ball-by-ball on the Tamil Matches screen.
