@@ -146,6 +146,7 @@ export default function MatchScreen() {
           proposedIds={store.proposedIds}
           snap={snap}
           onToggle={store.toggleProposed}
+          onSwap={store.swapProposed}
           onMove={store.moveProposed}
           onReset={store.resetProposed}
           onToss={store.toToss}

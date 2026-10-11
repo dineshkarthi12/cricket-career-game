@@ -460,6 +460,18 @@ describe('leadership', () => {
     expect(isCaptainOf(accepted, nationTeamId('India'), false, 'ODI')).toBe(true);
     expect(isCaptainOf(accepted, nationTeamId('India'), false, 'TEST')).toBe(false);
   });
+
+  it('keeps the India Test captain in the Test squad, out of form or not', () => {
+    const state = proCareer(true);
+    const offered: GameState = {
+      ...state,
+      pro: { ...state.pro, leadership: { ...state.pro.leadership, offer: { id: 'o2', level: 'INDIA', role: 'CAPTAIN', teamId: nationTeamId('India'), teamName: 'India (Tests)', format: 'TEST', date: '2026-07-01', reason: 'test' } } },
+    };
+    const india = offered.teams[nationTeamId('India')];
+    expect(decideSquad(offered, 'intl-test', india, { incumbent: false, stageId: 'INDIA_SENIOR_CAMP' }).status).not.toBe('SQUAD');
+    const captain = answerLeadership(offered, true);
+    expect(decideSquad(captain, 'intl-test', india, { incumbent: false, stageId: 'INDIA_SENIOR_CAMP' })).toMatchObject({ status: 'SQUAD', reason: expect.stringMatching(/as captain/) });
+  });
 });
 
 describe('retirement and legacy', () => {

@@ -156,6 +156,8 @@ interface MatchStore {
   open: (state: GameState, fixture: Fixture) => void;
   /** Captain only: bring a player into or out of the proposed XI. */
   toggleProposed: (id: Id) => void;
+  /** A captain's swap: `inId` from the squad takes `outId`'s place in the XI and the order. */
+  swapProposed: (outId: Id, inId: Id) => void;
   /** Captain only: move a player up or down the proposed batting order. */
   moveProposed: (id: Id, by: number) => void;
   resetProposed: () => void;
@@ -582,6 +584,16 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         if (index === -1 || target < 0 || target >= s.proposedIds.length) return s;
         const next = [...s.proposedIds];
         [next[index], next[target]] = [next[target], next[index]];
+        return { proposedIds: next };
+      }),
+
+    swapProposed: (outId, inId) =>
+      set((s) => {
+        if (!s.captain || s.proposedIds.includes(inId)) return s;
+        const index = s.proposedIds.indexOf(outId);
+        if (index === -1) return s;
+        const next = [...s.proposedIds];
+        next[index] = inId;
         return { proposedIds: next };
       }),
 

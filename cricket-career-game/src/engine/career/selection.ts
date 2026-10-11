@@ -9,6 +9,7 @@
  */
 import { canUserControlBowling, roleMatchNote } from '../roles';
 import { SELECTION } from '../config';
+import { isCaptainOf } from './captaincy';
 import { computeOverall, formatOverall } from '../ratings';
 import { createRng, deriveSeed } from '../match/rng';
 import { battingOrderOf, simFromUser, squadFor, xiOptionsFor } from '../match/lineup';
@@ -200,6 +201,9 @@ function coachBowlingTrust(player: SimPlayer): { trust: number; note: string } {
   return { trust, note };
 }
 
+/** Added to the captain's selection score: far above any rival's. */
+const CAPTAIN_FIRST = 1000;
+
 /** The selectors' decision for this fixture. */
 export function selectForFixture(state: GameState, fixture: Fixture): SelectionDecision | null {
   const team = userTeamOf(state, fixture);
@@ -213,9 +217,11 @@ export function selectForFixture(state: GameState, fixture: Fixture): SelectionD
   const reasons: string[] = [];
 
   // Every selection meeting has its whims.
+  // A fit captain picks themselves: they head the list, so they are always in the XI.
+  const captain = isCaptainOf(state, team.id, false, fixture.format);
   const ranked = candidates
     .filter((p) => !unavailable(p))
-    .map((player) => ({ player, score: selectionScore(player, team, fixture.format) + rng.spread() * 4 }))
+    .map((player) => ({ player, score: selectionScore(player, team, fixture.format) + rng.spread() * 4 + (captain && player.id === state.player.id ? CAPTAIN_FIRST : 0) }))
     .sort((a, b) => b.score - a.score);
 
   const picked = pickBalanced(ranked, xiOptionsFor(team, fixture.format)?.maxOverseas);
@@ -225,6 +231,7 @@ export function selectForFixture(state: GameState, fixture: Fixture): SelectionD
 
   const out = unavailable(user);
   if (out) reasons.push(`You are ${out}.`);
+  else if (captain) reasons.push('You captain the side.');
 
   const inXi = order.some((p) => p.id === userId);
   const leftOut = ranked.filter((r) => !picked.some((p) => p.id === r.player.id));

@@ -111,6 +111,25 @@ describe('match screens: captain mode', () => {
     expect(screen.getByRole('button', { name: /Send the XI to the selectors/ })).toBeDisabled();
   });
 
+  it('lets a captain swap a squad player into a full XI in two taps', async () => {
+    await renderAt('/match/fx-ka-u16', true);
+    const before = useMatchStore.getState().proposedIds;
+    const swapIns = screen.getAllByRole('button', { name: /Swap in/ });
+    expect(swapIns.length).toBeGreaterThan(0);
+    expect(swapIns[0]).toBeEnabled();
+    fireEvent.click(swapIns[0]);
+    expect(screen.getByRole('status')).toHaveTextContent(/Bringing in/);
+    const swapOuts = screen.getAllByRole('button', { name: /Swap out/ });
+    expect(swapOuts).toHaveLength(11);
+    fireEvent.click(swapOuts[10]);
+    const after = useMatchStore.getState().proposedIds;
+    expect(after).toHaveLength(11);
+    expect(after.slice(0, 10)).toEqual(before.slice(0, 10));
+    expect(after[10]).not.toBe(before[10]);
+    expect(screen.queryByRole('button', { name: /Swap out/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /Send the XI to the selectors/ })).toBeEnabled();
+  });
+
   it('lets a captain call the toss, and shows the captain’s panel in play', async () => {
     await renderAt('/match/fx-ka-u16', true);
     fireEvent.click(screen.getByRole('button', { name: /Send the XI to the selectors/ }));

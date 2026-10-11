@@ -2183,3 +2183,10 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   `matchProgress` in `engine/tournament/live.ts`). The Tournaments page
   shows the same matches-played/left line, and a `/tournaments/<id>` link
   now switches competition while the page is already open.
+- Captaincy fixes: a fit captain is always in their side's squad
+  (`decideSquad`) and XI (`selectForFixture`): the selectors used to leave
+  the captain out like any other player. Pre-match, a captain can now swap
+  a squad player into a full XI in two taps (tap the squad player, then
+  "Swap out" on the one they replace, keeping the batting position);
+  before, the squad list stayed greyed out until someone was left out
+  first.
