@@ -64,6 +64,23 @@ describe('Home dashboard', () => {
     expect(screen.getAllByText('completed')).toHaveLength(2);
   });
 
+  it('shows the picked competition\'s table, leaders and matches left under the road to selection', () => {
+    renderHome();
+    const scope = within(screen.getByRole('heading', { name: 'Road to selection' }).closest('section')!);
+    expect(scope.getByText('Matches played')).toBeInTheDocument();
+    expect(scope.getByText('Matches left')).toBeInTheDocument();
+    expect(scope.getByText(/^Points table/)).toBeInTheDocument();
+    expect(scope.getByText('Top run-scorers')).toBeInTheDocument();
+    expect(scope.getByText('Leading wicket-takers')).toBeInTheDocument();
+    const chips = scope.queryAllByRole('tab');
+    if (chips.length > 1) {
+      fireEvent.click(chips[1]);
+      expect(chips[1]).toHaveAttribute('aria-selected', 'true');
+      expect(scope.getByText(/^Points table/)).toBeInTheDocument();
+    }
+    expect(scope.getByRole('link', { name: /^Full .* table and stats$/ })).toBeInTheDocument();
+  });
+
   it('lists the upcoming schedule in date order', () => {
     renderHome();
     const card = screen.getByRole('heading', { name: 'Upcoming Schedule' }).closest('section')!;

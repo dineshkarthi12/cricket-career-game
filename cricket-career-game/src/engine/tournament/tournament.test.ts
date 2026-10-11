@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createNewCareer } from '../newCareer';
 import { applyResult, emptyStanding, netRunRate, rankGroup } from './standings';
 import { buildBracket, roundRobin } from './schedule';
-import { playAiFixtures, tournamentOf } from './live';
+import { matchProgress, playAiFixtures, tournamentOf } from './live';
 import { rankOf, recordResult, settleKnockout, topRunScorers, topWicketTakers } from './results';
 import type { CompactResult, GameState, TournamentState } from '@/types';
 
@@ -128,6 +128,17 @@ describe('a whole competition', () => {
     // Nobody is the user here: every match is played by the fast sim.
     return { ...state, fixtures: Object.fromEntries(Object.entries(state.fixtures).map(([id, f]) => [id, { ...f, involvesUser: false }])) };
   }
+
+  it('counts the matches played and left, for the competition and the user\'s side', () => {
+    let state = u19Season();
+    const before = matchProgress(state, tournamentOf(state, 'vinoo-mankad')!);
+    expect(before).toMatchObject({ played: 0, total: 60 + 7, teamPlayed: 0 });
+    // A user side plays five group games; knockouts count only once it is drawn in.
+    if (tournamentOf(state, 'vinoo-mankad')!.userTeamId) expect(before.teamLeft).toBe(5);
+    state = playAiFixtures(state, '2026-11-30');
+    const after = matchProgress(state, tournamentOf(state, 'vinoo-mankad')!);
+    expect(after).toMatchObject({ played: 67, total: 67, teamLeft: 0 });
+  });
 
   it('builds groups, plays every fixture, fills the bracket and crowns a champion with awards', () => {
     let state = u19Season();

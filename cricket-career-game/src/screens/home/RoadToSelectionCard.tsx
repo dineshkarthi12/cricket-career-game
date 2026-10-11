@@ -2,17 +2,18 @@
  * The road into each side, one step at a time: scouted, shortlisted, trial,
  * squad, playing XI, regular. The step in play glows; its line says what
  * happened or what it takes. Under it: where the selectors rank you, what the
- * scouts are writing, and the next selection event and match.
+ * scouts are writing, and the next selection event and match. Below that, the
+ * picked competition's table, leaders and matches left.
  */
 import { isKey, type Key } from '@/i18n/core';
 import { useT } from '@/i18n/react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { CalendarClock, Check, Eye, Swords, X } from 'lucide-react';
 import { Badge, Card, CardHeader } from '@/components';
 import { selectionJourney, type CompetitionJourney, type JourneyStep } from '@/engine/career/journey';
 import { formatDayMonth } from '@/lib/format';
 import { proPlaces } from '@/lib/pro';
+import { CompetitionSnapshot } from './CompetitionSnapshot';
 import { cn } from '@/lib/cn';
 import type { GameState } from '@/types';
 
@@ -66,6 +67,7 @@ export function RoadToSelectionCard({ state, compact = false }: { state: GameSta
       ) : (
         <JourneyDetails journey={journey} />
       )}
+      <CompetitionSnapshot state={state} tournamentId={journey.tournamentId} shortName={journey.shortName} />
     </Card>
   );
 }
@@ -197,9 +199,6 @@ function JourneyDetails({ journey }: { journey: CompetitionJourney }) {
           </p>
         ) : null}
         {!journey.nextEvent && !journey.nextMatch ? <p className="text-[12px] text-ink-muted">{t('road.nothing')}</p> : null}
-        <Link to={`/tournaments/${journey.tournamentId}`} className="mt-1 inline-block text-[12px] font-semibold text-brand-blue">
-          {t('road.table', { comp: journey.shortName })}
-        </Link>
       </div>
     </div>
   );

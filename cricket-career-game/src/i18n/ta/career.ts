@@ -138,6 +138,8 @@ export const taCareer: { [K in keyof typeof enCareer]: string } = {
   'car.t.pot': 'தொடர் நாயகன்: {name} ({detail})',
   'car.t.topScorer': 'அதிக ரன்: {name} ({detail})',
   'car.t.topWicketTaker': 'அதிக விக்கெட்: {name} ({detail})',
+  'car.t.progress': '{total} போட்டிகளில் {played} முடிந்தது · {left} மீதம்',
+  'car.t.sideLeft': ' · {team}: இன்னும் {n} போட்டிகள்',
   'car.t.further': 'நீங்கள் பட்டியலில் இன்னும் கீழே இருக்கிறீர்கள்.',
   'car.tstage.GROUP': 'குரூப்',
   'car.tstage.LEAGUE': 'லீக்',

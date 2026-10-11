@@ -31,6 +31,31 @@ export function tournamentOf(state: GameState, tournamentId: string | null): Tou
   return state.season.tournaments.find((t) => t.tournamentId === tournamentId && t.seasonYear === state.season.year);
 }
 
+/** How far a competition has run: matches played of the whole schedule, and what is left for the user's side. */
+export interface MatchProgress {
+  played: number;
+  total: number;
+  /** The user's side's matches still to play (knockouts count once the side is drawn in). */
+  teamLeft: number;
+  teamPlayed: number;
+}
+
+export function matchProgress(state: GameState, t: TournamentState): MatchProgress {
+  const progress: MatchProgress = { played: 0, total: 0, teamLeft: 0, teamPlayed: 0 };
+  for (const id of t.fixtureIds) {
+    const f = state.fixtures[id];
+    if (f && f.kind !== 'MATCH') continue;
+    const done = Boolean(t.results[id]) || Boolean(f?.played);
+    progress.total += 1;
+    if (done) progress.played += 1;
+    if (f && t.userTeamId && (f.homeTeamId === t.userTeamId || f.awayTeamId === t.userTeamId)) {
+      if (done) progress.teamPlayed += 1;
+      else progress.teamLeft += 1;
+    }
+  }
+  return progress;
+}
+
 function withTournament(state: GameState, t: TournamentState): GameState {
   return {
     ...state,
