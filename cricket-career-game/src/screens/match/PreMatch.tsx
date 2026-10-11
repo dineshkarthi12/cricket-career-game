@@ -1,8 +1,9 @@
 /**
  * Before a ball is bowled. In career mode the selectors have already decided:
  * the player sees whether they are in the XI, where they bat, what is expected
- * of them, the opposition and the conditions. A captain also puts forward
- * their own XI and batting order - which the selectors may overrule.
+ * of them, the opposition and the conditions. A captain (and India's captain
+ * in any format) also puts forward their own XI and batting order - which the
+ * selectors may overrule.
  */
 import { useState } from 'react';
 import {
@@ -58,6 +59,7 @@ export function PreMatch({
   fixture,
   selection,
   captain,
+  picksXi = captain,
   proposedIds,
   snap,
   onToggle,
@@ -72,6 +74,8 @@ export function PreMatch({
   fixture: Fixture;
   selection: SelectionDecision;
   captain: boolean;
+  /** Puts forward the XI: a captain, or India's captain in another format. */
+  picksXi?: boolean;
   proposedIds: string[];
   /** A preview of the match, so the conditions can be read before the toss. */
   snap: LiveSnapshot | null;
@@ -95,10 +99,10 @@ export function PreMatch({
 
   const byId = new Map(selection.ranked.map((r) => [r.player.id, r.player]));
   const proposed = proposedIds.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p));
-  const warnings = captain ? xiWarnings(proposed) : [];
-  const ready = !captain || proposed.length === 11;
+  const warnings = picksXi ? xiWarnings(proposed) : [];
+  const ready = !picksXi || proposed.length === 11;
   // Captain of another side: say so, so the selectors' XI here is no surprise.
-  const captainOf = captain ? [] : captaincyNames(state);
+  const captainOf = picksXi ? [] : captaincyNames(state);
   // A squad player tapped while the XI is full waits here for the one they replace.
   const [swapIn, setSwapIn] = useState<string | null>(null);
   const incoming = swapIn && !proposedIds.includes(swapIn) ? (byId.get(swapIn) ?? null) : null;
@@ -184,9 +188,9 @@ export function PreMatch({
           {/* The XI: the selectors', or the captain's proposal. */}
           <Card className="flex flex-col gap-3">
             <CardHeader
-              title={captain ? t('pre.yourXi') : t('pre.theXi')}
+              title={picksXi ? t('pre.yourXi') : t('pre.theXi')}
               subtitle={
-                captain
+                picksXi
                   ? t('pre.yourXiHint', { n: proposed.length })
                   : t('pre.theXiHint')
               }
@@ -205,7 +209,7 @@ export function PreMatch({
               </div>
             ) : null}
             <ol className="flex flex-col gap-1">
-              {(captain ? proposed : selection.xi).map((player, index) => (
+              {(picksXi ? proposed : selection.xi).map((player, index) => (
                 <li
                   key={player.id}
                   className={[
@@ -227,7 +231,7 @@ export function PreMatch({
                       {roleShort(player.role)} · {t('pre.formN', { n: Math.round(player.condition.form) })}
                     </span>
                   </span>
-                  {captain ? (
+                  {picksXi ? (
                     <span className="flex shrink-0 items-center gap-1">
                       <IconButton label={t('pre.batHigher')} onClick={() => onMove(player.id, -1)} disabled={index === 0}>
                         <ArrowUp className="size-3.5" />
@@ -266,7 +270,7 @@ export function PreMatch({
               ))}
             </ol>
 
-            {captain ? (
+            {picksXi ? (
               <>
                 <p className="border-t border-line pt-3 text-[12.5px] font-semibold text-ink">{t('pre.alsoInSquad')}</p>
                 <ul className="grid gap-1.5 sm:grid-cols-2">
@@ -373,8 +377,8 @@ export function PreMatch({
               disabled={!ready}
               className="flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {inXi || captain ? <Users className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
-              {captain ? t('pre.sendXi') : inXi ? t('pre.toToss') : t('pre.watch')}
+              {inXi || picksXi ? <Users className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+              {picksXi ? t('pre.sendXi') : inXi ? t('pre.toToss') : t('pre.watch')}
             </button>
             <button
               type="button"
