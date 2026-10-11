@@ -8,7 +8,7 @@ import { battingPoints, bowlingPoints, nextRating, rateTeams, wtcStandings, rank
 import { buildIcc, iccEventsIn, ICC_SHAPES } from './competitions';
 import { retireFrom, autoRetire } from './retirement';
 import { answerLeadership } from './leadership';
-import { isCaptainOf } from '../career/captaincy';
+import { isCaptainOf, picksXiFor } from '../career/captaincy';
 import { decideSquad, rankGroup } from '../career/squads';
 import { formatOverall } from '../ratings';
 import { legacyRating, legacyTier, scoreLegacy, type LegacyInputs } from './legacy';
@@ -459,6 +459,10 @@ describe('leadership', () => {
     const accepted = answerLeadership(offered, true);
     expect(isCaptainOf(accepted, nationTeamId('India'), false, 'ODI')).toBe(true);
     expect(isCaptainOf(accepted, nationTeamId('India'), false, 'TEST')).toBe(false);
+    // The ODI captain still picks the XI in Tests and T20Is; the toss and the field stay with that format's captain.
+    expect(picksXiFor(declined, nationTeamId('India'), false, 'TEST')).toBe(false);
+    for (const format of ['TEST', 'ODI', 'T20'] as const) expect(picksXiFor(accepted, nationTeamId('India'), false, format)).toBe(true);
+    expect(picksXiFor(accepted, nationTeamId('India', 'A'), false, 'MULTI_DAY')).toBe(false);
   });
 
   it('keeps the India Test captain in the Test squad, out of form or not', () => {

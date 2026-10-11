@@ -68,6 +68,23 @@ export function isCaptainOf(
   return devBuild && state.settings.devCaptainMode && Boolean(state.teams[teamId]?.isUserTeam);
 }
 
+/**
+ * Does the player put forward the XI for this team? Every captain does, and
+ * a captain of India in one format picks the XI in all three: the toss, the
+ * field and the bowling stay with that format's captain.
+ */
+export function picksXiFor(
+  state: GameState,
+  teamId: Id | null | undefined,
+  devBuild = false,
+  format?: MatchFormat | null,
+): boolean {
+  if (isCaptainOf(state, teamId, devBuild, format)) return true;
+  const team = teamId ? state.teams[teamId] : undefined;
+  if (team?.kind !== 'NATIONAL' || team.level !== 'INTERNATIONAL' || !state.pro) return false;
+  return state.pro.leadership.posts.some((p) => p.level === 'INDIA' && p.role === 'CAPTAIN' && !p.until && p.teamId === teamId);
+}
+
 /** Win percentage from a record, or null before a completed match. */
 export function winPercent(record: CaptaincyRecord): number | null {
   const decided = record.matches - record.noResult;

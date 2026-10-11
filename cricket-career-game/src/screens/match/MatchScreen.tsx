@@ -143,6 +143,7 @@ export default function MatchScreen() {
           fixture={fixture}
           selection={selection}
           captain={store.captain}
+          picksXi={store.picksXi}
           proposedIds={store.proposedIds}
           snap={snap}
           onToggle={store.toggleProposed}

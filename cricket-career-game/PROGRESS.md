@@ -2194,3 +2194,8 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   and plays for one they do not captain (India A, Rest of India, a zone)
   now sees "You captain ..., so the XI controls appear in those matches"
   above the selectors' XI, instead of wondering where the controls went.
+- XI picking with any India captaincy: captaincy of India is per format,
+  so a Test captain got the selectors' XI in ODIs and T20Is. Now any
+  captain of India picks the XI in all three formats (`picksXiFor` in
+  `engine/career/captaincy.ts`, the match store's `picksXi`); the toss,
+  field, bowling and delegation stay with that format's captain.

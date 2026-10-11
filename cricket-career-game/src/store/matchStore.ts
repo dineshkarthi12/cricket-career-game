@@ -12,7 +12,7 @@
  */
 import { create } from 'zustand';
 import { currentLang, tr } from '@/i18n/core';
-import { isCaptainOf } from '@/engine/career/captaincy';
+import { isCaptainOf, picksXiFor } from '@/engine/career/captaincy';
 import { emptyTacticalLog, type TacticalLog } from '@/engine/career/afterMatch';
 import { applyPressConference, type PressConference } from '@/engine/career/press';
 import {
@@ -133,6 +133,8 @@ interface MatchStore {
   selection: SelectionDecision | null;
   /** True when the player captains this match - team controls unlock. */
   captain: boolean;
+  /** True when the player puts forward the XI: a captain, or India's captain in another format. */
+  picksXi: boolean;
   delegate: CaptainDelegation | null;
   /** The captain's proposed XI, in batting order. */
   proposedIds: Id[];
@@ -249,7 +251,7 @@ export interface CareerMatchCheckpoint {
   fixtureId: Id;
   savedAt: string;
   live: LiveCheckpoint;
-  store: Pick<MatchStore, 'selection' | 'captain' | 'delegate' | 'proposedIds' | 'xiReview' | 'build' | 'player' | 'captainDecisions'>;
+  store: Pick<MatchStore, 'selection' | 'captain' | 'picksXi' | 'delegate' | 'proposedIds' | 'xiReview' | 'build' | 'player' | 'captainDecisions'>;
   tactics: TacticalLog;
   conditionBefore: Condition | null;
 }
@@ -318,6 +320,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
       store: {
         selection: s.selection,
         captain: s.captain,
+        picksXi: s.picksXi,
         delegate: s.delegate,
         proposedIds: s.proposedIds,
         xiReview: s.xiReview,
@@ -514,6 +517,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     fixture: null,
     selection: null,
     captain: false,
+    picksXi: false,
     delegate: null,
     proposedIds: [],
     xiReview: null,
@@ -541,6 +545,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         return;
       }
       const captain = isCaptainOf(state, team.id, devBuild(), fixture.format);
+      const picksXi = picksXiFor(state, team.id, devBuild(), fixture.format);
       const xiIds = selection.xi.map((p) => p.id);
       const build = buildFor(state, fixture, xiIds, captain);
       // A preview match, so the pitch and weather can be read before the toss.
@@ -551,6 +556,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
         fixture,
         selection,
         captain,
+        picksXi,
         delegate: state.career.captaincy.delegate,
         proposedIds: xiIds,
         xiReview: null,
@@ -570,7 +576,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
 
     toggleProposed: (id) =>
       set((s) => {
-        if (!s.captain) return s;
+        if (!s.picksXi) return s;
         if (s.proposedIds.includes(id)) return { proposedIds: s.proposedIds.filter((x) => x !== id) };
         if (s.proposedIds.length >= 11) return s;
         return { proposedIds: [...s.proposedIds, id] };
@@ -578,7 +584,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
 
     moveProposed: (id, by) =>
       set((s) => {
-        if (!s.captain) return s;
+        if (!s.picksXi) return s;
         const index = s.proposedIds.indexOf(id);
         const target = index + by;
         if (index === -1 || target < 0 || target >= s.proposedIds.length) return s;
@@ -589,7 +595,7 @@ export const useMatchStore = create<MatchStore>((set, get) => {
 
     swapProposed: (outId, inId) =>
       set((s) => {
-        if (!s.captain || s.proposedIds.includes(inId)) return s;
+        if (!s.picksXi || s.proposedIds.includes(inId)) return s;
         const index = s.proposedIds.indexOf(outId);
         if (index === -1) return s;
         const next = [...s.proposedIds];
@@ -600,13 +606,13 @@ export const useMatchStore = create<MatchStore>((set, get) => {
     resetProposed: () => set((s) => ({ proposedIds: s.selection?.xi.map((p) => p.id) ?? [] })),
 
     toToss: () => {
-      const { fixture, selection, captain, proposedIds } = get();
+      const { fixture, selection, captain, picksXi, proposedIds } = get();
       const state = useGameStore.getState().state;
       if (!state || !fixture || !selection) return;
 
       let xiIds = selection.xi.map((p) => p.id);
       let xiReview: XiReview | null = null;
-      if (captain && proposedIds.length === 11) {
+      if (picksXi && proposedIds.length === 11) {
         // The selectors have the final say on the captain's XI.
         xiReview = reviewCaptainXi(state, fixture, selection, proposedIds);
         xiIds = xiReview.xiIds;
