@@ -2190,3 +2190,7 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   "Swap out" on the one they replace, keeping the batting position);
   before, the squad list stayed greyed out until someone was left out
   first.
+- Pre-match: a player who captains another side (say an IPL franchise)
+  and plays for one they do not captain (India A, Rest of India, a zone)
+  now sees "You captain ..., so the XI controls appear in those matches"
+  above the selectors' XI, instead of wondering where the controls went.
