@@ -10,17 +10,17 @@ import MatchScreen from './MatchScreen';
 import { QuestionModal, sweetZone, timingQuality } from './QuestionModal';
 
 /** Render, then wait while the screen looks for a match saved before a reload. */
-async function renderAt(path: string, captain = false) {
-  const view = renderNow(path, captain);
+async function renderAt(path: string, captain = false, captainOf = 'team-tn-u16') {
+  const view = renderNow(path, captain, captainOf);
   await act(async () => {
     for (let i = 0; i < 50 && useMatchStore.getState().resuming; i += 1) await new Promise((r) => setTimeout(r, 0));
   });
   return view;
 }
 
-function renderNow(path: string, captain = false) {
+function renderNow(path: string, captain = false, captainOf = 'team-tn-u16') {
   useGameStore.getState().loadDemoCareer(1);
-  if (captain) useGameStore.getState().update((s) => appointCaptain(s, 'team-tn-u16', '2026-10-01', 'test'));
+  if (captain) useGameStore.getState().update((s) => appointCaptain(s, captainOf, '2026-10-01', 'test'));
   useGameStore.setState({ booted: true });
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -101,6 +101,12 @@ describe('match screens: captain mode', () => {
     localStorage.clear();
     __resetMatchStore();
     useGameStore.setState({ state: null, slot: null, lastError: null, booted: false });
+  });
+
+  it('tells the captain of another side why the selectors pick this XI', async () => {
+    await renderAt('/match/fx-ka-u16', true, 'team-ka-u16');
+    expect(screen.getByText(/You captain Karnataka U-16/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Leave out/ })).toBeNull();
   });
 
   it('lets a captain reshape the XI before sending it to the selectors', async () => {

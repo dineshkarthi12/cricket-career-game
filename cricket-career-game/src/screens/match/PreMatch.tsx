@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { Badge, Card, CardHeader, Crest } from '@/components';
 import { xiWarnings } from '@/engine/match/lineup';
-import type { SelectionDecision } from '@/engine/career/selection';
+import { userTeamOf, type SelectionDecision } from '@/engine/career/selection';
 import type { LiveSnapshot } from '@/engine/match/live';
 import type { SimPlayer } from '@/engine/match/types';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
@@ -37,6 +37,15 @@ const STATUS_TONE: Record<SelectionDecision['status'], 'green' | 'blue' | 'orang
   BENCH: 'orange',
   NOT_SELECTED: 'red',
 };
+
+/** The sides the player captains now, by name ("Kolkata Knight Riders", "India (Tests)"). */
+function captaincyNames(state: GameState): string[] {
+  const posts = state.pro?.leadership.posts.filter((p) => p.role === 'CAPTAIN' && !p.until) ?? [];
+  const names = posts.map((p) => p.teamName);
+  const teamId = state.career.captaincy.teamId;
+  if (teamId && !posts.some((p) => p.teamId === teamId)) names.push(state.teams[teamId]?.name ?? teamId);
+  return names;
+}
 
 /** A role, short: "Opener", "Keeper", "Pace". */
 function roleShort(role: string): string {
@@ -88,6 +97,8 @@ export function PreMatch({
   const proposed = proposedIds.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p));
   const warnings = captain ? xiWarnings(proposed) : [];
   const ready = !captain || proposed.length === 11;
+  // Captain of another side: say so, so the selectors' XI here is no surprise.
+  const captainOf = captain ? [] : captaincyNames(state);
   // A squad player tapped while the XI is full waits here for the one they replace.
   const [swapIn, setSwapIn] = useState<string | null>(null);
   const incoming = swapIn && !proposedIds.includes(swapIn) ? (byId.get(swapIn) ?? null) : null;
@@ -180,6 +191,11 @@ export function PreMatch({
                   : t('pre.theXiHint')
               }
             />
+            {captainOf.length ? (
+              <p className="rounded-lg bg-page px-3 py-2 text-[12.5px] text-ink-muted">
+                {t('pre.captainElsewhere', { teams: captainOf.join(', '), team: userTeamOf(state, fixture)?.name ?? '' })}
+              </p>
+            ) : null}
             {incoming ? (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-blue-soft px-3 py-2 text-[12.5px] font-semibold text-brand-blue" role="status">
                 <span>{t('pre.swapFor', { name: incoming.name })}</span>

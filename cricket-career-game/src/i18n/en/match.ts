@@ -106,6 +106,7 @@ export const enMatch = {
   'pre.yourXi': 'Your XI',
   'pre.theXi': 'The XI',
   'pre.yourXiHint': '{n} of 11 - tap a squad player to swap them in, Leave out to drop someone, arrows to change the order. The selectors have the final say.',
+  'pre.captainElsewhere': 'You captain {teams}, so the XI controls appear in those matches. For {team} the selectors pick the XI.',
   'pre.theXiHint': 'Picked by the selectors, batting order from the coach.',
   'pre.formN': 'form {n}',
   'pre.batHigher': 'Bat higher',
