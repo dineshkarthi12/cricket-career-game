@@ -135,6 +135,8 @@ export const enCareer = {
   'car.t.pot': 'Player of the tournament: {name} ({detail})',
   'car.t.topScorer': 'Top scorer: {name} ({detail})',
   'car.t.topWicketTaker': 'Leading wicket-taker: {name} ({detail})',
+  'car.t.progress': '{played} of {total} matches played · {left} left',
+  'car.t.sideLeft': ' · {team}: {n} to play',
   'car.t.further': 'You are further down the list.',
   'car.tstage.GROUP': 'Group',
   'car.tstage.LEAGUE': 'League',

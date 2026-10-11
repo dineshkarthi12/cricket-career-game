@@ -2175,3 +2175,11 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
     now drop below their description instead of squeezing it.
   - QA: the full `QA_LANG=ta npm run qa` flow (66 screens at 1440, 820
     and 390px) reports no horizontal overflow.
+- Competition snapshot on Home: picking a competition chip (IPL, Ranji,
+  SMAT, ...) on the Road to selection card now also shows matches played
+  and left (the whole competition and the user's side), the user's group
+  points table, and the top three run-scorers and wicket-takers, with a
+  link to the full Tournaments page (`screens/home/CompetitionSnapshot.tsx`,
+  `matchProgress` in `engine/tournament/live.ts`). The Tournaments page
+  shows the same matches-played/left line, and a `/tournaments/<id>` link
+  now switches competition while the page is already open.

@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
 import { useT } from '@/i18n/react';
 import { isKey, tr, type Key } from '@/i18n/core';
 import { Badge, Card, CardHeader, Tabs } from '@/components';
-import { quotient, rankOf, topRunScorers, topWicketTakers } from '@/engine/tournament';
+import { matchProgress, quotient, rankOf, topRunScorers, topWicketTakers } from '@/engine/tournament';
 import { formatDayMonth } from '@/lib/format';
 import { summaryText } from '@/lib/matchText';
 import { cn } from '@/lib/cn';
@@ -27,6 +27,10 @@ function Tournaments({ state }: { state: GameState }) {
   const { tournamentId } = useParams();
   const current = state.season.tournaments.filter((t) => t.seasonYear === state.season.year);
   const [selected, setSelected] = useState(tournamentId && current.some((t) => t.tournamentId === tournamentId) ? tournamentId : current[0]?.tournamentId);
+  // A link to another competition (/tournaments/ipl) opens it even when this screen is already showing.
+  useEffect(() => {
+    if (tournamentId) setSelected(tournamentId);
+  }, [tournamentId]);
   const t = current.find((x) => x.tournamentId === selected) ?? current[0];
   const past = state.seasonHistory.flatMap((s) => s.tournaments).filter((x) => x.complete).reverse();
 
@@ -72,6 +76,7 @@ function TournamentView({ state, t }: { state: GameState; t: TournamentState }) 
   const wicketRank = rankOf(t, userId, 'wickets');
   const mine = t.stats[userId];
   const firstClass = t.points === 'FIRST_CLASS';
+  const progress = matchProgress(state, t);
   const fixtures = Object.values(state.fixtures)
     .filter((f) => f.tournamentId === t.tournamentId && f.kind === 'MATCH' && f.id.startsWith(`fx-${t.seasonYear}-`))
     .filter((f) => !onlyMine || f.homeTeamId === t.userTeamId || f.awayTeamId === t.userTeamId || f.homeTeamId === null)
@@ -93,6 +98,10 @@ function TournamentView({ state, t }: { state: GameState; t: TournamentState }) 
         <p className="mt-1 text-[13px] text-ink-muted">
           {tx('car.t.yourSide', { team: teamName(state, t.userTeamId) })} ·{' '}
           {firstClass ? tx('car.t.pointsFc') : tx('car.t.pointsLimited')}
+        </p>
+        <p className="mt-1 text-[13px] text-ink">
+          {tx('car.t.progress', { played: progress.played, total: progress.total, left: progress.total - progress.played })}
+          {t.userTeamId && !t.complete ? tx('car.t.sideLeft', { team: teamName(state, t.userTeamId), n: progress.teamLeft }) : ''}
         </p>
         {mine ? (
           <p className="mt-2 text-[13px] text-ink">
