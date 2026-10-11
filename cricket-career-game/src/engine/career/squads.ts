@@ -8,6 +8,7 @@
  * behind a better one.
  */
 import { DIFFICULTY, SQUAD_SELECTION } from '../config';
+import { isCaptainOf } from './captaincy';
 import { computeOverall, formatOverall } from '../ratings';
 import { eligibleForStage, levelOfCompetition } from './eligibility';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
@@ -458,6 +459,10 @@ export function decideSquad(
 
   if (user.injured) {
     return { status: 'RESERVE', reason: `Injured - the selectors will look again once you are fit.`, rank, rivalName: null };
+  }
+  // The captain leads the squad they were appointed to.
+  if (isCaptainOf(state, team.id, false, TOURNAMENTS_BY_ID[tournamentId]?.format)) {
+    return { status: 'SQUAD', reason: `In the ${name} squad as captain.`, rank: 1, rivalName: nextBehind?.candidate.name ?? null };
   }
   const cut = SQUAD_CUT[group];
   const wide = SQUAD_PLACES[group];

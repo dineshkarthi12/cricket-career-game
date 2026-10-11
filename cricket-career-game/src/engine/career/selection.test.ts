@@ -48,6 +48,15 @@ describe('selection for a fixture', () => {
     expect(pick.reasons.some((r) => /dried up|not yet convinced/.test(r))).toBe(true);
   });
 
+  it('always picks a fit captain, whatever the form', () => {
+    const slumping = withPlayer({ form: 5, selectorTrust: 5, reputation: 5, confidence: 10 });
+    const state = appointCaptain(slumping, slumping.fixtures[FIXTURE].homeTeamId!, '2026-10-01', 'test');
+    const pick = selectForFixture(state, state.fixtures[FIXTURE])!;
+    expect(pick.status).toBe('PLAYING_XI');
+    expect(pick.xi.filter((p) => p.isUser)).toHaveLength(1);
+    expect(pick.reasons).toContain('You captain the side.');
+  });
+
   it('is the same decision every time for the same career', () => {
     const state = createDemoCareer();
     const a = selectForFixture(state, state.fixtures[FIXTURE])!;

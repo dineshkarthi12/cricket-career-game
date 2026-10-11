@@ -4,11 +4,13 @@
  * of them, the opposition and the conditions. A captain also puts forward
  * their own XI and batting order - which the selectors may overrule.
  */
+import { useState } from 'react';
 import {
   AlertTriangle,
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  ArrowLeftRight,
   CheckCircle2,
   Crown,
   Eye,
@@ -50,6 +52,7 @@ export function PreMatch({
   proposedIds,
   snap,
   onToggle,
+  onSwap,
   onMove,
   onReset,
   onToss,
@@ -64,6 +67,7 @@ export function PreMatch({
   /** A preview of the match, so the conditions can be read before the toss. */
   snap: LiveSnapshot | null;
   onToggle: (id: string) => void;
+  onSwap: (outId: string, inId: string) => void;
   onMove: (id: string, by: number) => void;
   onReset: () => void;
   onToss: () => void;
@@ -84,6 +88,15 @@ export function PreMatch({
   const proposed = proposedIds.map((id) => byId.get(id)).filter((p): p is SimPlayer => Boolean(p));
   const warnings = captain ? xiWarnings(proposed) : [];
   const ready = !captain || proposed.length === 11;
+  // A squad player tapped while the XI is full waits here for the one they replace.
+  const [swapIn, setSwapIn] = useState<string | null>(null);
+  const incoming = swapIn && !proposedIds.includes(swapIn) ? (byId.get(swapIn) ?? null) : null;
+  const bringIn = (id: string) => {
+    if (proposed.length < 11) {
+      setSwapIn(null);
+      onToggle(id);
+    } else setSwapIn((current) => (current === id ? null : id));
+  };
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -167,6 +180,14 @@ export function PreMatch({
                   : t('pre.theXiHint')
               }
             />
+            {incoming ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-blue-soft px-3 py-2 text-[12.5px] font-semibold text-brand-blue" role="status">
+                <span>{t('pre.swapFor', { name: incoming.name })}</span>
+                <button type="button" onClick={() => setSwapIn(null)} className="text-[12px] underline">
+                  {t('pre.swapCancel')}
+                </button>
+              </div>
+            ) : null}
             <ol className="flex flex-col gap-1">
               {(captain ? proposed : selection.xi).map((player, index) => (
                 <li
@@ -202,13 +223,27 @@ export function PreMatch({
                       >
                         <ArrowDown className="size-3.5" />
                       </IconButton>
-                      <button
-                        type="button"
-                        onClick={() => onToggle(player.id)}
-                        className="rounded-lg px-2 py-1 text-[11.5px] font-semibold text-brand-red hover:bg-brand-red/10"
-                      >
-                        {t('pre.leaveOut')}
-                      </button>
+                      {incoming ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSwap(player.id, incoming.id);
+                            setSwapIn(null);
+                          }}
+                          className="flex items-center gap-1 rounded-lg bg-brand-blue px-2 py-1 text-[11.5px] font-semibold text-white hover:bg-brand-blue/90"
+                        >
+                          <ArrowLeftRight className="size-3.5" aria-hidden />
+                          {t('pre.swapOut')}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onToggle(player.id)}
+                          className="rounded-lg px-2 py-1 text-[11.5px] font-semibold text-brand-red hover:bg-brand-red/10"
+                        >
+                          {t('pre.leaveOut')}
+                        </button>
+                      )}
                     </span>
                   ) : null}
                 </li>
@@ -226,9 +261,12 @@ export function PreMatch({
                       <li key={player.id}>
                         <button
                           type="button"
-                          onClick={() => onToggle(player.id)}
-                          disabled={proposed.length >= 11}
-                          className="flex w-full items-center justify-between gap-2 rounded-tile border border-line bg-surface px-2.5 py-1.5 text-left hover:bg-page disabled:opacity-50"
+                          onClick={() => bringIn(player.id)}
+                          aria-pressed={swapIn === player.id}
+                          className={[
+                            'flex w-full items-center justify-between gap-2 rounded-tile border px-2.5 py-1.5 text-left hover:bg-page',
+                            swapIn === player.id ? 'border-brand-blue bg-brand-blue-soft' : 'border-line bg-surface',
+                          ].join(' ')}
                         >
                           <span className="min-w-0">
                             <span className="block truncate text-[12.5px] font-semibold text-ink">{player.name}</span>
@@ -236,7 +274,7 @@ export function PreMatch({
                               {roleShort(player.role)} · {t('pre.formN', { n: Math.round(player.condition.form) })}
                             </span>
                           </span>
-                          <span className="shrink-0 text-[11.5px] font-semibold text-brand-blue">{t('pre.bringIn')}</span>
+                          <span className="shrink-0 text-[11.5px] font-semibold text-brand-blue">{proposed.length < 11 ? t('pre.bringIn') : t('pre.swapIn')}</span>
                         </button>
                       </li>
                     ))}
@@ -244,7 +282,10 @@ export function PreMatch({
                 <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
                   <button
                     type="button"
-                    onClick={onReset}
+                    onClick={() => {
+                      setSwapIn(null);
+                      onReset();
+                    }}
                     className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-semibold text-ink hover:bg-page"
                   >
                     <RotateCcw className="size-3.5" aria-hidden />
