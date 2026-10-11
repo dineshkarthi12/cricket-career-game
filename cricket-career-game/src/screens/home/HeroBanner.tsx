@@ -1,4 +1,3 @@
-import type { Key } from '@/i18n/core';
 import { useT } from '@/i18n/react';
 import { useState } from 'react';
 import { Crown, Heart, MapPin, Pencil, Play, Smile, TrendingUp } from 'lucide-react';
@@ -6,7 +5,7 @@ import { HeroStatTile } from '@/components';
 import { StoryModal } from './StoryModal';
 import { battingStyleLabel, bowlingStyleLabel, countryFlag, formLabel, moraleLabel } from '@/lib/format';
 import type { GameState } from '@/types';
-import { canUserControlBowling, roleCategory } from '@/engine/roles';
+import { canUserControlBowling } from '@/engine/roles';
 
 /**
  * The hero banner: photograph, the player's identity, the four condition
@@ -81,12 +80,12 @@ export function HeroBanner({ state }: { state: GameState }) {
 
             <p className="mt-1 text-[13px] font-medium text-ink md:mt-1.5 md:text-[14px]">
               {battingStyleLabel(player.battingStyle)}
-              <span className="mx-1.5 text-ink-soft">•</span>
-              {canUserControlBowling(player)
-                ? bowlingStyleLabel(player.bowlingStyle)
-                : player.bowlingStyle === 'NONE'
-                  ? t(`roleCat.${roleCategory(player.role)}` as Key)
-                  : t('bowl.doesNotBowl', { style: bowlingStyleLabel(player.bowlingStyle) })}
+              {player.bowlingStyle === 'NONE' ? null : (
+                <>
+                  <span className="mx-1.5 text-ink-soft">•</span>
+                  {canUserControlBowling(player) ? bowlingStyleLabel(player.bowlingStyle) : t('bowl.doesNotBowl', { style: bowlingStyleLabel(player.bowlingStyle) })}
+                </>
+              )}
             </p>
 
             <p className="mt-2 hidden items-center gap-1.5 text-[13.5px] text-ink-muted md:flex">
