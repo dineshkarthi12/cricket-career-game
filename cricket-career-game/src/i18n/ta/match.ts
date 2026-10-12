@@ -198,6 +198,7 @@ export const taMatch: { [K in keyof typeof enMatch]: string } = {
   'you.autoWatch': 'நான் தேவைப்படும் வரை வேகமாக ஆட்டம் நடக்கட்டும்',
 
   // --- Playback --------------------------------------------------------------------------------
+  'sim.declareAt': '{score}-ல் டிக்ளேர் செய்',
   'sim.ball': 'பந்து',
   'sim.over': 'ஓவர்',
   'sim.untilInvolved': 'நான் ஆட வரும் வரை',

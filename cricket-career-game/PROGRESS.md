@@ -2238,3 +2238,11 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
     and the IPL earnings so far. `joinFranchise` now records each deal in
     `pro.ipl.history` (optional; older saves fall back to the contracts on
     file, shown as "Signed").
+
+## Fix: the declaration was out of sight
+- A captain batting in a multi-day match could declare only from the
+  Captain panel - on a phone, a tab behind "You", at the bottom of the
+  panel - so it looked missing. "Declare at 412/6" now sits in the sim
+  controls (the pinned phone bar and the full controls) whenever the
+  captain may declare, and asks before it closes the innings. The Captain
+  panel keeps its button too.

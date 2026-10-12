@@ -1,10 +1,11 @@
 /**
  * Playback: one ball, one over, to the next wicket, until the player is
  * needed, to the end of the innings, full auto, the rest of the match, and
- * how fast it all runs.
+ * how fast it all runs. A captain batting in a multi-day match also gets the
+ * declaration here, where it is always in view.
  */
 import { memo } from 'react';
-import { FastForward, Pause, Play, SkipForward, UserRound, Zap } from 'lucide-react';
+import { FastForward, Flag, Pause, Play, SkipForward, UserRound, Zap } from 'lucide-react';
 import { BALL_SPEEDS } from '@/store/matchStore';
 import { useT } from '@/i18n/react';
 
@@ -25,15 +26,35 @@ export interface SimControlsProps {
   onAuto: (on: boolean) => void;
   onSimRest: () => void;
   onSpeed: (index: number) => void;
+  /** The captain may declare the innings now (multi-day, batting). */
+  canDeclare?: boolean;
+  /** The score the declaration would close on, e.g. "412/6". */
+  declareScore?: string;
+  onDeclare?: () => void;
 }
 
 export const SimControls = memo(function SimControls(props: SimControlsProps) {
   const { compact = false, autoPlay, speed, busy, playing } = props;
   const locked = busy || autoPlay;
   const t = useT();
+  const declare = props.canDeclare && props.onDeclare ? (
+    <button
+      type="button"
+      onClick={() => {
+        if (!props.declareScore || window.confirm(t('cap.declareConfirm', { score: props.declareScore }))) props.onDeclare!();
+      }}
+      disabled={locked}
+      className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-navy px-3 py-2.5 text-[13px] font-semibold text-white hover:bg-brand-navy/90 disabled:opacity-50"
+    >
+      <Flag className="size-4" aria-hidden />
+      {props.declareScore ? t('sim.declareAt', { score: props.declareScore }) : t('cap.declare')}
+    </button>
+  ) : null;
 
   if (compact) {
     return (
+      <div className="flex flex-col gap-1.5">
+      {declare}
       <div className="grid grid-cols-4 gap-1.5">
         <button
           type="button"
@@ -70,6 +91,7 @@ export const SimControls = memo(function SimControls(props: SimControlsProps) {
           {autoPlay ? <Pause className="size-4" aria-hidden /> : <FastForward className="size-4" aria-hidden />}
           {autoPlay ? t('sim.pause') : t('sim.auto')}
         </button>
+      </div>
       </div>
     );
   }
@@ -118,6 +140,8 @@ export const SimControls = memo(function SimControls(props: SimControlsProps) {
           {t('sim.endInnings')}
         </Secondary>
       </div>
+
+      {declare}
 
       <div className="flex items-end gap-3">
         <div className="flex-1">
