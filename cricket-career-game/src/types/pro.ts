@@ -153,6 +153,20 @@ export interface IplState {
   intoAuction?: boolean;
   /** The franchise wants to retain the player at a mega auction and waits on an answer. */
   retentionOffer?: RetentionOffer | null;
+  /** Every IPL deal signed, oldest first (missing on older saves). */
+  history?: IplDeal[];
+}
+
+/** One IPL deal: who signed the player, how, and for how much. */
+export interface IplDeal {
+  date: ISODate;
+  seasonYear: number;
+  franchiseId: string;
+  how: IplContract['how'];
+  /** Lakh a season. */
+  salary: number;
+  /** The salary before, when the same franchise kept the player on. */
+  previous: number | null;
 }
 
 /**

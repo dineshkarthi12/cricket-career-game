@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { createNewCareer } from '@/engine/newCareer';
 import { applyProSeason } from '@/engine/pro/season';
+import { joinFranchise } from '@/engine/pro/ipl';
 import { migrate } from '@/save/migrate';
 import IplScreen from './IplScreen';
 import InternationalScreen from './InternationalScreen';
@@ -39,6 +40,12 @@ describe('Phase 7 screens', () => {
   it('IPL shows scouting, the auction registration and the franchises', () => {
     renderAt('/auction', <IplScreen />, pro());
     expect(screen.getByRole('heading', { name: 'IPL' })).toBeInTheDocument();
+    // A senior player opens on My IPL: the auction read, the scouts and the deals.
+    expect(screen.getByRole('tab', { name: 'My IPL' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('If you went to the auction today')).toBeInTheDocument();
+    expect(screen.getByText('Scouts watching you')).toBeInTheDocument();
+    expect(screen.getByText('No IPL deal yet.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /All scouting/ }));
     expect(screen.getByText('Franchise interest')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Auction room' }));
     expect(screen.getByText(/Auction registration/)).toBeInTheDocument();
@@ -46,6 +53,18 @@ describe('Phase 7 screens', () => {
     expect(useGameStore.getState().state!.pro.ipl.registeredBase).toBe(50);
     fireEvent.click(screen.getByRole('tab', { name: 'Franchises' }));
     expect(screen.getByText('Chennai Super Kings')).toBeInTheDocument();
+  });
+
+  it('My IPL lists every deal, with the salary before a retention', () => {
+    let state = pro();
+    const fid = 'team-coromandel-kings';
+    state = joinFranchise(state, fid, 240, 'AUCTION', '2026-12-16');
+    state = joinFranchise(state, fid, 800, 'RETAINED', '2027-11-15');
+    renderAt('/auction', <IplScreen />, state);
+    expect(screen.getByText('Bought at the auction for ₹2.4 Cr a season')).toBeInTheDocument();
+    expect(screen.getByText('Retained at ₹8 Cr a season (was ₹2.4 Cr)')).toBeInTheDocument();
+    expect(screen.getByText(/Next mega auction/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go into the auction' })).toBeInTheDocument();
   });
 
   it('International shows the format squads, series, rankings and the WTC', () => {

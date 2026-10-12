@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { RetentionOfferPanel } from './RetentionOfferPanel';
+import { IplOverview } from './IplOverview';
 import { Link } from 'react-router-dom';
 import { Gavel, Play } from 'lucide-react';
 import { Badge, Card, CardHeader, Crest, ProgressBar, StatTile, Tabs } from '@/components';
@@ -18,7 +19,7 @@ import { ANIMATION_FACTOR, useAppSettings, useReducedMotion } from '@/store/appS
 import { useGameStore } from '@/store/gameStore';
 import type { AuctionLot, AuctionSummary, GameState, IplStatus } from '@/types';
 
-const TABS = ['scouting', 'auction', 'contract', 'franchises'];
+const TABS = ['mine', 'scouting', 'auction', 'contract', 'franchises'];
 
 /** An IPL status in the current language. */
 const iplStatusKey = (status: IplStatus) => `pro.iplStatus.${status}` as Key;
@@ -34,10 +35,11 @@ export default function IplScreen() {
 }
 
 function Ipl({ state }: { state: GameState }) {
-  const [tab, setTab] = useState(state.pro.ipl.auctions.length ? 'auction' : 'scouting');
   const t = useT();
   const ipl = state.pro.ipl;
   const senior = state.career.stages.SENIOR_STATE?.status === 'COMPLETED';
+  // A senior player opens on their IPL at a glance; before that, the scouts are the story.
+  const [tab, setTab] = useState(senior ? 'mine' : 'scouting');
   return (
     <div className="flex flex-col gap-3 pb-4">
       <div>
@@ -62,6 +64,7 @@ function Ipl({ state }: { state: GameState }) {
         </Card>
       ) : null}
       <Tabs tabs={TABS.map((id) => ({ id, label: t(`pro.ipl.tab.${id}` as Key) }))} value={tab} onChange={setTab} label={t('pro.ipl.tabsLabel')} />
+      {tab === 'mine' ? <IplOverview state={state} onOpenTab={setTab} /> : null}
       {tab === 'scouting' ? <Scouting state={state} /> : null}
       {tab === 'auction' ? <AuctionRoom state={state} /> : null}
       {tab === 'contract' ? <Contract state={state} /> : null}
