@@ -3,13 +3,14 @@
  * and the mood around them; failures in big matches build pressure (which
  * costs a little confidence and, when it gets loud, the selectors' patience)
  * and good days ease it. Notable days become stories - the Community feed
- * on the dashboard reads them.
+ * on the dashboard reads them. Fans post about every such match (`fans.ts`).
  */
 import { MEDIA } from '../config';
 import { TOURNAMENTS_BY_ID } from '@/data/tournaments';
 import { newId } from '../id';
 import { clamp } from './common';
 import { rngFor } from './world';
+import { checkFanMilestones, fansAfterMatch, withFollowerPoint } from './fans';
 import type { GameState, Match, MediaStory } from '@/types';
 
 const OUTLETS = ['The Cricket Chronicle', 'Long Room Desk', 'Sports Daily', 'The Morning Post', 'Cover Drive Podcast', 'Stumps Live', 'The Southern Herald', 'Fan Zone'];
@@ -72,7 +73,7 @@ export function mediaAfterMatch(state: GameState, match: Match): GameState {
   } else if (big && fail > 4 && pressure >= 55) {
     next = addStory(next, match.date, `Pressure mounts on ${who}`, 'Another quiet game on a big stage. The critics are circling.', 'CRITICAL');
   }
-  return next;
+  return fansAfterMatch(next, match);
 }
 
 /** The mood cools over a season; the following stays. */
@@ -84,5 +85,7 @@ export function mediaNewSeason(state: GameState): GameState {
 /** A following bump for a headline moment (a cap, an award, a contract). */
 export function spotlightMoment(state: GameState, followers: number, sentiment = 2): GameState {
   const fans = state.pro.fans;
-  return { ...state, pro: { ...state.pro, fans: { ...fans, followers: fans.followers + followers, sentiment: clamp(fans.sentiment + sentiment, 0, 100) } } };
+  const date = state.season.currentDate;
+  const bumped = withFollowerPoint({ ...fans, followers: fans.followers + followers, sentiment: clamp(fans.sentiment + sentiment, 0, 100) }, date);
+  return checkFanMilestones({ ...state, pro: { ...state.pro, fans: bumped } }, date);
 }

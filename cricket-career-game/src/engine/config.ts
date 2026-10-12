@@ -1539,6 +1539,21 @@ export const MEDIA = {
   pressureHurts: 60,
 } as const;
 
+/** Fans: the reaction feed, the growth chart and milestones. See `engine/pro/fans.ts`. */
+export const FANS = {
+  postsKept: 60,
+  /** Fan posts after one of the player's matches. */
+  postsPerMatch: 3,
+  /** A new post avoids the wordings of this many recent posts where it can. */
+  freshPosts: 6,
+  /** Growth-chart points kept; older ones are thinned out beyond this. */
+  historyKept: 160,
+  /** Follower counts that make the news. */
+  milestones: [10_000, 100_000, 1_000_000, 10_000_000, 50_000_000],
+  /** A trending hashtag shows for this many days. */
+  trendDays: 7,
+} as const;
+
 /** The national setup. See `engine/pro/national.ts`. */
 export const NATIONAL = {
   /** The national selectors start watching after an IPL season like this... */

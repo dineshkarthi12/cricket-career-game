@@ -80,6 +80,32 @@ describe('Phase 7 screens', () => {
     expect(screen.getByText('Followers')).toBeInTheDocument();
     expect(screen.getByText('Stories')).toBeInTheDocument();
   });
+
+  it('Community shows the fans\' posts, the trend, the growth chart and the milestones', () => {
+    const base = pro();
+    const state: GameState = {
+      ...base,
+      season: { ...base.season, currentDate: '2026-10-03' },
+      pro: {
+        ...base.pro,
+        fans: {
+          ...base.pro.fans,
+          followers: 42_000,
+          milestones: [10_000],
+          history: [{ date: '2026-09-20', followers: 9_000 }, { date: '2026-10-01', followers: 42_000 }],
+          trend: { tag: '#Kumar112', date: '2026-10-01', posts: 3400 },
+          posts: [{ id: 'f1', date: '2026-10-01', handle: 'ChepaukRoar', key: 'fan.post.HUNDRED.1', params: { runs: 112, balls: 61, name: 'Kumar' }, mood: 'HYPE', likes: 900, matchId: null }],
+        },
+      },
+    };
+    renderAt('/community', <CommunityScreen />, state);
+    expect(screen.getByRole('status')).toHaveTextContent('#Kumar112');
+    expect(screen.getByText('@ChepaukRoar')).toBeInTheDocument();
+    expect(screen.getByText('112 off 61!!! Kumar you beauty 🔥🔥🔥')).toBeInTheDocument();
+    expect(screen.getByText('Hype')).toBeInTheDocument();
+    expect(screen.getByText('Followers over time')).toBeInTheDocument();
+    expect(screen.getByText('58K more to 100K')).toBeInTheDocument();
+  });
 });
 
 describe('save migration v7', () => {
