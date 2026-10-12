@@ -260,6 +260,9 @@ export function InPlay(props: InPlayProps) {
       onAuto={props.onAuto}
       onSimRest={props.onSimRest}
       onSpeed={props.onSpeed}
+      canDeclare={props.captain && snap.canDeclare}
+      declareScore={`${cur.innings.runs}/${cur.innings.wickets}`}
+      onDeclare={props.onDeclare}
     />
   );
 

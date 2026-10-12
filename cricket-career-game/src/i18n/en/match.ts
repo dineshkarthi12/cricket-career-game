@@ -196,6 +196,7 @@ export const enMatch = {
   'you.autoWatch': 'Play on at speed until I’m needed',
 
   // --- Playback --------------------------------------------------------------------------------
+  'sim.declareAt': 'Declare at {score}',
   'sim.ball': 'Ball',
   'sim.over': 'Over',
   'sim.untilInvolved': 'Until I\'m involved',
