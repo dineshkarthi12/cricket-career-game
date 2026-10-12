@@ -2217,3 +2217,24 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   note, a career event and a Fan Zone story, once.
 - Save: the new `FanState` fields are optional, so older saves need no
   migration and simply start the feed and chart from their next match.
+
+## IPL: "My IPL" overview
+- The IPL screen opens on a new **My IPL** tab for a senior player
+  (`screens/pro/IplOverview.tsx`):
+  - **Where you stand**: franchise, salary and the season the contract runs
+    to; the next mega auction's date; why the player is or is not going
+    into the auction (under contract, the franchise decides each December
+    and makes a retention offer in a mega year), with the "Go into the
+    auction" button right there.
+  - **If you went to the auction today** (`auctionPreview` in
+    `engine/pro/ipl.ts`): market value, base price, the likely price range
+    and each franchise's ceiling, from the same sums the auction room uses
+    (value, need, style, scouting interest, purse share, the price cap)
+    without the luck on the day.
+  - **Scouts watching you**: the other franchises' interest with its level
+    (watching, trial interest, shortlisted) and the latest scouting notes.
+  - **Your IPL deals**: every deal, newest first - bought at the auction,
+    retained (with the salary before), traded or signed as a replacement -
+    and the IPL earnings so far. `joinFranchise` now records each deal in
+    `pro.ipl.history` (optional; older saves fall back to the contracts on
+    file, shown as "Signed").

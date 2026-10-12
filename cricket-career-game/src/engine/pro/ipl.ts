@@ -18,7 +18,7 @@ import { realAuctionPool, realIplFillers } from '../world/realSquads';
 import { hasRealPlayers } from '../world/realPlayers';
 import { clamp, decision, formatLakh, message, navigate, withEvent, withInbox } from './common';
 import type { Rng } from '../match/rng';
-import type { AuctionBid, AuctionLot, AuctionRoomLot, AuctionSummary, GameState, IplContract, IplSeasonLine, IplStatus, Match, RetentionOffer, RivalPlayer, SquadPlace, Team } from '@/types';
+import type { AuctionBid, AuctionLot, AuctionRoomLot, AuctionSummary, GameState, IplContract, IplDeal, IplSeasonLine, IplStatus, Match, RetentionOffer, RivalPlayer, SquadPlace, Team } from '@/types';
 
 export const AUCTION_POOL_ID = 'team-ipl-auction-pool';
 
@@ -209,6 +209,59 @@ export function keenest(state: GameState, exclude: string | null = null): Franch
   return [...FRANCHISES].filter((f) => f.id !== exclude).sort((a, b) => (s.interest[b.id] ?? 0) - (s.interest[a.id] ?? 0))[0] ?? null;
 }
 
+// --- What the auction would make of the player today -------------------------------------
+
+export interface AuctionBidderEstimate {
+  franchiseId: string;
+  /** Scouting interest, 0-100. */
+  interest: number;
+  /** The most this franchise would go to today, lakh (0: would not bid). */
+  max: number;
+}
+
+export interface AuctionPreview {
+  value: number;
+  base: number;
+  /** The likely hammer price, lakh: what it takes to beat the second-keenest bidder. */
+  low: number;
+  high: number;
+  /** Every franchise, keenest first. */
+  bidders: AuctionBidderEstimate[];
+  /** After a huge IPL season the player is in the marquee set and everyone bids. */
+  hot: boolean;
+}
+
+/**
+ * The agent's read of the auction if the player went in today: each
+ * franchise's ceiling from the player's value, its need, its style and its
+ * scouts' interest - the same sums the auction room uses, without the luck
+ * on the day - and the price range that falls out of the top two.
+ */
+export function auctionPreview(state: GameState): AuctionPreview {
+  const value = userMarketValue(state);
+  const base = state.pro.ipl.registeredBase && allowedBases(state).includes(state.pro.ipl.registeredBase) ? state.pro.ipl.registeredBase : defaultBase(state);
+  const group = roleGroup(state.player.role);
+  const hot = lastIplImpact(state).impact >= AUCTION.hotImpact;
+  const mega = isMegaSeason(state.season.year);
+  const share = mega ? AUCTION.purseShare.mega : AUCTION.purseShare.mini;
+  const bidders = FRANCHISES.map((f) => {
+    const interest = state.pro.scouting.interest[f.id] ?? 0;
+    const squad = state.teams[f.id]?.squad ?? [];
+    const need = hot ? Math.max(1, needFor({ squad } as Team, group)) : needFor({ squad } as Team, group);
+    const boost = Math.max(hot ? 0.95 : 0, 0.55 + (interest / 100) * 0.9);
+    const purse = state.pro.ipl.purses[f.id];
+    const purseCap = purse === undefined ? Infinity : purse * Math.min(0.85, share.min + share.spread / 2 + (hot ? 0.15 : 0));
+    const max = Math.round(Math.min(value * need * styleFit(f, group) * boost, purseCap, AUCTION.maxPrice));
+    return { franchiseId: f.id, interest, max: max >= base ? max : 0 };
+  }).sort((a, b) => b.max - a.max || b.interest - a.interest);
+  const [first, second] = bidders;
+  const top = first?.max ?? 0;
+  const runnerUp = second?.max ?? 0;
+  const low = top ? Math.max(base, Math.round(runnerUp * 0.85)) : 0;
+  const high = top ? Math.max(low, Math.min(top, runnerUp ? runnerUp + increment(runnerUp) * 2 : base)) : 0;
+  return { value, base, low, high, bidders, hot };
+}
+
 // --- Contracts and squads ------------------------------------------------------------------
 
 function iplPlace(status: SquadPlace['status'], reason: string, since: string, teamId: string): SquadPlace {
@@ -245,10 +298,12 @@ export function joinFranchise(state: GameState, franchiseId: string, salary: num
   const f = FRANCHISES_BY_ID[franchiseId];
   const year = state.season.year;
   const contract: IplContract = { franchiseId, salary, fromSeason: year, toSeason: contractEnd(year), how };
+  const before = state.pro.ipl.contract;
+  const deal: IplDeal = { date, seasonYear: year, franchiseId, how, salary, previous: before?.franchiseId === franchiseId ? before.salary : null };
   const status: IplStatus = how === 'REPLACEMENT' ? 'REPLACEMENT' : how === 'RETAINED' ? 'RETAINED' : how === 'TRADE' ? 'TRADED' : 'BOUGHT';
   let next: GameState = {
     ...state,
-    pro: { ...state.pro, ipl: { ...state.pro.ipl, franchiseId, contract, status, tradeOffer: null } },
+    pro: { ...state.pro, ipl: { ...state.pro.ipl, franchiseId, contract, status, tradeOffer: null, history: [...(state.pro.ipl.history ?? []), deal] } },
     career: { ...state.career, squads: { ...state.career.squads, ipl: iplPlace('SQUAD', `Contracted to ${f?.name} at ${formatLakh(salary)} a season.`, date, franchiseId) } },
     player: { ...state.player, contracts: [...state.player.contracts.map((c) => (c.level === 'FRANCHISE' ? { ...c, active: false, toSeason: c.toSeason ?? year } : c)), { id: `ctr-${franchiseId}-${year}`, teamId: franchiseId, teamName: f?.name ?? franchiseId, level: 'FRANCHISE', fromSeason: year, toSeason: contract.toSeason, value: salary, role: 'PLAYER', active: true }] },
   };

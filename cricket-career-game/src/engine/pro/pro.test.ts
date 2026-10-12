@@ -3,7 +3,7 @@ import { createNewCareer } from '../newCareer';
 import { createRng } from '../match/rng';
 import { tournamentOf, playAiFixtures } from '../tournament/live';
 import { applyProSeason } from './season';
-import { hammer, increment, isMegaSeason, runAuction, retentionDay, auctionEntry, t20Value, contractEnd, auctionSets, markAuctionWatched, unwatchedAuction, iplImpact, userMarketValue, joinFranchise, requestAuction, answerRetention } from './ipl';
+import { auctionPreview, hammer, increment, isMegaSeason, runAuction, retentionDay, auctionEntry, t20Value, contractEnd, auctionSets, markAuctionWatched, unwatchedAuction, iplImpact, userMarketValue, joinFranchise, requestAuction, answerRetention } from './ipl';
 import { battingPoints, bowlingPoints, nextRating, rateTeams, wtcStandings, rankingList } from './rankings';
 import { buildIcc, iccEventsIn, ICC_SHAPES } from './competitions';
 import { retireFrom, autoRetire } from './retirement';
@@ -191,6 +191,38 @@ describe('the auction', () => {
     expect(decent).toBeGreaterThan(1.2);
     expect(poor).toBeLessThan(1);
     expect(iplImpact({ matches: 2, runs: 150, wickets: 0 })).toBe(1);
+  });
+
+  it('keeps every IPL deal: bought, then retained on a better salary', () => {
+    let state = proCareer();
+    const fid = FRANCHISES[0].id;
+    state = joinFranchise(state, fid, 240, 'AUCTION', '2026-12-16');
+    state = joinFranchise(state, fid, 800, 'RETAINED', '2027-11-15');
+    expect(state.pro.ipl.history).toEqual([
+      { date: '2026-12-16', seasonYear: 2026, franchiseId: fid, how: 'AUCTION', salary: 240, previous: null },
+      { date: '2027-11-15', seasonYear: 2026, franchiseId: fid, how: 'RETAINED', salary: 800, previous: 240 },
+    ]);
+    const other = joinFranchise(state, FRANCHISES[1].id, 500, 'TRADE', '2027-12-01');
+    expect(other.pro.ipl.history!.at(-1)).toMatchObject({ how: 'TRADE', previous: null });
+  });
+
+  it('reads the auction room for the player: keener scouts mean higher ceilings', () => {
+    let state = proCareer();
+    state = { ...state, pro: { ...state.pro, scouting: { ...state.pro.scouting, reputation: 70 } } };
+    const keen = FRANCHISES[2].id;
+    const cold = FRANCHISES[3].id;
+    state = { ...state, pro: { ...state.pro, scouting: { ...state.pro.scouting, interest: Object.fromEntries(FRANCHISES.map((f) => [f.id, f.id === keen ? 95 : f.id === cold ? 5 : 50])) } } };
+    const preview = auctionPreview(state);
+    expect(preview.bidders).toHaveLength(FRANCHISES.length);
+    expect(preview.bidders.map((b) => b.max)).toEqual([...preview.bidders.map((b) => b.max)].sort((a, b) => b - a));
+    const ceiling = (id: string) => preview.bidders.find((b) => b.franchiseId === id)!.max;
+    expect(ceiling(keen)).toBeGreaterThan(ceiling(cold));
+    expect(preview.base).toBeGreaterThan(0);
+    if (preview.low) {
+      expect(preview.low).toBeGreaterThanOrEqual(preview.base);
+      expect(preview.high).toBeGreaterThanOrEqual(preview.low);
+      expect(preview.high).toBeLessThanOrEqual(preview.bidders[0].max);
+    }
   });
 
   it('after a big IPL season, the player can go into the auction and every franchise bids', () => {
