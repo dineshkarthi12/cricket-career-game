@@ -2262,3 +2262,16 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   and never see the "update" banner. `setupPwa` now also checks when the
   app comes back to the front and every 30 minutes; the banner's Update
   button then reloads into the new version.
+
+## Multi-day: the captain declares, and matches last as long as the calendar says
+- **Declarations are the captain's.** With the user captaining (and not
+  delegating declarations), the user's side is never declared for: no
+  declaration score, and no overs cap on the first innings. Where an AI
+  captain would have declared, the alerts say so once ("the lead looks big
+  enough - your call"). Simming the rest of the match hands the
+  declarations back to the AI captain, for the innings in progress too.
+- **Days of play follow the fixture.** The live and quick engines took a
+  first-class match's length from its format (4 days, Tests 5), while the
+  calendar and the AI's own matches used the competition's days (the Ranji
+  Trophy's are 5). `buildMatch` now passes the fixture's days
+  (`setup.days`), so a match lasts as long as its calendar entry.

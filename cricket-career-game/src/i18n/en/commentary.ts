@@ -195,6 +195,7 @@ export const enCommentary = {
   'al.rainStart': 'Rain delays the start: {n} overs a side.',
   'al.rainDay1': 'Rain about on day 1: around {n} overs will be lost.',
   'al.lightDay1': 'Bad light will cost around {n} overs on day 1.',
+  'al.declareHint': '{score} - the lead looks big enough. Your call, captain: declare when you are ready.',
   'al.declare': '{team} declare on {score}.',
   'al.you.catchRope': 'You judge it on the rope and hold on!',
   'al.you.catch': 'You hold on to it!',

@@ -424,6 +424,52 @@ describe('captaincy in a multi-day match', () => {
     throw new Error('no match where the user batted first');
   }, 60_000);
 
+  it('never declares for a captain who makes the declarations: it hints instead', () => {
+    // A strong side batting first against a weak one piles up the runs.
+    const strong = (seed: number, userIsCaptain = true) =>
+      setup({ seed, format: 'MULTI_DAY', userIsCaptain, homeXi: generateXi('home', 92, createRng(seed ^ 0xa)), awayXi: generateXi('away', 38, createRng(seed ^ 0xb)) });
+    const hinted = (live: ReturnType<typeof createLiveMatch>) => live.snapshot().alerts.some((a) => a.code?.k === 'al.declareHint');
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const live = createLiveMatch(strong(seed));
+      live.doToss('BAT');
+      if (!live.snapshot().userBatting) continue;
+      live.toEndOfInnings();
+      const first = live.snapshot().completed[0];
+      expect(first.declared).toBe(false);
+      if (!hinted(live)) continue;
+      // Under an AI captain the same innings is declared, and earlier.
+      const ai = createLiveMatch(strong(seed, false));
+      ai.doToss('BAT');
+      ai.toEndOfInnings();
+      const aiFirst = ai.snapshot().completed[0];
+      if (aiFirst.battingTeamId !== 'home') continue;
+      expect(aiFirst.declared).toBe(true);
+      expect(aiFirst.runs).toBeLessThanOrEqual(first.runs);
+      return;
+    }
+    throw new Error('no match where the user batted first and passed the declaration point');
+  }, 60_000);
+
+  it('hands the declarations back to the AI when the player sims the rest of the match', () => {
+    const live = createLiveMatch(setup({ seed: 7, format: 'MULTI_DAY', homeXi: generateXi('home', 92, createRng(7 ^ 0xa)), awayXi: generateXi('away', 38, createRng(7 ^ 0xb)) }));
+    live.doToss('BAT');
+    live.nextOver();
+    live.toEnd();
+    expect(live.snapshot().phase).toBe('COMPLETE');
+    expect(live.finished()).not.toBeNull();
+  }, 60_000);
+
+  it('plays a multi-day match over the days the fixture is scheduled for', () => {
+    for (const days of [4, 5]) {
+      const live = createLiveMatch(setup({ seed: 3, format: 'MULTI_DAY', days, userIsCaptain: false }));
+      live.toEnd();
+      expect(live.finished()!.match.days).toBe(days);
+    }
+    const test = createLiveMatch(setup({ seed: 3, format: 'TEST', userIsCaptain: false }));
+    test.toEnd();
+    expect(test.finished()!.match.days).toBe(5);
+  }, 60_000);
+
   it('never lets a limited-overs side declare', () => {
     const live = createLiveMatch(setup({ format: 'ODI' }));
     live.doToss();
