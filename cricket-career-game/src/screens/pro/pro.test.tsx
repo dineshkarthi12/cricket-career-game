@@ -67,6 +67,21 @@ describe('Phase 7 screens', () => {
     expect(screen.getByRole('button', { name: 'Go into the auction' })).toBeInTheDocument();
   });
 
+  it('My IPL puts a retention offer first, and answering it works from there', () => {
+    let state = pro();
+    const fid = 'team-coromandel-kings';
+    state = joinFranchise(state, fid, 900, 'AUCTION', '2026-12-16');
+    state = { ...state, pro: { ...state.pro, ipl: { ...state.pro.ipl, retentionOffer: { franchiseId: fid, date: state.season.currentDate, salary: 1800, previous: 900, limit: 2200, round: 1 } } } };
+    renderAt('/auction', <IplScreen />, state);
+    expect(screen.getByRole('tab', { name: 'My IPL' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('Your decision')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Go into the auction' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Accept ₹18 Cr' }));
+    const ipl = useGameStore.getState().state!.pro.ipl;
+    expect(ipl.retentionOffer ?? null).toBeNull();
+    expect(ipl.contract).toMatchObject({ franchiseId: fid, salary: 1800, how: 'RETAINED' });
+  });
+
   it('International shows the format squads, series, rankings and the WTC', () => {
     renderAt('/international', <InternationalScreen />, pro());
     expect(screen.getByText('India - Tests')).toBeInTheDocument();

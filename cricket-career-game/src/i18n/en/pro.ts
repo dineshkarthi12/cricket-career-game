@@ -32,6 +32,8 @@ export const enPro = {
   'pro.ipl.mega': 'mega auction (every franchise starts again)',
   'pro.ipl.mini': 'mini auction',
   'pro.ipl.tab.mine': 'My IPL',
+  'pro.my.decide': 'Your decision',
+  'pro.my.whyOffer': 'Your contract has run its three seasons. {team} want to keep you: answer their offer above before the auction - turn it down, or ask for more than they can pay, and you go into the auction.',
   'pro.my.where': 'Where you stand',
   'pro.my.deal': '{amount} a season, until {to}',
   'pro.my.noTeam': 'No franchise right now. A strong domestic season puts you in the next auction.',
