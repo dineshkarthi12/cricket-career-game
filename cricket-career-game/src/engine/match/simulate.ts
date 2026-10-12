@@ -54,6 +54,8 @@ export interface MatchSetup {
   userTossDecision?: 'BAT' | 'BOWL';
   /** True when the user is captain, so their choice is the one that counts. */
   userIsCaptain?: boolean;
+  /** Days of play scheduled for a multi-day match (the fixture's); left out, the format's usual length. */
+  days?: number;
 }
 
 export interface MatchSimulation {
@@ -150,7 +152,7 @@ export function simulateMatch(setup: MatchSetup): MatchSimulation {
     format: setup.format,
     stage: setup.stage,
     date: setup.date,
-    days: isLimitedOvers(setup.format) ? 1 : matchDaysFor(setup.format),
+    days: isLimitedOvers(setup.format) ? 1 : matchDaysFor(setup.format, setup.days),
     venueId: setup.venue.id,
     homeTeamId: setup.homeTeamId,
     awayTeamId: setup.awayTeamId,
@@ -409,8 +411,8 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
   // into the time available for a result, which is why first-class cricket
   // draws as often as it does.
   const rng = ctx.rng;
-  let oversLost = matchDaysFor(setup.format) * cfg.slowOverRatePerDay;
-  for (let day = 1; day <= matchDaysFor(setup.format); day += 1) {
+  let oversLost = matchDaysFor(setup.format, setup.days) * cfg.slowOverRatePerDay;
+  for (let day = 1; day <= matchDaysFor(setup.format, setup.days); day += 1) {
     const wet = ctx.conditions.weather.rainRisk / 100;
     if (rng.chance(cfg.washoutChance + wet * 0.35)) {
       oversLost += cfg.oversPerDay * rng.range(0.55, 1);
@@ -421,7 +423,7 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
 
   const maxBalls = Math.max(
     cfg.oversPerDay * 6,
-    Math.floor((matchDaysFor(setup.format) * cfg.oversPerDay - oversLost) * 6),
+    Math.floor((matchDaysFor(setup.format, setup.days) * cfg.oversPerDay - oversLost) * 6),
   );
   let ballsUsed = 0;
   let day = 1;
@@ -461,7 +463,7 @@ function playMultiDay(ctx: PlayContext): PlayOutcome {
       createRng(deriveSeed(setup.seed, number)),
     );
     ballsUsed += result.innings.balls;
-    day = Math.min(matchDaysFor(setup.format), 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
+    day = Math.min(matchDaysFor(setup.format, setup.days), 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
     conditions = result.conditions;
     innings.push(result.innings);
     partnerships.push(result.partnerships);

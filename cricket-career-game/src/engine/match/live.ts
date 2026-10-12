@@ -78,6 +78,8 @@ export interface LiveMatchSetup {
   userTeamId: string;
   userPlayerId?: string | null;
   userIsCaptain?: boolean;
+  /** Days of play scheduled for a multi-day match (the fixture's); left out, the format's usual length. */
+  days?: number;
   knockout?: boolean;
   underLights?: boolean;
   seed: number;
@@ -477,8 +479,24 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
   }
 
   let current: PendingInnings | null = null;
+  /** Runs at which the user's side would declare, under an AI captain: the hint is raised once there. */
+  let declareHint: number | null = null;
+  /** The same point, kept for when the player hands the rest of the match to the AI. */
+  let plannedDeclare: number | null = null;
+  /** "Sim the rest": the AI captain makes the declarations from here. */
+  let handedOver = false;
 
   function openInnings(p: PendingInnings) {
+    // The user's side, with the user making the declarations: no declaration
+    // is made for them. The point an AI captain would have declared at
+    // becomes a hint instead.
+    declareHint = null;
+    plannedDeclare = null;
+    if (!limited && !handedOver && !p.superOver && p.battingTeamId === setup.userTeamId && captainCalls('declarations')) {
+      if (p.declareAt != null) declareHint = plannedDeclare = p.declareAt;
+      if (p.number === 1) p = { ...p, oversAvailable: oversLeft() };
+      p = { ...p, declareAt: null };
+    }
     if (p.number === 2 && !p.superOver) applyImpacts();
     inningsRng = createRng(deriveSeed(setup.seed, p.superOver ? 90 + p.number : p.number));
     state = createInningsState(buildSetup(p));
@@ -524,7 +542,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
 
     // Multi-day bookkeeping, exactly as the batch simulator keeps it.
     ballsUsed += finished.innings.balls;
-    day = Math.min(matchDaysFor(setup.format), 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
+    day = Math.min(matchDaysFor(setup.format, setup.days), 1 + Math.floor(ballsUsed / (cfg.oversPerDay * 6)));
     afterMultiDayInnings();
   }
 
@@ -810,7 +828,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       format: setup.format,
       stage: setup.stage,
       date: setup.date,
-      days: limited ? 1 : matchDaysFor(setup.format),
+      days: limited ? 1 : matchDaysFor(setup.format, setup.days),
       venueId: setup.venue.id,
       homeTeamId: setup.homeTeamId,
       awayTeamId: setup.awayTeamId,
@@ -920,7 +938,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     const ballsToday = cfg.oversPerDay * 6;
     const played = ballsUsed + state.legalBalls;
     return {
-      day: Math.min(matchDaysFor(setup.format), 1 + Math.floor(played / ballsToday)),
+      day: Math.min(matchDaysFor(setup.format, setup.days), 1 + Math.floor(played / ballsToday)),
       session: Math.min(
         cfg.sessionsPerDay,
         1 + Math.floor((played % ballsToday) / (cfg.oversPerSession * 6)),
@@ -993,6 +1011,10 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     if (phase !== 'IN_PLAY' || !state) return null;
     const ball = stepBall(state, inningsRng, { ...overrides, hooks: ask ? askHooks : undefined });
     if (ball) raiseAlerts(ball);
+    if (declareHint !== null && !state.complete && state.runs >= declareHint) {
+      declareHint = null;
+      addAlert('INNINGS', 'al.declareHint', { score: `${state.runs}/${state.wickets}` });
+    }
     if (state.complete) closeInnings();
     return ball;
   }
@@ -1115,8 +1137,8 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
 
       // A four-day match almost never gets four full days: slow over rates,
       // bad light and the weather all take time away.
-      let oversLost = matchDaysFor(setup.format) * cfg.slowOverRatePerDay;
-      for (let d = 1; d <= matchDaysFor(setup.format); d += 1) {
+      let oversLost = matchDaysFor(setup.format, setup.days) * cfg.slowOverRatePerDay;
+      for (let d = 1; d <= matchDaysFor(setup.format, setup.days); d += 1) {
         const wet = weather.rainRisk / 100;
         if (rng.chance(cfg.washoutChance + wet * 0.35)) {
           const lost = cfg.oversPerDay * rng.range(0.55, 1);
@@ -1134,7 +1156,7 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
       }
       maxMatchBalls = Math.max(
         cfg.oversPerDay * 6,
-        Math.floor((matchDaysFor(setup.format) * cfg.oversPerDay - oversLost) * 6),
+        Math.floor((matchDaysFor(setup.format, setup.days) * cfg.oversPerDay - oversLost) * 6),
       );
 
       // The side batting first declares once it has enough, or has used too
@@ -1262,6 +1284,11 @@ export function createLiveMatch(setup: LiveMatchSetup): LiveMatch {
     },
 
     toEnd(overrides) {
+      // Handing the rest of the match over: the AI captain declares again, for the innings in progress too.
+      handedOver = true;
+      if (state && !state.complete && plannedDeclare !== null && state.setup.battingTeamId === setup.userTeamId) {
+        state.setup = { ...state.setup, declareAt: plannedDeclare };
+      }
       if (phase === 'TOSS') this.doToss();
       let guard = 0;
       while (phase !== 'COMPLETE' && guard < 20) {

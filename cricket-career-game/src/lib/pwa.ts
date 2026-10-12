@@ -1,7 +1,8 @@
 /**
  * The installable app: registers the service worker in production builds,
  * keeps the browser's install prompt so the game can offer "Install app",
- * and reports when a new version is ready.
+ * and reports when a new version is ready (checked on load, on returning to
+ * the app, and every half hour).
  */
 import { create } from 'zustand';
 
@@ -20,6 +21,9 @@ interface PwaState {
   /** iOS Safari installs from the Share menu instead of a prompt. */
   iosManual: boolean;
 }
+
+/** How often an open app asks the server for a new version. */
+const UPDATE_CHECK_MS = 30 * 60 * 1000;
 
 let deferred: BeforeInstallPromptEvent | null = null;
 let waiting: ServiceWorker | null = null;
@@ -89,6 +93,15 @@ export function setupPwa(): void {
           usePwa.setState({ updateReady: true });
         }
         reg.addEventListener('updatefound', () => track(reg.installing));
+        // A phone keeps the app open for days: look for a new version whenever
+        // it comes back to the front, and every half hour while it is open.
+        const check = () => {
+          void reg.update().catch(() => {});
+        };
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') check();
+        });
+        window.setInterval(check, UPDATE_CHECK_MS);
       })
       .catch(() => {
         // Offline play is a bonus: the game still works without it.

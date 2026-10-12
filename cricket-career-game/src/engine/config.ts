@@ -544,7 +544,9 @@ export const COMPETITION_SCORING: Record<string, ScoringProfile> = {
 };
 
 /** Days a multi-day match lasts: five for a Test, four for first-class cricket. */
-export function matchDaysFor(format: string): number {
+/** Days of play in a multi-day match: the fixture's own when it has them, else the format's usual length. */
+export function matchDaysFor(format: string, scheduled?: number): number {
+  if (scheduled && scheduled > 1) return scheduled;
   return format === 'TEST' ? MATCH.multiDay.testDays : MATCH.multiDay.days;
 }
 

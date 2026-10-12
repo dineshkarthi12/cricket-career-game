@@ -394,6 +394,8 @@ export function buildMatch(
     },
     month: Number(fixture.date.slice(5, 7)),
     region: climateOfVenue(venue),
+    // As long as the calendar says: a five-day Ranji knockout is played over five days.
+    days: isLimitedOvers(format) ? 1 : Math.max(1, Math.round((Date.parse(fixture.endDate) - Date.parse(fixture.date)) / 86_400_000) + 1),
   };
 
   return { setup, homeXi, awayXi, userTeamId, oppositionTeamId };
