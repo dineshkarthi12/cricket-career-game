@@ -2199,3 +2199,21 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   captain of India picks the XI in all three formats (`picksXiFor` in
   `engine/career/captaincy.ts`, the match store's `picksXi`); the toss,
   field, bowling and delegation stay with that format's captain.
+## Fan following
+- **Fan posts** (`engine/pro/fans.ts`): after each senior match that makes
+  the media (`mediaAfterMatch`), three fans post about it - hype after a
+  hundred or a five-for, praise for a fifty or three wickets, a troll after
+  a duck, a cheap dismissal or an expensive spell, a shrug on a quiet day,
+  and a post about the result. Posts are i18n keys (`fan.post.<kind>.<n>`)
+  with values, so the feed reads in Tamil too; a match never repeats a
+  line, and the last six posts' lines are avoided where possible.
+- **Trending**: a hundred, a five-for or a player-of-the-match day sets a
+  hashtag trending (`#Kumar112`) for a week, on the Community screen and
+  the Home card.
+- **Followers over time**: one point per such match and per headline
+  moment (`spotlightMoment`), thinned past 160 points; a time-scaled area
+  chart on the Community screen (lazy-loaded with recharts).
+- **Milestones**: 10K, 100K, 1M, 10M and 50M followers each bring an inbox
+  note, a career event and a Fan Zone story, once.
+- Save: the new `FanState` fields are optional, so older saves need no
+  migration and simply start the feed and chart from their next match.

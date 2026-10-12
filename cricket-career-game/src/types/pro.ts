@@ -310,6 +310,39 @@ export interface MediaStory {
   likes: number;
 }
 
+/** What a fan post feels like. */
+export type FanMood = 'HYPE' | 'PRAISE' | 'NEUTRAL' | 'TROLL';
+
+/**
+ * A fan's post about the player. The words are an i18n key (`fan.post.*`)
+ * and its values, so the feed reads in the app's language.
+ */
+export interface FanPost {
+  id: Id;
+  date: ISODate;
+  handle: string;
+  key: string;
+  params: Record<string, string | number>;
+  mood: FanMood;
+  likes: number;
+  /** The match it is about, when there is one. */
+  matchId: Id | null;
+}
+
+/** The following on one day: one point per match (and milestone), for the growth chart. */
+export interface FollowerPoint {
+  date: ISODate;
+  followers: number;
+}
+
+/** A hashtag the player is trending under, after a big day. */
+export interface FanTrend {
+  tag: string;
+  date: ISODate;
+  /** Posts under the tag. */
+  posts: number;
+}
+
 export interface FanState {
   /** Social following. */
   followers: number;
@@ -318,6 +351,14 @@ export interface FanState {
   /** 0-100: media pressure after failures; eases with runs and wickets. */
   pressure: number;
   stories: MediaStory[];
+  /** Fans' posts, newest first (missing on older saves). */
+  posts?: FanPost[];
+  /** The following over time, oldest first (missing on older saves). */
+  history?: FollowerPoint[];
+  /** Follower milestones reached, e.g. 10000, 100000 (missing on older saves). */
+  milestones?: number[];
+  /** The latest trending hashtag (missing on older saves). */
+  trend?: FanTrend | null;
 }
 
 export type LeadershipLevel = 'STATE' | 'IPL' | 'INDIA';
