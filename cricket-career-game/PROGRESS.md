@@ -2246,3 +2246,11 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   controls (the pinned phone bar and the full controls) whenever the
   captain may declare, and asks before it closes the innings. The Captain
   panel keeps its button too.
+
+## Fix: the retention offer had no buttons on My IPL
+- Home's "Answer the offer" opens `/auction`, which since My IPL opens on
+  that tab - but the retention offer (and a trade offer) could only be
+  answered on Contract & seasons, so the buttons seemed to be missing. My
+  IPL now puts any open decision first ("Your decision": accept, decline
+  or name a price; accept a trade or stay), and Where you stand explains
+  the offer instead of offering "Go into the auction".

@@ -14,6 +14,7 @@ import { cn } from '@/lib/cn';
 import { useT } from '@/i18n/react';
 import type { Key } from '@/i18n/core';
 import { useGameStore } from '@/store/gameStore';
+import { RetentionOfferPanel } from './RetentionOfferPanel';
 import type { GameState, IplDeal } from '@/types';
 
 const HOW_ICON = { AUCTION: Gavel, RETAINED: Repeat, TRADE: Handshake, REPLACEMENT: UserPlus } as const;
@@ -37,6 +38,7 @@ export function nextMegaAuction(state: GameState): number {
 export function IplOverview({ state, onOpenTab }: { state: GameState; onOpenTab: (tab: string) => void }) {
   const t = useT();
   const requestAuction = useGameStore((s) => s.requestAuction);
+  const answerTrade = useGameStore((s) => s.answerTrade);
   const ipl = state.pro.ipl;
   const deals = iplDeals(state);
   const preview = auctionPreview(state);
@@ -45,8 +47,26 @@ export function IplOverview({ state, onOpenTab }: { state: GameState; onOpenTab:
   const mega = nextMegaAuction(state);
   const team = ipl.franchiseId ? state.teams[ipl.franchiseId] : null;
 
+  const trade = ipl.tradeOffer;
   return (
     <div className="flex flex-col gap-3">
+      {/* A decision waiting on the player comes first: the Home "Answer the offer" button lands here. */}
+      {ipl.retentionOffer ? (
+        <Card className="border-2 border-brand-gold">
+          <CardHeader title={t('pro.my.decide')} className="mb-2" />
+          <RetentionOfferPanel offer={ipl.retentionOffer} />
+        </Card>
+      ) : null}
+      {trade ? (
+        <Card className="border-2 border-brand-blue">
+          <CardHeader title={t('pro.my.decide')} className="mb-2" />
+          <p className="text-[13px] font-semibold text-ink">{t('pro.ct.trade', { team: franchiseName(trade.franchiseId), salary: formatLakh(trade.salary) })}</p>
+          <div className="mt-2 flex gap-2">
+            <button type="button" onClick={() => answerTrade(true)} className="rounded-full bg-brand-blue px-4 py-1.5 text-[13px] font-semibold text-white">{t('decisions.acceptTrade')}</button>
+            <button type="button" onClick={() => answerTrade(false)} className="rounded-full border border-line bg-surface px-4 py-1.5 text-[13px] font-semibold text-ink">{t('decisions.stay')}</button>
+          </div>
+        </Card>
+      ) : null}
       <Card>
         <CardHeader title={t('pro.my.where')} className="mb-2" />
         {ipl.contract ? (
@@ -65,7 +85,9 @@ export function IplOverview({ state, onOpenTab }: { state: GameState; onOpenTab:
         <div className="mt-3 rounded-tile bg-page p-3 text-[13px] text-ink">
           <p className="font-semibold">{t('pro.my.nextMega', { date: formatLongDate(`${mega}-12-16`) })}</p>
           <p className="mt-0.5 text-[12.5px] text-ink-muted">
-            {ipl.contract
+            {ipl.retentionOffer
+              ? t('pro.my.whyOffer', { team: franchiseName(ipl.retentionOffer.franchiseId) })
+              : ipl.contract
               ? ipl.intoAuction
                 ? t('pro.my.whyIn', { team: franchiseName(ipl.franchiseId) })
                 : t('pro.my.whyNot', { team: franchiseName(ipl.franchiseId) })
