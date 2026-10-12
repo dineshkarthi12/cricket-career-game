@@ -2254,3 +2254,11 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   IPL now puts any open decision first ("Your decision": accept, decline
   or name a price; accept a trade or stay), and Where you stand explains
   the offer instead of offering "Go into the auction".
+
+## Fix: an open app could miss updates for days
+- The service worker looked for a new version only when the page loaded. A
+  phone keeps the installed app alive in the background, so a player could
+  run an old build for days (e.g. without the retention buttons on My IPL)
+  and never see the "update" banner. `setupPwa` now also checks when the
+  app comes back to the front and every 30 minutes; the banner's Update
+  button then reloads into the new version.
