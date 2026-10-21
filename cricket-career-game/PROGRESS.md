@@ -2276,10 +2276,20 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   Trophy's are 5). `buildMatch` now passes the fixture's days
   (`setup.days`), so a match lasts as long as its calendar entry.
 
-## Balance: the career player's bowling pays off about 40% of the time
-- Batting was already tuned so a career batter a little below their team's
-  level makes a good score in around 40% of innings; bowling now matches it.
-  `STAR_EDGE.bowling.wicket` goes from 0.75 to 0.9, so a career bowler a
-  little below par takes two or more wickets in about 40% of their T20
-  matches (it was about 37%; around 54% for a bowler at par). Other bowlers
-  are untouched. `starEdge.test.ts` checks the share stays at 36-48%.
+## Balance: the career player's bowling pays off as often as their batting
+- The star edge (the career player only; AI players are untouched) now
+  gives bowling the same share of good days as batting. A par number three
+  makes 30+ in about 59% of T20s (52% a little below par); a career bowler
+  now takes 2+ wickets about as often: pace 60% / 52%, spin 57% / 52%.
+- `STAR_EDGE.bowling.wicket` is per bowling kind (pace 0.9, spin 1.4), since
+  spinners bowl fewer overs. All-rounders bat lower and bowl less, so
+  `STAR_EDGE.allRounder` scales their edge (batting 1.6, bowling 1.5):
+  their bowling now matches too (about 50-63%), and their batting rises
+  (batting all-rounder at six: 40% to 46%), though a lower-order batter
+  still faces too few balls to reach a number three's share.
+- `starEdge.test.ts` checks every bowling role stays within 10 points of the
+  batter's share.
+
+## Home: the player's age shows on phones
+- The hero card's age and country line was desktop-only; it now shows on
+  every screen size.
