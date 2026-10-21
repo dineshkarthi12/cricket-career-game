@@ -11,6 +11,7 @@ import { catchChance, nearestFielder } from './field';
 import {
   batterPower,
   batterSkill,
+  bowlerKindOf,
   bowlerSkill,
   clamp01,
   comfortShortfall,
@@ -23,7 +24,7 @@ import {
 import { commentate, prefixed, say, sayVariant } from './commentary';
 import { timingLabel, touchAngle, touchEffect, touchShot } from './touch';
 import type { Rng } from './rng';
-import type { DeliveryContext, DeliveryOutcome } from './types';
+import type { DeliveryContext, DeliveryOutcome, SimPlayer } from './types';
 import type { DismissalType, ShotType } from '@/types';
 
 /** How far off the intended spot the ball landed, 0 (perfect) to 1 (dreadful). */
@@ -305,17 +306,22 @@ export function aggressionRiskScale(context: DeliveryContext, f: DuelFactors): n
   return Math.max(0.4, Math.min(2.5, scale));
 }
 
+function isAllRounder(player: SimPlayer): boolean {
+  return player.role === 'BATTING_ALLROUNDER' || player.role === 'BOWLING_ALLROUNDER';
+}
+
 /**
  * The career player's edge on this ball: fewer wickets and more boundaries
  * when they bat, more wickets and fewer boundaries when they bowl. Both 1
  * for everyone else.
  */
 export function starScale(context: Pick<DeliveryContext, 'striker' | 'bowler'>): { wicket: number; boundary: number } {
-  const bat = Math.max(0, context.striker.starEdge ?? 0);
-  const bowl = Math.max(0, context.bowler.starEdge ?? 0);
+  const bat = Math.max(0, context.striker.starEdge ?? 0) * (isAllRounder(context.striker) ? STAR_EDGE.allRounder.batting : 1);
+  const bowl = Math.max(0, context.bowler.starEdge ?? 0) * (isAllRounder(context.bowler) ? STAR_EDGE.allRounder.bowling : 1);
+  const bowlWicket = STAR_EDGE.bowling.wicket[bowlerKindOf(context.bowler)];
   return {
     wicket:
-      Math.max(0.2, 1 - bat * STAR_EDGE.batting.wicket) * (1 + bowl * STAR_EDGE.bowling.wicket),
+      Math.max(0.2, 1 - bat * STAR_EDGE.batting.wicket) * (1 + bowl * bowlWicket),
     boundary:
       (1 + bat * STAR_EDGE.batting.boundary) * Math.max(0.5, 1 - bowl * STAR_EDGE.bowling.boundary),
   };

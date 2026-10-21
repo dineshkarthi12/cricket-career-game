@@ -93,7 +93,7 @@ export function HeroBanner({ state }: { state: GameState }) {
               {player.hometown}, {player.state}
             </p>
 
-            <p className="mt-1.5 hidden items-center gap-2 text-[13.5px] text-ink-muted md:flex">
+            <p className="mt-1 flex items-center gap-2 text-[13px] text-ink-muted md:mt-1.5 md:text-[13.5px]">
               <span>
                 {t('hero.age')} <span className="font-semibold text-ink">{player.age}</span>
               </span>

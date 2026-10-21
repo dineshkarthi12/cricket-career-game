@@ -1627,7 +1627,9 @@ export const DIFFICULTY = {
  * the ball they take more wickets and go for fewer boundaries. Scaled by the
  * difficulty's `starEdge`. Tuned so a player at their team's level makes a
  * good score (30+ in T20, 50+ in longer games) in roughly half their innings,
- * and one a little below it in around 40% - see `starEdge.test.ts`.
+ * and one a little below it in around 40%. With the ball the same: a pace or
+ * spin bowler, or an all-rounder, takes two or more T20 wickets as often as
+ * that batter makes 30+ (within 10 points) - see `starEdge.test.ts`.
  */
 /**
  * The aggression bar when a person picks the level (Live PvP, and the career
@@ -1651,11 +1653,20 @@ export const STAR_EDGE = {
     boundary: 0.08,
   },
   bowling: {
-    /** Extra wicket chance at an edge of 1. */
-    wicket: 0.75,
+    /**
+     * Extra wicket chance at an edge of 1, by bowling kind. Spinners bowl
+     * fewer overs than the quicks, so they need more per ball to have the
+     * same share of good days.
+     */
+    wicket: { PACE: 0.9, SPIN: 1.4 },
     /** Share of the boundary chance taken away at an edge of 1. */
     boundary: 0.12,
   },
+  /**
+   * All-rounders bat lower and bowl fewer overs than a specialist, so their
+   * edge is scaled up to give them the same share of good days.
+   */
+  allRounder: { batting: 1.6, bowling: 1.5 },
 } as const;
 
 export const LEGACY = {
