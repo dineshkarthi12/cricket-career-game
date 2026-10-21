@@ -2275,3 +2275,11 @@ clips moved linearly between sparse keys. This phase rebuilt those parts.
   calendar and the AI's own matches used the competition's days (the Ranji
   Trophy's are 5). `buildMatch` now passes the fixture's days
   (`setup.days`), so a match lasts as long as its calendar entry.
+
+## Balance: the career player's bowling pays off about 40% of the time
+- Batting was already tuned so a career batter a little below their team's
+  level makes a good score in around 40% of innings; bowling now matches it.
+  `STAR_EDGE.bowling.wicket` goes from 0.75 to 0.9, so a career bowler a
+  little below par takes two or more wickets in about 40% of their T20
+  matches (it was about 37%; around 54% for a bowler at par). Other bowlers
+  are untouched. `starEdge.test.ts` checks the share stays at 36-48%.

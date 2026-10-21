@@ -1627,7 +1627,9 @@ export const DIFFICULTY = {
  * the ball they take more wickets and go for fewer boundaries. Scaled by the
  * difficulty's `starEdge`. Tuned so a player at their team's level makes a
  * good score (30+ in T20, 50+ in longer games) in roughly half their innings,
- * and one a little below it in around 40% - see `starEdge.test.ts`.
+ * and one a little below it in around 40%. With the ball the same: a bowler a
+ * little below their team's level takes two or more wickets in around 40% of
+ * their T20 matches - see `starEdge.test.ts`.
  */
 /**
  * The aggression bar when a person picks the level (Live PvP, and the career
@@ -1652,7 +1654,7 @@ export const STAR_EDGE = {
   },
   bowling: {
     /** Extra wicket chance at an edge of 1. */
-    wicket: 0.75,
+    wicket: 0.9,
     /** Share of the boundary chance taken away at an edge of 1. */
     boundary: 0.12,
   },
